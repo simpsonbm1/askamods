@@ -22,6 +22,7 @@ askamods/
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
   TreeRespawnMod/            ← Mod 2: respawn trees after 3 in-game days if stump remains
+  HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -55,6 +56,27 @@ Other useful classes:
 - `Invector.vShooter.vProjectileControl` — has `minDamage` (int), `maxDamage` (int), `damageByDistance` (bool), `DropOffStart`/`DropOffEnd` (float)
 - `Invector.vShooter.vShooterWeapon` — has `chargeDamageMultiplier` (float), `chargeVelocityMultiplier` (float)
 - `Invector.vDamage` — has `damageValue` (int), `reducedDamage` (bool)
+
+### Player Character vs. Creature — separate hierarchies, not parent/child
+
+`SSSGame.Character` (base `Fusion.NetworkBehaviour`) and `SSSGame.Creature` (also base `Fusion.NetworkBehaviour`) are **independent class hierarchies**, not subtype/supertype. `PlayerCharacter : Character`, used for player avatars; `Creature` is used for monsters/NPCs. Both implement the same `IDamageReceiver`-style contract (`TakeDamage(DamageData)`, `CurrentHealth`/`MaxHealth`, `GetDamageTakenHistory()`, `IsPlayer()`, `IsAlive()`) but as separate, non-overlapping implementations.
+
+**Consequence:** a Harmony patch on `Creature.TakeDamage`/`Creature.X` (e.g. BowDamageMod's patch) only ever fires for monsters — it never sees player damage. To affect the player, patch `SSSGame.PlayerCharacter` (or `Character`, but `PlayerCharacter` overrides `TakeDamage`/`Spawned`/`Despawned`/`IsPlayer` itself, so a patch on the base `Character` method does **not** intercept calls dispatched to the `PlayerCharacter` override — patch the most-derived type).
+
+Useful `Character`/`PlayerCharacter` members:
+```
+CurrentHealth / MaxHealth   (float, public get+set)
+HasAuthority                (bool, get-only) — true only for the avatar this client controls;
+                             other players' characters in co-op are visible locally but HasAuthority == false
+GetDamageTakenHistory()     → DamageHistory
+  .LastDamageTime  (float)  — updated internally on every hit; poll this instead of subscribing
+                               to OnTakeDamage (Action-typed IL2CPP delegate, same subscription
+                               issues noted under TreeRespawnMod dead ends)
+IsInCombat()                — PlayerCharacter's own built-in combat-timeout check (fixed window,
+                               not configurable — implement your own timer via LastDamageTime instead)
+```
+
+`PlayerManager.LocalPlayer` (property on the scene's `PlayerManager` singleton) is the game's own "get the local player" accessor, but no static `PlayerManager.Instance` was found — the Harmony-Spawned-patch approach below was simpler than locating the manager instance.
 
 ### Resource / Tree System
 
@@ -157,6 +179,21 @@ WorldItemInstance                ← a specific instance of a resource in the wo
 - `Il2CppSystem.Action(methodRef)` — constructor only accepts `IntPtr` in this interop version; use MonoBehaviour Update() polling instead of subscribing to `_onNewDay`
 - Subscribing to `HarvestInteraction.OnFullyHarvested` per-instance — same IL2CPP delegate issue; checking `BiomeItemInstance.Destroyed` at tick time is simpler and equivalent
 - `BiomeItemInstance.UniqueId` as a dictionary key — NOT globally unique; it's a per-buffer index that restarts at 0 in every spatial chunk. Use world position (`GetPosition()`) as the key instead — positions are genuinely unique and stable across saves
+
+## Mod 3: HealthRegenMod — COMPLETE
+**Goal:** Regenerate player HP (default 1/sec) after 10s (configurable) without taking damage.
+**Working approach:**
+- No damage-pipeline patch needed — `PlayerCharacter`/`Character` already maintain `GetDamageTakenHistory().LastDamageTime` internally on every hit; poll it instead of patching `TakeDamage`
+- Postfix patches on `PlayerCharacter.Spawned()` and `PlayerCharacter.Despawned()` capture/release `Plugin.LocalPlayer`, gated on `HasAuthority` to pick out this client's own avatar (other players' characters are visible locally too, with `HasAuthority == false`)
+- `RegenTracker` (registered `MonoBehaviour`, `Update()` polling, same pattern as `DayTracker`) watches `Plugin.LocalPlayer`; reset tracking whenever the reference changes (covers spawn/respawn)
+- "Out of combat" detection: track `LastDamageTime`; if it hasn't changed since the previous frame, accumulate `Time.deltaTime` into a seconds-since-last-hit counter; once that counter clears `OutOfCombatSeconds`, add `RegenPerSecond * Time.deltaTime` to `CurrentHealth`, clamped to `MaxHealth`
+- Config: `HealthRegen/RegenPerSecond` (float, default 1.0), `HealthRegen/OutOfCombatSeconds` (float, default 10.0)
+- Confirmed working in-game: regen kicked in ~10s after spawning at half health; taking damage mid-regen paused it, then it resumed ~10s after the last hit
+
+**Dead ends (don't retry):**
+- `SSSGame.Creature.TakeDamage`/`CurrentHealth` for player health — `Creature` only covers monsters/NPCs; see "Player Character vs. Creature" above. Use `Character`/`PlayerCharacter` instead
+- `UnityEngine.Object.FindObjectsByType<T>()` (generic overload) — throws `MissingMethodException` through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported here); logged thousands of times per second since it was called from `Update()`
+- Downcasting a `UnityEngine.Object` to a game type via `.TryCast<T>()` — `UnityEngine.Object`'s wrapper does **not** inherit `Il2CppObjectBase` (its base chain is just `System.Object`), unlike normal game/interop types (e.g. `WorldItemInstance : Il2CppSystem.Object : Il2CppObjectBase`), so `TryCast` isn't available on it. Avoided entirely by getting an already-correctly-typed instance from a Harmony patch's `__instance` parameter instead of from a `UnityEngine.Object[]` search result
 
 ## Reference Paths
 | Purpose | Path |
