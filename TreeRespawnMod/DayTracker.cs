@@ -9,7 +9,7 @@ public class DayTracker : MonoBehaviour
 {
     void Update()
     {
-        if (Plugin.PendingRespawns.Count == 0) return;
+        if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
         var ws = WeatherSystem.Instance;
         if (ws == null) return;
@@ -57,11 +57,51 @@ public class DayTracker : MonoBehaviour
             }
         }
 
-        if (toRemove.Count > 0)
+        // Gather resources (reeds, etc.) — no stump-cancel condition, just time-based.
+        var toRemoveGather = new List<string>();
+        foreach (var kvp in Plugin.PendingGatherRespawns)
         {
-            foreach (string key in toRemove)
-                Plugin.PendingRespawns.Remove(key);
-            Plugin.SavePending();
+            string posKey = kvp.Key;
+            var (gameTimeExhausted, itemName) = kvp.Value;
+
+            float gatherThreshold = Plugin.GetGatherThreshold(itemName);
+            if (gatherThreshold <= 0)
+            {
+                // Respawn disabled for this resource type — drop it from the queue.
+                toRemoveGather.Add(posKey);
+                continue;
+            }
+
+            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst)) continue;
+
+            float elapsedDays =
+                ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
+
+            if (elapsedDays >= gatherThreshold)
+            {
+                toRemoveGather.Add(posKey);
+                try
+                {
+                    inst.Replenish();
+                    Plugin.Logger.LogInfo(
+                        $"[TreeRespawnMod] Gather resource \"{itemName}\" at {posKey} respawned ({elapsedDays:F2} days elapsed).");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogError(
+                        $"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
+                }
+            }
         }
+
+        bool anyChanges = toRemove.Count > 0 || toRemoveGather.Count > 0;
+
+        foreach (string key in toRemove)
+            Plugin.PendingRespawns.Remove(key);
+        foreach (string key in toRemoveGather)
+            Plugin.PendingGatherRespawns.Remove(key);
+
+        if (anyChanges)
+            Plugin.SavePending();
     }
 }

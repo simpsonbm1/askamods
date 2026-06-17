@@ -21,7 +21,7 @@ askamods/
   CLAUDE.md                  ← this file
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees after 3 in-game days if stump remains
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.)
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/               ← Mod 4: keep torches perpetually fueled (no resin chore)
 ```
@@ -136,12 +136,29 @@ WorldItemInstance                ← a specific instance of a resource in the wo
 4. **Count days**: Subscribe to `WeatherSystem.Instance._onNewDay`. On each new day, iterate dictionary, check if `GetDaysPassed() - dayFelled >= 3`, then call `BiomeItemDescriptor.Replenish()`.
 5. **Get `BiomeItemDescriptor` from `HarvestInteraction`**: Path TBD — `HarvestInteraction._worldInstance` → `WorldItemInstance` → need to find link to descriptor. May need to search `BiomeItemDescriptor._instances` list, or find another path. Log the `WorldItemInstance` type at runtime to discover the link.
 
-**Confirmed answers:**
+**Confirmed answers (HarvestInteraction / trees):**
 - `HarvestInteraction._worldInstance.TryCast<BiomeItemInstance>()` gives the biome instance directly; `BiomeItemInstance.Replenish()` fully respawns in place
 - Last entry in `harvestPieces` is reliably the stump (`harvestPieces` is `List<HarvestInteraction.HarvestPiece>`; element type is a nested class with `pieceId ResourcePieces` enum — no explicit stump flag, position-based)
 - `BiomeItemInstance.Replenish()` is sufficient — confirmed working in-game
 - `WeatherSystem.NetworkedCurrentGameTime` (float) persists across saves — valid for elapsed-time calculations after a full game restart
 - Save/load: implemented — queue written to `com.askamods.treerespawn.save` on each change; survives full restarts
+
+### Gather / Press-to-Collect System
+
+```
+GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
+  .GatherItemsCharge(IInteractionAgent, Int32 charges, ItemContainer) → Int32
+                                   ← safe Postfix patch point; no ref params; fires when items actually collected
+  .CheckAvailableItemCount()  → Int32   ← returns 0 when resource is fully exhausted (register respawn here)
+  ._worldInstance  (WorldItemInstance)  ← same path as HarvestInteraction; TryCast<BiomeItemInstance>() works
+  .GetGatherableItemInfo()    → ItemInfo ← yields the ITEM name (not the node/resource name — see below)
+```
+
+**Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
+- Confirmed: Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"`
+- Unconfirmed (config guesses, verify via log): `Stone`, `Mussel`, `Feathers`, `Egg`, `Carrot`, `Cabbage`, `Onion`, `Garlic`, `Beetroot`, `Mushroom`, `Water`
+
+Log line on exhaustion shows the item name: `[TreeRespawnMod] Gather resource "Thatch" exhausted at ...`
 
 ### Item Naming
 - Item names live in Unity ScriptableObject assets, not in code — read at runtime via `item.info.Name` (the `ItemInfo.Name` property)
@@ -164,22 +181,33 @@ WorldItemInstance                ← a specific instance of a resource in the wo
 - `vBowControl.OnInstantiateProjectile`, `vProjectileControl.Start()` — ASKA doesn't use these Invector hooks
 
 ## Mod 2: TreeRespawnMod — COMPLETE
-**Goal:** When a tree is felled, if the stump is NOT harvested, respawn the tree after 3 in-game days.
-**Working approach:**
+**Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.) after configurable in-game days.
+
+### Tree respawn
 - Postfix patch on `HarvestInteraction.TakeDamage` — after each hit, check `GetCurrentPieceIndex() == harvestPieces.Count - 1` to detect stump stage
 - `_worldInstance.TryCast<BiomeItemInstance>()` to get the biome instance; non-biome resources (rocks etc.) return null and are skipped
 - Store `WeatherSystem.NetworkedCurrentGameTime` at fell time; compare elapsed via `GetTimeDifferenceFromCurrentGameTimeInSeconds() / dayLength` against threshold
 - Key everything by **world position** string (`GetPosition()` rounded to 0.1m, format `x:y:z`) — `UniqueId` is NOT globally unique (see dead ends)
 - `BiomeInstancePatch` Postfix on `BiomeItemInstance.Initialize()` populates `ActiveInstances[posKey]` as world loads; `DayTracker` looks up the live instance at check time — no stale pointers stored
 - Stump-harvested detection: check `inst.Destroyed` at each tick (no event subscription needed)
-- Persistence: queue saved to `com.askamods.treerespawn.save` (posKey + gameTimeFelled per line) on every change; `LoadPending()` restores on next launch
-- Day tracking via a registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
-- Config: `TreeRespawn/RespawnDays` (float, default 3.0) — supports decimals for testing (e.g. 0.02 ≈ 20 seconds)
+- Config: `TreeRespawn/RespawnDays` (float, default 3.0)
+
+### Gather resource respawn
+- Postfix patch on `GatherInteraction.GatherItemsCharge` — fires when player/villager collects; check `CheckAvailableItemCount() == 0` to detect full exhaustion
+- Same `_worldInstance.TryCast<BiomeItemInstance>()` path; same `ActiveInstances` registry; same `Replenish()` call
+- `PendingGatherRespawns` stores `(float gameTime, string itemName)` — no stump-cancel condition; resources always respawn unless config disables them (`threshold <= 0` → drop from queue immediately)
+- Config: `[GatherRespawn]` section with one `Config.Bind<float>` per known resource (key = yielded item name, value = days). `Default` entry is the fallback for unlisted resources. `0` = disabled.
+- Substring match on item name (case-insensitive) — `"Mushroom"` matches `"Gray Mushroom"`, `"Yellow Mushroom"` etc.
+
+### Shared infrastructure
+- Persistence: `com.askamods.treerespawn.save` — sections `# tree` and `# gather`; tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers load as tree entries (backward compatible).
+- Day tracking via registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
 
 **Dead ends (don't retry):**
 - `Il2CppSystem.Action(methodRef)` — constructor only accepts `IntPtr` in this interop version; use MonoBehaviour Update() polling instead of subscribing to `_onNewDay`
 - Subscribing to `HarvestInteraction.OnFullyHarvested` per-instance — same IL2CPP delegate issue; checking `BiomeItemInstance.Destroyed` at tick time is simpler and equivalent
 - `BiomeItemInstance.UniqueId` as a dictionary key — NOT globally unique; it's a per-buffer index that restarts at 0 in every spatial chunk. Use world position (`GetPosition()`) as the key instead — positions are genuinely unique and stable across saves
+- `GatherRespawnDays` + `GatherRespawnOverrides` (single comma-separated string config) — replaced by individual `Config.Bind<float>` per resource in `[GatherRespawn]` section; much more user-friendly
 
 ## Mod 3: HealthRegenMod — COMPLETE
 **Goal:** Regenerate player HP (default 1/sec) after 10s (configurable) without taking damage.
