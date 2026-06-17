@@ -23,6 +23,7 @@ askamods/
   BowDamageMod/              ← Mod 1: buff early-game bow damage
   TreeRespawnMod/            ← Mod 2: respawn trees after 3 in-game days if stump remains
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
+  TorchFuelMod/               ← Mod 4: keep torches perpetually fueled (no resin chore)
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -194,6 +195,40 @@ WorldItemInstance                ← a specific instance of a resource in the wo
 - `SSSGame.Creature.TakeDamage`/`CurrentHealth` for player health — `Creature` only covers monsters/NPCs; see "Player Character vs. Creature" above. Use `Character`/`PlayerCharacter` instead
 - `UnityEngine.Object.FindObjectsByType<T>()` (generic overload) — throws `MissingMethodException` through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported here); logged thousands of times per second since it was called from `Update()`
 - Downcasting a `UnityEngine.Object` to a game type via `.TryCast<T>()` — `UnityEngine.Object`'s wrapper does **not** inherit `Il2CppObjectBase` (its base chain is just `System.Object`), unlike normal game/interop types (e.g. `WorldItemInstance : Il2CppSystem.Object : Il2CppObjectBase`), so `TryCast` isn't available on it. Avoided entirely by getting an already-correctly-typed instance from a Harmony patch's `__instance` parameter instead of from a `UnityEngine.Object[]` search result
+
+### Torch / Fire-Fuel System
+```
+FireStructure (Fusion.NetworkBehaviour)   ← the actual networked fuel state, one per fire-capable structure
+  .CurrentFuelVolume / .MaxFuelVolume / .CurrentFuelRatio  (Single, public get+set)
+  .fuelBurnVolumePerSecond  (Single)       ← configured burn rate; actual decrement happens via the
+                                              Attribute/VariableAttribute modifier system, not a visible
+                                              per-frame method on FireStructure itself
+  .Rpc_AddFuel(Single fuel)                ← the network-safe RPC the game itself calls when a player
+                                              manually refuels with an item (e.g. resin) — safe to call
+                                              from any client/host, replicates correctly in co-op
+  .Initialize(Structure ownerStructure)    ← fires once per instance as it spawns/loads; ownerStructure
+                                              gives access to the structure's name for filtering
+  .IsSpawned  (bool, get-only)             ← false once despawned/destroyed
+
+RefuelableInteraction (abstract) → FireInteraction → (wrapped by LightOutlet / WarmthOutlet)
+  - mirrors CurrentFuelVolume/MaxFuelVolume by forwarding to the wrapped FireStructure
+  - LightOutlet and WarmthOutlet are SEPARATE AI-dispatcher components (light vs. warmth duty) but
+    both wrap a FireInteraction → FireStructure — campfires/forges/kilns/cooking stations all use
+    FireStructure too, so filtering must happen by **structure name**, not by component type, to
+    avoid accidentally affecting non-torch fires
+```
+**Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name (e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name` used in BowDamageMod.
+
+## Mod 4: TorchFuelMod — COMPLETE
+**Goal:** Torches (placed for base lighting/decoration) should never run out of fuel/resin.
+**Working approach:**
+- Postfix patch on `FireStructure.Initialize(Structure ownerStructure)` — fires for every fire-capable structure; filter by `ownerStructure.DefaultName`/`StructureName` containing a configured substring (default `"Torch"`) so campfires/forges/kilns/cooking stations (which also use `FireStructure`) are untouched
+- Matched instances are added to `Plugin.TrackedFireStructures` (plain `List<FireStructure>`)
+- `TorchFuelTracker` (registered `MonoBehaviour`, `Update()` polling, same pattern as `DayTracker`/`RegenTracker`) checks the list every `CheckIntervalSeconds` (default 5.0); for any tracked structure with `CurrentFuelVolume < MaxFuelVolume`, calls `Rpc_AddFuel(MaxFuelVolume - CurrentFuelVolume)` to top it off exactly to max (never overfuels, so it can't trigger the "overfire/blazing" state)
+- Using the existing `Rpc_AddFuel` RPC (rather than setting `CurrentFuelVolume` directly) was a deliberate choice — it's the same network-safe path the game uses for manual resin refueling, so it works correctly in co-op regardless of which client/host has the mod installed
+- Dead/despawned entries (`!fire.IsSpawned` or null) are pruned from the tracked list each tick
+- Config: `TorchFuel/TargetStructureNames` (string, default `"Torch"`, comma list, case-insensitive substring match), `TorchFuel/CheckIntervalSeconds` (float, default 5.0)
+- Confirmed working in-game: fuel visibly ticks down for a few seconds then jumps back to max on the next check interval; tracked 4 "Flimsy Torch" structures correctly on load
 
 ## Reference Paths
 | Purpose | Path |
