@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"d:\\Claude Projects\\askamods\\_explore\"; dotnet run 2>&1)",
+      "PowerShell(cd \"d:\\Claude Projects\\askamods\\_explore\" ; dotnet run 2>&1)",
+      "PowerShell(dotnet run --project \"d:\\Claude Projects\\askamods\\_explore\\explore.csproj\" 2>&1)",
+      "PowerShell(dotnet build \"d:\\Claude Projects\\askamods\\*",
+      "PowerShell(cd \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\plugins\\TorchFuelMod\"; dotnet build 2>&1)",
+      "PowerShell(cd \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\plugins\\HealthRegenMod\"; dotnet build 2>&1)",
+      "PowerShell(Get-ChildItem \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx*",
+      "PowerShell(Get-Content \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\LogOutput.log*",
+      "PowerShell(Get-Content \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\ErrorLog.log*"
+    ]
+  }
+}

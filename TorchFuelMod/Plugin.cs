@@ -17,6 +17,8 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<string> TargetStructureNames = null!;
     internal static ConfigEntry<float> CheckIntervalSeconds = null!;
+    internal static ConfigEntry<bool> PreventRainExtinguish = null!;
+    internal static ConfigEntry<bool> AutoRelightAfterRain = null!;
 
     // Populated by FireStructurePatch as matching structures (torches) spawn/load in.
     internal static readonly List<FireStructure> TrackedFireStructures = new();
@@ -36,6 +38,18 @@ public class Plugin : BasePlugin
             key: "CheckIntervalSeconds",
             defaultValue: 5.0f,
             description: "How often (in real seconds) to top off fuel on matching structures.");
+
+        PreventRainExtinguish = Config.Bind(
+            section: "TorchFuel",
+            key: "PreventRainExtinguish",
+            defaultValue: false,
+            description: "If true, matched torches ignore weather entirely — rain and wind cannot extinguish them.");
+
+        AutoRelightAfterRain = Config.Bind(
+            section: "TorchFuel",
+            key: "AutoRelightAfterRain",
+            defaultValue: false,
+            description: "If true, any matched torch extinguished during rain is automatically re-lit when the rain stops. Has no effect if PreventRainExtinguish is also true.");
 
         ClassInjector.RegisterTypeInIl2Cpp<TorchFuelTracker>();
         var go = new GameObject("TorchFuelMod_Tracker");
