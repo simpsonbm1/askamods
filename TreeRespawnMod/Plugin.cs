@@ -48,7 +48,9 @@ public class Plugin : BasePlugin
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,
-            "Respawn days for any gather resource not listed below. Set to 0 to disable respawn.");
+            "Respawn days for any gather resource NOT explicitly listed below (fallback only). " +
+            "Does not affect the named entries below — each of those always uses its own value " +
+            "no matter what this is set to. Set to 0 to disable respawn for unlisted resources only.");
 
         void Bind(string itemName, float defaultDays, string description)
         {
@@ -56,23 +58,26 @@ public class Plugin : BasePlugin
             GatherOverridesMap[itemName] = e.Value;
         }
 
-        // Item names below are the yielded item names logged by the mod on first exhaustion.
-        // Entries marked (unconfirmed) are best guesses — check BepInEx/LogOutput.log to verify.
-        Bind("Thatch",   1.0f, "Reeds. Set to 0 to disable respawn.");
-        Bind("Berries",  2.0f, "Berry Bush. Set to 0 to disable respawn.");
-        Bind("Stick",    1.0f, "Dwarf Spruce. Set to 0 to disable respawn.");
-        Bind("Fibers",   1.5f, "Flax Bush. Set to 0 to disable respawn.");
-        Bind("Stone",    0f,   "Small Stone on ground. Default 0 = one-time pickup, no respawn. (unconfirmed item name)");
-        Bind("Mussel",   2.0f, "Mussels on rocks. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Feathers", 2.0f, "Fallen Bird's Nest feathers. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Egg",      2.0f, "Fallen Bird's Nest eggs. Set to 0 to disable respawn. (unconfirmed item name — may be 'Wild Egg')");
-        Bind("Carrot",   3.0f, "Carrot. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Cabbage",  3.0f, "Cabbage. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Onion",    3.0f, "Onion. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Garlic",   3.0f, "Garlic. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Beetroot", 3.0f, "Beetroot. Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Mushroom", 1.5f, "Mushroom (substring match covers Gray Mushroom and Yellow Mushroom too). Set to 0 to disable respawn. (unconfirmed item name)");
-        Bind("Water",    0.5f, "Natural Water Collector. Set to 0 to disable respawn. (unconfirmed item name)");
+        // Item names below are the exact names shown in the game's inventory/storage UI,
+        // confirmed in-game on 2026-06-17. Substring match is case-insensitive, so e.g.
+        // key "Mushroom" also matches "Mushrooms", "Gray Mushrooms"/"Grey Mushrooms", and
+        // "Yellow Mushrooms". Seeds and Wild Egg are bonus drops bundled with their parent
+        // gather (plants / Bird's Nest Feathers respectively) — they're never their own
+        // GatherInteraction, so they don't need (and can't use) an override entry here.
+        Bind("Thatch",      1.0f, "Reeds. Set to 0 to disable respawn.");
+        Bind("Berries",     2.0f, "Berry Bush. Set to 0 to disable respawn.");
+        Bind("Stick",       1.0f, "Dwarf Spruce. Set to 0 to disable respawn.");
+        Bind("Fiber",       1.5f, "Flax Bush. Set to 0 to disable respawn.");
+        Bind("Small Stone", 0f,   "Small Stone on ground. Default 0 = one-time pickup, no respawn.");
+        Bind("Mussels",     2.0f, "Mussels on rocks. Set to 0 to disable respawn.");
+        Bind("Feathers",    2.0f, "Fallen Bird's Nest feathers. Set to 0 to disable respawn.");
+        Bind("Carrot",      3.0f, "Carrot. Set to 0 to disable respawn.");
+        Bind("Cabbage",     3.0f, "Cabbage. Set to 0 to disable respawn.");
+        Bind("Onion",       3.0f, "Onion. Set to 0 to disable respawn.");
+        Bind("Garlic",      3.0f, "Garlic. Set to 0 to disable respawn.");
+        Bind("Beetroot",    3.0f, "Beetroot. Set to 0 to disable respawn.");
+        Bind("Mushroom",    1.5f, "Mushrooms (substring also covers Gray/Grey Mushrooms and Yellow Mushrooms). Set to 0 to disable respawn.");
+        Bind("Water",       0.5f, "Natural Water Collector. Set to 0 to disable respawn.");
 
         _saveFilePath = Path.Combine(Paths.ConfigPath, "com.askamods.treerespawn.save");
         LoadPending();
