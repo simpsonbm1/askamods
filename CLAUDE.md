@@ -155,8 +155,12 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
 ```
 
 **Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
-- Confirmed: Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"`
-- Unconfirmed (config guesses, verify via log): `Stone`, `Mussel`, `Feathers`, `Egg`, `Carrot`, `Cabbage`, `Onion`, `Garlic`, `Beetroot`, `Mushroom`, `Water`
+- All names below confirmed in-game against the inventory/storage UI (2026-06-17):
+  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fiber"` (singular)
+  - `"Small Stone"` (ground pickup), `"Mussels"`, `"Feathers"` (Bird's Nest), `"Water"` (Natural Water Collector)
+  - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
+  - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
+- **Not their own GatherInteraction** (bonus drops bundled with parent gather — can't trigger respawn): `"Seeds"` (plants), `"Wild Egg"` (Bird's Nest)
 
 Log line on exhaustion shows the item name: `[TreeRespawnMod] Gather resource "Thatch" exhausted at ...`
 

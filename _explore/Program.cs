@@ -1,50 +1,48 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 
-var asmPath = @"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop\Assembly-CSharp.dll";
 var resolver = new DefaultAssemblyResolver();
-resolver.AddSearchDirectory(@"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop");
-resolver.AddSearchDirectory(@"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\core");
-resolver.AddSearchDirectory(@"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\unity-libs");
+var dirs = new[] {
+    @"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop",
+    @"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\core",
+    @"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\unity-libs"
+};
+foreach (var d in dirs) resolver.AddSearchDirectory(d);
+var rp = new ReaderParameters { AssemblyResolver = resolver };
 
-var readerParams = new ReaderParameters { AssemblyResolver = resolver };
-var asm = AssemblyDefinition.ReadAssembly(asmPath, readerParams);
-var types = asm.MainModule.Types.SelectMany(t => new[] { t }.Concat(t.NestedTypes)).ToList();
+var asm = AssemblyDefinition.ReadAssembly(Path.Combine(dirs[0], "Assembly-CSharp.dll"), rp);
+var ss = AssemblyDefinition.ReadAssembly(Path.Combine(dirs[0], "SandSailorStudio.dll"), rp);
+var allTypes = asm.MainModule.Types.SelectMany(t => new[]{t}.Concat(t.NestedTypes))
+    .Concat(ss.MainModule.Types.SelectMany(t => new[]{t}.Concat(t.NestedTypes))).ToList();
 
-var ssPath = @"D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop\SandSailorStudio.dll";
-var ssAsm = AssemblyDefinition.ReadAssembly(ssPath, readerParams);
-var ssTypes = ssAsm.MainModule.Types.SelectMany(t => new[] { t }.Concat(t.NestedTypes)).ToList();
+var hi = allTypes.First(t => t.FullName == "SSSGame.HarvestInteraction");
 
-var allTypes = types.Concat(ssTypes).ToList();
-
-void DumpAll(string typeName)
+void IL(string mname)
 {
-    var t = allTypes.FirstOrDefault(x => x.FullName == typeName);
-    if (t == null) { Console.WriteLine($"\n[NOT FOUND] {typeName}"); return; }
-    Console.WriteLine($"\n=== {t.FullName} (base: {t.BaseType?.FullName}) ===");
-    foreach (var f in t.Fields.Where(f => !f.Name.StartsWith("NativeField") && !f.Name.StartsWith("NativeMethod")))
-        Console.WriteLine($"  [field]  {f.FieldType.Name} {f.Name}");
-    foreach (var p in t.Properties)
-        Console.WriteLine($"  [prop]   {p.PropertyType.Name} {p.Name}");
-    foreach (var m in t.Methods.Where(m => !m.IsSpecialName && !m.Name.StartsWith("Native")))
-        Console.WriteLine($"  [method] {m.ReturnType.Name} {m.Name}({string.Join(", ", m.Parameters.Select(p => p.ParameterType.Name + " " + p.Name))})");
+    var m = hi.Methods.FirstOrDefault(x => x.Name == mname);
+    if (m == null) { Console.WriteLine($"\n[no {mname}]"); return; }
+    Console.WriteLine($"\n=== HarvestInteraction.{mname} IL (calls only) ===");
+    foreach (var instr in m.Body.Instructions)
+        if (instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt)
+        {
+            var mr = instr.Operand as MethodReference;
+            if (mr != null) Console.WriteLine($"  -> {mr.DeclaringType?.Name}.{mr.Name}");
+        }
 }
+IL("TakeDamage");
+IL("_TakeDamageInternal");
+IL("_HitFromHittable");
+IL("ForceTakeDamage");
 
-void DumpEnum(string typeName)
-{
-    var t = allTypes.FirstOrDefault(x => x.FullName == typeName);
-    if (t == null) { Console.WriteLine($"\n[NOT FOUND] {typeName}"); return; }
-    Console.WriteLine($"\n=== ENUM {t.FullName} ===");
-    foreach (var f in t.Fields.Where(f => f.IsStatic))
-        Console.WriteLine($"  {f.Name} = {f.Constant}");
-}
-
-// Dump FireState enum values
-DumpEnum("SSSGame.FireStructure/FireState");
-
-// Dump WeatherManager (separate from WeatherSystem)
-DumpAll("SSSGame.WeatherManager");
-
-// Dump WeatherEventData (used in weather callbacks)
-DumpAll("SSSGame.WeatherEventData");
+// What does the despawn? Find methods that call NetworkSpawner.Despawn or runner.Despawn
+Console.WriteLine(""); Console.WriteLine("=== Callers of Despawn (NetworkSpawner/NetworkRunner) ===");
+foreach (var t in allTypes)
+    foreach (var m in t.Methods.Where(m => m.HasBody))
+        foreach (var instr in m.Body.Instructions)
+            if (instr.Operand is MethodReference mr && mr.Name == "Despawn"
+                && (mr.DeclaringType?.Name == "NetworkSpawner" || mr.DeclaringType?.Name == "NetworkRunner"))
+                Console.WriteLine($"  {t.FullName}.{m.Name} -> {mr.DeclaringType.Name}.Despawn");
