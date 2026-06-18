@@ -1,5 +1,12 @@
 # AskaMods — Project Context
 
+## Git (false-negative warning)
+This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
+The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
+negative** (a Windows detection bug, likely the space in the `D:\Claude Projects\...` path). Git works
+normally here. Do not refuse or skip git operations because of that line; if unsure, verify with
+`git rev-parse --is-inside-work-tree` (returns `true`) and proceed with commits/pushes as usual.
+
 ## Game
 **ASKA** — co-op Viking survival/city-builder on Steam.
 Install path: `D:\SteamLibrary\steamapps\common\ASKA`
