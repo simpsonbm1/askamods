@@ -211,8 +211,19 @@ Log line on exhaustion shows the item name: `[TreeRespawnMod] Gather resource "T
 - Substring match on item name (case-insensitive) — `"Mushroom"` matches `"Gray Mushroom"`, `"Yellow Mushroom"` etc.
 
 ### Shared infrastructure
-- Persistence: `com.askamods.treerespawn.save` — sections `# tree` and `# gather`; tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers load as tree entries (backward compatible).
+- Persistence: `com.askamods.treerespawn.save` — sections `# tree` and `# gather`; tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers load as tree entries (backward compatible); a legacy `# mining` section is silently skipped on load.
 - Day tracking via registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
+
+### Mining / stone-clump respawn — INVESTIGATED & ABANDONED (don't re-attempt)
+Stone clumps (`Harvest_Stone4`) are **Fusion scene objects** baked into the streamed world/chunk
+data — not `WorldItemInstance`s, not in the 364-entry Fusion prefab table, not spawned via
+`NetworkSpawner`, and they invoke **no** managed `HarvestInteraction` method while alive (only a
+post-despawn `TakeDamage` with everything nulled). Fusion has no runtime "respawn scene object"
+API, and the binary can't be dumped for deeper RE (Unity 6 → IL2CPP **metadata v39**, unsupported
+by Il2CppDumper). Full write-up + the three confirming tests: **`STONE_RESPAWN_HANDOFF.md`**.
+The only achievable-but-unbuilt alternative is respawning the loose `Item_Stone_Raw`/`Item_Wood_*`
+nodes (those ARE `InventoryItemInstance` and managed-visible). All mining code was removed from the
+mod 2026-06-18.
 
 **Dead ends (don't retry):**
 - `Il2CppSystem.Action(methodRef)` — constructor only accepts `IntPtr` in this interop version; use MonoBehaviour Update() polling instead of subscribing to `_onNewDay`

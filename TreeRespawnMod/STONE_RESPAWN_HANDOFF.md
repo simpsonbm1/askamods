@@ -1,8 +1,30 @@
 # Stone / Mining-Node Respawn — Handoff Doc
 
-**Status:** UNSOLVED. Trees + gather resources respawn fine. Stone clumps (and other
-mineable nodes) do **not** yet respawn. This doc captures everything tried so a fresh
-session (likely on a different machine) can pick up without re-deriving.
+**Status: ABANDONED (not feasible from a mod).** Trees + gather resources respawn fine and
+ship in `TreeRespawnMod`. Stone clumps do **not** respawn, and after a full investigation
+(2026-06-18) we concluded there is **no mod-reachable path** to respawn them. The mining/stone
+code was removed from the mod on 2026-06-18; this doc is kept as the record of why, so nobody
+burns time re-deriving it. **Do not re-attempt without new tooling/Unity-6 IL2CPP RE ability.**
+
+### Why it's abandoned (the short version)
+- `Harvest_Stone4` clumps are **Fusion SCENE OBJECTS** baked into the streamed world/chunk data —
+  NOT runtime-spawned network prefabs. Proven three ways (see §11): no managed `HarvestInteraction`
+  method fires for a live clump; they never go through `NetworkSpawner`; and they are absent from
+  the complete 364-entry `NetworkProjectConfig.Global.PrefabTable` (confirmed complete in-world).
+- Fusion despawns a scene object permanently when destroyed; there is no runtime "respawn scene
+  object" API short of reloading the scene/chunk. That is almost certainly *why vanilla mined nodes
+  stay mined*.
+- The only way to read the actual chunk/world-data logic would be Il2CppDumper/Ghidra, but the game
+  is **Unity 6000.3.12f1 → IL2CPP metadata v39**, which Il2CppDumper v6.7.46 does not support
+  (`not a supported version[39]`). Only Cpp2IL handles v39, and it yields rough pseudocode that would
+  still need heavy Ghidra RE — with the expected outcome being "no mod-callable path" anyway.
+
+### If you ever revisit
+- The achievable, unbuilt alternative is **loose-node respawn**: `Item_Stone_Raw` (80hp, mineable),
+  `Item_Wood_RawLog`/`RawLongStick`/`Bark` are `InventoryItemInstance` (a `WorldItemInstance`) and
+  ARE managed-visible live. The `WorldItemInstance` reactivation idea
+  (`_contextFlags &= ~c_flagDestroyed; _OnActivateInstance()`) is untested but plausible for those.
+- Or chase the clumps via Cpp2IL + Ghidra on the v39 binary (heavy, low odds).
 
 Last updated: 2026-06-18.
 
@@ -263,3 +285,92 @@ LOG whether a live stone even has a valid, non-scene-object GUID — or (B) dump
 `GameAssembly.dll` to find the manager/spawner that owns `Harvest_Stone4` and call its
 respawn path directly. Start with A's diagnostic log; it answers the make-or-break question
 (valid GUID? scene object?) in one test.
+
+---
+
+## 11. Session 2026-06-18 (continuation) — static analysis + corrected approach
+
+### Architecture confirmed via Cecil member dumps (signatures are reliable on interop DLLs)
+- **Only two `WorldItemInstance` subtypes exist: `BiomeItemInstance` and `InventoryItemInstance`.**
+  Trees/gather = `BiomeItemInstance` (→ `Replenish()` works). Stones are **neither** → they are
+  Fusion-spawned networked prefabs **outside** the `WorldItemInstance`/biome system entirely.
+  This is *why* `Replenish()` can never apply to stones — not a timing artifact.
+- **No built-in per-node respawn for stones exists.** `ResourceManager` only *finds* resources for
+  AI and *spawns new ones around the settlement* (`SpawnResourceAroundSettlement` / `_SearchForPosition`
+  → `_CompleteSpawnResource`); it never regenerates a depleted node in place. `IResourceResupply`
+  (`Activate/Available/IsActive/Request`) is implemented by **structure outlets**, not world nodes.
+  All the `Replenish` members belong to the biome system (`BiomeItemDescriptor`/`BiomeItemInstance`/
+  `BiomeProceduralDataHandler`) or to gather (`GatherInteraction.ReplenishCharges`) or fishing/
+  settlements — none apply to mined stone prefabs.
+
+### ⚠️ Direction A (FindObjects enumeration) is a DEAD END in this interop build — do not retry
+- `UnityEngine.Object`-derived interop types (`Component → … → HarvestInteraction`) expose **neither
+  `.Pointer` nor `.TryCast<T>()`** here (compile errors CS1061). Confirms the CLAUDE.md note. So a
+  `UnityEngine.Object` returned by `Object.FindObjectsByType(type,…)` (the non-generic overload does
+  compile/run) **cannot be reinterpreted or downcast** to `HarvestInteraction`. `.TryCast`/`.Pointer`/
+  `.GetIl2CppType()` ARE available on plain Il2Cpp objects like `WorldItemInstance` (base
+  `Il2CppObjectBase`), just not on the UnityEngine.Object-derived ones.
+- Corollary: also can't downcast a base `Interaction __instance` to `HarvestInteraction`.
+  **The only way to a typed live instance is a Harmony patch on a method DEFINED on
+  `HarvestInteraction` itself** (HarmonyX then hands a correctly-typed `__instance`).
+- Note on `FindObjectsByType`: the interop param is managed `System.Type`, so pass
+  `typeof(HarvestInteraction)` (NOT `Il2CppType.Of<>()`, which is `Il2CppSystem.Type`).
+
+### Current diagnostic build (deployed 2026-06-18) — awaiting in-game test
+- `Patches/HarvestLifecyclePatch.cs` (`HarvestCapture` + 5 Postfix patches) captures live, typed
+  `HarvestInteraction`s into `Plugin.LiveHarvestables` (keyed by position) from getters the HUD/
+  targeting likely calls while a stone is **alive**: `GetTotalRemainingHitPoints`,
+  `GetCurrentPieceIndex`, `GetMaxHarvestHitPoints`, `Check`, `RefreshInteractionArea`.
+  `HarvestCapture.FiredHooks` records which actually fired (tells us which path works for stones).
+- `DayTracker.RunStoneDiagnostic()` runs 3× (~6s apart) once `WeatherSystem.Instance != null`,
+  logging each live node's `_worldInstance` type, `NetworkObject`/`_hittable.Object`
+  `valid/scene/auth/guid`, HP, and parent name. **`[StoneDiag]` log lines answer: does a live stone
+  have a valid NON-scene GUID? → decides whether `runner.Spawn(guid,…)` is even viable.**
+- All of the above is clearly marked for removal once solved (search `StoneDiag` / `HarvestCapture`).
+- The old enumeration version (with `.Pointer`) was removed because it can't compile here.
+
+### Tooling note
+- `_explore/dump.ps1` drives Mono.Cecil from PowerShell for member dumps. Use this instead of the
+  compiled `_explore` exe: **Smart App Control now blocks the freshly-built `explore.dll`** (0x800711C7),
+  but loading the (signed) `Mono.Cecil.dll` into trusted `powershell.exe` works fine.
+  Usage: `& _explore/dump.ps1 -Types "SSSGame.Foo","SSSGame.Bar"`.
+
+### CONCLUSIVE in-game results (2026-06-18) — Harvest_Stone4 is a Fusion SCENE OBJECT
+Three test builds, all confirming the clumps are unreachable by managed code while alive:
+1. **No managed `HarvestInteraction` method fires for a live clump.** Capture hooks on
+   `GetTotalRemainingHitPoints`/`GetMaxHarvestHitPoints`/`GetCurrentPieceIndex`/`Check`/
+   `RefreshInteractionArea` (+ manual `_HitFromHittable`) ALL fired for ~180 other harvestables
+   (trees, and loose `Item_*` drops) but **never once for `Harvest_Stone4`**. The clump only ever
+   surfaces at the final post-despawn `TakeDamage` (everything null/zeroed). Confirmed twice with a
+   per-parent log cap so it wasn't a logging-budget artifact.
+2. **Clumps do NOT spawn through `NetworkSpawner`.** A Postfix on `NetworkSpawner._OnBeforeSpawn`
+   logged every spawn (structures, dens, villagers, warehouses, markers…) — `Harvest_Stone4` never
+   appeared, even when one was mined that session. (`TryGetPrefabID` works for real prefabs once the
+   runner is up; returns `[TypeId:xxxx]`.)
+3. **`Harvest_Stone4` is NOT in the Fusion prefab table.** Dumped all 364 entries of
+   `NetworkProjectConfig.Global.PrefabTable`; the only Stone/Harvest/Ore matches are settlement
+   structures/markers/bosses (`Structure_StoneLantern`, `StoneCutter_L*`, `*HarvestMarker`,
+   `StoneJotun*`, `HearthstoneCore*` …). No clump, no `Harvest_*` resource node.
+
+**Therefore the clumps are Fusion SCENE OBJECTS** (baked into the streamed world/chunk data), not
+runtime-spawned prefabs. Consequences:
+- `runner.Spawn(prefabId/guid, …)` is the WRONG API — there is no prefab id/guid to spawn (the stored
+  `runner.Spawn(stoneData.guid,…)` branch in `DayTracker` can never work; the captured guid is always
+  `00000000-…`). Respawning a depleted scene object needs either chunk re-streaming or a
+  world-data "destroyed" flag flip — neither has a known managed API yet.
+- ⚠️ **Do NOT force-load the prefab table at menu.** Calling `PrefabTable.TryGetPrefab` for all 364
+  ids at the main menu **crashed world-load** (Fusion expects on-demand loads). Removed.
+
+### Side discovery — loose nodes ARE managed-visible (potentially respawnable)
+The loose ground resources `Item_Stone_Raw` (80 HP, mineable), `Item_Wood_RawLog`/`RawLongStick`/
+`Bark` are **`InventoryItemInstance`** (a `WorldItemInstance` subtype) and DO fire all the
+HarvestInteraction hooks live (`_worldInstance` non-null, NetworkObject null). These are NOT the
+clumps, but the existing `WorldItemInstance` reactivation branch
+(`_contextFlags &= ~c_flagDestroyed; _OnActivateInstance()`) is worth testing on them if loose-node
+respawn is desired — separate from the (much harder) `Harvest_Stone4` clump problem.
+
+### State after this session
+All session diagnostics removed; mod restored to known-good (trees/gather working). The dormant
+non-functional stone branches in `HarvestPatch`/`DayTracker` remain but never fire usefully and
+never crash. Next real step for clumps = **Il2CppDumper on GameAssembly.dll** to find the
+chunk/scene-object streaming + world-data "destroyed" state (Direction B).
