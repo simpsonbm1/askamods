@@ -61,7 +61,10 @@ public class Plugin : BasePlugin
             "Master switch. When true, villagers ignore their assigned schedule and act on needs instead.");
 
         SleepWhenRestBelowHours = Config.Bind("DynamicNeeds", "SleepWhenRestBelowHours", 8.0f,
-            "Go to sleep when rest (0..24) drops below this many hours. Lower = sleep less often = less total sleep.");
+            "Go to sleep when rest (0..24) drops below this many hours (lower = only nap when genuinely tired). " +
+            "The mod also adopts any sleep the game forces at nightfall and shortens it, so this value no longer " +
+            "has to beat the game's bedtime. To make villagers sleep LESS overall, lower SleepHoursToFullRest " +
+            "(faster recovery) — not this value.");
 
         WakeWhenRestAboveHours = Config.Bind("DynamicNeeds", "WakeWhenRestAboveHours", 23.0f,
             "While sleeping, wake up once rest reaches this many hours (max is 24).");

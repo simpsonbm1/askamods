@@ -150,7 +150,7 @@ public class NeedsController : MonoBehaviour
                 }
                 bool happyAllowed = ht.cooldown <= 0f;
 
-                Mode next = Decide(prev, restHours, minNeed, critical, happiness,
+                Mode next = Decide(prev, restHours, surv.IsSleeping, minNeed, critical, happiness,
                     sleepBelow, wakeAbove, needBelow, needAbove,
                     happyBelow, happyUntil, ht.plateaued, happyAllowed);
                 _mode[surv] = next;
@@ -201,16 +201,20 @@ public class NeedsController : MonoBehaviour
         }
     }
 
-    private static Mode Decide(Mode prev, float restHours, float minNeed, bool critical, float happiness,
+    private static Mode Decide(Mode prev, float restHours, bool isSleeping, float minNeed, bool critical, float happiness,
         float sleepBelow, float wakeAbove, float needBelow, float needAbove,
         float happyBelow, float happyUntil, bool happyPlateaued, bool happyAllowed)
     {
-        // Sleep has top priority. Keep sleeping until rested (hysteresis), or start when tired.
+        // Sleep has top priority. Keep sleeping until rested (hysteresis); start when tired; OR adopt a
+        // sleep the GAME forced on us (isSleeping while not yet rested). The game puts villagers to bed at
+        // nightfall regardless of our all-Work schedule — adopting it lets the rest boost shorten that
+        // sleep and lets us wake them at the threshold, so a low SleepWhenRestBelowHours can't lose the
+        // "race" against the game's night sleep. Wake (schedule Sleep->Work) then ends the adopted sleep.
         if (prev == Mode.Sleep)
         {
             if (restHours < wakeAbove) return Mode.Sleep;
         }
-        else if (restHours <= sleepBelow)
+        else if (restHours <= sleepBelow || (isSleeping && restHours < wakeAbove))
         {
             return Mode.Sleep;
         }
