@@ -13,7 +13,8 @@ namespace HealthRegenMod;
 public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
-    internal static ConfigEntry<float> RegenPerSecond = null!;
+    internal static ConfigEntry<float> HealPerTick = null!;
+    internal static ConfigEntry<float> SecondsPerTick = null!;
     internal static ConfigEntry<float> OutOfCombatSeconds = null!;
 
     // Set by PlayerCharacterPatch when the locally-controlled avatar spawns; cleared on despawn.
@@ -23,11 +24,17 @@ public class Plugin : BasePlugin
     {
         Logger = base.Log;
 
-        RegenPerSecond = Config.Bind(
+        HealPerTick = Config.Bind(
             section: "HealthRegen",
-            key: "RegenPerSecond",
+            key: "HealPerTick",
             defaultValue: 1.0f,
-            description: "HP restored per second while out of combat.");
+            description: "HP restored each tick while out of combat (e.g. 3 with SecondsPerTick=5 = 3 HP every 5s).");
+
+        SecondsPerTick = Config.Bind(
+            section: "HealthRegen",
+            key: "SecondsPerTick",
+            defaultValue: 1.0f,
+            description: "Seconds between each heal tick. Set to 0 for smooth/continuous regen (HealPerTick treated as HP/sec).");
 
         OutOfCombatSeconds = Config.Bind(
             section: "HealthRegen",
@@ -43,6 +50,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"HealthRegenMod loaded. RegenPerSecond={RegenPerSecond.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}");
+        Logger.LogInfo($"HealthRegenMod loaded. HealPerTick={HealPerTick.Value}, SecondsPerTick={SecondsPerTick.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}");
     }
 }

@@ -8,6 +8,7 @@ public class RegenTracker : MonoBehaviour
     private PlayerCharacter? _trackedPlayer;
     private float _lastSeenDamageTime = -1f;
     private float _secondsSinceLastHit;
+    private float _secondsSinceLastTick;
 
     void Update()
     {
@@ -18,6 +19,7 @@ public class RegenTracker : MonoBehaviour
             _trackedPlayer = player;
             _lastSeenDamageTime = -1f;
             _secondsSinceLastHit = 0f;
+            _secondsSinceLastTick = 0f;
         }
 
         if (player == null) return;
@@ -25,6 +27,7 @@ public class RegenTracker : MonoBehaviour
         if (player.IsDead)
         {
             _secondsSinceLastHit = 0f;
+            _secondsSinceLastTick = 0f;
             return;
         }
 
@@ -37,6 +40,7 @@ public class RegenTracker : MonoBehaviour
         {
             _lastSeenDamageTime = lastDamageTime;
             _secondsSinceLastHit = 0f;
+            _secondsSinceLastTick = 0f;
         }
         else
         {
@@ -46,8 +50,29 @@ public class RegenTracker : MonoBehaviour
         if (_secondsSinceLastHit < Plugin.OutOfCombatSeconds.Value) return;
         if (player.CurrentHealth >= player.MaxHealth) return;
 
-        player.CurrentHealth = Mathf.Min(
-            player.CurrentHealth + Plugin.RegenPerSecond.Value * Time.deltaTime,
-            player.MaxHealth);
+        float interval = Plugin.SecondsPerTick.Value;
+        if (interval <= 0f)
+        {
+            // Continuous/smooth mode — HealPerTick is treated as HP per second.
+            player.CurrentHealth = Mathf.Min(
+                player.CurrentHealth + Plugin.HealPerTick.Value * Time.deltaTime,
+                player.MaxHealth);
+            return;
+        }
+
+        // Discrete tick mode: heal HealPerTick HP every `interval` seconds.
+        _secondsSinceLastTick += Time.deltaTime;
+        while (_secondsSinceLastTick >= interval)
+        {
+            _secondsSinceLastTick -= interval;
+            player.CurrentHealth = Mathf.Min(
+                player.CurrentHealth + Plugin.HealPerTick.Value,
+                player.MaxHealth);
+            if (player.CurrentHealth >= player.MaxHealth)
+            {
+                _secondsSinceLastTick = 0f;
+                break;
+            }
+        }
     }
 }
