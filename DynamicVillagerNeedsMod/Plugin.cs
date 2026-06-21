@@ -11,9 +11,11 @@ using UnityEngine;
 namespace DynamicVillagerNeedsMod;
 
 // Replaces ASKA's clock-based villager schedule (Sleep/Work/Leisure hours you assign per villager)
-// with needs-based behavior: a villager sleeps when tired, takes leisure when its happiness dips,
-// and otherwise works. We drive Villager.scheduleOverride / CurrentBehaviorType every tick so the
-// assigned schedule is ignored. Villager-only; the player is never touched.
+// with needs-based behavior: a villager sleeps when tired, takes leisure to address a basic need
+// (hunger/thirst/cold) or to recover low happiness, and otherwise works. We rewrite the villager's
+// real per-hour schedule (Rpc_ChangeSchedule) to the needs-chosen activity so the native task pipeline
+// runs. Leisure can also actively top happiness up (so it's worth taking). Villager-only; the player
+// is never touched.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -24,11 +26,27 @@ public class Plugin : BasePlugin
     // Sleep need — rest is a 0..24 "hours of rest" pool that drains while awake, fills while asleep.
     internal static ConfigEntry<float> SleepWhenRestBelowHours = null!;
     internal static ConfigEntry<float> WakeWhenRestAboveHours = null!;
+    // While asleep, optionally speed rest recovery so each sleep is shorter (= less total sleep). Lowering
+    // the wake threshold alone doesn't reduce total sleep; the sleep fraction is set by gain vs drain rate.
+    internal static ConfigEntry<float> SleepHoursToFullRest = null!;
 
-    // Leisure need — derived from happiness (there is no separate leisure stat). Set the trigger to 0
-    // to disable leisure entirely (villagers then only sleep or work).
+    // Leisure (basic-need safety net) — triggered by low food/water only. Cold is left to the game's own
+    // warm-up behavior (forcing leisure for warmth made villagers thrash fire<->work). 0 disables it.
+    internal static ConfigEntry<float> LeisureWhenNeedBelow = null!;
+    internal static ConfigEntry<float> LeisureUntilNeedAbove = null!;
+
+    // Fire warm-up speed — cold itself is handled by the game, but this scales how fast villagers warm up
+    // once they're at a heat source, so warm-up trips are shorter and they get back to work sooner.
+    internal static ConfigEntry<float> FireWarmthMultiplier = null!;
+
+    // Leisure (happiness management) — take leisure when happiness dips, return when it recovers. To keep
+    // this from trapping a villager (the old failure mode), leisure can actively pump happiness up, and we
+    // also bail out of leisure if happiness plateaus (e.g. capped below the exit threshold by housing).
     internal static ConfigEntry<float> LeisureWhenHappinessBelow = null!;
     internal static ConfigEntry<float> LeisureUntilHappinessAbove = null!;
+    // While in leisure, add happiness so an empty->full restore would take this many in-game hours
+    // (on top of the game's own leisure rate). 0 = don't boost (use vanilla rate only).
+    internal static ConfigEntry<float> LeisureHoursToFullHappiness = null!;
 
     internal static ConfigEntry<bool> DebugLogging = null!;
 
@@ -46,20 +64,44 @@ public class Plugin : BasePlugin
             "Go to sleep when rest (0..24) drops below this many hours. Lower = sleep less often = less total sleep.");
 
         WakeWhenRestAboveHours = Config.Bind("DynamicNeeds", "WakeWhenRestAboveHours", 23.0f,
-            "While sleeping, wake up once rest reaches this many hours (max is 24). Lower = shorter sleeps.");
+            "While sleeping, wake up once rest reaches this many hours (max is 24).");
+
+        SleepHoursToFullRest = Config.Bind("DynamicNeeds", "SleepHoursToFullRest", 3.0f,
+            "While asleep, actively add rest so a full empty->full (0->24) recovery takes about this many " +
+            "in-game hours (on top of the game's own rate). This is how you make villagers sleep LESS overall " +
+            "— lower = faster recovery = shorter sleeps. Set to 0 to use only the game's (slow) rest rate.");
+
+        LeisureWhenNeedBelow = Config.Bind("DynamicNeeds", "LeisureWhenNeedBelow", 0.15f,
+            "Take leisure to address a basic need when the lowest of food/water/warmth (each 0..1) drops " +
+            "below this, or when the villager is already starving/dehydrated/freezing. This is just a " +
+            "safety net — villagers handle most needs on their own while working. Set to 0 to disable it.");
+
+        LeisureUntilNeedAbove = Config.Bind("DynamicNeeds", "LeisureUntilNeedAbove", 0.5f,
+            "While taking leisure for a basic need, return to work once food and water recover above this " +
+            "(0..1). Must be >= LeisureWhenNeedBelow.");
+
+        FireWarmthMultiplier = Config.Bind("DynamicNeeds", "FireWarmthMultiplier", 2.0f,
+            "Multiply how fast villagers warm up at a fire/heat source. 1 = vanilla speed; 2 = twice as " +
+            "fast (shorter warm-up trips, more time working). Only speeds up warming while they're already " +
+            "near heat — it never warms them out in the cold and never overrides the game's warm-up timing.");
 
         LeisureWhenHappinessBelow = Config.Bind("DynamicNeeds", "LeisureWhenHappinessBelow", 0.6f,
-            "Take leisure when happiness (0..1) drops below this. This is the self-correcting safety net: " +
-            "if working more / sleeping less ever lowers happiness, villagers relax until it recovers. " +
-            "Set to 0 to disable leisure (villagers only sleep or work).");
+            "Take leisure when happiness (0..1) drops below this. Set to 0 to disable happiness-based leisure " +
+            "(villagers then only take leisure for basic needs).");
 
         LeisureUntilHappinessAbove = Config.Bind("DynamicNeeds", "LeisureUntilHappinessAbove", 0.78f,
-            "While taking leisure, return to work once happiness recovers above this (0..1). " +
-            "Must be >= LeisureWhenHappinessBelow.");
+            "While taking leisure for happiness, return to work once happiness recovers above this (0..1). " +
+            "If a villager's happiness is capped below this (bad housing etc.) they leave leisure anyway once " +
+            "it plateaus, so they don't get stuck. Must be >= LeisureWhenHappinessBelow.");
 
-        DebugLogging = Config.Bind("DynamicNeeds", "DebugLogging", true,
-            "Log each villager's need-driven mode changes plus a periodic rest/happiness summary. " +
-            "Set to false once you're happy with the values.");
+        LeisureHoursToFullHappiness = Config.Bind("DynamicNeeds", "LeisureHoursToFullHappiness", 4.0f,
+            "While in leisure, actively add happiness so a full empty->full restore takes about this many " +
+            "in-game hours (on top of the game's own leisure rate) — this makes leisure actually worth taking. " +
+            "Lower = faster happiness recovery (near 2 pegs villagers at max quickly). Set to 0 for vanilla rate.");
+
+        DebugLogging = Config.Bind("DynamicNeeds", "DebugLogging", false,
+            "Log each villager's need-driven mode changes plus a periodic rest/happiness/needs summary. " +
+            "Off by default (it's very verbose); turn on only when tuning thresholds.");
 
         ClassInjector.RegisterTypeInIl2Cpp<NeedsController>();
         var go = new GameObject("DynamicVillagerNeedsMod_Controller");
@@ -70,7 +112,9 @@ public class Plugin : BasePlugin
         harmony.PatchAll();
 
         Logger.LogInfo($"DynamicVillagerNeedsMod loaded. Enabled={Enabled.Value}, " +
-                       $"sleep<{SleepWhenRestBelowHours.Value}h wake>{WakeWhenRestAboveHours.Value}h, " +
-                       $"leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value}");
+                       $"sleep<{SleepWhenRestBelowHours.Value}h wake>{WakeWhenRestAboveHours.Value}h restBoost={SleepHoursToFullRest.Value}h, " +
+                       $"need-leisure<{LeisureWhenNeedBelow.Value} until>{LeisureUntilNeedAbove.Value} (food/water only) warmthx{FireWarmthMultiplier.Value}, " +
+                       $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
+                       $"boost={LeisureHoursToFullHappiness.Value}h");
     }
 }

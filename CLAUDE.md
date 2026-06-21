@@ -31,6 +31,7 @@ askamods/
   TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.)
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/               ← Mod 4: keep torches perpetually fueled (no resin chore)
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -280,6 +281,66 @@ RefuelableInteraction (abstract) → FireInteraction → (wrapped by LightOutlet
 - Dead/despawned entries (`!fire.IsSpawned` or null) are pruned from the tracked list each tick
 - Config: `TorchFuel/TargetStructureNames` (string, default `"Torch"`, comma list, case-insensitive substring match), `TorchFuel/CheckIntervalSeconds` (float, default 5.0)
 - Confirmed working in-game: fuel visibly ticks down for a few seconds then jumps back to max on the next check interval; tracked 4 "Flimsy Torch" structures correctly on load
+
+### Villager Schedule / Needs / Happiness System
+
+**Survival components**
+```
+SSSGame.CharacterSurvival (base) → SSSGame.VillagerSurvival
+  GetNormalizedFood() / GetNormalizedWater() / GetNormalizedWarmth()  (Single 0..1, lower = more urgent)
+  IsStarving / IsDehydrated / IsFreezing / IsSuffering  (bool — the game's own critical-need flags)
+  _foodVAttr / _waterVAttr / _warmthVAttr / _energyVAttr / _healthVAttr  (VariableAttribute — writable)
+VillagerSurvival
+  _restVariableAttribute  (VariableAttribute, range 0..24 "hours of rest"; drains awake, fills asleep)
+  GetVillager() → Villager
+  _hasAuthority  (bool, inherited from CharacterSurvival) — gate all writes on this (host-authoritative)
+  Spawned()  — Postfix here to register each villager into a tracked list
+```
+
+**Happiness — it's a writable VariableAttribute (key finding)**
+```
+Villager._happinessVAttr  (VariableAttribute, writable) ← the REAL happiness store; SetValue() sticks
+Villager.NormalizedHappiness (Single 0..1, GET-ONLY) / Villager.HappinessCap (GET-ONLY) — derived from it
+VillagerHappiness (via Villager.GetHappinessManager()): SleepRate/WorkRate/LeisureRate are GET-ONLY —
+  you CANNOT scale the leisure happiness rate; instead write _happinessVAttr directly each tick.
+```
+`VariableAttribute` API: `GetValue()`, `SetValue(Single)`, `GetNormalizedValue()`, `min`, `max`. Boost a need by adding `addNormalized * (max - min)` to the value, clamped to `max`; the game re-clamps happiness to `HappinessCap` (so a housing-capped villager shows up as a plateau — happiness stops rising despite the write).
+
+**Schedule (the thing that actually dispatches tasks)**
+```
+enum SSSGame.UI.ScheduleType { Sleep, Work, Leisure }   (use the enum values; never hardcode the ints)
+Villager.scheduleMaxHourCount  (STATIC — access via the type, CS0176 if via an instance)
+Villager._ScheduleToNetworkSchedule(Il2CppStructArray<int>) → long   (array holds ScheduleType underlying ints)
+Villager.Rpc_ChangeSchedule(long packed)   (network-safe; host/authority only)
+Villager.__NetworkedSchedule  (Int64) — current packed schedule; snapshot for restore-on-shutdown
+Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehaviorType (ScheduleType)
+```
+
+**Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
+
+## Mod 5: DynamicVillagerNeedsMod — COMPLETE
+**Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours) with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without reducing happiness.** Villager-only; the player is never touched.
+
+**Working approach:**
+- `NeedsController` (registered `MonoBehaviour`, `Update()` polling, same pattern as `DayTracker`/`RegenTracker`/`TorchFuelTracker`); `VillagerSurvivalSpawnedPatch` Postfix on `VillagerSurvival.Spawned()` registers each villager. Everything gated on `surv._hasAuthority` (host/solo).
+- **Drives the REAL per-hour schedule**, not the override fields: each mode change collapses the villager's whole schedule to one activity via `_ScheduleToNetworkSchedule(arr)` → `Rpc_ChangeSchedule(packed)` (idempotent — only on change). The original packed schedule is snapshotted on first touch and restored on `OnDestroy`/`OnApplicationQuit`.
+- **Decision (`Decide`, with hysteresis):** Sleep (top priority) when `rest <= SleepWhenRestBelowHours`, stay asleep until `rest >= WakeWhenRestAboveHours`; else Leisure if food/water critically low **or** happiness below its trigger; else Work.
+- **Direct VAttr writes (the core trick), rate derived from in-game hour length:**
+  - *Happiness:* while in Leisure, add to `_happinessVAttr` so an empty→full restore takes `LeisureHoursToFullHappiness` in-game hours. Makes leisure actually worth taking (vanilla rate was painfully slow — ~2 in-game days 0.4→0.75).
+  - *Rest:* while asleep, add to `_restVariableAttribute` so a 0→24 restore takes `SleepHoursToFullRest` in-game hours → shorter sleeps. (Lowering the wake threshold alone does NOT reduce total sleep; sleep *fraction* = drain-rate/(drain+gain), so you must raise the gain rate.)
+  - *Warmth:* `FireWarmthMultiplier` adds extra warmth **only when warmth is already rising** (i.e. the game has them at a heat source) → shorter warm-up trips, never warms them out in the cold, never overrides the game's *when*-to-warm decision.
+- **Happiness cap / plateau safety:** if happiness can't rise under the boost (capped below the exit threshold by housing etc.), a windowed plateau check sends the villager back to Work and starts a cooldown so they don't oscillate Work↔Leisure. (In practice all tested villagers had `cap=100`, so this rarely fires, but it's the guard against the original "stuck in leisure forever" trap.)
+- **Cold is deliberately NOT a leisure trigger.** The game's own `warmUpBehaviour`/`_warmUpQuest` warms villagers *fully* during work; forcing a leisure trip for warmth only warmed them partway and made them thrash fire↔work. Warmth is read for logging only; `FireWarmthMultiplier` tunes the game's warm-up speed without taking over the behavior.
+- **Config `[DynamicNeeds]`** (`BepInEx/config/com.askamods.dynamicneeds.cfg`): `Enabled` (true); `SleepWhenRestBelowHours` (8); `WakeWhenRestAboveHours` (23); `SleepHoursToFullRest` (3, 0=vanilla); `LeisureWhenNeedBelow` (0.15, food/water only, 0=off) / `LeisureUntilNeedAbove` (0.5); `LeisureWhenHappinessBelow` (0.6, 0=off) / `LeisureUntilHappinessAbove` (0.78); `LeisureHoursToFullHappiness` (4, 0=vanilla); `FireWarmthMultiplier` (2.0, 1=vanilla); `DebugLogging` (false).
+- Confirmed in-game across iterative tests: villagers perform real work tasks; happiness boost visibly moves `_happinessVAttr`/`NormalizedHappiness`; sleep wakes exactly at the threshold (no oversleep) and `SleepHoursToFullRest=3` shortens it; warmth thrash eliminated; food/water self-manage and the leisure net rarely fires.
+
+**Dead ends (don't retry):**
+- `Villager.overrideSchedule` + `scheduleOverride` + `CurrentBehaviorType` — drives the FSM behavior **label** (and suppresses sleep) but **bypasses the task-dispatch pipeline**: villagers stand idle (`TaskRunner` active-task null) even at midday with a valid workstation. Use `Rpc_ChangeSchedule` (the real schedule) instead — that's the only thing that dispatches work.
+- `VillagerHappiness.LeisureRate`/`WorkRate`/`SleepRate` — **get-only**, can't scale the rate. Write `_happinessVAttr` directly instead.
+- Warmth/cold as a leisure trigger (incl. the `IsFreezing` flag) — caused villagers to thrash between a fire and their job (each warmth-leisure trip only warmed to the exit threshold, then they immediately got cold again). Hand cold back to the game.
+- Lowering `WakeWhenRestAboveHours` to "sleep less" — only shortens each sleep's cycle, not the total sleep *fraction*; raise the rest-gain rate (`SleepHoursToFullRest`) instead.
+- `Il2CppSystem.Action` event subscriptions (`_onNewDay`, `OnBehaviorTypeChanged`, etc.) — same interop delegate issues noted for the other mods; use `Update()` polling.
+- The `sched=match/REVERTED` readback diagnostic shows `REVERTED` for all-Sleep/all-Leisure but `match` for all-Work — this is a packing/representation quirk of comparing `__NetworkedSchedule` to our packed value, **not** a functional revert: behavior always followed our schedule. Don't chase it.
 
 ## Reference Paths
 | Purpose | Path |
