@@ -177,6 +177,33 @@ Log line on exhaustion shows the item name: `[TreeRespawnMod] Gather resource "T
 - Known item names: **"Flimsy Shortbow"** (first bow), **"Wood Arrow"** (early arrows)
 - In ranged `DamageData`, `weapon` = the **arrow**, not the bow — match on arrow name
 
+### Structures, Workstations & the AI Quest/Task system (general)
+- **`SSSGame.Structure`** is the base building (a `NetworkBehaviour`). Useful members: `StructureName` / `DefaultName` / `GetName()` (display name, same role as `ItemInfo.Name` — use for substring filtering), `storageSupplies` (array of the structure's `StorageSupply` dispatchers), `Settlement`, `Parent`/`Root`, `OnSpawned`/`OnStructureDeath` actions.
+- **Get a typed component off a structure:** `structure.TryGetStructureComponent<T>(out T comp)` (bool) or `GetStructureComponent<T>()` / `FindStructureComponent(predicate)`. This is how you ask "is this building a `CraftingStation`/`ResourceStorage`/…".
+- **Workstations** (`ResourceStorage`, `CraftingStation`, `CookingStation`, etc.) are `Workstation : NetworkBehaviour` structure-components. Each owns a set of AI **Quests** (`SSSGame.AI.*Quest`, e.g. `CrafterFetchQuest`, `SupplyPatrolQuest`, `GatherAndHarvestQuest`) exposed as `vFSMBehaviour` fields, and runs them through **FSM nodes** under `SSSGame.AI.FSM.*` (ScriptableObjects — their method bodies are NOT dumpable in IL2CPP, only signatures). Active work is tracked by `SSSGame.AI.TaskRunner`.
+- **Per-villager whitelisting** exists on workstations: `IsWhitelisted(Villager)`, `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which villagers may use this station."
+
+### Settlement Hauling / Storage / Task-Dispatcher System (Mod 6 groundwork)
+How resources get moved into the central **warehouse** (a `ResourceStorage` building) — the system behind the "warehouse worker steals crafter materials" loop:
+```
+SSSGame.AI.TaskDispatcher (MonoBehaviour)
+  → SSSGame.AI.StructureTaskDispatcher
+       .OwnerStructure (Structure)   ← the building this dispatcher belongs to (key back-reference)
+       .Initialize(Structure) / _LinkToStructure(Structure)
+       → SSSGame.StorageSupply        ← "here are items available to be hauled from this structure"
+            .IsAvailable() (bool), .interaction (StorageInteraction), .taskMaxQuota
+       → SSSGame.DependendTaskStorageSupply : StorageSupply  (gather-dependent variant)
+
+SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
+  .CreateOrUpdateTasksFromStorageSupply(StorageSupply, List taskAgentsToVillagers, bool addForChildren)
+                                        ← builds the "haul these items to me" tasks from a supply
+  .CanCreateStorageTaskForItemInfo(StorageSupply, ItemInfo) → bool   ← clean per-item GATE (prefix here)
+  .GetGatheredItemQuantity / GetGatheredItemPriority / FillResourceStorageTaskDatas
+  .excludedResourcesList (ItemInfoList), onlyGatherNativeItems / _nativeItemsFilter — built-in exclusions
+```
+- **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation` registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`) and its **output**; the output is additionally wrapped in **`CraftingStation/OutputStorageWrapper`** (`._cs`, `._ss` = the output `StorageSupply`). The warehouse hauling the *input* supplies is the theft loop (crafter re-fetches → warehouse re-hauls).
+- **To filter what the warehouse hauls:** prefix `ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply ss, ItemInfo)` and inspect `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+
 ## Mod 1: BowDamageMod — COMPLETE
 **Goal:** Buff "Flimsy Shortbow" and its arrows without touching mid/late-game weapons.
 **Working approach:**
