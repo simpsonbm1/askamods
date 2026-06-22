@@ -404,3 +404,65 @@ SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the sto
 - Warmth/cold as a leisure trigger (incl. the `IsFreezing` flag) — villagers thrash between a fire and their job (each warmth-leisure trip only warms to the exit threshold, then they immediately get cold again). Hand cold back to the game.
 - Lowering `WakeWhenRestAboveHours` to "sleep less" — only shortens each sleep's cycle, not the total sleep *fraction*; raise the rest-gain rate instead (see facts above).
 - The `sched=match/REVERTED` readback diagnostic shows `REVERTED` for all-Sleep/all-Leisure but `match` for all-Work — a packing/representation quirk of comparing `__NetworkedSchedule` to the packed value, **not** a functional revert: behavior always followed the schedule. Don't chase it.
+
+---
+
+## Villager Combat / Fight-vs-Flee System
+
+How a villager decides to **run from** vs **fight** an attacker. Used by Mod 7 (VillagerFightBackMod).
+Structure below is **confirmed from the binary**; the runtime *behavior* notes flagged ⚠️ are
+**pending in-game verification** (FSM state method bodies aren't dumpable in IL2CPP — only signatures).
+
+**Competing combat Quests (all derive from `SSSGame.AI.CombatQuest`, ranked by `TriggerPriority`)**
+```
+SSSGame.AI.CombatQuest                 ← base; .fsmBehaviour, .GetPriority(QuestData), .SetDirty(), .TriggerPriority
+  CombatQuest/CombatQuestData          ← .ShouldFight (GET-only, computed), ._engagedEnemy (IAttackTarget, GET+SET),
+                                          ._survival (VillagerSurvival), ._villager, ._targeting (ITargetAI),
+                                          ._combatTimeRemaining, ._lowHealth
+  SSSGame.AI.FleeCombatQuest           ← what a NON-warrior villager gets: "get spooked & run"
+    FleeCombatQuest/FleeCombatQuestData
+        .ShouldFight (GET-only)        ← its OWN computed override (home-safety / low-HP / defense-score complaints)
+        ._GetSpooked(IAttackTarget)    ← entry point when an attacker spooks the villager (safe to patch; 1 ref param)
+        ._homeSafetyAttribute, ._lowHpComplaint, ._low{Defense}AtHome/AtWork complaints, ._fleeingComplaint
+  SSSGame.AI.WarriorCombatQuest        ← what an equipped warrior gets: stand & fight
+  SSSGame.AI.PartyCombatQuest / HunterCombatQuest / PetCombatQuest   ← other fight variants
+SSSGame.AI.DefensiveCombatTask         ← party/villager OnTakeDamage→combat-timer task
+```
+
+**Warrior status (the game's own "this villager fights" flag)**
+```
+Villager.IsWarrior  (bool)             ← set by VillagerSurvival._CheckWarriorStatus() from equipped warrior gear
+VillagerSurvival._warriorCombatQuest (WarriorCombatQuest), ._warriorQuestAdded, ._warriorBuffAdded
+VillagerDataSheet.warriorCombatTime / warriorDetectionRange / warriorReactRange / warriorStatusEffect
+WeaponizedItemInfo.warriorGear / WearableItemInfo.warriorGear  (bool)  ← gear that confers warrior status
+Villager.IsOnDefendDuty / ._isOnDefendDuty / .OnDefendDutyChanged   ← separate "assigned to a DefensiveStation" flag
+VillagerSocial.SendSpookedNotification(IAttackTarget) / .Rpc_SendSpookedNotification(NetworkId)
+```
+
+**Identifying an attacker — `SSSGame.Combat.IAttackTarget` (every attackable thing implements it)**
+```
+.GetTargetName() → String              ← display name (e.g. match "Wisp"); names live in runtime SOs, not the binary
+.Faction → SSSGame.Combat.Faction      ← enum { Critters, Danger, Ignore, Neutral, Structures, Undead, Vikings }
+.IsAggressive() / .IsAlive() / .IsViable() / .IsPlayer() / .ThreatScore / .transform
+SSSGame.Creature : IAttackTarget       ← monsters; .Faction, .GetName(), .dataSheet (CreatureDataSheet.faction/localizedName)
+SSSGame.Combat.Threat                  ← per-target threat record: .ThreatScore, .Damage, .target (IAttackTarget), .Seen
+SSSGame.Combat.CombatManager (MonoBehaviour singleton-ish) ← RegisterCombatant / faction context unwinding
+```
+- **Faction is coarser than name:** wisps and wolves may share `Danger`; draugar are `Undead`. For a precise
+  "fight wisps, flee draugar/wolves" split, match by **name substring**, not faction.
+- A `Creature`'s name is a runtime ScriptableObject value (same as item names) — **not** in the binary;
+  discover it live by logging `IAttackTarget.GetTargetName()` + `.Faction` from a patch.
+
+**The fight-vs-flee override (VillagerFightBackMod's approach):** Postfix
+`FleeCombatQuest/FleeCombatQuestData.get_ShouldFight`; when `__result==false` (would flee) and
+`__instance._engagedEnemy` matches a name/faction whitelist, set `__result=true`. Read + return-a-bool only
+(no networked write → co-op-safe); gate the flip on `__instance._survival._hasAuthority`.
+
+### Pending in-game verification (don't treat as fact yet)
+- ⚠️ **Does `ShouldFight==true` make a non-warrior actually attack, or just stop running?** Unknown from the
+  binary. `FSM_FindWeaponDuringCombat` exists (encouraging — suggests they'd arm up). If they only stand
+  there, the fallback is routing whitelisted encounters through the warrior path (`_CheckWarriorStatus` /
+  add `WarriorCombatQuest`) — heavier, and warrior status carries buffs/gear assumptions.
+- ⚠️ **Is `_engagedEnemy` populated at the moment `ShouldFight` is read?** If frequently null, capture the
+  target from `_GetSpooked(IAttackTarget)` instead and remember it per quest-data instance.
+- ⚠️ **The exact Wisp name/faction** — confirm via DebugLogging on first run near the beach.
