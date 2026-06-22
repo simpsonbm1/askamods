@@ -1,0 +1,92 @@
+name: Upload to Nexus Mods
+
+# Manual, reusable uploader for the AskaMods. Pick a mod + version; it zips that mod's COMMITTED DLL
+# (the one checked in at <Mod>/<Mod>.dll) and pushes it to the matching Nexus Mods file group as a new
+# version, using the official Nexus-Mods/upload-action (v3 Upload API). The API key comes from the
+# NEXUSMODS_API_KEY repo secret. Group IDs are the "API Info -> Group ID" value from each mod's page.
+#
+# IMPORTANT: a successful run publishes a LIVE, public version. Make sure the mod's DLL is committed and
+# pushed first — the workflow uploads what's in the repo, not a fresh build (CI can't build: the game's
+# IL2CPP interop DLLs aren't redistributable, so they aren't in the repo).
+#
+# To add another mod later: give it a Nexus page + first file, then add a line to the case block below
+# and an option to the `mod` input.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: Which mod to upload
+        type: choice
+        required: true
+        options:
+          - DynamicVillagerNeedsMod
+          - HealthRegenMod
+          - TreeRespawnMod
+      version:
+        description: Version string (e.g. 1.1.0)
+        type: string
+        required: true
+      category:
+        description: Nexus file category
+        type: choice
+        required: true
+        default: main
+        options:
+          - main
+          - update
+          - optional
+      archive_existing:
+        description: Archive the current version when this uploads
+        type: boolean
+        required: true
+        default: true
+      description:
+        description: Changelog / file description (optional)
+        type: string
+        required: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve mod -> Nexus file group + committed DLL
+        id: resolve
+        run: |
+          case "${{ inputs.mod }}" in
+            DynamicVillagerNeedsMod) file_id=7567346 ;;   # Dynamic Villager Needs
+            HealthRegenMod)          file_id=7551800 ;;   # Passive Health Regen
+            TreeRespawnMod)          file_id=7551668 ;;   # Tree and Gatherable Respawner
+            *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
+          esac
+          dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
+          if [ ! -f "$dll" ]; then echo "::error::Committed DLL not found: $dll"; exit 1; fi
+          echo "file_id=$file_id" >> "$GITHUB_OUTPUT"
+          echo "dll=$dll" >> "$GITHUB_OUTPUT"
+
+      - name: Package (bare DLL, zipped)
+        id: package
+        run: |
+          zipname="${{ inputs.mod }}-${{ inputs.version }}.zip"
+          zip -j "$zipname" "${{ steps.resolve.outputs.dll }}"
+          unzip -l "$zipname"
+          echo "zip=$zipname" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Nexus Mods
+        id: upload
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.8
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ steps.resolve.outputs.file_id }}
+          filename: ${{ steps.package.outputs.zip }}
+          version: ${{ inputs.version }}
+          display_name: ${{ inputs.mod }} ${{ inputs.version }}
+          description: ${{ inputs.description }}
+          category: ${{ inputs.category }}
+          archive_existing_version: ${{ inputs.archive_existing }}
+
+      - name: Result
+        run: echo "Uploaded ${{ inputs.mod }} ${{ inputs.version }} -> version_id=${{ steps.upload.outputs.version_id }}"
