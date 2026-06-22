@@ -1,0 +1,406 @@
+# ASKA Game Architecture & Interop Knowledge Base
+
+The single reference for **how ASKA's internals work** and **what approaches don't work**, from
+Assembly-CSharp interop inspection. Organized by subsystem; each subsystem carries its own
+"Dead ends (don't retry)" list. **Before touching any subsystem in a new mod, read its section here
+first** — most failed approaches were game/interop facts, not mod-specific quirks, so they will bite
+again if a new mod re-treads them.
+
+The universal interop gotchas that bite *every* mod are pinned in `CLAUDE.md` (always loaded); their
+full detail is under [IL2CPP interop gotchas](#il2cpp-interop-gotchas-universal) below.
+
+---
+
+## Namespaces
+- `SSSGame.*` — ASKA's own code (Sand Sailor Studio)
+- `Invector.*` / `Invector.vShooter.*` — third-party character controller framework ASKA is built on
+- `SandSailorStudio.Inventory.*` — custom inventory system
+
+---
+
+## IL2CPP interop gotchas (universal)
+These apply regardless of subsystem — they're properties of the BepInEx 6 / Il2CppInterop layer, not
+of any one mod. Condensed copy lives in `CLAUDE.md`.
+
+- **`Il2CppSystem.Action(methodRef)` event subscriptions don't work** — the constructor only accepts
+  an `IntPtr` in this interop version, so you cannot subscribe a managed lambda to game `Action`
+  events (`_onNewDay`, `OnFullyHarvested`, `OnBehaviorTypeChanged`, `OnTakeDamage`, etc.). **Use a
+  registered `MonoBehaviour` with `Update()` polling instead** (the `DayTracker`/`RegenTracker`/
+  `TorchFuelTracker`/`NeedsController` pattern). This is the single most-repeated dead end across mods.
+- **`UnityEngine.Object.FindObjectsByType<T>()` (generic overload) throws `MissingMethodException`**
+  through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported).
+  Called from `Update()` it logs thousands of times/sec. Get instances from a Harmony patch's
+  `__instance` instead of searching.
+- **`.TryCast<T>()` is NOT available on `UnityEngine.Object`** — its wrapper's base chain is just
+  `System.Object`, not `Il2CppObjectBase` (unlike normal game types e.g.
+  `WorldItemInstance : Il2CppSystem.Object : Il2CppObjectBase`). Avoid by obtaining an
+  already-correctly-typed instance from a patch parameter rather than from a `UnityEngine.Object[]`.
+- **`UniqueId`-style indices are not globally unique** — e.g. `BiomeItemInstance.UniqueId` is a
+  per-buffer index that restarts at 0 in every spatial chunk. Key dictionaries by **world position**
+  (`GetPosition()` rounded to 0.1m, `x:y:z`) — positions are genuinely unique and stable across saves.
+- **Gate all state writes on authority** — `HasAuthority` (Character/PlayerCharacter) or `_hasAuthority`
+  (CharacterSurvival/VillagerSurvival). True only for the avatar/instance this client owns; other
+  players' objects are visible locally with authority `false`. Writing without the gate desyncs co-op.
+- **Prefer the game's own RPCs over direct networked-state writes.** Whether a direct field/inventory
+  write on a networked object replicates in co-op is unverified; the game's RPCs (e.g.
+  `Rpc_AddFuel`, `Rpc_ChangeSchedule`) are the network-safe path used by the game itself.
+
+---
+
+## Damage Pipeline (Projectiles / Bow)
+```
+vShooterWeapon.Shot()
+  → vBowControl.OnInstantiateProjectile()
+  → SSSGame.Combat.Projectile.Shoot(powerLevel, origin, shootRay, aimRay,
+                                     speed, drag, gravity, damageMask,
+                                     DamageData damageData, Action onDamageDealt)
+       └─ DamageData
+            .weapon          → WeaponizedItem  (the bow item)
+            .baseDamage      → float  ← what we multiply
+            .damageMultiplier → float
+            .attributeBonus  → float
+            .result          → float (computed final)
+```
+
+**Best patch point for bow damage:** the **actual HP-reduction call** is
+`SSSGame.Creature.TakeDamage(DamageData damage)` (Prefix). `DamageData` is passed by reference and can
+be modified before damage is applied. (`Creature.TakeDamage` only fires for monsters — see
+[Player Character vs. Creature](#player-character-vs-creature).)
+
+In ranged `DamageData`, `.weapon` = the **arrow** (e.g. `"Wood Arrow"`), **not the bow** — match on
+arrow name via `damage.weapon.info.Name`.
+
+Other useful classes:
+- `Invector.vShooter.vProjectileControl` — `minDamage` (int), `maxDamage` (int), `damageByDistance` (bool), `DropOffStart`/`DropOffEnd` (float)
+- `Invector.vShooter.vShooterWeapon` — `chargeDamageMultiplier` (float), `chargeVelocityMultiplier` (float)
+- `Invector.vDamage` — `damageValue` (int), `reducedDamage` (bool)
+
+### Dead ends (don't retry)
+- `SSSGame.Combat.Projectile.Shoot()` — IL2CPP trampoline crash (mixed ref value-type + nullable object params). Don't patch it; patch `Creature.TakeDamage` instead.
+- `RangedManager.OnProjectileDamage()` — post-damage *notification*; modifying `result` here only changes the UI damage numbers, not actual HP.
+- `Creature.TakeDamage` / `Character.TakeDamage` via the **Invector** path — never fired. The live path is `SSSGame.Creature.TakeDamage`.
+- `vBowControl.OnInstantiateProjectile`, `vProjectileControl.Start()` — ASKA doesn't use these Invector hooks.
+
+---
+
+## Player Character vs. Creature
+`SSSGame.Character` (base `Fusion.NetworkBehaviour`) and `SSSGame.Creature` (also base
+`Fusion.NetworkBehaviour`) are **independent class hierarchies**, not subtype/supertype.
+`PlayerCharacter : Character` is used for player avatars; `Creature` is used for monsters/NPCs. Both
+implement the same `IDamageReceiver`-style contract (`TakeDamage(DamageData)`,
+`CurrentHealth`/`MaxHealth`, `GetDamageTakenHistory()`, `IsPlayer()`, `IsAlive()`) but as separate,
+non-overlapping implementations.
+
+**Consequence:** a Harmony patch on `Creature.TakeDamage`/`Creature.X` only ever fires for monsters —
+it never sees player damage. To affect the player, patch `SSSGame.PlayerCharacter`. `PlayerCharacter`
+overrides `TakeDamage`/`Spawned`/`Despawned`/`IsPlayer` itself, so a patch on the **base** `Character`
+method does **not** intercept calls dispatched to the `PlayerCharacter` override — **patch the
+most-derived type.**
+
+Useful `Character`/`PlayerCharacter` members:
+```
+CurrentHealth / MaxHealth   (float, public get+set)
+HasAuthority                (bool, get-only) — true only for the avatar this client controls;
+                             other players' characters in co-op are visible locally but HasAuthority == false
+GetDamageTakenHistory()     → DamageHistory
+  .LastDamageTime  (float)  — updated internally on every hit; poll this instead of subscribing
+                               to OnTakeDamage (Action-typed IL2CPP delegate — see interop gotchas)
+IsInCombat()                — PlayerCharacter's own built-in combat-timeout check (fixed window,
+                               not configurable — implement your own timer via LastDamageTime instead)
+```
+
+`PlayerManager.LocalPlayer` (property on the scene's `PlayerManager` singleton) is the game's own
+"get the local player" accessor, but no static `PlayerManager.Instance` was found — a Harmony Postfix
+on `PlayerCharacter.Spawned()`/`Despawned()` (gated on `HasAuthority`) is the simpler way to capture
+the local avatar.
+
+### Dead ends (don't retry)
+- `SSSGame.Creature.TakeDamage`/`CurrentHealth` for **player** health — `Creature` only covers monsters/NPCs. Use `Character`/`PlayerCharacter`.
+
+---
+
+## Resource / Tree System
+
+**In-game day / time system — `SSSGame.Weather.WeatherSystem` (Fusion NetworkBehaviour, singleton)**
+```
+WeatherSystem.Instance           ← singleton accessor
+  ._onNewDay  (Action)           ← new-day callback (Action — can't subscribe; poll instead)
+  .GetDaysPassed()  (Int32)      ← total days elapsed since game start
+  .DayOfYear  (Int32)            ← current day within the year
+  .dayLength  (Single)           ← configurable day length in seconds
+  .NetworkedCurrentGameTime (Single) ← persists across saves; valid for elapsed-time math after restart
+  .GetTimeDifferenceFromCurrentGameTimeInSeconds()  ← elapsed-since helper
+  .IsNight (bool) / .DayNightValue (Single, ~1=midday ~0=deep night)
+```
+In-game hour = `dayLength / 24`.
+
+**Respawn countdown — `SSSGame.BiomeItemAvailabilityData`** (the game's own built-in per-resource countdown; reference)
+```
+BiomeItemAvailabilityData
+  .itemDescriptors  (List)       ← the BiomeItemDescriptors this countdown controls
+  .remainingDays  (Int32)        ← days remaining before replenish
+  .ReplenishOnAvailable  (bool)  ← if true, calls Replenish() when remainingDays hits 0
+  ._OnNewDay()                   ← called each day; decrements remainingDays
+```
+
+**Vegetation / resource classes**
+```
+BiomeItemDescriptor              ← represents a vegetation/resource type in the world
+  .Replenish()                   ← call this to respawn the item
+  .OnReplenish  (Action)         ← event fired when replenishment happens
+  ._instances  (List)            ← active BiomeItemInstance list
+  .IsHarvestable  (bool) / .IsAvailable  (bool)
+
+HarvestInteraction               ← attached to harvestable world objects (trees, rocks, etc.)
+  .harvestPieces  (List)         ← harvest stages in order (trunk pieces, then stump LAST)
+  ._currentPieceIdx  (int)       ← which piece is currently active (GetCurrentPieceIndex())
+  ._currentVegeData  (uint)      ← bitmask of which pieces have been harvested
+  ._worldInstance  (WorldItemInstance) ← link back to the world resource instance
+  .OnFullyHarvested  (Action)    ← fires when ALL pieces done INCLUDING stump
+  .OnPieceLootPieceHarversted    ← Action<3> fires per trunk piece
+  .TakeDamage(DamageData)        ← damage entry point (no ref params — safe to patch)
+  .SetHarvestBits(int) / ClearHarvestBits(int) ← directly manipulate vege data
+
+HarvestSpawner                   ← spawns loot; has ref to HarvestInteraction (_hi)
+  ._OnFullyHarvested()           ← fires when entire tree incl. stump is done
+  ._OnPieceHarvested(DamageData, ResourcePieces, Vector3) ← per piece
+
+WorldItemInstance                ← a specific instance of a resource in the world
+  .Destroyed  (bool) / .Active  (bool)
+BiomeItemInstance                ← .Initialize() fires per instance as the world loads;
+  .Replenish()                   ← fully respawns the resource in place (confirmed working)
+  .GetPosition()                 ← world position; use as the stable dictionary key
+```
+
+**Confirmed facts (HarvestInteraction / trees):**
+- `HarvestInteraction._worldInstance.TryCast<BiomeItemInstance>()` gives the biome instance directly; non-biome resources (rocks etc.) return null and are skipped. `BiomeItemInstance.Replenish()` fully respawns in place — confirmed in-game.
+- The **last** entry in `harvestPieces` is reliably the **stump** (`List<HarvestInteraction.HarvestPiece>`; element is a nested class with a `pieceId ResourcePieces` enum — no explicit stump flag, position-based). Detect stump stage via `GetCurrentPieceIndex() == harvestPieces.Count - 1`.
+- `WeatherSystem.NetworkedCurrentGameTime` persists across saves — valid for elapsed-time calculations after a full game restart.
+
+### Dead ends (don't retry)
+- Subscribing to `HarvestInteraction.OnFullyHarvested` per-instance — IL2CPP `Action` delegate issue (see interop gotchas). Checking `BiomeItemInstance.Destroyed` at tick time is simpler and equivalent.
+- `BiomeItemInstance.UniqueId` as a dictionary key — NOT globally unique (per-chunk index restarting at 0). Key by world position instead.
+
+### Mining / stone-clump respawn — INVESTIGATED & ABANDONED (don't re-attempt)
+Stone clumps (`Harvest_Stone4`) are **Fusion scene objects** baked into the streamed world/chunk data
+— not `WorldItemInstance`s, not in the 364-entry Fusion prefab table, not spawned via `NetworkSpawner`,
+and they invoke **no** managed `HarvestInteraction` method while alive (only a post-despawn
+`TakeDamage` with everything nulled). Fusion has no runtime "respawn scene object" API, and the binary
+can't be dumped for deeper RE (Unity 6 → IL2CPP **metadata v39**, unsupported by Il2CppDumper). Full
+write-up + the three confirming tests: **`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`**. The only
+achievable-but-unbuilt alternative is respawning the loose `Item_Stone_Raw`/`Item_Wood_*` nodes (those
+ARE `InventoryItemInstance` and managed-visible). All mining code was removed from TreeRespawnMod 2026-06-18.
+
+---
+
+## Gather / Press-to-Collect System
+```
+GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
+  .GatherItemsCharge(IInteractionAgent, Int32 charges, ItemContainer) → Int32
+                                   ← safe Postfix patch point; no ref params; fires when items actually collected
+  .CheckAvailableItemCount()  → Int32   ← returns 0 when resource is fully exhausted (register respawn here)
+  ._worldInstance  (WorldItemInstance)  ← same path as HarvestInteraction; TryCast<BiomeItemInstance>() works
+  .GetGatherableItemInfo()    → ItemInfo ← yields the ITEM name (not the node/resource name — see below)
+```
+
+**Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
+- All names confirmed in-game against the inventory/storage UI (2026-06-17):
+  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fiber"` (singular)
+  - `"Small Stone"` (ground pickup), `"Mussels"`, `"Feathers"` (Bird's Nest), `"Water"` (Natural Water Collector)
+  - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
+  - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
+- **Not their own GatherInteraction** (bonus drops bundled with parent gather — can't trigger respawn): `"Seeds"` (plants), `"Wild Egg"` (Bird's Nest)
+
+---
+
+## Item Naming
+- Item names live in Unity ScriptableObject assets, not in code — read at runtime via `item.info.Name` (the `ItemInfo.Name` property)
+- Known item names: **"Flimsy Shortbow"** (first bow), **"Wood Arrow"** (early arrows)
+- In ranged `DamageData`, `weapon` = the **arrow**, not the bow — match on arrow name
+
+---
+
+## Structures, Workstations & the AI Quest/Task system (general)
+- **`SSSGame.Structure`** is the base building (a `NetworkBehaviour`). Useful members: `StructureName` / `DefaultName` / `GetName()` (display name, same role as `ItemInfo.Name` — use for substring filtering), `storageSupplies` (array of the structure's `StorageSupply` dispatchers), `Settlement`, `Parent`/`Root`, `OnSpawned`/`OnStructureDeath` actions.
+- **Get a typed component off a structure:** `structure.TryGetStructureComponent<T>(out T comp)` (bool) or `GetStructureComponent<T>()` / `FindStructureComponent(predicate)`. This is how you ask "is this building a `CraftingStation`/`ResourceStorage`/…".
+- **Workstations** (`ResourceStorage`, `CraftingStation`, `CookingStation`, etc.) are `Workstation : NetworkBehaviour` structure-components. Each owns a set of AI **Quests** (`SSSGame.AI.*Quest`, e.g. `CrafterFetchQuest`, `SupplyPatrolQuest`, `GatherAndHarvestQuest`) exposed as `vFSMBehaviour` fields, and runs them through **FSM nodes** under `SSSGame.AI.FSM.*` (ScriptableObjects — their method bodies are NOT dumpable in IL2CPP, only signatures). Active work is tracked by `SSSGame.AI.TaskRunner`.
+- **Per-villager whitelisting** exists on workstations: `IsWhitelisted(Villager)`, `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which villagers may use this station."
+
+---
+
+## Settlement Hauling / Storage / Task-Dispatcher System (Mod 6 groundwork)
+How resources get moved into the central **warehouse** (a `ResourceStorage` building) — the system
+behind the "warehouse worker steals crafter materials" loop:
+```
+SSSGame.AI.TaskDispatcher (MonoBehaviour)
+  → SSSGame.AI.StructureTaskDispatcher
+       .OwnerStructure (Structure)   ← the building this dispatcher belongs to (key back-reference)
+       .Initialize(Structure) / _LinkToStructure(Structure)
+       → SSSGame.StorageSupply        ← "here are items available to be hauled from this structure"
+            .IsAvailable() (bool), .interaction (StorageInteraction), .taskMaxQuota
+       → SSSGame.DependendTaskStorageSupply : StorageSupply  (gather-dependent variant)
+
+SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
+  .CreateOrUpdateTasksFromStorageSupply(StorageSupply, List taskAgentsToVillagers, bool addForChildren)
+                                        ← builds the "haul these items to me" tasks from a supply
+  .CanCreateStorageTaskForItemInfo(StorageSupply, ItemInfo) → bool   ← clean per-item GATE (prefix here)
+  .GetGatheredItemQuantity / GetGatheredItemPriority / FillResourceStorageTaskDatas
+  .excludedResourcesList (ItemInfoList), onlyGatherNativeItems / _nativeItemsFilter — built-in exclusions
+```
+- **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation` registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`) and its **output**; the output is additionally wrapped in **`CraftingStation/OutputStorageWrapper`** (`._cs`, `._ss` = the output `StorageSupply`). The warehouse hauling the *input* supplies is the theft loop (crafter re-fetches → warehouse re-hauls).
+- **To filter what the warehouse hauls:** prefix `ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply ss, ItemInfo)` and inspect `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+
+---
+
+## Inventory, Settlement Queries & Recipes (general — storage/crafting toolkit)
+Confirmed via interop dump 2026-06-21 while scoping a (cancelled) fisher-bait mod. None of this is
+mod-specific — reuse it for any storage / crafting / needs idea.
+
+**Settlement-wide access & enumeration**
+```
+SSSGame.SettlementManager (MonoBehaviour)
+  .GetPlayerSettlement() / .GetCurrentSettlement() / .GetClosestSettlement(Vector3) → Settlement
+  .settlements (List) / .worldSettlement / .OnSettlementLoaded (Action)  ← wait for load before querying
+SSSGame.Settlement (MonoBehaviour)
+  .QuerySettlementResources() → ItemManifest   ← ONE call = total item counts across the WHOLE village
+                                                 (the clean "does the settlement have X, and how many?" query)
+  .GetStructures() (List) / .FindStructures(pred) / .FindStructure(pred)        ← enumerate buildings
+  .FindStructuresInRange(pos, range, result, pred) / .FindClosestStructure(pos, range, pred)
+  .GetStorageSites() (IReadOnlyList) / .FindItemStorage(filter, …) → Interaction (storage holding an item)
+  .FindStorageToDeposit(ItemInfo, pos, range, pred, ignoreLimits) → Interaction (where to drop an item)
+  .OnAddStructure / .OnRemoveStructure / .OnActivateStructure (Action<Structure>) ← track buildings live
+```
+No static `Settlement.Instance` — reach it via a `SettlementManager` instance, or via any `Structure.Settlement` back-ref.
+
+**Inventory read / write — `SandSailorStudio.Inventory.ItemCollection` / `ItemContainer`**
+A workstation's own stock: `Workstation.GetInventory() → ItemCollection`; what a station is asking the village to deliver: `Workstation.GetItemsNeededFromSettlement() → List`.
+```
+ItemCollection (a logical inventory = a set of ItemContainers)
+  .GetItemQuantity(ItemInfo) / .HasItem(ItemInfo) / .GetFirstItem(ItemInfo)
+  .GetCategoryItems(ItemCategoryInfo) / .GetCategoryItemsCount(...) / .HasCategoryItems(...)   ← by category
+  .AddItems(ItemInfo, count) / .RemoveItems(ItemInfo, qty)  → int actually added/removed
+  .GetTotalRemainingCapacity(ItemInfo) / .FindLargestMatchingContainer(ItemInfo)
+  .OnItemAdded / .OnItemRemoved (ItemEventHandler)
+ItemContainer (one physical bin)  .AddItems / .RemoveItem / .HasSpace(ItemInfo, qty) / .GetItemCount(...)
+```
+⚠️ Whether a direct `AddItems`/`RemoveItems` on a **networked** `ResourceStorage` replicates in co-op is UNVERIFIED. TorchFuelMod deliberately used the game's own RPC (`Rpc_AddFuel`) to stay network-safe — look for an analogous item RPC before writing storage state directly. Host/solo is unaffected either way.
+
+**`SandSailorStudio.Inventory.ItemManifest` — the counts / requirements struct**
+```
+.GetQuantity(ItemInfo) / .GetItems() / .Check(ItemInfo) / .GetTotalQuantity()
+.Contains(ItemManifest) / .Overlaps(...) / .AddItem / .RemoveItem
+static .CreateFromBlueprint(BlueprintInfo)        ← READ A RECIPE'S REQUIRED INGREDIENTS as a manifest
+static .CreateFromContainer(ItemContainer) / .CreateFromFilter(ItemCollection, filter)
+.Transfer(ItemContainer↔ItemCollection / collection→collection)   ← bulk move helpers
+```
+
+**Recipes / blueprints**
+```
+SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via ItemManifest.CreateFromBlueprint(bp)
+  SSSGame.CraftBlueprintInfo : BlueprintInfo   .GetItemInfo() → produced ItemInfo, .craftVolume, .interaction (CraftInteraction)
+  SSSGame.CookingRecipeInfo : BlueprintInfo  /  SSSGame.CrockpotRecipeInfo : CookingRecipeInfo
+     .cookingRequirements : CookingRecipeRequirement[] { ItemInfo acceptedInfo; int count; type; ItemTableConfig tableConfig }
+  Forging / Dyeing / Painting / Workshop / Structure variants also derive from Blueprint(Info)
+```
+`ItemInfo`s are ScriptableObjects (not constructable) — get a reference by name (`item.info.Name`) off a live item, by category via `ItemCategoryInfo`, or from a blueprint's `GetItemInfo()`.
+
+**Fishing/bait (the trigger for the above — mod cancelled, game does it natively)**
+`SSSGame.FishingStation : ResourceStorage : Workstation`; bait = `SSSGame.BaitItem : EquipmentItem` (category `VillagerFishingInteractionConfig.BaitCategInfo`); the "no bait" complaint is `FishingComplainQuest : CrafterComplainQuest`. **Villagers self-craft bait from warehouse ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory `fisher-bait-native`).
+
+---
+
+## Torch / Fire-Fuel System
+```
+FireStructure (Fusion.NetworkBehaviour)   ← the actual networked fuel state, one per fire-capable structure
+  .CurrentFuelVolume / .MaxFuelVolume / .CurrentFuelRatio  (Single, public get+set)
+  .fuelBurnVolumePerSecond  (Single)       ← configured burn rate; actual decrement happens via the
+                                              Attribute/VariableAttribute modifier system, not a visible
+                                              per-frame method on FireStructure itself
+  .Rpc_AddFuel(Single fuel)                ← the network-safe RPC the game itself calls when a player
+                                              manually refuels with an item (e.g. resin) — safe to call
+                                              from any client/host, replicates correctly in co-op
+  .Initialize(Structure ownerStructure)    ← fires once per instance as it spawns/loads; ownerStructure
+                                              gives access to the structure's name for filtering
+  .IsSpawned  (bool, get-only)             ← false once despawned/destroyed
+
+RefuelableInteraction (abstract) → FireInteraction → (wrapped by LightOutlet / WarmthOutlet)
+  - mirrors CurrentFuelVolume/MaxFuelVolume by forwarding to the wrapped FireStructure
+  - LightOutlet and WarmthOutlet are SEPARATE AI-dispatcher components (light vs. warmth duty) but
+    both wrap a FireInteraction → FireStructure — campfires/forges/kilns/cooking stations all use
+    FireStructure too, so filtering must happen by **structure name**, not by component type, to
+    avoid accidentally affecting non-torch fires
+```
+**Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name (e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name`.
+
+---
+
+## Villager Schedule / Needs / Happiness System
+
+**Survival components**
+```
+SSSGame.CharacterSurvival (base) → SSSGame.VillagerSurvival
+  GetNormalizedFood() / GetNormalizedWater() / GetNormalizedWarmth()  (Single 0..1, lower = more urgent)
+  IsStarving / IsDehydrated / IsFreezing / IsSuffering  (bool — the game's own critical-need flags)
+  _foodVAttr / _waterVAttr / _warmthVAttr / _energyVAttr / _healthVAttr  (VariableAttribute — writable)
+VillagerSurvival
+  _restVariableAttribute  (VariableAttribute, range 0..24 "hours of rest"; drains awake, fills asleep)
+  GetVillager() → Villager
+  _hasAuthority  (bool, inherited from CharacterSurvival) — gate all writes on this (host-authoritative)
+  Spawned()  — Postfix here to register each villager into a tracked list
+  IsSleeping  (bool) — true while the game has the villager in bed (incl. the forced night sleep)
+```
+
+**Happiness — it's a writable VariableAttribute (key finding)**
+```
+Villager._happinessVAttr  (VariableAttribute, writable) ← the REAL happiness store; SetValue() sticks
+Villager.NormalizedHappiness (Single 0..1, GET-ONLY) / Villager.HappinessCap (GET-ONLY) — derived from it
+VillagerHappiness (via Villager.GetHappinessManager()): SleepRate/WorkRate/LeisureRate are GET-ONLY —
+  you CANNOT scale the leisure happiness rate; instead write _happinessVAttr directly each tick.
+```
+`VariableAttribute` API: `GetValue()`, `SetValue(Single)`, `GetNormalizedValue()`, `min`, `max`. Boost a need by adding `addNormalized * (max - min)` to the value, clamped to `max`; the game re-clamps happiness to `HappinessCap` (so a housing-capped villager shows up as a plateau — happiness stops rising despite the write).
+
+**Schedule (the thing that actually dispatches tasks)**
+```
+enum SSSGame.UI.ScheduleType { Sleep, Work, Leisure }   (use the enum values; never hardcode the ints)
+Villager.scheduleMaxHourCount  (STATIC — access via the type, CS0176 if via an instance)
+Villager._ScheduleToNetworkSchedule(Il2CppStructArray<int>) → long   (array holds ScheduleType underlying ints)
+Villager.Rpc_ChangeSchedule(long packed)   (network-safe; host/authority only)
+Villager.__NetworkedSchedule  (Int64) — current packed schedule; snapshot for restore-on-shutdown
+Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehaviorType (ScheduleType)
+```
+
+**Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
+
+**Eating / drinking — the survival-quest FSM (separate from the schedule pipeline)**
+A villager's eat/drink behavior is NOT driven by the schedule a mod rewrites — it's a survival-quest
+FSM that runs on top of whatever schedule mode is active. This is why eating happens during Work mode.
+```
+SSSGame.VillagerSurvival
+  GetReplenishFoodQuest() / GetReplenishWaterQuest()  → SSSGame.AI.SurvivalObjectiveQuest
+  _replenishFoodQuest / _replenishWaterQuest / _replenishHealthQuest  (same objects, as fields)
+  _foodObjectiveLow / _foodObjectiveSafe  (VariableAttributeValueObjective) — the GAME's own eat thresholds
+  foodItems / emergencyFoodItems / drinkItems / emergencyDrinkItems  (ItemTableConfig) — TWO-TIER food
+SSSGame.AI.SurvivalObjectiveQuest
+  SetDirty()                       ← re-evaluate primitive (the same call the AI's FSM_QuestSetDirty state uses)
+  HasItemsToConsume(SatisfyObjectiveQuestData) → bool   ← the "is there food" check
+  consumableItems / emergencyConsumableItems  (ItemTableConfig)
+  priorityHigh / priorityLow ; highPriorityObjective / lowPriorityObjective
+  autoRetryTimeHighPriority / autoRetryTimeLowPriority  (float) — vanilla's OWN retry timers (too slow/unreliable)
+  _TryNotifySurvivalObjectivesChanged() / RefreshComplaints()   ← alternatives to SetDirty if it's ever insufficient
+SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the store and consumes
+  ConsumeStatus { IDLE, WAIT, COMPLETE, ERROR_NO_ITEM }   ← ERROR_NO_ITEM = arrived, store empty
+```
+- **Two food tiers:** normal (`foodItems` — cooked meals) and emergency (`emergencyFoodItems` — raw/poisonous). A starving villager (high-priority objective) eats the emergency tier; a mildly-hungry one only normal food. Remove all cooked food and villagers fall *down* the tiers — raw-but-safe (eggs) when low, poison only when truly starving. **This is vanilla, not a mod effect** (confirmed by testing with hunger ×50 → constant emergency-tier eating).
+- **The "stuck at empty store" bug:** a villager commits to a food target and stops re-evaluating across tiers; if the cooked store is empty when they arrive (`ERROR_NO_ITEM`) they park there and ignore *available raw food*, until something forces a re-evaluation (hand-feeding, or `SetDirty()`). Vanilla's `autoRetryTime*` did not recover them in practice. DynamicVillagerNeedsMod v1.1.0 fixes this by calling `SetDirty()` — see that mod's doc.
+
+### Game-mechanic facts worth knowing before re-modeling villager behavior
+- **The night-sleep race:** the game forces villagers to bed at **nightfall** regardless of their schedule, catching them at whatever rest they have then. Any mod-driven sleep control that only runs in its *own* Sleep mode will be pre-empted unless it **adopts** the game-forced sleep (detect `IsSleeping` + low rest, take it over). See DynamicVillagerNeedsMod for the adopt fix.
+- **Sleep duration is a rate problem, not a threshold problem:** total sleep *fraction* = drain-rate / (drain + gain). Lowering the wake threshold only shortens each cycle, not the fraction — to make villagers sleep *less*, raise the rest-gain rate.
+- **Warmth is best left to the game.** The game's own `warmUpBehaviour`/`_warmUpQuest` warms villagers *fully* during work. Forcing a leisure trip for warmth only warms partway → thrash between fire and job. Tune the game's warm-up *speed* (multiply warmth only while it's already rising) rather than taking over the *when*.
+
+### Dead ends (don't retry)
+- `Villager.overrideSchedule` + `scheduleOverride` + `CurrentBehaviorType` — drives the FSM behavior **label** (and suppresses sleep) but **bypasses the task-dispatch pipeline**: villagers stand idle (`TaskRunner` active-task null) even at midday with a valid workstation. Use `Rpc_ChangeSchedule` (the real schedule) — the only thing that dispatches work.
+- `VillagerHappiness.LeisureRate`/`WorkRate`/`SleepRate` — **get-only**, can't scale the rate. Write `_happinessVAttr` directly.
+- Warmth/cold as a leisure trigger (incl. the `IsFreezing` flag) — villagers thrash between a fire and their job (each warmth-leisure trip only warms to the exit threshold, then they immediately get cold again). Hand cold back to the game.
+- Lowering `WakeWhenRestAboveHours` to "sleep less" — only shortens each sleep's cycle, not the total sleep *fraction*; raise the rest-gain rate instead (see facts above).
+- The `sched=match/REVERTED` readback diagnostic shows `REVERTED` for all-Sleep/all-Leisure but `match` for all-Work — a packing/representation quirk of comparing `__NetworkedSchedule` to the packed value, **not** a functional revert: behavior always followed the schedule. Don't chase it.
