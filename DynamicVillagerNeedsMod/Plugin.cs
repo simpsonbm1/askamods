@@ -35,6 +35,18 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> LeisureWhenNeedBelow = null!;
     internal static ConfigEntry<float> LeisureUntilNeedAbove = null!;
 
+    // Food/water re-check — vanilla sends a hungry villager to eat ONCE; if the storage is empty when they
+    // arrive (FSM_SurvivalConsume -> ERROR_NO_ITEM) they park there and don't notice food restocked later.
+    // We periodically re-arm the game's own survival-replenish quests (SurvivalObjectiveQuest.SetDirty) so
+    // they fetch and consume the real food once it's available, then resume. 0 disables the re-check.
+    internal static ConfigEntry<float> FoodRecheckIntervalSeconds = null!;
+    internal static ConfigEntry<float> FoodRecheckWhenNeedBelow = null!;
+
+    // Needs drain rate — scale how fast villagers get hungry/thirsty. 1 = vanilla. A general control, and
+    // raising it (e.g. 5-10x) is the quick way to test the food/water re-check above.
+    internal static ConfigEntry<float> HungerRateMultiplier = null!;
+    internal static ConfigEntry<float> ThirstRateMultiplier = null!;
+
     // Fire warm-up speed — cold itself is handled by the game, but this scales how fast villagers warm up
     // once they're at a heat source, so warm-up trips are shorter and they get back to work sooner.
     internal static ConfigEntry<float> FireWarmthMultiplier = null!;
@@ -83,6 +95,29 @@ public class Plugin : BasePlugin
             "While taking leisure for a basic need, return to work once food and water recover above this " +
             "(0..1). Must be >= LeisureWhenNeedBelow.");
 
+        FoodRecheckIntervalSeconds = Config.Bind("DynamicNeeds", "FoodRecheckIntervalSeconds", 15.0f,
+            "How often (real seconds) to nudge a hungry/thirsty villager's survival quests to re-check for " +
+            "food/water. Vanilla only sends a villager to eat ONCE; if the food storage is empty when they " +
+            "arrive they can get stuck standing there and won't notice food you restock later. This re-arms " +
+            "the game's own eat/drink path so they fetch and consume the real food once it's available again, " +
+            "then resume their routine. Set to 0 to disable the re-check (pure vanilla behavior).");
+
+        FoodRecheckWhenNeedBelow = Config.Bind("DynamicNeeds", "FoodRecheckWhenNeedBelow", 0.2f,
+            "Only run the food/water re-check while the villager's food or water (each 0..1) is below this, " +
+            "or they're already starving/dehydrated. Keeps the nudge from firing on well-fed villagers. " +
+            "Set it just below the game's natural 'go eat' point: too high re-arms mildly-peckish villagers " +
+            "and causes a mass dash to storage (notably right after loading a save); too low delays un-sticking " +
+            "a parked villager until they're nearly starving.");
+
+        HungerRateMultiplier = Config.Bind("DynamicNeeds", "HungerRateMultiplier", 1.0f,
+            "Multiply how fast villagers get hungry (food meter drains). 1 = vanilla; 2 = twice as fast; " +
+            "0.5 = half as fast. A general control, and setting it high (e.g. 5-10) is the quick way to test " +
+            "the food re-check / eating behavior without waiting in-game. Only ever scales the natural drain — " +
+            "eating is never affected.");
+
+        ThirstRateMultiplier = Config.Bind("DynamicNeeds", "ThirstRateMultiplier", 1.0f,
+            "Same as HungerRateMultiplier but for the water/thirst meter. 1 = vanilla.");
+
         FireWarmthMultiplier = Config.Bind("DynamicNeeds", "FireWarmthMultiplier", 2.0f,
             "Multiply how fast villagers warm up at a fire/heat source. 1 = vanilla speed; 2 = twice as " +
             "fast (shorter warm-up trips, more time working). Only speeds up warming while they're already " +
@@ -117,6 +152,8 @@ public class Plugin : BasePlugin
         Logger.LogInfo($"DynamicVillagerNeedsMod loaded. Enabled={Enabled.Value}, " +
                        $"sleep<{SleepWhenRestBelowHours.Value}h wake>{WakeWhenRestAboveHours.Value}h restBoost={SleepHoursToFullRest.Value}h, " +
                        $"need-leisure<{LeisureWhenNeedBelow.Value} until>{LeisureUntilNeedAbove.Value} (food/water only) warmthx{FireWarmthMultiplier.Value}, " +
+                       $"food-recheck every {FoodRecheckIntervalSeconds.Value}s while<{FoodRecheckWhenNeedBelow.Value}, " +
+                       $"hungerx{HungerRateMultiplier.Value} thirstx{ThirstRateMultiplier.Value}, " +
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
                        $"boost={LeisureHoursToFullHappiness.Value}h");
     }

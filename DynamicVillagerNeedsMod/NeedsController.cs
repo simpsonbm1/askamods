@@ -66,7 +66,13 @@ public class NeedsController : MonoBehaviour
     // Per-villager last warmth (VAttr-normalized) — lets us detect when the game is warming them and
     // accelerate it (FireWarmthMultiplier) without touching cooling.
     private readonly Dictionary<VillagerSurvival, float> _lastWarmth = new();
+    // Per-villager last food/water (VAttr-normalized) — lets us observe the game's drain each frame and
+    // scale it (HungerRateMultiplier / ThirstRateMultiplier).
+    private readonly Dictionary<VillagerSurvival, float> _lastFood = new();
+    private readonly Dictionary<VillagerSurvival, float> _lastWater = new();
     private float _summaryTimer;
+    // Accumulator for the periodic food/water re-check (FoodRecheckIntervalSeconds).
+    private float _recheckTimer;
 
     void Update()
     {
@@ -95,10 +101,20 @@ public class NeedsController : MonoBehaviour
         float restBoostPerSec = restHoursToFull > 0f && hourSeconds > 0f ? 1f / (restHoursToFull * hourSeconds) : 0f;
         float retrySeconds = hourSeconds > 0f ? HappyRetryHours * hourSeconds : 120f;
         float warmthMult = Plugin.FireWarmthMultiplier.Value;
+        float hungerMult = Plugin.HungerRateMultiplier.Value;
+        float thirstMult = Plugin.ThirstRateMultiplier.Value;
 
         _summaryTimer += dt;
         bool summaryNow = debug && _summaryTimer >= 5f;
         if (summaryNow) _summaryTimer = 0f;
+
+        // Food/water re-check cadence: every FoodRecheckIntervalSeconds, re-arm hungry villagers' survival
+        // quests so they pick up newly-restocked food instead of parking at an empty store (see RecheckConsumeNeeds).
+        float recheckInterval = Plugin.FoodRecheckIntervalSeconds.Value;
+        float recheckBelow = Plugin.FoodRecheckWhenNeedBelow.Value;
+        _recheckTimer += dt;
+        bool recheckNow = recheckInterval > 0f && _recheckTimer >= recheckInterval;
+        if (recheckNow) _recheckTimer = 0f;
 
         for (int i = tracked.Count - 1; i >= 0; i--)
         {
@@ -124,6 +140,11 @@ public class NeedsController : MonoBehaviour
                 float water = surv.GetNormalizedWater();
                 float minNeed = Mathf.Min(food, water);
                 bool critical = surv.IsStarving || surv.IsDehydrated;
+
+                // Independent of the schedule decision below: keep the vanilla eat/drink path re-armed for
+                // hungry villagers so they don't get stuck at an empty store (see RecheckConsumeNeeds).
+                if (recheckNow)
+                    RecheckConsumeNeeds(surv, food, water, recheckBelow, debug, i);
 
                 Mode prev = _mode.TryGetValue(surv, out var m) ? m : Mode.Work;
 
@@ -184,6 +205,10 @@ public class NeedsController : MonoBehaviour
                         _lastWarmth[surv] = wv.GetNormalizedValue();
                     }
                 }
+
+                // Scale how fast food/water drain. Mode-independent; only touched when the multiplier isn't 1.
+                if (hungerMult != 1f) ScaleDrain(surv._foodVAttr, hungerMult, _lastFood, surv);
+                if (thirstMult != 1f) ScaleDrain(surv._waterVAttr, thirstMult, _lastWater, surv);
 
                 if (debug && (next != prev || applied))
                     Plugin.Logger.LogInfo(
@@ -252,9 +277,61 @@ public class NeedsController : MonoBehaviour
             if (va == null) return;
             float range = va.max - va.min;
             if (range <= 0f) return;
-            va.SetValue(Mathf.Min(va.GetValue() + addNormalized * range, va.max));
+            // Clamp both ends: most callers add (clamp to max matters); ScaleDrain can subtract (clamp to min).
+            va.SetValue(Mathf.Clamp(va.GetValue() + addNormalized * range, va.min, va.max));
         }
         catch { }
+    }
+
+    // Scale how fast a draining need (food/water) falls, without needing to know the game's base drain rate.
+    // Mirrors the warmth multiplier but acts on DROPS: we observe the meter's per-frame change and add
+    // (mult-1)x of any decrease, so the net drain ends up mult x vanilla. mult>1 = gets hungry/thirsty faster
+    // (handy for testing the food re-check), <1 = slower, =1 = untouched (guarded by the caller). A rise
+    // (the villager just ate/drank) is never scaled, so this only ever tunes the natural drain.
+    private void ScaleDrain(VariableAttribute va, float mult, Dictionary<VillagerSurvival, float> last, VillagerSurvival surv)
+    {
+        try
+        {
+            if (va == null) return;
+            float cur = va.GetNormalizedValue();
+            if (last.TryGetValue(surv, out var prev) && cur < prev)
+                BoostAttr(va, (cur - prev) * (mult - 1f));
+            last[surv] = va.GetNormalizedValue();
+        }
+        catch { }
+    }
+
+    // Vanilla dispatches a villager's "go eat/drink" survival behavior ONCE when a need goes low. If the
+    // food/water store is empty when they arrive, FSM_SurvivalConsume returns ERROR_NO_ITEM and the villager
+    // parks there — it does NOT re-attempt when you restock the store, so you have to hand-feed to un-stick
+    // them. Here we periodically re-arm the game's own survival-replenish quests via SetDirty() (the same
+    // re-evaluation primitive the AI's FSM_QuestSetDirty state uses), but only while a need is actually low.
+    // This keeps the vanilla eat path live, so the villager fetches and consumes the REAL food (decrementing
+    // storage) as soon as it's available again, then returns to their routine — no hand-feeding needed.
+    private static void RecheckConsumeNeeds(VillagerSurvival surv, float food, float water, float below, bool debug, int idx)
+    {
+        try
+        {
+            if (food < below || surv.IsStarving)
+            {
+                var q = surv.GetReplenishFoodQuest();
+                if (q != null)
+                {
+                    q.SetDirty();
+                    if (debug) Plugin.Logger.LogInfo($"[DynamicNeeds] villager[{idx}] food re-check (food={food:F2}) -> SetDirty");
+                }
+            }
+            if (water < below || surv.IsDehydrated)
+            {
+                var q = surv.GetReplenishWaterQuest();
+                if (q != null)
+                {
+                    q.SetDirty();
+                    if (debug) Plugin.Logger.LogInfo($"[DynamicNeeds] villager[{idx}] water re-check (water={water:F2}) -> SetDirty");
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] recheck: {ex}"); }
     }
 
     private static ScheduleType ToSchedule(Mode mode) => mode switch

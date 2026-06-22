@@ -399,6 +399,27 @@ Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehavi
 
 **Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
 
+**Eating / drinking — the survival-quest FSM (separate from the schedule pipeline)**
+A villager's eat/drink behavior is NOT driven by the schedule the mod rewrites — it's a survival-quest FSM that runs on top of whatever schedule mode is active. This is why eating happens during Work mode and why the mod never controlled it.
+```
+SSSGame.VillagerSurvival
+  GetReplenishFoodQuest() / GetReplenishWaterQuest()  → SSSGame.AI.SurvivalObjectiveQuest
+  _replenishFoodQuest / _replenishWaterQuest / _replenishHealthQuest  (same objects, as fields)
+  _foodObjectiveLow / _foodObjectiveSafe  (VariableAttributeValueObjective) — the GAME's own eat thresholds
+  foodItems / emergencyFoodItems / drinkItems / emergencyDrinkItems  (ItemTableConfig) — TWO-TIER food
+SSSGame.AI.SurvivalObjectiveQuest
+  SetDirty()                       ← re-evaluate primitive (the same call the AI's FSM_QuestSetDirty state uses)
+  HasItemsToConsume(SatisfyObjectiveQuestData) → bool   ← the "is there food" check
+  consumableItems / emergencyConsumableItems  (ItemTableConfig)
+  priorityHigh / priorityLow ; highPriorityObjective / lowPriorityObjective
+  autoRetryTimeHighPriority / autoRetryTimeLowPriority  (float) — vanilla's OWN retry timers (too slow/unreliable)
+  _TryNotifySurvivalObjectivesChanged() / RefreshComplaints()   ← alternatives to SetDirty if it's ever insufficient
+SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the store and consumes
+  ConsumeStatus { IDLE, WAIT, COMPLETE, ERROR_NO_ITEM }   ← ERROR_NO_ITEM = arrived, store empty
+```
+- **Two food tiers:** normal (`foodItems` — cooked meals) and emergency (`emergencyFoodItems` — raw/poisonous). A starving villager (high-priority objective) eats the emergency tier; a mildly-hungry one only normal food. Remove all cooked food and villagers fall *down* the tiers — raw-but-safe (eggs) when low, poison only when truly starving. **This is vanilla, not a mod effect** (confirmed by testing with hunger ×50 → constant emergency-tier eating).
+- **The stuck bug (what the v1.1.0 re-check fixes):** a villager commits to a food target and stops re-evaluating across tiers; if the cooked store is empty when they arrive (`ERROR_NO_ITEM`) they park there and ignore *available raw food*, until something forces a re-evaluation (hand-feeding, or our re-check). Vanilla's `autoRetryTime*` did not recover them in practice.
+
 ## Mod 5: DynamicVillagerNeedsMod — COMPLETE
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours) with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without reducing happiness.** Villager-only; the player is never touched.
 
@@ -415,6 +436,12 @@ Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehavi
 - **⚠️ The night-sleep race + the adopt fix (critical):** the game forces villagers to bed at **nightfall**, regardless of an all-Work schedule, catching them at whatever rest they have then (varies per villager/night; ~12 observed once). The mod's sleep control + rest boost only run in *its own* Sleep mode. With the original `8` threshold, the game slept everyone first each night → villagers slept the full vanilla night and oversaw to 24, i.e. the mod **appeared to do nothing** for any well-rested villager (only already-unhappy ones, who drop to Leisure and stay up draining rest below the threshold, looked "modded"). A high threshold (16) wins the race but makes them nap eagerly. **Real fix:** `Decide` now also enters Sleep when `surv.IsSleeping` is true and `rest < WakeWhenRestAboveHours` — i.e. it **adopts the game-forced sleep**, applies the rest boost, and wakes them at the threshold (the `Sleep->Work` schedule change ends the sleep). This makes the race irrelevant, so `SleepWhenRestBelowHours` can stay low (default `8`, "nap only when truly tired") while every night-sleep still gets shortened. (Separately: the happiness boost only runs in *our* Leisure mode, so already-happy villagers — happiness > `LeisureWhenHappinessBelow` — never get it and keep vanilla happiness; by design, they don't need it.)
 - **Config `[DynamicNeeds]`** (`BepInEx/config/com.askamods.dynamicneeds.cfg`): `Enabled` (true); `SleepWhenRestBelowHours` (8; adopt-net covers the game's bedtime so it needn't beat it); `WakeWhenRestAboveHours` (23); `SleepHoursToFullRest` (3, 0=vanilla; this is the real "sleep less" lever); `LeisureWhenNeedBelow` (0.15, food/water only, 0=off) / `LeisureUntilNeedAbove` (0.5); `LeisureWhenHappinessBelow` (0.6, 0=off) / `LeisureUntilHappinessAbove` (0.78); `LeisureHoursToFullHappiness` (4, 0=vanilla); `FireWarmthMultiplier` (2.0, 1=vanilla); `DebugLogging` (false).
 - Confirmed in-game: villagers perform real work tasks, take short boosted sleeps and wake at the threshold (no oversleep); the happiness boost visibly moves `_happinessVAttr`/`NormalizedHappiness`; warmth thrash eliminated; food/water self-manage and the leisure net rarely fires. (The high-threshold workaround, 16, was verified across all 7 villagers; the `IsSleeping` adopt-net then made the low default safe — re-verify the adopt path on a healthy save.)
+
+**v1.1.0 additions:**
+- **Food/water re-check (the stuck-villager fix):** each tick the controller, for any owned villager whose food/water is below a threshold (or who's starving/dehydrated), calls `SurvivalObjectiveQuest.SetDirty()` via `GetReplenishFoodQuest()`/`GetReplenishWaterQuest()`. This re-arms the game's *own* eat path so a villager parked at an empty (then restocked, or alternative) store re-evaluates and goes to eat the REAL food (decrementing storage) instead of standing there — no hand-feeding. Cadence is throttled by `FoodRecheckIntervalSeconds`. **The threshold gates WHO we re-poke, not when they eat** — the eat decision stays the game's own `_foodObjectiveLow` objective. `SetDirty()` confirmed sufficient in-game (villagers that previously ignored available raw food now pick it up on their own); no thrashing observed at 15s cadence.
+- **`FoodRecheckWhenNeedBelow` tuning:** default **0.2**, set just below the game's natural eat trigger. Higher values (tested 0.5) re-arm mildly-peckish villagers and cause a **mass dash to storage right after loading a save** (every below-threshold quest re-arms at once). Too low delays un-sticking a parked villager until near-starvation. At vanilla drain rates a villager won't fall far in the 15s window, so 0.2 cleanly targets the genuinely hungry.
+- **Needs drain-rate controls:** `HungerRateMultiplier` / `ThirstRateMultiplier` (both 1.0 = vanilla, zero overhead/writes when 1.0) scale how fast food/water fall, via the same observe-the-per-frame-delta-and-amplify trick as `FireWarmthMultiplier` (`ScaleDrain`). Acts only on DROPS so eating/drinking is never scaled; `BoostAttr` now clamps **both** ends so a high multiplier can't push a meter below min. A general control and the quick way to test the re-check (use ~4-8×; **×50 pins everyone at starving** → permanent emergency-tier eating, too extreme to observe normal behavior).
+- **Config additions** to `[DynamicNeeds]`: `FoodRecheckIntervalSeconds` (15.0; 0 = off), `FoodRecheckWhenNeedBelow` (0.2), `HungerRateMultiplier` (1.0), `ThirstRateMultiplier` (1.0).
 
 **Dead ends (don't retry):**
 - `Villager.overrideSchedule` + `scheduleOverride` + `CurrentBehaviorType` — drives the FSM behavior **label** (and suppresses sleep) but **bypasses the task-dispatch pipeline**: villagers stand idle (`TaskRunner` active-task null) even at midday with a valid workstation. Use `Rpc_ChangeSchedule` (the real schedule) instead — that's the only thing that dispatches work.
