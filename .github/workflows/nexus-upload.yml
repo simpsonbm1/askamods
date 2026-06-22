@@ -9,6 +9,10 @@ name: Upload to Nexus Mods
 # pushed first — the workflow uploads what's in the repo, not a fresh build (CI can't build: the game's
 # IL2CPP interop DLLs aren't redistributable, so they aren't in the repo).
 #
+# The per-version CHANGELOG note comes from the `description` input (it shows on the Files tab). The mod's
+# MAIN description page is NOT API-editable — if a version adds a feature worth calling out there, that page
+# has to be updated by hand (see CLAUDE.md "Publishing to Nexus Mods"). The final step prints that reminder.
+#
 # To add another mod later: give it a Nexus page + first file, then add a line to the case block below
 # and an option to the `mod` input.
 
@@ -88,5 +92,18 @@ jobs:
           category: ${{ inputs.category }}
           archive_existing_version: ${{ inputs.archive_existing }}
 
-      - name: Result
-        run: echo "Uploaded ${{ inputs.mod }} ${{ inputs.version }} -> version_id=${{ steps.upload.outputs.version_id }}"
+      - name: Result + description reminder
+        run: |
+          echo "Uploaded ${{ inputs.mod }} ${{ inputs.version }} -> version_id=${{ steps.upload.outputs.version_id }}"
+          {
+            echo "### Uploaded ${{ inputs.mod }} ${{ inputs.version }}"
+            echo ""
+            echo "- version_id: \`${{ steps.upload.outputs.version_id }}\`"
+            echo "- Files-tab changelog was set from the \`description\` input."
+            echo ""
+            echo "> [!IMPORTANT]"
+            echo "> If this version adds a user-facing feature worth calling out on the mod's **main Description tab**,"
+            echo "> that page is **not** API-editable — update it by hand. Paste the current description source to Claude"
+            echo "> and have it regenerate the full block with the new Features/Configuration bits inserted in place"
+            echo "> (as done for DynamicVillagerNeedsMod 1.1.0)."
+          } >> "$GITHUB_STEP_SUMMARY"
