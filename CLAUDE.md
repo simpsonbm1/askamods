@@ -204,6 +204,60 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
 - **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation` registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`) and its **output**; the output is additionally wrapped in **`CraftingStation/OutputStorageWrapper`** (`._cs`, `._ss` = the output `StorageSupply`). The warehouse hauling the *input* supplies is the theft loop (crafter re-fetches → warehouse re-hauls).
 - **To filter what the warehouse hauls:** prefix `ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply ss, ItemInfo)` and inspect `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
 
+### Inventory, Settlement Queries & Recipes (general — storage/crafting toolkit)
+Confirmed via interop dump 2026-06-21 while scoping a (cancelled) fisher-bait mod. None of this is mod-specific — reuse it for any storage / crafting / needs idea.
+
+**Settlement-wide access & enumeration**
+```
+SSSGame.SettlementManager (MonoBehaviour)
+  .GetPlayerSettlement() / .GetCurrentSettlement() / .GetClosestSettlement(Vector3) → Settlement
+  .settlements (List) / .worldSettlement / .OnSettlementLoaded (Action)  ← wait for load before querying
+SSSGame.Settlement (MonoBehaviour)
+  .QuerySettlementResources() → ItemManifest   ← ONE call = total item counts across the WHOLE village
+                                                 (the clean "does the settlement have X, and how many?" query)
+  .GetStructures() (List) / .FindStructures(pred) / .FindStructure(pred)        ← enumerate buildings
+  .FindStructuresInRange(pos, range, result, pred) / .FindClosestStructure(pos, range, pred)
+  .GetStorageSites() (IReadOnlyList) / .FindItemStorage(filter, …) → Interaction (storage holding an item)
+  .FindStorageToDeposit(ItemInfo, pos, range, pred, ignoreLimits) → Interaction (where to drop an item)
+  .OnAddStructure / .OnRemoveStructure / .OnActivateStructure (Action<Structure>) ← track buildings live
+```
+No static `Settlement.Instance` — reach it via a `SettlementManager` instance, or via any `Structure.Settlement` back-ref.
+
+**Inventory read / write — `SandSailorStudio.Inventory.ItemCollection` / `ItemContainer`**
+A workstation's own stock: `Workstation.GetInventory() → ItemCollection`; what a station is asking the village to deliver: `Workstation.GetItemsNeededFromSettlement() → List`.
+```
+ItemCollection (a logical inventory = a set of ItemContainers)
+  .GetItemQuantity(ItemInfo) / .HasItem(ItemInfo) / .GetFirstItem(ItemInfo)
+  .GetCategoryItems(ItemCategoryInfo) / .GetCategoryItemsCount(...) / .HasCategoryItems(...)   ← by category
+  .AddItems(ItemInfo, count) / .RemoveItems(ItemInfo, qty)  → int actually added/removed
+  .GetTotalRemainingCapacity(ItemInfo) / .FindLargestMatchingContainer(ItemInfo)
+  .OnItemAdded / .OnItemRemoved (ItemEventHandler)
+ItemContainer (one physical bin)  .AddItems / .RemoveItem / .HasSpace(ItemInfo, qty) / .GetItemCount(...)
+```
+⚠️ Whether a direct `AddItems`/`RemoveItems` on a **networked** `ResourceStorage` replicates in co-op is UNVERIFIED. TorchFuelMod deliberately used the game's own RPC (`Rpc_AddFuel`) to stay network-safe — look for an analogous item RPC before writing storage state directly. Host/solo is unaffected either way.
+
+**`SandSailorStudio.Inventory.ItemManifest` — the counts / requirements struct**
+```
+.GetQuantity(ItemInfo) / .GetItems() / .Check(ItemInfo) / .GetTotalQuantity()
+.Contains(ItemManifest) / .Overlaps(...) / .AddItem / .RemoveItem
+static .CreateFromBlueprint(BlueprintInfo)        ← READ A RECIPE'S REQUIRED INGREDIENTS as a manifest
+static .CreateFromContainer(ItemContainer) / .CreateFromFilter(ItemCollection, filter)
+.Transfer(ItemContainer↔ItemCollection / collection→collection)   ← bulk move helpers
+```
+
+**Recipes / blueprints**
+```
+SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via ItemManifest.CreateFromBlueprint(bp)
+  SSSGame.CraftBlueprintInfo : BlueprintInfo   .GetItemInfo() → produced ItemInfo, .craftVolume, .interaction (CraftInteraction)
+  SSSGame.CookingRecipeInfo : BlueprintInfo  /  SSSGame.CrockpotRecipeInfo : CookingRecipeInfo
+     .cookingRequirements : CookingRecipeRequirement[] { ItemInfo acceptedInfo; int count; type; ItemTableConfig tableConfig }
+  Forging / Dyeing / Painting / Workshop / Structure variants also derive from Blueprint(Info)
+```
+`ItemInfo`s are ScriptableObjects (not constructable) — get a reference by name (`item.info.Name`) off a live item, by category via `ItemCategoryInfo`, or from a blueprint's `GetItemInfo()`.
+
+**Fishing/bait (the trigger for the above — mod cancelled, game does it natively)**
+`SSSGame.FishingStation : ResourceStorage : Workstation`; bait = `SSSGame.BaitItem : EquipmentItem` (category `VillagerFishingInteractionConfig.BaitCategInfo`); the "no bait" complaint is `FishingComplainQuest : CrafterComplainQuest`. **Villagers self-craft bait from warehouse ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory `fisher-bait-native`).
+
 ## Mod 1: BowDamageMod — COMPLETE
 **Goal:** Buff "Flimsy Shortbow" and its arrows without touching mid/late-game weapons.
 **Working approach:**
