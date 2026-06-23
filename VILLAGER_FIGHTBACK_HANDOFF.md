@@ -1,120 +1,136 @@
-# Mod 7 — VillagerFightBackMod — Handoff (BUILT, AWAITING IN-GAME TEST)
+# Mod 7 — VillagerFightBackMod — Handoff (IN PROGRESS, NOT WORKING YET)
 
-**Status as of 2026-06-22:** Code is **written, compiles clean, and is deployed** to
-`BepInEx\plugins\VillagerFightBackMod\`. **Nothing has been verified in-game yet** — the whole point of
-the next session is the test run below. The deciding facts can't be read from the IL2CPP binary (FSM
-state method bodies aren't dumpable), so this *must* be confirmed live before the mod can be called
-working or shipped to Nexus.
+**Status as of 2026-06-22 (session 2):** Deployed **v1.0.10**. The mod **loads and every patch fires**,
+but the goal is **not achieved yet**. Precise current behavior:
 
-Source of truth for the design: [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md)
-(mod recipe) and the **"Villager Combat / Fight-vs-Flee System"** section in
-[`docs/architecture.md`](docs/architecture.md#villager-combat--fight-vs-flee-system) (subsystem facts +
-the pending-verification list). Read both first. This handoff is just the test plan + the fallback.
+- A villager **idle / not en route to a job**: fights and **kills Wisps fine.** ✅ (this already worked in vanilla)
+- A villager **on the way to a job**: enters combat for a moment (crossed swords appear, `FSM_MeleeCombat`
+  is reached) but is **pulled back to her job marker and runs off**; she only commits to the fight
+  **once the job state resets** (she stops trying to reach the marker). ❌
+
+**The remaining problem is QUEST ARBITRATION (job-quest vs combat-quest), not fear.** We have fully
+removed the spook/fear path; what's left is the work quest out-competing combat. The next session's job
+is to read the `activePrio` diagnostic added in v1.0.10 and implement the arbitration fix (most likely:
+**suspend her work task while a whitelisted enemy is engaged**).
+
+Source of truth for subsystem facts: the **"Villager Combat / Fight-vs-Flee System"** section in
+[`docs/architecture.md`](docs/architecture.md#villager-combat--fight-vs-flee-system) (updated this session)
+and the mod recipe [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md).
 
 ## The request (Nexus comment on DynamicVillagerNeedsMod, user rondi112, 2026-06-22)
 > "it pisses me off that the villagers can't fight back against the Wisps. I'd like a mod that doesn't
 > scare them into killing them."
 
-Goal: regular (non-warrior) villagers should **stand and fight a whitelisted enemy set** (Wisps — weak,
-anything can kill them) instead of fleeing, while still fleeing genuinely dangerous attackers
-(draugar/wolves). Per-enemy whitelist by name. Villager-only; player untouched.
+Goal: regular (non-warrior) villagers **stand and fight Wisps** instead of fleeing to their deaths,
+while still fleeing genuine threats (draugar/wolves). Per-enemy **name** whitelist. Villager-only.
 
-## What's built (so it isn't re-derived)
-- `Patches/FleeCombatPatch.cs`:
-  - **`FleeCombatShouldFightPatch`** — Postfix on `FleeCombatQuest/FleeCombatQuestData.get_ShouldFight`.
-    If it returns `false` (flee) but `__instance._engagedEnemy` is whitelisted → set `__result=true`.
-    Gated on `__instance._survival._hasAuthority` (host/solo). Pure read + return-bool → co-op-safe.
-  - **`FleeCombatGetSpookedPatch`** — log-only Postfix on `FleeCombatQuestData._GetSpooked(IAttackTarget)`;
-    logs each distinct attacker's `GetTargetName()` + `Faction` once (creature names are runtime SO
-    values, not in the binary).
-- Config `[VillagerFightBack]` (`com.askamods.villagerfightback.cfg`): `Enabled`=true,
-  `FightBackAgainst`=`"Wisp"`, `FightBackFactions`=`""`, `DebugLogging`=**true** (defaulted on while unverified).
+---
 
-## The test run needed (pick up here)
-Pre-req: the user is starting a **new save** and walking a villager to the **beach where Wisps spawn**
-(closest reliable Wisp encounter). Build is already deployed; just launch the game with the mod active.
-
-Watch `BepInEx\LogOutput.log` for `[VillagerFightBack]` lines, in order:
-
-1. **Discovery — does the spook log fire and what is the Wisp actually called?**
-   Expect: `Villager spooked by '<name>' (faction=<X>) — ...`. **Record the exact `<name>` and `<faction>`.**
-   - If the name is NOT literally "Wisp" → set `FightBackAgainst` to the logged substring and continue.
-   - If `_GetSpooked` never logs when a Wisp attacks → the flee path isn't `_GetSpooked`; see Open Q #1.
-
-2. **Flip — does `ShouldFight` get forced true?**
-   Expect: `Forced ShouldFight=TRUE vs '<name>' (faction=<X>).` (throttled to ~once/2s).
-   - If this never appears even though spook logged a whitelisted name → `_engagedEnemy` was null at
-     getter time, OR `get_ShouldFight` isn't being polled. See Open Q #2.
-
-3. **★ THE make-or-break observation — does the villager actually ATTACK the Wisp, or just stop running?**
-   This is the one fact the binary can't answer. Watch the villager on-screen:
-   - **Attacks + kills the Wisp** → SUCCESS. Proceed to step 4.
-   - **Stops fleeing but stands idle / doesn't engage** → `ShouldFight` alone is insufficient; go to
-     **Fallback (warrior path)** below.
-
-4. **Whitelist precision — does a dangerous enemy still cause flight?**
-   Spawn/encounter a draugr or wolf (NOT on the list). Confirm the villager still flees (no "Forced"
-   log for it, no engagement). This proves the whitelist is doing the discriminating, not a blanket
-   "fight everything."
-
-5. **Co-op (optional, if a session is easy):** confirm host-driven behavior replicates to a client and
-   nothing desyncs. The patch writes no networked state, so this is expected-safe, but worth a look.
-
-**Outcome decision tree:**
-- Steps 1-4 pass → tune `FightBackAgainst` to the real name, flip `DebugLogging` default back to `false`,
-  bump nothing else, ship to Nexus (see publishing note).
-- Step 3 fails (idle, no attack) → implement the Fallback, re-test from step 3.
-- Step 1 fails (no spook log) → Open Q #1.
-
-## Fallback if `ShouldFight=true` doesn't produce attacking (warrior path)
-A non-warrior may have no fight-capable behavior wired at all, so flipping the flee quest's flag just
-stops the running. In that case route a whitelisted encounter through the game's **warrior** combat,
-which is known to fight. Relevant members (confirmed present; mechanics need RE):
+## ⚠️ Operational gotcha first: Smart App Control blocks fresh builds (this machine)
+This cost two test rounds — **read before building.** Windows **Smart App Control is ENFORCED** here
+(`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1`). It will
+**intermittently block a freshly-built unsigned mod DLL** at load:
 ```
-Villager.IsWarrior (bool)
-VillagerSurvival._CheckWarriorStatus()                  ← recomputes warrior status (from equipped warriorGear)
-VillagerSurvival._warriorCombatQuest : WarriorCombatQuest
-VillagerSurvival._warriorQuestAdded (bool) / ._warriorBuffAdded (bool)
-SSSGame.AI.WarriorCombatQuest (: CombatQuest) .TriggerPriority   ← outranks FleeCombatQuest when active
-SSSGame.AI.CombatQuest .GetPriority(QuestData) / .TriggerPriority / .SetDirty()
+Error loading [VillagerFightBackMod ...]: System.IO.FileLoadException: ... An Application Control
+policy has blocked this file. (0x800711C7)
 ```
-Approaches, roughly in order of preference:
-1. **Temporarily confer warrior status** when a villager is engaged with a whitelisted enemy: ensure
-   `_warriorCombatQuest` is added/active (`_warriorQuestAdded`) and revert when the enemy is gone.
-   Caveat: warrior status isn't target-specific and carries a buff (`warriorStatusEffect`) + gear
-   assumptions — confirm it doesn't make them fight *everything*. May need to pair with the existing
-   `ShouldFight` gate so flee is still the default for non-whitelisted targets.
-2. **Re-rank quests for the whitelisted case** — patch `FleeCombatQuest.GetPriority`/`TriggerPriority`
-   down (or `WarriorCombatQuest` up) only while `_engagedEnemy` is whitelisted, so the AIManager picks
-   the fight quest. Requires the villager to actually *have* a `WarriorCombatQuest` in its set (warriors
-   get it via gear; regular villagers may not) — verify before relying on this.
-3. Investigate whether there's a lighter "villager defends" path (`DefensiveCombatTask`,
-   `FSM_SetOnDefendDuty` / `Villager.IsOnDefendDuty`) that fights without full warrior status.
+- The other already-deployed mods load fine (their hashes are known/grandfathered).
+- **.NET SDK builds are deterministic** → rebuilding identical source produces the **same hash** → the
+  **same block**. **Relaunching does not help.**
+- **Fix that works:** bump the version (`MyPluginInfo.PLUGIN_VERSION` **and** `<Version>` in the csproj),
+  which changes the DLL hash. SAC re-evaluates the new unknown hash and (so far, always) lets it load.
+  This is why every iteration this session bumped the patch version (1.0.1 → 1.0.10).
+- Turning SAC off is the only permanent fix but is **irreversible** (needs a Windows reinstall) — don't.
+- **Always confirm the loaded version in the log** (`Loading [VillagerFightBackMod 1.0.X]`) before trusting
+  a test — we once tested a stale 1.0.6 thinking it was 1.0.7. Fully quit the game before relaunch.
 
-The warrior path is heavier and host-authoritative — gate all of it on `_hasAuthority` and prefer adding
-a quest / calling an existing method over writing networked state directly (per the universal gotchas).
+---
 
-## Open questions to resolve at runtime
-1. **Is `_GetSpooked` the flee trigger?** If no spook log fires when a Wisp attacks, the flee decision
-   may route elsewhere. Candidates to instrument next: `FleeCombatQuestData._OnTargetChanged(IAttackTarget)`,
-   `CombatQuestData._OnTakeDamage(DamageData)`, or `VillagerSocial.SendSpookedNotification(IAttackTarget)`.
-2. **Is `_engagedEnemy` populated when `ShouldFight` is read?** If frequently null, capture the target in
-   `_GetSpooked` and remember it per quest-data instance (keyed by instance), then consult that in the
-   getter postfix instead of `_engagedEnemy`.
-3. **Wisp faction** — once logged, decide whether a faction-based whitelist is ever worth exposing as a
-   default, or names-only stays the recommendation (wisps/wolves may share `Danger`; draugar are `Undead`).
-4. **Can an unarmed villager damage a Wisp at all?** If they engage but can't deal damage, the fix needs
-   to also ensure a weapon (`FSM_FindWeaponDuringCombat` suggests they grab one — confirm).
+## What we proved this session (the dead-ends + the breakthroughs)
+Each lever below is a **config flag** in `com.askamods.villagerfightback.cfg` (all default `true` except
+`FightBackFactions`). Keep them while iterating; **prune the confirmed no-ops once it works.**
 
-## Build / deploy / tooling (same as the other AskaMods)
-- Project `VillagerFightBackMod/VillagerFightBackMod.csproj` (net6.0, `CopyToPlugins` target). Already
-  builds clean; `dotnet build` redeploys to `BepInEx\plugins\` and the project dir.
-- `_explore/` Mono.Cecil scripts for further RE: `search.ps1 -TypeKeywords @(...)` / `-MemberKeywords @(...) -Members`,
-  `dump.ps1 -Types @("Full.Name", ...)`.
-- Key confirmed API (don't re-derive): see the architecture subsection — the quest hierarchy,
-  `IAttackTarget` (`GetTargetName()`, `Faction`), `Faction` enum, and the warrior members above.
+| Lever / patch | What it does | Result |
+|---|---|---|
+| **(original) `ShouldFight` postfix → force true** | flip `FleeCombatQuestData.get_ShouldFight` to true | ❌ **Dead end.** `ShouldFight` is **already `True`** here; forcing it does nothing. Flee is **not** gated on it. (patch is now inert) |
+| **`SuppressSpook`** | prefix-skip `_GetSpooked` for whitelisted | ⚠️ Removes the spook *notification/visuals* (icon/fanfare) but **not** the flee. `_GetSpooked` is only the notification. |
+| **`PreventFlee`** | block `FSM_SetVillagerIsFleeing.OnStateEnter` (fleeingState=true) for whitelisted | ⚠️ Clears the `IsFleeing` flag (no more fear behavior) but she **still runs**. |
+| **`ForceEngage`** | `Villager.SetTarget(wisp, onlyIfNotPresent)` | ✅ Puts her **into combat** (crossed swords appear). |
+| **`BoostCombatPriority`** | postfix `CombatQuest.GetPriority` → `max(_, 41)` for whitelisted | ❓ **No observed effect.** Suspect `GetPriority` is **not** the priority the `QuestRunner` arbitrates on (`TriggerPriority` may be). v1.0.10 adds a one-shot "GetPriority boost FIRED" log to confirm. |
+| **`TreatAsWarrior`** | postfix `FSM_CheckVillagerWarrior.Decide` → true for whitelisted | ❌ **Fires (logged) but no behavior change.** So `FSM_CheckVillagerWarrior` is **not** the melee-vs-run branch in her active FSM. |
+| **`PreventRunMovement`** | block `FSM_RunFromTarget.OnStateEnter/Update` for whitelisted | ❌ **`FSM_RunFromTarget` never fired** in the job case → her "running" is **not** the flee-run action; it's **work-quest pathing to the job marker**. Moot for the job case. |
+| **`KeepCombatAlive`** | top `_combatTimeRemaining` to 60 in the polled `ShouldFight` postfix | ✅ **Works** (observed `combatTime=63.8`). So **combat is not timing out** — duration is not the blocker. |
+| **(probe) `FSM_MeleeCombat.OnStateEnter` log** | log-only | ✅ **`Entered MELEE state vs 'Wisp'` fires** → a **regular villager CAN reach melee.** Huge: the fight behavior exists for non-warriors. |
+
+### Root cause (current best understanding)
+The villager's **work quest** (observed: `TerraformingQuest`; also `BuildAndSupplyQuest`, etc.) competes
+with `FleeCombatQuest` in the `QuestRunner`. While she has an active job objective (pathing to a job
+marker), the job keeps winning/oscillating and drags her to the marker; combat only fully takes over
+**once the job state resets**. Idle villagers (no competing job) fight fine. The user's own words:
+> "she ran away **until her job state reset**, then ran back into combat to fight the Wisp **once she was
+> no longer actively trying to reach the job marker**."
+
+### The contradiction v1.0.10 must resolve
+Confirmed `QuestPriority` scale (read at runtime, logged at load):
+```
+Flee=40  SelfDefense=42  AvoidImminentDanger=46  WorkstationWork=15  ImportantWork=22  Idle=0
+```
+Combat (40–42) **should trivially beat work (15–22)** — yet work wins in practice and she oscillates
+(`activeQuest` flips `TerraformingQuest` ↔ `FleeCombatQuest`). So **either**:
+- (a) the `QuestRunner` arbitrates on **`TriggerPriority`**, not `GetPriority` (our boost = no-op), **or**
+- (b) `FleeCombatQuest`'s *effective* priority drops when she's not actively fleeing/spooked, letting work
+  win in the gaps between Wisp hits.
+
+**v1.0.10 was deployed but NOT yet tested.** It changes no behavior; it adds:
+- `activePrio=` in the `[diag]` and spook-state log lines = `QuestRunner._activeQuestPriority`.
+  **Read it when `activeQuest=...TerraformingQuest`** — that's work's effective priority in the arbitration.
+- A one-shot `GetPriority boost FIRED vs 'Wisp': X -> 41` — if it **never appears**, `GetPriority` is not
+  the arbiter (→ it's `TriggerPriority`).
+
+## Pick up here (next session)
+1. **Re-test v1.0.10** (confirm `1.0.10` in the log), do the job scenario, capture the `[diag]` run.
+   - Note `activePrio` when `activeQuest=…TerraformingQuest`, and whether `GetPriority boost FIRED` appears.
+2. **Implement the arbitration fix** based on what you see. In order of preference:
+   1. **Suspend/abort her work task while a whitelisted enemy is engaged** — directly matches the observed
+      cause and is target-scoped. Candidate APIs: `Villager.AbortMatchTarget()`, `Villager.GetTaskRunner()`
+      (→ a `Task.Abort()`/pause), `QuestRunner.RemoveQuest`/`ReevaluateQuest`, `FSM_QuestSetPausedState`,
+      `FSM_QuestStop`. Re-enable when the enemy is gone. **This is the leading hypothesis.**
+   2. If the arbiter is `TriggerPriority`: boost `CombatQuest`/`FleeCombatQuest` `get_TriggerPriority`. **But**
+      it has no target context (can't scope to whitelisted) → would make villagers fight *everything*.
+      Mitigate with a per-villager "engaging-whitelist" flag set in the `_GetSpooked` prefix and read in the
+      `get_TriggerPriority` postfix (key by villager/targeting pointer).
+   3. **Confer real warrior status** (add `WarriorCombatQuest` to her `QuestRunner` / set up
+      `VillagerSurvival._warriorCombatQuest` + `_warriorQuestAdded`). Heaviest; warriors stand & fight and
+      aren't pulled by jobs. Caveat: `_warriorCombatQuest` may be **null** for a non-warrior → may need to
+      create/register one, plus it carries the `warriorStatusEffect` buff and gear assumptions.
+3. Once it works: **prune the inert levers** (ShouldFight flip, `TreatAsWarrior`, `PreventRunMovement`, and
+   `BoostCombatPriority` if confirmed no-op), keep what's load-bearing (`ForceEngage`, `KeepCombatAlive`,
+   probably the job-suspension), flip `DebugLogging` default to `false`, tune `FightBackAgainst`, ship.
+
+## Confirmed API facts (don't re-derive)
+- **Wisp:** `IAttackTarget.GetTargetName()` == `"Wisp"`, `.Faction` == `Undead`. Use a **name** whitelist —
+  draugar are also `Undead`, so a faction whitelist would make them fight draugar.
+- **Flee is FSM-driven, not a single bool:** `FleeCombatQuestData._GetSpooked` = *notification only*;
+  `FSM_SetVillagerIsFleeing.OnStateEnter` sets `Villager.IsFleeing`; `FSM_RunFromTarget` does the run
+  movement. `ShouldFight` is unrelated to the actual flee (always `True` in this scenario).
+- **Get a villager's current target inside any FSM action:** `IFSMBehaviourController.AiTargeting.CurrentTarget`
+  (`ITargetAI.CurrentTarget : IAttackTarget`). This is the clean way to scope FSM-action patches by target.
+- **`CombatQuestData._combatTimeRemaining`** is a plain settable field (not networked) — top it to hold combat.
+- **`QuestRunner`**: `_activeQuestPriority`, `.ActiveQuest.Name`, `FindNextBestQuest`, `ReevaluateQuest`,
+  `AddQuest`/`RemoveQuest`. Reach it via `Villager.GetQuestRunner()`.
+- **`QuestPriority.c_*`** constants are runtime-readable (scale above).
+- **Quests:** non-warrior combat = `FleeCombatQuest`; warrior = `WarriorCombatQuest` (priority `SelfDefense`=42);
+  work examples = `TerraformingQuest`, `BuildAndSupplyQuest`, `WorkstationQuest`, …
+- **Melee is reachable for non-warriors** (`FSM_MeleeCombat.OnStateEnter` fires for a regular villager).
+
+## Build / deploy / tooling
+- `dotnet build VillagerFightBackMod/VillagerFightBackMod.csproj -c Release` → `CopyToPlugins` deploys to
+  `ASKA\BepInEx\plugins\VillagerFightBackMod\` and the project dir. **Bump the version each build** (SAC, above).
+- `_explore/` Mono.Cecil scripts for RE: `search.ps1 -TypeKeywords @(...) [-MemberKeywords @(...) -Members]`,
+  `dump.ps1 -Types @("Full.Name", ...)`. (Method bodies aren't dumpable in IL2CPP — signatures only.)
+- Read the live log directly with the Grep tool on `ASKA\BepInEx\LogOutput.log` (pattern `VillagerFightBack`)
+  — faster and more complete than pasted excerpts.
 
 ## Publishing note
-This was a Nexus comment request — when it ships, reply to rondi112's comment. Follow
-[`docs/nexus-upload.md`](docs/nexus-upload.md) for the upload pipeline (changelog convention +
-main-description update). New page (or fold into DynamicVillagerNeedsMod's page? — user's call).
+Nexus comment request — when it ships, reply to **rondi112**'s comment. Follow
+[`docs/nexus-upload.md`](docs/nexus-upload.md). New page, or fold into DynamicVillagerNeedsMod's page (user's call).

@@ -458,11 +458,25 @@ SSSGame.Combat.CombatManager (MonoBehaviour singleton-ish) ← RegisterCombatant
 `__instance._engagedEnemy` matches a name/faction whitelist, set `__result=true`. Read + return-a-bool only
 (no networked write → co-op-safe); gate the flip on `__instance._survival._hasAuthority`.
 
-### Pending in-game verification (don't treat as fact yet)
-- ⚠️ **Does `ShouldFight==true` make a non-warrior actually attack, or just stop running?** Unknown from the
-  binary. `FSM_FindWeaponDuringCombat` exists (encouraging — suggests they'd arm up). If they only stand
-  there, the fallback is routing whitelisted encounters through the warrior path (`_CheckWarriorStatus` /
-  add `WarriorCombatQuest`) — heavier, and warrior status carries buffs/gear assumptions.
-- ⚠️ **Is `_engagedEnemy` populated at the moment `ShouldFight` is read?** If frequently null, capture the
-  target from `_GetSpooked(IAttackTarget)` instead and remember it per quest-data instance.
-- ⚠️ **The exact Wisp name/faction** — confirm via DebugLogging on first run near the beach.
+### Confirmed in-game (session 2, 2026-06-22) — supersedes the old "pending" notes
+Verified live while building Mod 7 (see [`VILLAGER_FIGHTBACK_HANDOFF.md`](../VILLAGER_FIGHTBACK_HANDOFF.md)
+for the full lever-by-lever log). **These are facts now, with dead-ends called out so they aren't re-tried:**
+- **Wisp:** `GetTargetName()` == `"Wisp"`, `Faction` == `Undead`. Name-whitelist only (draugar are also `Undead`).
+- **`ShouldFight` is a DEAD END for fight-vs-flee.** In a real Wisp encounter it already returns `True`, and
+  the villager flees anyway. The flee is **not** gated on `ShouldFight`. Forcing it does nothing.
+- **`_engagedEnemy` is usually `null`** when `ShouldFight`/`GetPriority` are read — capture the attacker from
+  `_GetSpooked(IAttackTarget)` and remember it per quest-data instance (key by `Pointer`) as a fallback. (Done.)
+- **Flee is FSM-driven, in layers:** `_GetSpooked` = *notification only* (suppressing it removes the spook
+  icon/fanfare but NOT the flee); `FSM_SetVillagerIsFleeing.OnStateEnter` sets `Villager.IsFleeing`;
+  `FSM_RunFromTarget` does the run movement. Blocking each removes its piece but not the overall retreat.
+- **`FSM_CheckVillagerWarrior` is NOT the melee-vs-run branch** — forcing its `Decide` true has no effect.
+- **A regular (non-warrior) villager CAN reach `FSM_MeleeCombat`** and kill a Wisp — confirmed when **idle**.
+- **The real blocker is QUEST ARBITRATION:** a villager **with an active work quest** (e.g. `TerraformingQuest`)
+  gets pulled back to her job marker; combat only fully wins once the job resets. `QuestRunner._activeQuestPriority`
+  oscillates between the work quest and `FleeCombatQuest`. **Combat time is NOT the issue** (topping
+  `_combatTimeRemaining` works but doesn't fix it). The leading fix is to **suspend her work task while a
+  whitelisted enemy is engaged** — still unverified; this is where Mod 7 is paused.
+- **Scope FSM-action patches by target** via `IFSMBehaviourController.AiTargeting.CurrentTarget`.
+- `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat), `AvoidImminentDanger`=46,
+  `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0. (So combat *should* outrank work — but doesn't in
+  practice, implying arbitration may use `TriggerPriority` rather than `GetPriority`. Unresolved.)

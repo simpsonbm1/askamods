@@ -22,6 +22,15 @@ Install path: `D:\SteamLibrary\steamapps\common\ASKA`
 - **Il2CppInterop** — also bundled; generates C# wrapper assemblies from the native IL2CPP binary
 - **.NET 10 SDK** — used to compile mods, targeting `net6.0`
 
+## Build gotcha: Smart App Control blocks fresh DLLs (this machine)
+Windows **Smart App Control is ENFORCED** here (`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1`).
+It intermittently **blocks a freshly-built, unsigned mod DLL** at load:
+`System.IO.FileLoadException … An Application Control policy has blocked this file. (0x800711C7)`.
+Because **.NET builds are deterministic**, rebuilding identical source yields the **same hash** → the
+**same block**; relaunching won't help. **Fix: bump the mod version** (`PLUGIN_VERSION` + csproj `<Version>`)
+so the DLL hash changes — SAC re-evaluates the new (unknown) hash and lets it load. Always confirm the
+**loaded version** in `LogOutput.log` before trusting a test. Turning SAC off is permanent/irreversible — don't.
+
 ## Why IL2CPP Matters
 ASKA ships as IL2CPP (not Mono). The game's C# code is compiled to native machine code in
 `GameAssembly.dll`. BepInEx 6 generates interop wrapper assemblies on first launch at

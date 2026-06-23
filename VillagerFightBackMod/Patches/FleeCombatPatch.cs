@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using SSSGame.AI;
+using SSSGame.AI.FSM;
 using SSSGame.Combat;
 
 namespace VillagerFightBackMod.Patches;
@@ -23,52 +24,289 @@ internal static class FleeCombatShouldFightPatch
         try
         {
             if (!Plugin.EnabledCfg.Value) return;
-            if (__result) return; // already going to fight — nothing to override
+            if (__instance == null) return;
 
-            IAttackTarget enemy = __instance._engagedEnemy;
-            if (enemy == null) return;
+            // _engagedEnemy is frequently null at getter time, so fall back to the attacker we
+            // stashed in _GetSpooked for this quest instance (see Plugin.GetRememberedSpook).
+            IAttackTarget? engaged = __instance._engagedEnemy;
+            IAttackTarget? remembered = engaged == null ? Plugin.GetRememberedSpook(__instance.Pointer) : null;
+            IAttackTarget? decisionTarget = engaged ?? remembered;
+
+            // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
+            // Tells us whether the getter is even polled in combat, what it sees, and why it bails.
+            bool wl = decisionTarget != null && Plugin.IsWhitelisted(decisionTarget);
+
+            // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
+            // Now also reports the active quest + remaining combat time over the whole encounter, to
+            // show whether combat is being dropped (quest flips) or simply timing out.
+            if (Plugin.DebugLogging.Value && decisionTarget != null && Plugin.ShouldLogDiag())
+            {
+                var surv0 = __instance._survival;
+                string au = surv0 == null ? "null-surv" : surv0._hasAuthority.ToString();
+                string aq = "?"; float ct = -1f; float ap = -1f;
+                try { var v = __instance._villager; var qr = v != null ? v.GetQuestRunner() : null; if (qr != null) { if (qr.ActiveQuest != null) aq = qr.ActiveQuest.Name; ap = qr._activeQuestPriority; } } catch { }
+                try { ct = __instance._combatTimeRemaining; } catch { }
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack][diag] ShouldFight result={__result} " +
+                    $"engaged={(engaged != null ? Plugin.SafeName(engaged) : "null")} " +
+                    $"remembered={(remembered != null ? Plugin.SafeName(remembered) : "null")} " +
+                    $"auth={au} activeQuest={aq} activePrio={ap:0.0} combatTime={ct:0.0} whitelisted={wl}");
+            }
+
+            // Keep combat alive while engaged with a whitelisted enemy (authority only). Done here
+            // because this getter is polled frequently; must run BEFORE the early-out below since
+            // ShouldFight is already true in practice.
+            if (wl && Plugin.KeepCombatAlive.Value)
+            {
+                var survK = __instance._survival;
+                if (survK == null || survK._hasAuthority)
+                {
+                    try { if (__instance._combatTimeRemaining < 30f) __instance._combatTimeRemaining = 60f; }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] combatTime top-up: {ex}"); }
+                }
+            }
+
+            if (__result) return;          // already going to fight — nothing to override
+            if (decisionTarget == null) return;
 
             // Host/solo authority only: the FSM that consumes this runs on the authoritative sim.
             // Flipping a non-authoritative client's copy would do nothing useful and risks confusion.
             var surv = __instance._survival;
             if (surv != null && !surv._hasAuthority) return;
 
-            if (Plugin.IsWhitelisted(enemy))
+            if (Plugin.IsWhitelisted(decisionTarget))
             {
                 __result = true;
                 if (Plugin.DebugLogging.Value && Plugin.ShouldLogFlip())
                     Plugin.Logger.LogInfo(
-                        $"[VillagerFightBack] Forced ShouldFight=TRUE vs '{enemy.GetTargetName()}' " +
-                        $"(faction={Plugin.FactionName(enemy.Faction)}).");
+                        $"[VillagerFightBack] Forced ShouldFight=TRUE vs '{Plugin.SafeName(decisionTarget)}' " +
+                        $"(faction={Plugin.FactionName(decisionTarget.Faction)})" +
+                        $"{(engaged == null ? " [via remembered spook]" : "")}.");
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] ShouldFight postfix: {ex}"); }
     }
 }
 
-// Discovery aid: fires when a villager actually gets spooked by an enemy. Logs the enemy's exact
-// name + faction (once per distinct name) so the player can fill FightBackAgainst correctly —
-// creature names live in runtime ScriptableObjects and aren't visible in the binary. Log-only.
+// PRIMARY mechanism. _GetSpooked is the per-target entry point that frightens a villager into
+// fleeing (it applies the spookedStatusEffect → FSM_SetVillagerIsFleeing → FSM_RunFromTarget). The
+// villager's normal chase/attack (FSM_MeleeCombat + FSM_FindWeaponDuringCombat) already works — the
+// spook just keeps interrupting it. So for a WHITELISTED attacker we skip _GetSpooked entirely:
+// no spook applied → no flee → their existing attack behavior continues. Non-whitelisted attackers
+// (draugar, wolves) fall through to vanilla spook/flee. Also doubles as the discovery log + the
+// per-instance target memory used by the ShouldFight fallback.
 [HarmonyPatch(typeof(FleeCombatQuest.FleeCombatQuestData), "_GetSpooked")]
 internal static class FleeCombatGetSpookedPatch
 {
-    static void Postfix(IAttackTarget spookyTarget)
+    // Return false to skip the original _GetSpooked (suppress the spook); true to run vanilla.
+    static bool Prefix(FleeCombatQuest.FleeCombatQuestData __instance, IAttackTarget spookyTarget)
     {
         try
         {
-            if (!Plugin.DebugLogging.Value) return;
-            if (spookyTarget == null) return;
+            if (spookyTarget == null) return true;
 
-            string name = spookyTarget.GetTargetName();
-            if (string.IsNullOrEmpty(name)) name = "(unnamed)";
-            if (Plugin.AlreadyLoggedSpook(name)) return;
+            // Stash the attacker for this quest instance (fallback target for the ShouldFight getter).
+            if (__instance != null) Plugin.RememberSpook(__instance.Pointer, spookyTarget);
 
-            string fac = Plugin.FactionName(spookyTarget.Faction);
-            bool wl = Plugin.IsWhitelisted(spookyTarget);
-            Plugin.Logger.LogInfo(
-                $"[VillagerFightBack] Villager spooked by '{name}' (faction={fac}) — " +
-                $"{(wl ? "ON whitelist (will fight)" : "not on whitelist (will flee); add this name to FightBackAgainst to make them fight it")}.");
+            bool whitelisted = Plugin.IsWhitelisted(spookyTarget);
+
+            // Discovery log: name + faction of each distinct spook source, once.
+            if (Plugin.DebugLogging.Value && !Plugin.AlreadyLoggedSpook(Plugin.SafeName(spookyTarget)))
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] Villager spooked by '{Plugin.SafeName(spookyTarget)}' " +
+                    $"(faction={Plugin.FactionName(spookyTarget.Faction)}) — " +
+                    $"{(whitelisted ? "ON whitelist" : "not on whitelist; add this name to FightBackAgainst to fight it")}.");
+
+            if (!Plugin.EnabledCfg.Value) return true; // mod off → vanilla
+            if (!whitelisted) return true;             // flee real threats normally
+
+            // Whitelisted: only the host/solo authority acts (combat target, spook status & flee state
+            // are networked/replicated; letting a client diverge would desync). Clients follow.
+            var surv = __instance?._survival;
+            if (surv != null && !surv._hasAuthority) return true;
+
+            var villager = __instance?._villager;
+
+            // State diag (throttled): proves the job-vs-combat theory — a villager walking to a job
+            // shows inCombat=False and only ever flees; encounter-4 (already fighting) shows inCombat=True.
+            if (Plugin.DebugLogging.Value && Plugin.ShouldLogFlip() && villager != null)
+            {
+                string activeQuest = "?"; float activePrio = -1f;
+                try { var qr = villager.GetQuestRunner(); if (qr != null) { if (qr.ActiveQuest != null) activeQuest = qr.ActiveQuest.Name; activePrio = qr._activeQuestPriority; } }
+                catch { }
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] Whitelisted spook from '{Plugin.SafeName(spookyTarget)}' — " +
+                    $"villager state: inCombat={villager.IsInCombat} fleeing={villager.IsFleeing} " +
+                    $"warrior={villager.IsWarrior} behavior={villager.CurrentBehaviorType} activeQuest={activeQuest} activePrio={activePrio:0.0}.");
+            }
+
+            // Force engagement: set the wisp as her combat target so she ENTERS combat and attacks it,
+            // rather than ignoring it while doing a job. onlyIfNotPresent=true so we never steal an
+            // existing (possibly more dangerous) target.
+            if (Plugin.ForceEngage.Value && villager != null)
+            {
+                try { villager.SetTarget(spookyTarget, true); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] SetTarget failed: {ex}"); }
+            }
+
+            if (!Plugin.SuppressSpook.Value) return true; // engage but still allow vanilla spook
+            return false;                                 // skip _GetSpooked → no spook → no flee
         }
-        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetSpooked postfix: {ex}"); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetSpooked prefix: {ex}"); return true; }
+    }
+}
+
+// THE key lever. QuestRunner runs the single highest-priority quest. A villager with a job drops
+// combat the instant it begins because the work quest out-prioritizes un-spooked combat — that's why
+// they fight when idle but never when busy. So while the combat quest is engaged with a whitelisted
+// enemy, we raise its priority above work (to just over c_Flee) so it HOLDS and the melee branch
+// runs. Reverts on its own once _engagedEnemy clears / the remembered spook expires. Pure read +
+// number bump, no networked write → co-op-safe.
+[HarmonyPatch(typeof(CombatQuest), nameof(CombatQuest.GetPriority))]
+internal static class CombatPriorityPatch
+{
+    static void Postfix(QuestData questData, ref float __result)
+    {
+        try
+        {
+            if (!Plugin.EnabledCfg.Value || !Plugin.BoostCombatPriority.Value) return;
+            if (questData == null) return;
+
+            var cqd = questData.TryCast<CombatQuest.CombatQuestData>();
+            if (cqd == null) return;
+
+            IAttackTarget? enemy = cqd._engagedEnemy ?? Plugin.GetRememberedSpook(questData.Pointer);
+            if (enemy == null || !Plugin.IsWhitelisted(enemy)) return;
+
+            float boost = Plugin.GetCombatBoost();
+            if (__result < boost)
+            {
+                float was = __result;
+                __result = boost;
+                // One-shot proof that this method is actually the priority the QuestRunner arbitrates on.
+                if (Plugin.DebugLogging.Value && !Plugin.BoostLoggedOnce)
+                {
+                    Plugin.BoostLoggedOnce = true;
+                    Plugin.Logger.LogInfo(
+                        $"[VillagerFightBack] GetPriority boost FIRED vs '{Plugin.SafeName(enemy)}': {was:0.0} -> {boost:0.0}.");
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetPriority postfix: {ex}"); }
+    }
+}
+
+// THE actual fix. FSM_SetVillagerIsFleeing is the FSM action that flips Villager.IsFleeing — the flag
+// that drives the run-away behavior (suppressing _GetSpooked didn't stop it because that's only the
+// notification, not the flag). The action instance with fleeingState=true is "start fleeing". When
+// the villager's current combat target is whitelisted, we skip that action so the flag never goes
+// true and their combat FSM falls through to the melee branch (the same one that already runs when
+// idle). The FSM only ticks on the authoritative sim, and skipping sets less state → co-op-safe.
+[HarmonyPatch(typeof(FSM_SetVillagerIsFleeing), nameof(FSM_SetVillagerIsFleeing.OnStateEnter))]
+internal static class BlockFleeingPatch
+{
+    static bool Prefix(FSM_SetVillagerIsFleeing __instance, IFSMBehaviourController fsmBehaviour)
+    {
+        try
+        {
+            if (!Plugin.EnabledCfg.Value || !Plugin.PreventFlee.Value) return true;
+            if (__instance == null || !__instance.fleeingState) return true; // only block "start fleeing"
+            if (fsmBehaviour == null) return true;
+
+            var targeting = fsmBehaviour.AiTargeting;
+            IAttackTarget? target = targeting != null ? targeting.CurrentTarget : null;
+            if (target == null || !Plugin.IsWhitelisted(target)) return true; // flee real threats
+
+            if (Plugin.DebugLogging.Value && Plugin.ShouldLogBlock())
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] Blocked flee state vs '{Plugin.SafeName(target)}' — villager should melee instead.");
+            return false; // skip OnStateEnter → IsFleeing not set true → no run-away
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] BlockFleeing prefix: {ex}"); return true; }
+    }
+}
+
+// THE fix. The villager combat FSM branches on FSM_CheckVillagerWarrior: warriors melee
+// (FSM_MeleeCombat), non-warriors run (FSM_RunFromTarget). Removing the fear (above) wasn't enough —
+// the FSM still routes a non-warrior down the run branch. So while the villager's current target is
+// whitelisted, we answer this decision "yes", sending them into the existing melee behavior. Scoped
+// to whitelisted targets, so they're only "warriors" for the duration of fighting a wisp.
+[HarmonyPatch(typeof(FSM_CheckVillagerWarrior), nameof(FSM_CheckVillagerWarrior.Decide))]
+internal static class WarriorCheckPatch
+{
+    static void Postfix(IFSMBehaviourController fsmBehaviour, ref bool __result)
+    {
+        try
+        {
+            if (__result) return; // already a warrior — nothing to do
+            if (!Plugin.EnabledCfg.Value || !Plugin.TreatAsWarrior.Value) return;
+            if (fsmBehaviour == null) return;
+
+            var targeting = fsmBehaviour.AiTargeting;
+            IAttackTarget? target = targeting != null ? targeting.CurrentTarget : null;
+            if (target == null || !Plugin.IsWhitelisted(target)) return; // non-warriors flee real threats
+
+            __result = true;
+            if (Plugin.DebugLogging.Value && Plugin.ShouldLogWarrior())
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] Treating villager as warrior vs '{Plugin.SafeName(target)}' — should melee.");
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] WarriorCheck postfix: {ex}"); }
+    }
+}
+
+// FSM_RunFromTarget is the action that performs the actual run-away movement. Even with the fear flag
+// suppressed, the combat FSM is still entering its run state — so we block this action while the
+// villager's current target is whitelisted. Also logs entry (a truth-probe: confirms she's in the
+// run state and what's driving it).
+[HarmonyPatch(typeof(FSM_RunFromTarget))]
+internal static class RunFromTargetPatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(FSM_RunFromTarget.OnStateEnter))]
+    static bool OnEnter(IFSMBehaviourController fsmBehaviour) => !BlockRun(fsmBehaviour, true);
+
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(FSM_RunFromTarget.OnStateUpdate))]
+    static bool OnUpdate(IFSMBehaviourController fsmBehaviour) => !BlockRun(fsmBehaviour, false);
+
+    // Returns true if the run should be blocked.
+    static bool BlockRun(IFSMBehaviourController fsmBehaviour, bool isEnter)
+    {
+        try
+        {
+            if (fsmBehaviour == null) return false;
+            var targeting = fsmBehaviour.AiTargeting;
+            IAttackTarget? target = targeting != null ? targeting.CurrentTarget : null;
+            if (target == null || !Plugin.IsWhitelisted(target)) return false;
+
+            bool block = Plugin.EnabledCfg.Value && Plugin.PreventRunMovement.Value;
+            if (isEnter && Plugin.DebugLogging.Value && Plugin.ShouldLogRun())
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] FSM_RunFromTarget entered vs '{Plugin.SafeName(target)}' (block={block}).");
+            return block;
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] RunFromTarget: {ex}"); return false; }
+    }
+}
+
+// Truth-probe (log-only): fires if the villager ever enters the melee state while targeting a
+// whitelisted enemy. If we see this, the melee branch is reachable; if we never do while she runs,
+// her active combat quest simply has no melee branch (→ she needs the warrior combat quest).
+[HarmonyPatch(typeof(FSM_MeleeCombat), nameof(FSM_MeleeCombat.OnStateEnter))]
+internal static class MeleeEntryProbePatch
+{
+    static void Postfix(IFSMBehaviourController fsmBehaviour)
+    {
+        try
+        {
+            if (!Plugin.DebugLogging.Value || fsmBehaviour == null) return;
+            var targeting = fsmBehaviour.AiTargeting;
+            IAttackTarget? target = targeting != null ? targeting.CurrentTarget : null;
+            if (target == null || !Plugin.IsWhitelisted(target)) return;
+            if (Plugin.ShouldLogWarrior())
+                Plugin.Logger.LogInfo($"[VillagerFightBack] Entered MELEE state vs '{Plugin.SafeName(target)}'.");
+        }
+        catch { }
     }
 }
