@@ -1,7 +1,32 @@
-# Mod 7 — VillagerFightBackMod — Handoff (IN PROGRESS — natural-combat-behaviour swap, awaiting test)
+# Mod 7 — VillagerFightBackMod — Handoff (BLOCKED — v1.0.14 CRASHES on launch; parked/disabled)
 
-**Status as of 2026-06-23 (session 3):** Deployed **v1.0.14**. **Not yet tested** (queued — user's last test
-of the night was v1.0.13). Five approaches now; the new one is grounded in a v1.0.13 finding that reframes
+## 🛑 CURRENT BLOCKER (2026-06-23, session 4): v1.0.14 CRASHES THE GAME ON LAUNCH
+**Confirmed.** With VillagerFightBackMod **1.0.14** active, ASKA hard-crashes during startup — a native access
+violation (**`0xc0000005`**) in **`ASKA\dotnet\coreclr.dll`** (the .NET 6 runtime BepInEx hosts mods on), per
+the Windows Application event log. Reproducible across launches (same fault bucket). The crash lands **after**
+BepInEx logs `Chainloader startup complete` and Unity's `Player.log` reaches `Input initialized` — i.e.
+**before the main menu**, not in gameplay. **Disabling VFB makes the game launch normally**, so 1.0.14 is
+**definitively** the cause. All patches applied cleanly first (PatchAll returned, the config readout printed,
+no Harmony error logged) → it is **not** a managed patch-application exception; it's a native AV, most likely a
+detour (or its trampoline codegen) hit during early engine init.
+
+**Currently PARKED:** the deployed DLL is renamed **`VillagerFightBackMod.dll.off`** in
+`ASKA\BepInEx\plugins\VillagerFightBackMod\` so the game runs. Source is intact at v1.0.14.
+**⚠️ Rebuilding re-arms the crash** — the csproj `CopyToPlugins` target drops a fresh `VillagerFightBackMod.dll`
+into that plugins folder, re-activating the mod, so the game will crash again until the bug is fixed. For a
+clean launch without fixing it, re-park (rename the built `.dll` → `.dll.off`).
+
+**Bisection plan (fix path):** the config feature-flags only gate behavior *inside* each postfix — the Harmony
+**detours install regardless** — so bisect at the **source**: comment out groups of `[HarmonyPatch]` classes in
+`Patches/FleeCombatPatch.cs`, rebuild (bump version per SAC), launch, and see which group stops the crash.
+Start with the newest/riskiest: **`CombatBehaviourSwapPatch`** (`CombatQuest.GetFSMBehavior`, v1.0.14) and
+**`QuestRunnerUpdatePatch`** (`QuestRunner.Update`, v1.0.13). v1.0.12 already hard-crashed via a `Single&`
+by-ref param (`QuestRunner.FindNextBestQuest`); the current detours' signatures *look* marshal-safe, but a
+startup AV in coreclr is the same class of native-glue failure — re-audit each remaining detour's signature.
+(The cooking-hut investigation that interrupted this session is fully resolved and was unrelated to VFB.)
+
+**Status as of 2026-06-23 (session 3→4):** Deployed **v1.0.14**, then **launched → it CRASHES the game (see
+🛑 banner above)** — no *behavior* test was possible. The last successful behavior test was **v1.0.13**. Five approaches now; the new one is grounded in a v1.0.13 finding that reframes
 the whole problem. Dead-ends so far, each for a distinct (documented) reason:
 - v1.0.10 `BoostCombatPriority` (GetPriority→41): fires, no effect (GetPriority isn't the selector).
 - v1.0.11 `BoostTriggerPriority` (get_TriggerPriority→40): boost log never fired (getter cached).
@@ -133,9 +158,12 @@ Combat (40–42) **should trivially beat work (15–22)** — yet work wins in p
   the arbiter (→ it's `TriggerPriority`).
 
 ## Pick up here (next session)
-1. **Test v1.0.14** (confirm `1.0.14` in the load line — SAC may block the fresh hash; if missing/errored,
-   bump to 1.0.15 and rebuild). Job scenario: villager walking to a job, Wisp attacks. **Expected (the win
-   condition):** she **stands and fights** the Wisp instead of running — no kiting/retreating — then resumes
+1. **FIRST: fix the v1.0.14 startup CRASH (see the 🛑 banner at top).** v1.0.14 hard-crashes ASKA on launch
+   (native AV in `coreclr.dll`), so **no behavior test is possible until the crash is fixed.** Bisect the
+   detours per the banner — comment out `[HarmonyPatch]` groups in `Patches/FleeCombatPatch.cs`, rebuild (bump
+   version), launch — starting with `CombatBehaviourSwapPatch` and `QuestRunnerUpdatePatch`. Once it launches
+   clean, THEN run the behavior test: job scenario (villager walking to a job, Wisp attacks). **Win
+   condition:** she **stands and fights** the Wisp instead of running — no kiting/retreating — then resumes
    work when it's dead.
 2. **Read these log lines:**
    - `Swapped combat FSM behaviour flee -> natural (stand & fight) vs 'Wisp'` (one-shot) — **the key signal.**
