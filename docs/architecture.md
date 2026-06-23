@@ -31,6 +31,15 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported).
   Called from `Update()` it logs thousands of times/sec. Get instances from a Harmony patch's
   `__instance` instead of searching.
+- **Never Harmony-patch an IL2CPP method that takes a by-ref primitive parameter** (`Single&`, `Int32&`,
+  a `bool`/`Boolean&` out-param, etc.). Marshaling the by-ref value type through the patch trampoline
+  throws a `NullReferenceException` **on every call** — logged as `During invoking native->managed
+  trampoline … at (il2cpp -> managed) Method(IntPtr, Single&, Byte, …)` — and since the original body
+  never runs, whatever calls that method breaks hard (Mod 7 v1.0.12 patched
+  `QuestRunner.FindNextBestQuest(Single& topPriority, …)` and every villager went totally inert, thousands
+  of NREs/frame). The exception is **outside** your `try/catch` (it's in the glue), so you won't catch it.
+  Patch a sibling method with a safe signature instead — e.g. the void/no-arg `Update()` — and call the
+  game's own `Void M(Quest)`-style methods to do the work.
 - **`.TryCast<T>()` is NOT available on `UnityEngine.Object`** — its wrapper's base chain is just
   `System.Object`, not `Il2CppObjectBase` (unlike normal game types e.g.
   `WorldItemInstance : Il2CppSystem.Object : Il2CppObjectBase`). Avoid by obtaining an
@@ -474,9 +483,42 @@ for the full lever-by-lever log). **These are facts now, with dead-ends called o
 - **The real blocker is QUEST ARBITRATION:** a villager **with an active work quest** (e.g. `TerraformingQuest`)
   gets pulled back to her job marker; combat only fully wins once the job resets. `QuestRunner._activeQuestPriority`
   oscillates between the work quest and `FleeCombatQuest`. **Combat time is NOT the issue** (topping
-  `_combatTimeRemaining` works but doesn't fix it). The leading fix is to **suspend her work task while a
-  whitelisted enemy is engaged** — still unverified; this is where Mod 7 is paused.
+  `_combatTimeRemaining` works but doesn't fix it).
+- **Priority-number boosts via getter postfixes DON'T fix it — both tried and failed in-game:**
+  - Postfix `CombatQuest.GetPriority` → 41 **fired** yet the runner still re-selected `TerraformingQuest`
+    (`activePrio=15`) — impossible for a `GetPriority`-ranked selector, so `GetPriority` (Single) is only the
+    *reported* priority of the already-chosen quest, not the selector.
+  - Postfix `FleeCombatQuest.get_TriggerPriority` → 40 (v1.0.11): the boost log **never fired** → the getter
+    is almost certainly **cached** (a stored field the runner reads, not the property; `CombatQuest.SetDirty()`
+    exists) — so postfixing the property is inert. (`FleeCombatQuest` *does* override `TriggerPriority`, and
+    it is **per-villager** — `VillagerSurvival._fleeCombatQuest` — but that doesn't help if the value is cached.)
+  - **Takeaway: don't fight the arbiter with priority numbers. Patch the selection method.**
+- **v1.0.12 tried overriding `QuestRunner.FindNextBestQuest` → CRASHED** (its `Single&` by-ref out-param is
+  the IL2CPP trampoline hazard above; villagers went inert). Dead end as a patch target.
+- **v1.0.13 suspended the work quest** (`QuestRunner.Update` poll → `RemoveQuest` the active work quest,
+  `AddQuest` back later). **Mechanically worked** (`Suspended work quest 'TerraformingQuest'` → active became
+  `FleeCombatQuest` → reached `FSM_MeleeCombat`) **but she STILL ran.** Decisive: with the job removed, the
+  run can't be job-pathing.
+- **CONFIRMED ROOT CAUSE (session 3): she runs because the FleeCombatQuest executes the FLEE combat
+  _behaviour_.** `VillagerSurvival` has two combat FSMs: **`fleeCombatBehaviour`** (kite/run) and
+  **`naturalCombatBehaviour`** (stand & fight) — plus `avoidDangerBehaviour`, `callToArmsBehaviour`, etc.
+  `CombatQuest.GetFSMBehavior(QuestData) → vFSMBehaviour` selects which one runs; for `FleeCombatQuest` it
+  returns the flee one. Idle villagers fight Wisps because they use the *natural* behaviour. Every lever that
+  poked the flee quest (suppress spook, block flee-flag/run-action, force `ShouldFight`, boost priority,
+  remove job) was de-fanging the wrong FSM.
+- **The fix under test (v1.0.14): postfix `CombatQuest.GetFSMBehavior` → return `_survival.naturalCombatBehaviour`
+  for a whitelisted enemy.** `FleeCombatQuest` does **not** override `GetFSMBehavior`, so patching `CombatQuest`'s
+  covers it. Safe sig (reference types). Get `naturalCombatBehaviour` + `_engagedEnemy`/`_survival` off the
+  `CombatQuest.CombatQuestData`. If the swap doesn't take, the heavier fallback is real **warrior status**
+  (`VillagerSurvival._warriorCombatQuest`/`_warriorQuestAdded`/`_CheckWarriorStatus()`) — the game's own
+  stand-and-fight path. (`vFSMBehaviour` is on the Unity object chain → use `Plugin.PtrOf(object)` to compare.)
 - **Scope FSM-action patches by target** via `IFSMBehaviourController.AiTargeting.CurrentTarget`.
+- **Quest back-refs (confirmed):** `QuestData.Quest` + `QuestData.QuestRunner`, and `CombatQuestData.GetVillager()`
+  — so from a `FleeCombatQuestData` patch you can reach the villager's runner/quest without `FindObjectsByType`.
+  `QuestRunner` exposes `FindNextBestQuest(out topPriority, excludeActiveQuest)`, `ReevaluateQuest`,
+  `AddQuest`/`RemoveQuest`, `StopAndRemoveAllQuests`, `ActiveQuest`, `_activeQuestPriority`, and a
+  `_pendingQuest*` set. **Pointer gotcha:** `QuestRunner` is on the UnityEngine.Object chain and the csproj
+  references the *stripped* unity-libs CoreModule, so `QuestRunner.Pointer` won't compile — cast through
+  `object` to `Il2CppObjectBase` at runtime (Il2CppSystem.Object-derived types like `QuestData`/`Quest` are fine).
 - `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat), `AvoidImminentDanger`=46,
-  `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0. (So combat *should* outrank work — but doesn't in
-  practice, implying arbitration may use `TriggerPriority` rather than `GetPriority`. Unresolved.)
+  `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0.

@@ -27,6 +27,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> SuppressSpook = null!;
     internal static ConfigEntry<bool> ForceEngage = null!;
     internal static ConfigEntry<bool> BoostCombatPriority = null!;
+    internal static ConfigEntry<bool> BoostTriggerPriority = null!;
+    internal static ConfigEntry<bool> SuspendWorkWhileEngaged = null!;
+    internal static ConfigEntry<bool> UseNaturalCombatBehaviour = null!;
     internal static ConfigEntry<bool> PreventFlee = null!;
     internal static ConfigEntry<bool> TreatAsWarrior = null!;
     internal static ConfigEntry<bool> PreventRunMovement = null!;
@@ -90,6 +93,44 @@ public class Plugin : BasePlugin
                          "drops combat instantly because the work quest out-prioritizes it (which is why " +
                          "they fight when idle but not when busy). Self-limiting: reverts when the enemy is gone.");
 
+        BoostTriggerPriority = Config.Bind(
+            section: "VillagerFightBack",
+            key: "BoostTriggerPriority",
+            defaultValue: true,
+            description: "THE arbitration fix. The QuestRunner selects the active quest by each quest's " +
+                         "TriggerPriority — NOT GetPriority (boosting GetPriority fired in-game but combat " +
+                         "still lost to work, proving the runner gates eligibility on TriggerPriority). A busy " +
+                         "villager's flee-combat quest only spikes its TriggerPriority for an instant when " +
+                         "freshly spooked, so the work quest reclaims her in the gaps and drags her back to the " +
+                         "job marker. This pins her flee-combat quest's TriggerPriority at the flee tier for the " +
+                         "whole encounter (while a whitelisted enemy is remembered), so combat stays selected and " +
+                         "she commits to the fight. Self-reverting: expires ~8s after the enemy is gone.");
+
+        SuspendWorkWhileEngaged = Config.Bind(
+            section: "VillagerFightBack",
+            key: "SuspendWorkWhileEngaged",
+            defaultValue: true,
+            description: "THE arbitration fix (v1.0.13). Idle villagers already fight Wisps fine — the only thing " +
+                         "dragging a busy one off is her active WORK quest out-competing combat. So while she's " +
+                         "engaged with a whitelisted enemy, remove her active work quest (via the game's own " +
+                         "QuestRunner.RemoveQuest, from a QuestRunner.Update poll) so she drops to idle and fights; " +
+                         "add it back (RemoveQuest/AddQuest) once the enemy is gone. Survival/combat/idle quests are " +
+                         "name-protected and never touched. Replaces the priority-boost and FindNextBestQuest " +
+                         "approaches (the latter crashed: its Single& out-param is an IL2CPP trampoline hazard).");
+
+        UseNaturalCombatBehaviour = Config.Bind(
+            section: "VillagerFightBack",
+            key: "UseNaturalCombatBehaviour",
+            defaultValue: true,
+            description: "THE likely real fix (v1.0.14). A villager has TWO combat FSM behaviours: " +
+                         "'fleeCombatBehaviour' (kite/run) and 'naturalCombatBehaviour' (stand & fight). The " +
+                         "FleeCombatQuest runs the FLEE one — which is why she runs even after we remove her job " +
+                         "and force ShouldFight/melee: the running IS the flee combat behaviour itself, not the " +
+                         "job. This postfixes CombatQuest.GetFSMBehavior and, for a whitelisted enemy, returns " +
+                         "VillagerSurvival.naturalCombatBehaviour instead, routing her into the stand-and-fight " +
+                         "FSM (the same one idle villagers use to kill Wisps). Safe signature (QuestData in, " +
+                         "vFSMBehaviour out — both reference types).");
+
         PreventFlee = Config.Bind(
             section: "VillagerFightBack",
             key: "PreventFlee",
@@ -142,7 +183,9 @@ public class Plugin : BasePlugin
         Logger.LogInfo($"VillagerFightBackMod loaded. Enabled={EnabledCfg.Value}, " +
                        $"FightBackAgainst=\"{FightBackAgainst.Value}\", FightBackFactions=\"{FightBackFactions.Value}\", " +
                        $"SuppressSpook={SuppressSpook.Value}, ForceEngage={ForceEngage.Value}, " +
-                       $"BoostCombatPriority={BoostCombatPriority.Value}, PreventFlee={PreventFlee.Value}, " +
+                       $"BoostCombatPriority={BoostCombatPriority.Value}, BoostTriggerPriority={BoostTriggerPriority.Value}, " +
+                       $"SuspendWorkWhileEngaged={SuspendWorkWhileEngaged.Value}, " +
+                       $"UseNaturalCombatBehaviour={UseNaturalCombatBehaviour.Value}, PreventFlee={PreventFlee.Value}, " +
                        $"TreatAsWarrior={TreatAsWarrior.Value}, PreventRunMovement={PreventRunMovement.Value}, " +
                        $"KeepCombatAlive={KeepCombatAlive.Value}, DebugLogging={DebugLogging.Value}");
 
@@ -220,6 +263,36 @@ public class Plugin : BasePlugin
     // One-shot: confirms the GetPriority boost actually fires (i.e. GetPriority is the arbiter path).
     internal static bool BoostLoggedOnce = false;
 
+    // One-shot: confirms the TriggerPriority boost fires — the lever that actually holds combat selected.
+    internal static bool TriggerBoostLoggedOnce = false;
+
+    // One-shot: did get_TriggerPriority ever run (confirms whether v1.0.11's boosted getter is cached).
+    internal static bool TriggerGetterLoggedOnce = false;
+
+    // One-shot: confirms the flee->natural combat-behaviour swap fired (the v1.0.14 lever).
+    internal static bool BehaviourSwapLoggedOnce = false;
+
+    // Quests we must never suspend: survival, combat/flee, idle, and other non-work objectives. Matched as
+    // case-insensitive substrings against Quest.Name. Anything NOT matching is treated as a work quest and
+    // is eligible to be removed while she fights a whitelisted enemy.
+    private static readonly string[] _protectedQuestSubstrings =
+    {
+        "Flee", "Combat", "Survival", "Replenish", "Sleep", "Rest", "WarmUp", "Warmup", "Warm",
+        "AvoidImminentDanger", "Danger", "Idle", "DressUp", "Paint", "CallToArms", "Homeless",
+        "Complain", "Party", "WaveTo", "TalkingTo", "ProtectMaster", "Alarm", "Retreat", "Sailing", "Ship"
+    };
+
+    internal static bool IsProtectedQuest(Quest quest)
+    {
+        if (quest == null) return true; // unknown → don't touch
+        string name;
+        try { name = quest.Name; } catch { return true; }
+        if (string.IsNullOrEmpty(name)) return true;
+        foreach (var s in _protectedQuestSubstrings)
+            if (name.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        return false;
+    }
+
     // --- debug-logging throttles ---
     private static readonly HashSet<string> _loggedSpooks = new();
 
@@ -286,6 +359,17 @@ public class Plugin : BasePlugin
         return true;
     }
 
+    private static float _lastArbLogTime = -999f;
+
+    // Throttle the FindNextBestQuest arbitration log (called every frame per villager).
+    internal static bool ShouldLogArb()
+    {
+        float t = Time.realtimeSinceStartup;
+        if (t - _lastArbLogTime < 2f) return false;
+        _lastArbLogTime = t;
+        return true;
+    }
+
     // Reading an IL2CPP target's name can throw if the underlying object was destroyed.
     internal static string SafeName(IAttackTarget t)
     {
@@ -305,6 +389,22 @@ public class Plugin : BasePlugin
             catch { _combatBoost = 1000f; }
         }
         return _combatBoost;
+    }
+
+    // TriggerPriority value to pin a flee-combat quest at while engaged with a whitelisted enemy.
+    // The QuestRunner selects the active quest by TriggerPriority; a spook momentarily raises it to
+    // c_Flee, which beats work — so holding it at c_Flee for the whole encounter keeps combat selected
+    // (no oscillation) without exceeding genuine emergencies (AvoidImminentDanger=46) or changing how
+    // she behaves vs a real threat (a draugr in range still flees via the same quest's per-target logic).
+    private static int _triggerBoost = -1;
+    internal static int GetTriggerBoost()
+    {
+        if (_triggerBoost < 0)
+        {
+            try { _triggerBoost = QuestPriority.c_Flee; }
+            catch { _triggerBoost = 100; }
+        }
+        return _triggerBoost;
     }
 
     // --- per-instance spook-target memory ---
@@ -334,5 +434,85 @@ public class Plugin : BasePlugin
             _recentSpooks.Remove(key); // stale
         }
         return null;
+    }
+
+    // --- per-runner combat-quest registry (for the FindNextBestQuest arbiter patch) ---
+    // FindNextBestQuest runs on the QuestRunner and has no quest/target context, so we stash — keyed by
+    // runner pointer — this villager's FleeCombatQuest object + its quest-data pointer (for the spook
+    // lookup). Populated/refreshed from _GetSpooked and the polled ShouldFight getter, both of which carry
+    // FleeCombatQuestData (→ .QuestRunner, .Quest). Short TTL so we only steer the arbiter during a live
+    // engagement; outside the window the entry expires and the runner behaves vanilla.
+    private struct CombatRec { public Quest Quest; public IntPtr QuestDataPtr; public float Time; }
+    private static readonly Dictionary<IntPtr, CombatRec> _runnerCombat = new();
+
+    // Native object pointer for any IL2CPP wrapper. QuestRunner sits on the UnityEngine.Object chain;
+    // because the csproj references the stripped unity-libs UnityEngine.CoreModule (not the interop one),
+    // the compiler can't see QuestRunner -> Il2CppObjectBase, so a direct cast won't compile. At runtime
+    // every interop wrapper IS an Il2CppObjectBase, so cast through `object` and read the pointer.
+    internal static IntPtr PtrOf(object obj)
+    {
+        var b = obj as Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase;
+        return b == null ? IntPtr.Zero : Il2CppInterop.Runtime.IL2CPP.Il2CppObjectBaseToPtr(b);
+    }
+
+    internal static void RememberVillagerCombat(QuestRunner runner, Quest combatQuest, IntPtr questDataPtr)
+    {
+        if (runner == null || combatQuest == null) return;
+        IntPtr runnerKey = PtrOf(runner);
+        if (runnerKey == IntPtr.Zero) return;
+        _runnerCombat[runnerKey] = new CombatRec { Quest = combatQuest, QuestDataPtr = questDataPtr, Time = Time.realtimeSinceStartup };
+    }
+
+    // This villager's flee-combat quest + its quest-data pointer, if a fresh engagement is on record.
+    internal static bool TryGetVillagerCombat(QuestRunner runner, out Quest combatQuest, out IntPtr questDataPtr)
+    {
+        combatQuest = null!; questDataPtr = IntPtr.Zero;
+        IntPtr runnerKey = PtrOf(runner);
+        if (runnerKey == IntPtr.Zero) return false;
+        if (_runnerCombat.TryGetValue(runnerKey, out var rec))
+        {
+            if (Time.realtimeSinceStartup - rec.Time <= SpookMemorySeconds) { combatQuest = rec.Quest; questDataPtr = rec.QuestDataPtr; return true; }
+            _runnerCombat.Remove(runnerKey); // stale
+        }
+        return false;
+    }
+
+    // --- suspended work quests (removed while engaged, re-added when the enemy is gone) ---
+    // Keyed by runner pointer; holds the Quest objects we RemoveQuest'd so we can AddQuest them back.
+    private static readonly Dictionary<IntPtr, List<Quest>> _suspended = new();
+
+    internal static int SuspendedCount(QuestRunner runner)
+    {
+        IntPtr key = PtrOf(runner);
+        return _suspended.TryGetValue(key, out var list) ? list.Count : 0;
+    }
+
+    // Returns true if this quest was newly stashed; false if it was already suspended for this runner
+    // (guards against re-stashing the same quest if RemoveQuest doesn't clear ActiveQuest the same frame).
+    internal static bool StashSuspended(QuestRunner runner, Quest quest)
+    {
+        if (quest == null) return false;
+        IntPtr key = PtrOf(runner);
+        if (key == IntPtr.Zero) return false;
+        if (!_suspended.TryGetValue(key, out var list)) { list = new List<Quest>(); _suspended[key] = list; }
+        IntPtr qp = PtrOf(quest);
+        foreach (var q in list) if (PtrOf(q) == qp) return false; // already suspended
+        list.Add(quest);
+        return true;
+    }
+
+    // Hands back (and clears) the quests suspended for this runner; false if there were none.
+    internal static bool TryRestoreSuspended(QuestRunner runner, out List<Quest>? quests)
+    {
+        quests = null;
+        IntPtr key = PtrOf(runner);
+        if (key == IntPtr.Zero) return false;
+        if (_suspended.TryGetValue(key, out var list))
+        {
+            _suspended.Remove(key);
+            quests = list;
+            return true;
+        }
+        return false;
     }
 }

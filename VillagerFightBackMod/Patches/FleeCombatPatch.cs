@@ -53,6 +53,23 @@ internal static class FleeCombatShouldFightPatch
                     $"auth={au} activeQuest={aq} activePrio={ap:0.0} combatTime={ct:0.0} whitelisted={wl}");
             }
 
+            // Refresh the "engaging a whitelisted enemy" window from this frequently-polled getter so
+            // the TriggerPriority boost (which holds the flee-combat quest selected over work) stays
+            // live through the whole fight, not just the instants right after a spook event. Refresh
+            // both keys (quest-data ptr + owning-quest ptr) — see _GetSpooked for why both.
+            if (wl && decisionTarget != null)
+            {
+                Plugin.RememberSpook(__instance.Pointer, decisionTarget);
+                try
+                {
+                    var q = __instance.Quest;
+                    if (q != null) Plugin.RememberSpook(q.Pointer, decisionTarget);
+                    var qr = __instance.QuestRunner;
+                    if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
+                }
+                catch { }
+            }
+
             // Keep combat alive while engaged with a whitelisted enemy (authority only). Done here
             // because this getter is polled frequently; must run BEFORE the early-out below since
             // ShouldFight is already true in practice.
@@ -106,7 +123,24 @@ internal static class FleeCombatGetSpookedPatch
             if (spookyTarget == null) return true;
 
             // Stash the attacker for this quest instance (fallback target for the ShouldFight getter).
-            if (__instance != null) Plugin.RememberSpook(__instance.Pointer, spookyTarget);
+            // Remember it under BOTH the quest-data pointer (used by ShouldFight/GetPriority, which have
+            // the data) AND the owning FleeCombatQuest pointer (used by the get_TriggerPriority postfix,
+            // which has only the quest). FleeCombatQuest is per-villager, so the quest pointer is a valid
+            // per-villager key. This is what lets the trigger-priority boost be scoped to this villager.
+            if (__instance != null)
+            {
+                Plugin.RememberSpook(__instance.Pointer, spookyTarget);
+                try
+                {
+                    var q = __instance.Quest;
+                    if (q != null) Plugin.RememberSpook(q.Pointer, spookyTarget);
+                    // Register this villager's runner -> flee-combat-quest so the FindNextBestQuest
+                    // arbiter patch can force her combat quest while this engagement is live.
+                    var qr = __instance.QuestRunner;
+                    if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
+                }
+                catch { }
+            }
 
             bool whitelisted = Plugin.IsWhitelisted(spookyTarget);
 
@@ -193,6 +227,195 @@ internal static class CombatPriorityPatch
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetPriority postfix: {ex}"); }
+    }
+}
+
+// THE likely real fix (v1.0.14). A villager has TWO combat FSM behaviours on VillagerSurvival:
+// `fleeCombatBehaviour` (kite/run) and `naturalCombatBehaviour` (stand & fight). CombatQuest.GetFSMBehavior
+// picks which one the combat FSM runs; for the FleeCombatQuest it returns the FLEE behaviour — which is why
+// she RUNS even after we strip her job and force ShouldFight/melee (v1.0.13: work suspended, FleeCombat
+// active, MELEE reached — yet she still ran). The running IS the flee combat behaviour, not the job. So for
+// a whitelisted enemy we swap the result to `naturalCombatBehaviour`, the same stand-and-fight FSM idle
+// villagers use to kill Wisps. FleeCombatQuest does NOT override GetFSMBehavior, so patching CombatQuest's
+// covers it. Safe sig (QuestData in, vFSMBehaviour out — reference types). Also refreshes the engagement
+// window here (this runs throughout the fight) so the work-suspension doesn't restore her job mid-combat.
+[HarmonyPatch(typeof(CombatQuest), nameof(CombatQuest.GetFSMBehavior))]
+internal static class CombatBehaviourSwapPatch
+{
+    static void Postfix(QuestData questData, ref vFSMBehaviour __result)
+    {
+        try
+        {
+            if (!Plugin.EnabledCfg.Value) return;
+            if (questData == null) return;
+
+            var cqd = questData.TryCast<CombatQuest.CombatQuestData>();
+            if (cqd == null) return;
+
+            IAttackTarget? enemy = cqd._engagedEnemy ?? Plugin.GetRememberedSpook(questData.Pointer);
+            if (enemy == null || !Plugin.IsWhitelisted(enemy)) return;
+
+            // Keep the "engaging a whitelisted enemy" window alive for the whole fight — this method is
+            // called while the combat quest runs, so the work-suspension's restore can't fire mid-combat.
+            Plugin.RememberSpook(questData.Pointer, enemy);
+            try
+            {
+                var q = cqd.Quest;
+                if (q != null) Plugin.RememberSpook(q.Pointer, enemy);
+                var qr = cqd.QuestRunner;
+                if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, questData.Pointer);
+            }
+            catch { }
+
+            if (!Plugin.UseNaturalCombatBehaviour.Value) return; // refresh only; no behaviour swap
+
+            var surv = cqd._survival;
+            if (surv == null) return;
+            var natural = surv.naturalCombatBehaviour;
+            if (natural == null) return;
+
+            // Already the stand-and-fight behaviour? nothing to do.
+            if (Plugin.PtrOf(__result) == Plugin.PtrOf(natural)) return;
+
+            __result = natural;
+            if (Plugin.DebugLogging.Value && !Plugin.BehaviourSwapLoggedOnce)
+            {
+                Plugin.BehaviourSwapLoggedOnce = true;
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack] Swapped combat FSM behaviour flee -> natural (stand & fight) vs " +
+                    $"'{Plugin.SafeName(enemy)}'.");
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetFSMBehavior postfix: {ex}"); }
+    }
+}
+
+// THE arbitration fix (proven by the v1.0.10 diag run). QuestRunner.FindNextBestQuest selects the
+// active quest by each quest's TriggerPriority, NOT GetPriority: in-game we boosted GetPriority to 41
+// (it fired) yet the runner still re-selected TerraformingQuest at 15 — impossible for a GetPriority
+// arbiter, so eligibility is gated on TriggerPriority. A busy villager's flee-combat TriggerPriority
+// only spikes to c_Flee for an instant when freshly spooked; in the gaps it drops below work, so work
+// reclaims her and drags her to the job marker (the observed oscillation TerraformingQuest<->FleeCombat).
+//
+// FleeCombatQuest is per-villager (VillagerSurvival._fleeCombatQuest), and it OVERRIDES TriggerPriority,
+// so we patch the override here (patching CombatQuest's would miss it). The getter has no questData /
+// target context, so we scope per-villager via the spook we stashed under this quest's pointer in
+// _GetSpooked/ShouldFight: only boost while THIS villager has a recent whitelisted engagement. Pinning
+// it at c_Flee keeps the flee-combat quest continuously selected (no oscillation) without exceeding real
+// emergencies (AvoidImminentDanger=46). Pure read + return-an-int → co-op-safe. Self-reverts when the
+// remembered spook expires (~8s after the enemy is gone).
+[HarmonyPatch(typeof(FleeCombatQuest), nameof(FleeCombatQuest.TriggerPriority), MethodType.Getter)]
+internal static class FleeTriggerPriorityPatch
+{
+    static void Postfix(FleeCombatQuest __instance, ref int __result)
+    {
+        try
+        {
+            if (!Plugin.EnabledCfg.Value || !Plugin.BoostTriggerPriority.Value) return;
+            if (__instance == null) return;
+
+            IAttackTarget? remembered = Plugin.GetRememberedSpook(__instance.Pointer);
+
+            // Unconditional one-shot: tells us whether get_TriggerPriority is even invoked during
+            // arbitration (in v1.0.11 the boost log never appeared — this disambiguates "getter never
+            // called / cached" from "called but the per-quest spook lookup missed").
+            if (Plugin.DebugLogging.Value && !Plugin.TriggerGetterLoggedOnce)
+            {
+                Plugin.TriggerGetterLoggedOnce = true;
+                Plugin.Logger.LogInfo(
+                    $"[VillagerFightBack][arb] get_TriggerPriority INVOKED: native={__result} " +
+                    $"remembered={(remembered != null ? Plugin.SafeName(remembered) : "null")}.");
+            }
+
+            if (remembered == null || !Plugin.IsWhitelisted(remembered)) return;
+
+            int boost = Plugin.GetTriggerBoost();
+            if (__result < boost)
+            {
+                int was = __result;
+                __result = boost;
+                // One-shot proof this is the lever that actually holds combat selected.
+                if (Plugin.DebugLogging.Value && !Plugin.TriggerBoostLoggedOnce)
+                {
+                    Plugin.TriggerBoostLoggedOnce = true;
+                    Plugin.Logger.LogInfo(
+                        $"[VillagerFightBack] TriggerPriority boost FIRED vs '{Plugin.SafeName(remembered)}': " +
+                        $"{was} -> {boost} (holds flee-combat selected over work).");
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] TriggerPriority postfix: {ex}"); }
+    }
+}
+
+// THE arbitration fix, take 2 (safe patch target). Patching QuestRunner.FindNextBestQuest crashed: its
+// native sig has a `Single&` by-ref out-param, a HarmonyX/IL2CPP sharp edge that NRE'd in the trampoline
+// on every call and left villagers fully disabled. So instead we drive the runner from QuestRunner.Update
+// (void, no args → marshal-safe) and use the game's OWN methods (RemoveQuest/AddQuest, both Void+single
+// reference-type arg → safe). The mechanism: idle villagers already fight Wisps fine (proven) — the only
+// thing dragging her off is her active WORK quest. So while she's engaged with a whitelisted enemy, we
+// REMOVE her active work quest (making her effectively idle → she fights), stashing it; when the enemy is
+// gone we ADD it back. We never touch survival/combat/idle quests (name-protected). Authority-only.
+[HarmonyPatch(typeof(QuestRunner), nameof(QuestRunner.Update))]
+internal static class QuestRunnerUpdatePatch
+{
+    static void Postfix(QuestRunner __instance)
+    {
+        try
+        {
+            if (!Plugin.EnabledCfg.Value || !Plugin.SuspendWorkWhileEngaged.Value) return;
+            if (__instance == null) return;
+
+            // Is this villager currently engaged with a whitelisted enemy?
+            bool engaged = false;
+            Quest? combatQuest = null;
+            if (Plugin.TryGetVillagerCombat(__instance, out var cq, out var questDataPtr) && cq != null)
+            {
+                var remembered = Plugin.GetRememberedSpook(questDataPtr);
+                if (remembered != null && Plugin.IsWhitelisted(remembered)) { engaged = true; combatQuest = cq; }
+            }
+
+            if (engaged)
+            {
+                // Suspend her active quest if it's a work quest (not combat/survival/idle). One per tick;
+                // over a few ticks she runs out of work to do and drops to idle → her existing combat
+                // behavior takes the Wisp. Capped so we can't strip her whole quest list.
+                Quest? active = null;
+                try { active = __instance.ActiveQuest; } catch { }
+                if (active != null && combatQuest != null && active.Pointer != combatQuest.Pointer
+                    && !Plugin.IsProtectedQuest(active) && Plugin.SuspendedCount(__instance) < 8
+                    && Plugin.StashSuspended(__instance, active))
+                {
+                    try { __instance.RemoveQuest(active); }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] RemoveQuest: {ex}"); }
+
+                    if (Plugin.DebugLogging.Value && Plugin.ShouldLogArb())
+                    {
+                        string an = "?"; try { an = active.Name; } catch { }
+                        Plugin.Logger.LogInfo(
+                            $"[VillagerFightBack] Suspended work quest '{an}' while engaging a whitelisted enemy " +
+                            $"(so she drops to idle and fights). Will restore when the enemy is gone.");
+                    }
+                }
+            }
+            else
+            {
+                // Not engaged: restore anything we suspended for this villager.
+                if (Plugin.TryRestoreSuspended(__instance, out var restored) && restored != null)
+                {
+                    int n = 0;
+                    foreach (var q in restored)
+                    {
+                        if (q == null) continue;
+                        try { __instance.AddQuest(q); n++; }
+                        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] AddQuest restore: {ex}"); }
+                    }
+                    if (Plugin.DebugLogging.Value && n > 0)
+                        Plugin.Logger.LogInfo($"[VillagerFightBack] Restored {n} suspended work quest(s) — enemy gone.");
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] QuestRunner.Update postfix: {ex}"); }
     }
 }
 

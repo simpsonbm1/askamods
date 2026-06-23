@@ -1,17 +1,62 @@
-# Mod 7 — VillagerFightBackMod — Handoff (IN PROGRESS, NOT WORKING YET)
+# Mod 7 — VillagerFightBackMod — Handoff (IN PROGRESS — natural-combat-behaviour swap, awaiting test)
 
-**Status as of 2026-06-22 (session 2):** Deployed **v1.0.10**. The mod **loads and every patch fires**,
-but the goal is **not achieved yet**. Precise current behavior:
+**Status as of 2026-06-23 (session 3):** Deployed **v1.0.14**. **Not yet tested** (queued — user's last test
+of the night was v1.0.13). Five approaches now; the new one is grounded in a v1.0.13 finding that reframes
+the whole problem. Dead-ends so far, each for a distinct (documented) reason:
+- v1.0.10 `BoostCombatPriority` (GetPriority→41): fires, no effect (GetPriority isn't the selector).
+- v1.0.11 `BoostTriggerPriority` (get_TriggerPriority→40): boost log never fired (getter cached).
+- v1.0.12 `ForceCombatQuest` (postfix `QuestRunner.FindNextBestQuest`): **CRASHED** — `Single&` by-ref
+  out-param is a HarmonyX/IL2CPP trampoline hazard; NRE'd every call → villagers totally inert.
+  **Rule: never Harmony-patch an IL2CPP method with a by-ref primitive param.** (Now in architecture.md.)
+- v1.0.13 `SuspendWorkWhileEngaged` (`QuestRunner.Update` poll → `RemoveQuest`/`AddQuest` her work quest):
+  **mechanically worked but didn't fix it.** Log showed `Suspended work quest 'TerraformingQuest'` → active
+  became `FleeCombatQuest` → `Entered MELEE` — **yet she still ran away** ("in combat" status, running). Also
+  a bug: `Restored … enemy gone` fired **mid-fight** (8s engagement window expired during sustained melee).
 
+**THE v1.0.13 REFRAME (key insight):** with her job removed, the run-away **can't** be job-pathing — so the
+running **is the flee-combat _behaviour_ itself**, not the job. A villager has TWO combat FSM behaviours on
+`VillagerSurvival`: **`fleeCombatBehaviour`** (kite/run) and **`naturalCombatBehaviour`** (stand & fight).
+The `FleeCombatQuest` runs the FLEE one. Every prior lever tried to de-fang the flee quest (suppress spook,
+block flee flag/run action, force ShouldFight, boost priority, remove job) — but the game's actual
+stand-and-fight path is a **different behaviour** the idle villager uses. We were fighting the wrong FSM.
+
+**v1.0.14 — swap the combat behaviour (`UseNaturalCombatBehaviour`, default on):** postfix
+`CombatQuest.GetFSMBehavior(QuestData)` — the method that returns which `vFSMBehaviour` the combat FSM runs —
+and for a whitelisted enemy return `VillagerSurvival.naturalCombatBehaviour` instead of the flee one. Routes
+her into the stand-and-fight FSM directly. `FleeCombatQuest` does **not** override `GetFSMBehavior`, so
+patching `CombatQuest`'s covers it; safe sig (QuestData in, vFSMBehaviour out — both reference types). This
+patch **also refreshes the engagement window** (it runs throughout the fight), fixing v1.0.13's premature
+restore. `SuspendWorkWhileEngaged` is **left on** too, so both axes are covered (no flee-run AND no job-pull).
+
+**Priority-boost levers are EXHAUSTED — both failed in-game:**
+- `BoostCombatPriority` (postfix `CombatQuest.GetPriority` → 41): **fired** (`GetPriority boost FIRED` logs)
+  but combat still lost to work (15). Confirmed near-no-op.
+- `BoostTriggerPriority` (v1.0.11, postfix `FleeCombatQuest.get_TriggerPriority` → 40): the boost log
+  **never appeared** in the v1.0.11 run → either the getter isn't called during arbitration (likely
+  **cached** — `CombatQuest.SetDirty()` exists) or the per-quest scoping missed. Either way, no effect.
+  (v1.0.12 keeps this patch but adds an *unconditional* one-shot `get_TriggerPriority INVOKED` log to settle
+  which.) **So the runner does NOT re-read either priority on the path that reclaims her for work.**
+
+**v1.0.12 — patch the arbiter directly (`ForceCombatQuest`, default on):** postfix
+`QuestRunner.FindNextBestQuest(out topPriority, excludeActiveQuest)` — the per-villager method that returns
+the quest the runner makes active. While this villager has a live whitelisted engagement, override the
+return to **her** flee-combat quest (registered per-runner from `_GetSpooked`/`ShouldFight`, which carry
+`FleeCombatQuestData.QuestRunner`/`.Quest`); when combat is already active and the runner asks for the best
+*other* quest, return `null` ("nothing better") so she stays. This doesn't depend on which priority field
+the arbiter reads. Self-reverts ~8s after the enemy is gone. Also emits throttled `[arb]` lines showing the
+live arbitration (what the runner wanted vs. what we forced).
+
+> Pointer gotcha encountered & solved: `QuestRunner` is on the UnityEngine.Object chain and the csproj
+> references the **stripped** `unity-libs\UnityEngine.CoreModule`, so the compiler can't see
+> `QuestRunner → Il2CppObjectBase` (no `.Pointer`, won't cast). `Plugin.PtrOf(object)` casts through
+> `object` to `Il2CppObjectBase` at runtime. (Il2CppSystem.Object-derived types like `QuestData`/`Quest`
+> expose `.Pointer` fine — only the Unity-chain types need this.)
+
+**Precise current behavior (before the v1.0.11 fix — what we're trying to fix):**
 - A villager **idle / not en route to a job**: fights and **kills Wisps fine.** ✅ (this already worked in vanilla)
 - A villager **on the way to a job**: enters combat for a moment (crossed swords appear, `FSM_MeleeCombat`
   is reached) but is **pulled back to her job marker and runs off**; she only commits to the fight
-  **once the job state resets** (she stops trying to reach the marker). ❌
-
-**The remaining problem is QUEST ARBITRATION (job-quest vs combat-quest), not fear.** We have fully
-removed the spook/fear path; what's left is the work quest out-competing combat. The next session's job
-is to read the `activePrio` diagnostic added in v1.0.10 and implement the arbitration fix (most likely:
-**suspend her work task while a whitelisted enemy is engaged**).
+  **once the job state resets** (she stops trying to reach the marker). ❌ ← **v1.0.11 targets this.**
 
 Source of truth for subsystem facts: the **"Villager Combat / Fight-vs-Flee System"** section in
 [`docs/architecture.md`](docs/architecture.md#villager-combat--fight-vs-flee-system) (updated this session)
@@ -88,24 +133,52 @@ Combat (40–42) **should trivially beat work (15–22)** — yet work wins in p
   the arbiter (→ it's `TriggerPriority`).
 
 ## Pick up here (next session)
-1. **Re-test v1.0.10** (confirm `1.0.10` in the log), do the job scenario, capture the `[diag]` run.
-   - Note `activePrio` when `activeQuest=…TerraformingQuest`, and whether `GetPriority boost FIRED` appears.
-2. **Implement the arbitration fix** based on what you see. In order of preference:
-   1. **Suspend/abort her work task while a whitelisted enemy is engaged** — directly matches the observed
-      cause and is target-scoped. Candidate APIs: `Villager.AbortMatchTarget()`, `Villager.GetTaskRunner()`
-      (→ a `Task.Abort()`/pause), `QuestRunner.RemoveQuest`/`ReevaluateQuest`, `FSM_QuestSetPausedState`,
-      `FSM_QuestStop`. Re-enable when the enemy is gone. **This is the leading hypothesis.**
-   2. If the arbiter is `TriggerPriority`: boost `CombatQuest`/`FleeCombatQuest` `get_TriggerPriority`. **But**
-      it has no target context (can't scope to whitelisted) → would make villagers fight *everything*.
-      Mitigate with a per-villager "engaging-whitelist" flag set in the `_GetSpooked` prefix and read in the
-      `get_TriggerPriority` postfix (key by villager/targeting pointer).
-   3. **Confer real warrior status** (add `WarriorCombatQuest` to her `QuestRunner` / set up
-      `VillagerSurvival._warriorCombatQuest` + `_warriorQuestAdded`). Heaviest; warriors stand & fight and
-      aren't pulled by jobs. Caveat: `_warriorCombatQuest` may be **null** for a non-warrior → may need to
-      create/register one, plus it carries the `warriorStatusEffect` buff and gear assumptions.
-3. Once it works: **prune the inert levers** (ShouldFight flip, `TreatAsWarrior`, `PreventRunMovement`, and
-   `BoostCombatPriority` if confirmed no-op), keep what's load-bearing (`ForceEngage`, `KeepCombatAlive`,
-   probably the job-suspension), flip `DebugLogging` default to `false`, tune `FightBackAgainst`, ship.
+1. **Test v1.0.14** (confirm `1.0.14` in the load line — SAC may block the fresh hash; if missing/errored,
+   bump to 1.0.15 and rebuild). Job scenario: villager walking to a job, Wisp attacks. **Expected (the win
+   condition):** she **stands and fights** the Wisp instead of running — no kiting/retreating — then resumes
+   work when it's dead.
+2. **Read these log lines:**
+   - `Swapped combat FSM behaviour flee -> natural (stand & fight) vs 'Wisp'` (one-shot) — **the key signal.**
+     Confirms `GetFSMBehavior` was patched and we redirected her to `naturalCombatBehaviour`. If it appears
+     and she **stands and fights → SUCCESS.**
+   - `Suspended work quest …` / `Restored … enemy gone` — the restore should now fire **only after the Wisp
+     is actually dead/gone** (the swap patch refreshes the window during the fight). If it still fires
+     mid-combat, the window refresh isn't keeping up — widen it / refresh from another in-combat call.
+   - Sanity-check a **draugr/wolf**: must still **flee** (swap only triggers for whitelisted targets — a
+     non-whitelisted enemy keeps `fleeCombatBehaviour`).
+3. **If the swap log appears but she STILL runs:** `naturalCombatBehaviour` may itself include repositioning,
+   or `GetFSMBehavior`'s result is cached after the first call (like `TriggerPriority` was). Check whether the
+   one-shot fires once vs repeatedly (temporarily make it throttled, not one-shot). If cached, force a
+   re-fetch: call `__instance.SetDirty()` or `cqd.Quest.SetDirty()` from the swap so the behaviour is re-read.
+4. **If the swap doesn't take at all → confer real warrior status** (the game's own stand-and-fight path):
+   `VillagerSurvival._warriorCombatQuest` (+ `_warriorQuestAdded`, `_warriorBuffAdded`, `_CheckWarriorStatus()`).
+   `_warriorCombatQuest` may be null for a non-warrior → may need to create/register a `WarriorCombatQuest`
+   (note it carries the `warriorStatusEffect` buff + gear assumptions). `WarriorCombatQuest : CombatQuest`,
+   `TriggerPriority` ~ `c_SelfDefense`(42).
+5. **If it works:** prune dead levers — `BoostCombatPriority`, `BoostTriggerPriority`, `TreatAsWarrior`,
+   `PreventRunMovement` (and the leftover `get_TriggerPriority INVOKED` diag). Keep: `UseNaturalCombatBehaviour`
+   (the fix), probably `SuspendWorkWhileEngaged`, `ForceEngage`, `SuppressSpook`/`PreventFlee`, `KeepCombatAlive`.
+   Flip `DebugLogging` default to `false`, tune `FightBackAgainst`, ship.
+
+### v1.0.13 run log (reference — the run that produced the reframe)
+```
+get_TriggerPriority INVOKED: native=40 remembered=null   ← getter IS reachable (but null at startup)
+Whitelisted spook … behavior=Work activeQuest=TerraformingQuest activePrio=15.0
+Suspended work quest 'SSSGame.AI.TerraformingQuest' …    ← RemoveQuest worked
+[diag] ShouldFight … activeQuest=FleeCombatQuest activePrio=40.0   ← combat now active
+GetPriority boost FIRED … 40.0 -> 41.0
+Blocked flee state … / Entered MELEE state vs 'Wisp'     ← reached melee…
+Restored 1 suspended work quest(s) — enemy gone.         ← BUG: fired mid-fight (window expired)
+Treating villager as warrior … / Entered MELEE …
+```
+User: "visually 'in combat' status but ran away." → running is the flee BEHAVIOUR, not the job. Hence v1.0.14.
+
+## ⚠️ IL2CPP patch-safety rule learned this session
+**Never Harmony-patch an IL2CPP method with a by-ref primitive parameter** (`Single&`, `Int32&`, `Boolean&`
+as out, etc.). The trampoline NREs on every invocation and bricks whatever calls it. `QuestRunner.FindNextBestQuest(Single& topPriority, …)`
+did exactly this (v1.0.12) → every villager inert. Patch a sibling method with a safe signature instead
+(here: `QuestRunner.Update()`, void/no-args) and call the game's own `Void M(Quest)` methods. Added to
+`docs/architecture.md` IL2CPP gotchas.
 
 ## Confirmed API facts (don't re-derive)
 - **Wisp:** `IAttackTarget.GetTargetName()` == `"Wisp"`, `.Faction` == `Undead`. Use a **name** whitelist —
