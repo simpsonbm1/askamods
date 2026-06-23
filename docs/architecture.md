@@ -318,6 +318,81 @@ SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via Ite
 
 ---
 
+## Cooking Station Pipeline
+
+How a cook turns raw ingredients into meals, and why a cook can stand at the hut doing nothing. Structure is
+confirmed from the binary; runtime facts marked **confirmed in-game (2026-06-23)** were verified live with the
+`CookingStationFixMod` diagnostic — a read-only FSM/priority logger, parked at `CookingStationFixMod.dll.off`
+(rename back to `.dll` to revive it if cooking ever needs re-investigating).
+
+**Building + project state — `SSSGame.CookingStation : Workstation`**
+```
+CookingStation
+  .cookingProjects (List<CookingProject>)      ← active cook JOBS; 0 = nothing is being cooked right now
+  .CookingTargetManifest (ItemManifest)        ← what the hut is trying to cook (qty); 0 = no cook target
+  .GlobalInventory / .GlobalInventoryManifest  ← raw ingredients stockpiled at the hut
+  .cookingBehaviour/.stockpileBehaviour/.returnBehaviour/.complainBehaviour/.idleCrafterBehaviour/
+   .firekeeperBehaviour/.overcookingBehaviour (vFSMBehaviour)   ← the per-quest FSMs
+  .GetAllKnownCookingRecipes() / .IsWhitelisted(Villager) / Rpc_ChangeWhitelistedVillager(id, state)
+CookingStation/CookingProject  ← one active cook job: .cooks (List), .mainQuest (CookingQuest), .taskData
+CookingInteraction : StorageInteraction  ← the physical cooker; ._activeCooksList, ._cookingContainers,
+   ._activeRecipeContainer, KnowsRecipe(...), IsCookCooking(agent), _GetOverallCookingProgress()
+```
+
+**Quests (all `WorkstationQuest : Quest`; the QuestRunner selects by priority — scale below)**
+```
+CookingStockpileQuest          ← gather RAW ingredients into the hut stockpile (the "Fetch Supplies" job)
+  CookingStockpileQuestData : WorkstationQuestData
+    .NeedsMoreSpecificSupplies / .NeedsMoreFillerSupplies / .NeedsMoreGatheredSupplies (bool)
+    .GatheredStockpileSupplies / .NeededSpecificSupplies / .NeededFillerSupplies (ItemManifest)
+    ._nextRecipeInfo (CrockpotRecipeInfo)   ← null when no recipe is queued
+    ._RecheckSupplies(Item)                 ← its own re-eval, fired by station inventory add/remove events
+CookingQuest : CookingPlaceQuest            ← the ACTUAL cook; exists ONLY while a CookingProject does
+  CookingQuestData : CookingPlaceQuestData : WorkstationQuestData
+    .RecipeInfo (CrockpotRecipeInfo), .CookingStation, .LocalPromiseManifest, ._noFillers
+  CookingPlaceQuestData stall latches: ._noSupplies/._noFuel/._noTool/._noStorageSpace/._badWeather + .IsWorking
+CookingComplainQuest, WorkstationIdleQuest/CookingStationIdleQuestData, OvercookingQuest, CookingReturnQuest
+```
+
+**The FSM chain a WORKING cook runs (states in `SSSGame.AI.FSM`, all take `IFSMBehaviourController`):**
+```
+FSM_FetchCookingStockpile (stockpile raw)  →  [a CookingProject/recipe exists]  →
+FSM_FetchCookingSupplies (fetch recipe-specific)  →  FSM_SetCookingPlacePosition (place each ingredient in
+its oven slot — the "which ingredient goes where" step)  →  FSM_CanStartCooking.Decide (gate)  →
+cook (SandSailorStudio.Inventory.CookingProcess.Run, on a timer)  →  FSM_ReturnCookingResults (deliver food)
+```
+- Every cooking FSM state derives from `FSM_QuestDecision`/`FSM_QuestAction`, which expose
+  `GetQuestData(fsmBehaviour)` / `GetQuest` / `GetQuestRunner` — the clean way to reach the cook's quest data
+  from an FSM patch (then `QuestData.TryCast<CookingQuestData/CookingStockpileQuestData>()`; TryCast works,
+  QuestData is `Il2CppSystem.Object`-derived). `IFSMBehaviourController` gives `.gameObject`,
+  `.NameOfCurrentState`, `.AiTargeting`.
+- **Quest priority scale (confirmed in-game):** `CookingStockpileQuest` = **15** (`c_WorkstationWork`);
+  `CookingQuest` ≈ **15.5–15.6** (just above stockpile, so a real cook job out-ranks gathering); `GetPriority`
+  returns **-1** when the quest isn't currently eligible; idle = 0.
+
+### Cook stands at the hut / loops sit-down-stand-up and won't make food — CONFIRMED CAUSE (2026-06-23)
+**Almost always: no recipe is designated for that station** (recipe selection is buried in a nested submenu,
+easy to miss). Diagnostic signature: `cookingProjects=0`, `CookingTargetManifest=0`, `_nextRecipeInfo=null`,
+and **`CookingQuest.GetPriority` never fires** (no cook quest exists). With no cook target, the only runnable
+job is `CookingStockpileQuest` at priority 15 (beats idle 0), so the cook walks to the hut, enters
+`FSM_FetchCookingStockpile` ("Fetch Supplies"), finds nothing needed (`NeedsMore*`=false), bails, and re-fires
+every ~3.5s — the visible sit/stand loop. A **full stockpile with `target=0`** (e.g. 127 raw items, nothing to
+cook) is the tell. **Fix = designate recipes in-game**: the project/target then exists, `CookingQuest` appears
+(~15.6, out-ranking stockpile), and the cook runs the full chain — `FSM_ReturnCookingResults` fires once per
+completed dish. This is a UI-discoverability issue, **not a code or mod bug.** (A Nexus user reported the same;
+"cooks mixing up which ingredients go where" is the same class — nothing designated.)
+
+### Dead ends (don't retry)
+- **`WorkstationQuest.SetDirty()` / `_RecheckSupplies()` as the cook-loop fix** — the eating-stall fix (force
+  re-eval of a *parked* quest) does NOT apply: a looping cook is already re-evaluating every ~3.5s, so SetDirty
+  just makes it re-loop faster. The loop is "no target," not "parked, won't re-check."
+- **Suspecting DynamicVillagerNeedsMod (Mod 5) of breaking cooking** — ruled out twice: the loop reproduces with
+  Mod 5 `Enabled=false`, and with Mod 5 `Enabled=true` cooks complete dishes fine (9 dishes, 0 errors,
+  2026-06-23). `WorkstationQuestData._OnVillagerBehaviorChanged(ScheduleType)` means Mod 5's schedule flips DO
+  notify the cook's quest, but in practice this does not interrupt cooking.
+
+---
+
 ## Torch / Fire-Fuel System
 ```
 FireStructure (Fusion.NetworkBehaviour)   ← the actual networked fuel state, one per fire-capable structure

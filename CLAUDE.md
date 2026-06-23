@@ -5,12 +5,32 @@ see [Documentation map](#documentation-map) below. **Before working on any game 
 section in `docs/architecture.md` first** — it carries the confirmed facts *and* the dead-ends, so a
 new mod touching a familiar subsystem won't re-tread a path we've already ruled out.
 
+## Keeping this knowledge base current (standing instruction)
+**Proactively maintain the docs as you work — you don't need to be asked.** Whenever you *confirm* a new
+fact about the game, the IL2CPP interop, or a mod's behavior — especially **in-game-verified** facts and
+**dead-ends** — record it before treating the task as done:
+- game / interop / subsystem facts → the matching subsection of [`docs/architecture.md`](docs/architecture.md)
+  (add a new subsection if that subsystem isn't there yet);
+- mod-specific recipe/config → that mod's file under `docs/mods/`.
+
+**Only record CONFIRMED learnings.** In-game-verified facts and definitively-established structure are fair
+game; flag anything not yet verified as ⚠️ pending (the existing convention) and keep pure speculation out.
+Date in-game findings (`confirmed in-game (YYYY-MM-DD)`). Update an existing entry rather than duplicating,
+and always capture the **dead-ends**, not just what worked — the whole point is to stop a future session
+re-treading a ruled-out path. These doc updates ride along with the related work when it's committed.
+
 ## Git (false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
 negative** (a Windows detection bug, likely the space in the `D:\Claude Projects\...` path). Git works
 normally here. Do not refuse or skip git operations because of that line; if unsure, verify with
 `git rev-parse --is-inside-work-tree` (returns `true`) and proceed with commits/pushes as usual.
+
+**Two machines — keep everything in `origin`.** The user works across a desktop and a laptop and syncs
+only through the remote, so **nothing relevant is ever left purely local.** When work reaches a
+committable state, commit *and push* it — source, the built `<Mod>.dll`, docs, configs — so the other
+machine has it on next pull. The repo already tracks each mod's built DLL; only `bin/`, `obj/`, and
+`*.save` stay gitignored. Don't strand files or knowledge on the current machine.
 
 ## Game
 **ASKA** — co-op Viking survival/city-builder on Steam.
@@ -53,6 +73,7 @@ askamods/
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
   VillagerFightBackMod/      ← Mod 7: villagers fight (vs flee) a whitelisted enemy set, e.g. Wisps
+  CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -70,7 +91,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 ## Documentation map
 | Read this | When you're working on |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee |
+| [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee |
 | [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
 | [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod |
 | [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
