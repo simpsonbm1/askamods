@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>SeedScoutMod</AssemblyName>
     <RootNamespace>SeedScoutMod</RootNamespace>
-    <Version>0.13.3</Version>
+    <Version>0.15.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

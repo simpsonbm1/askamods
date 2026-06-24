@@ -1,11 +1,14 @@
 # SeedScoutMod — Handoff (Mod 9, WIP)
 
-**Last build: v0.13.3** (built, deployed). The **force-load radius** (config `SeedScout/ForceLoadRadius`,
-default 2 = 5×5 tiles/cave) is **CONFIRMED working in-game (2026-06-24)** — radius 1 streamed 27 tiles
-(27 ok, 0 err) and surfaced 10 dens + a lake with the player stationary. The v0.12.0 force-load core is
-also confirmed, and cave dots are **gray** (`0.78,0.78,0.80`). **`Den` hostile capture verified**;
-`HostileVikingSettlement`/EnemyCamp still unverified (none in test seeds). The **seed read is still
-`<rng-null>`** (unresolved; non-blocking for the manual tool).
+**Last build: v0.15.0** (built, deployed). Force-load + **radius** (config `SeedScout/ForceLoadRadius`,
+default 2; tested up to 3 = 101–118 tiles, no hitch) are **CONFIRMED working (2026-06-24)** — fills the
+"first map" with caves/lakes/dens, player stationary. Cave dots are **gray**. **`Den` capture verified**;
+`HostileVikingSettlement`/EnemyCamp still unverified (none in test seeds). Seed read still `<rng-null>`.
+
+**Two active threads (pick up here):**
+1. **Native map pins via discovery — ATTEMPTED, FAILED so far** (v0.15.0). See its section below.
+2. **Den type/tier classification — DATA IN HAND** (v0.14.1 spawner diagnostic). See its section below.
+   The classification UI (colors/score breakdown) is **not built yet**; the raw signal is captured.
 Status: a working **in-world seed "scorer"** + **in-game map overlay**. Not a gameplay mod — it
 reads worldgen data, logs analysis to `LogOutput.log`, and draws POI dots on the map. No game
 state is changed (overlay is pure UI; co-op-safe).
@@ -104,6 +107,70 @@ cfg (live, no rebuild) or delete it to pick up the new default. Verified line:
   (`Request()` / `RequestFromEvent()`, holds a `WorldStreamingManager` + own transform) — an alternative
   force-load mechanism if `RequestLoadWorldTile` proves insufficient.
 
+## Native map pins via "discovery" (v0.15.0 — ATTEMPTED, FAILED; promising direction)
+**Idea (user's):** the game has a per-POI "discovered" flag that, when flipped at proximity, fires the
+"X discovered" notification and places the game's OWN map pin (correct icon + name). If we flip it during
+the radius sweep we'd get native pins — which for dens would answer the type question for free.
+
+**The system is real and confirmed to exist:**
+- `SandSailorStudio.WorldGen.AreaInstance` (base of `CaveAreaInstance`): `isExplored` (bool, **setter
+  exists — compiles**), `OnDiscovered` (Action), `areaInstanceMarkerHandler` (`IAreaInstanceMarkerHandler`).
+- `IAreaInstanceMarkerHandler` / `AreaInstanceMarkerHandler` (global namespace) → `RefreshExploration()`,
+  `GetDiscoveryRadius()`, `ShowDiscoverNotification()`, holds `_markerInfo` (`MarkerInfo`) + `_markerObject`.
+  Concrete: `TerrainAreaMarkerHandler`, `BiomeAreaMarkerHandler` (no cave-specific one).
+- `MarkerInfo : ItemInfo` (ScriptableObject): `markerColor`, `markerRange`, `showDiscoveredNotification`.
+- Caves also have `CaveData.SetExploredState(bool)` + `CaveData.explored`; `CaveNode.OnDiscovered`;
+  `CavesManager.c_explored`. Map/fog side: `ExplorationDataHandler` (global ns), `UIGameMapManager.
+  _ProcessExploredTiles()` / `_revealTouchedTiles`, `ObjectiveMarkerContainer.AddMarker(WorldObjectiveMarker)`.
+
+**What v0.15.0 tried (gated by config `RevealNativeCavePins`):** after force-load, for each cave
+`AreaInstance`: `isExplored = true` + `areaInstanceMarkerHandler.RefreshExploration()`, retried 5× over
+~15s. **Result: `refreshed 0/3 (noHandler=3)` every attempt — `areaInstanceMarkerHandler` is NULL on all
+3 caves even after radius-3 force-load.** So **streaming the tile data does NOT create the area's marker
+handler.** (`isExplored=true` was set fine; the handler is the blocker.)
+
+**Leading hypothesis for next session:** the marker handler + `_markerObject` live on/near
+`CaveAreaInstance.Root` (a `GameObject`), which is only instantiated at **closer proximity** than tile
+streaming (cave interiors are heavy). Force-load brings in tile DATA (terrain + dens/lakes) but not the
+cave Root GO → no handler. **Things to try:**
+- Log `CaveAreaInstance.Root == null` after force-load to confirm the Root isn't instantiated.
+- Find WHO creates `AreaInstanceMarkerHandler` and when (search assignments to `areaInstanceMarkerHandler`,
+  or `new TerrainAreaMarkerHandler`); maybe caves never get one (only Terrain/Biome areas do) → the cave
+  pin comes from a different system.
+- Try the **map-side** path instead of the area handler: `CaveData.SetExploredState(true)` (reach CaveData
+  via `CavesManager`), and/or `ExplorationDataHandler` / `UIGameMapManager._ProcessExploredTiles`, and/or
+  registering a `WorldObjectiveMarker` through `ObjectiveMarkerContainer.AddMarker` (note the OLD dead-end:
+  bare `AddComponent<WorldObjectiveMarker>()` froze the map — go through the container/factory, not bare).
+- Dens/lakes are NOT `AreaInstance`s, so they'd need their own marker path regardless (likely
+  `StructureObjectiveMarker`/`WorldObjectiveMarker` on the den). Validate caves first.
+
+## Den type + tier classification — data captured (v0.14.1 diagnostic, 2026-06-24)
+The den-identity logging WORKS. **`Den : Creature`; its own sheet is useless** (`faction=Ignore`,
+`baseThreatScore=0`, `subs=2` for ALL dens). The real type/tier signal is **what the den's `alphaSpawner`
+(PopulationSpawner) spawns**: `den.alphaSpawner._populations[i].config` (CreaturePopulationConfiguration) →
+`config.name` (the alpha-population asset) + `config.populationInfo.name` (the creature). Confirmed mapping
+(one max-enemy seed; tiers may vary by biome/seed):
+
+| Den (`GetName`) | prefab (`go`) | alphaSpawner config | populationInfo (creature) |
+|---|---|---|---|
+| Wulfar Den | `WolfDenNetworkLogic` | `WolfAlphaPopulation` | `Item_Population_WolfAlpha` |
+| Skeleton Den | `SkeletonDenNetworkLogic` | `SkeletonNecromancerAlphaPopulation` | `Item_Population_SkeletonNecromancerAlpha` |
+| Skeleton Den Cluster | `SkeletonDenNetworkLogicSmall` | `SkeletonRiderAlphaPopulation` | `Item_Population_SkeletonNecromancer` |
+| Wight Den | `WightsDenNetworkLogic` | `WightAlphaPopulation` | `Item_Population_WightBoss` |
+| Draugar den | `DraugarsDenNetworkLogic` | `DraugarAlphaPopulation` | `Item_Population_DraugarAlpha` |
+
+- The **tier lives in the creature/population name** (e.g. `WightBoss`, `SkeletonNecromancerAlpha`,
+  `DraugarAlpha`) — NOT a separate int (no readable `tier` field; `PopulationSpawner.UpdateTier()` is a
+  method with no exposed value). `max=1` = the alpha count.
+- **User's difficulty axiom (base creature):** **Wight < Skeleton < Draugar** (wights easiest). Wulfar =
+  animal/resource (meat/leather), treat as opportunity not threat. BUT tiers crosscut: a high-tier wight
+  den can beat a low-tier skeleton den. So difficulty = f(populationInfo creature), ranked with the axiom
+  + game knowledge. **Get the user to rank the known population names** before coloring.
+- **Classification UI not built.** When resuming (if native pins don't pan out): map `populationInfo` →
+  difficulty tier → dot color; add a "hostiles by type" breakdown to the score; `HostileHit` already
+  carries `Name`+`Threat` (Threat unused since it's 0 — repurpose to a computed tier).
+- `HostileVikingSettlement` (EnemyCamp) still never seen in test seeds — capture unverified.
+
 ## Confirmed architecture (so the next session doesn't re-derive it)
 - **Worldgen is deterministic, seed-phrase driven.** `SandSailorStudio.RNG.RandomGeneratorManager`
   (`SetSeedPhrase`, `GetGenerator`), `SandSailorStudio.WorldGen.Deterministic.*`,
@@ -170,10 +237,14 @@ cfg (live, no rebuild) or delete it to pick up the new default. Verified line:
 - `Scout.cs` also owns the **force-load** routine (`ForceLoad()` + `_caveTiles`/`_reqGos`).
 
 ## Next steps (priority order)
-0. **DONE — force-load + radius confirmed (v0.13.3).** The manual "load a seed → see viability at a glance"
-   tool is functional. Open questions for *next direction* (user to decide): tune default radius (1 was a
-   full picture; 2 is the new default), and whether to **automate** (needs the seed read resolved — see
-   dead ends) or keep it a manual tool.
+0. **PRIMARY: get native map pins** (the "discovery" thread above). Pursue the leads — confirm
+   `CaveAreaInstance.Root` is null after force-load, find who creates the marker handler, try the map-side
+   path (`CaveData.SetExploredState` / `ExplorationDataHandler` / `ObjectiveMarkerContainer.AddMarker`).
+   User's call (2026-06-24): *"lets go down this path before going back to the classification exercise — if
+   we can get the native map pins that answers most of the questions we have."* If native pins land for
+   dens too, the classification UI below becomes unnecessary.
+0b. **FALLBACK: den classification UI** (data already captured above) — only if native pins don't pan out.
+    Rank the `populationInfo` creatures with the user, map → color + score breakdown.
 1. **Verify `HostileVikingSettlement`/EnemyCamp capture** (Den is now confirmed). Re-test on a seed that
    has an enemy camp. Do `Den`/`EnemyCamp` log at
    sane positions (not `(0,0)`)? Do red dots land on the actual den/camp? **`HostileVikingSettlement`

@@ -31,6 +31,13 @@ internal static class Scout
     private static bool _forceLoadDone;
     private static float _settleTimer;
 
+    // Native-pin discovery: live AreaInstance refs for caves (held resident in _areaInstances), plus a
+    // post-force-load timer + one-shot/retry guard (marker handlers only exist once tiles have streamed).
+    private static readonly List<AreaInstance> _caveAreas = new();
+    private static bool _discoverDone;
+    private static float _discoverTimer;
+    private static int _discoverAttempts;
+
     private struct CaveTile
     {
         public Vector2 Pos;
@@ -53,6 +60,7 @@ internal static class Scout
             _areasDumped = false; _haveSpawn = false;
             _lastScoreSig = -1; _caves.Clear(); _caveTiles.Clear();
             _forceLoadDone = false; _settleTimer = 0f; DestroyReqGos();
+            _caveAreas.Clear(); _discoverDone = false; _discoverTimer = 0f; _discoverAttempts = 0;
             Plugin.Lakes.Clear(); Plugin.Hostiles.Clear(); Plugin.RegisteredCaves.Clear();
             if (heartbeat) Plugin.Logger.LogInfo("SeedScout hb: not in a loaded world (BiomesManager = null)");
             return;
@@ -111,6 +119,48 @@ internal static class Scout
                 catch (Exception e) { LogErrorOnce("force-load", e); }
             }
         }
+
+        // Native pins: once force-load has streamed the cave tiles, mark each cave area explored and
+        // refresh its marker handler so the game's own pin shows. Retry a few times — the handlers only
+        // exist after the tile localizes, which lags the force-load request by a few seconds.
+        if (_forceLoadDone && !_discoverDone && Plugin.RevealNativePins.Value)
+        {
+            _discoverTimer += Time.deltaTime;
+            if (_discoverTimer >= 3f)
+            {
+                _discoverTimer = 0f;
+                try
+                {
+                    int ok = DiscoverCaves();
+                    _discoverAttempts++;
+                    if (ok >= _caveAreas.Count || _discoverAttempts >= 5) _discoverDone = true;
+                }
+                catch (Exception e) { _discoverDone = true; LogErrorOnce("discover", e); }
+            }
+        }
+    }
+
+    // Force the game's OWN native map pins for caves: set each cave area explored + refresh its marker
+    // handler so the pin (correct icon + name) appears without walking there. Least-invasive levers only
+    // (local UI/state) — no OnDiscovered fanfare yet. Returns how many caves had a live marker handler.
+    private static int DiscoverCaves()
+    {
+        int ok = 0, noHandler = 0;
+        foreach (var area in _caveAreas)
+        {
+            if (area == null) continue;
+            try
+            {
+                try { area.isExplored = true; } catch { }
+                var h = area.areaInstanceMarkerHandler;
+                if (h != null) { try { h.RefreshExploration(); ok++; } catch { } }
+                else noHandler++;
+            }
+            catch { }
+        }
+        Plugin.Logger.LogInfo($"SeedScout discover: refreshed {ok}/{_caveAreas.Count} cave marker(s) " +
+                              $"(noHandler={noHandler}, attempt {_discoverAttempts + 1}). Open the map.");
+        return ok;
     }
 
     // Ask WorldStreamingManager to stream the tile(s) around each cave. RequestLoadWorldTile takes a
@@ -276,6 +326,7 @@ internal static class Scout
     {
         _caves.Clear();
         _caveTiles.Clear();
+        _caveAreas.Clear();
         var sb = new StringBuilder();
         sb.AppendLine("==================== SeedScout: AREA INSTANCES ====================");
         sb.AppendLine($"REAL seed (RngManager)='{SafeRealSeed()}'   (config default='{SafeActiveSeed()}')");
@@ -303,6 +354,7 @@ internal static class Scout
                         var p = a.position;
                         var pos = new Vector2(p.x, p.y);
                         _caves.Add(pos);
+                        _caveAreas.Add(a);                       // live ref for native-pin discovery
                         var ca = a.TryCast<CaveAreaInstance>();
                         if (ca != null) _caveTiles.Add(new CaveTile(pos, ca.WorldTileId));
                     }

@@ -635,6 +635,19 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   `RegisterWorldTile`, `CancelLoading`, `StopAllStreaming`, `SetTrackTransform(Transform)`.
 - **Alternative force-stream primitive:** `SSSGame.StreamingInstigator` (MonoBehaviour, `Request()`) — the game's
   own "stream at this point." Not needed once `RequestLoadWorldTile` was confirmed working.
+- **POI "discovery" / native map pins (confirmed to EXIST; reveal-without-walking NOT yet working):**
+  `AreaInstance.isExplored` (bool, settable) + `OnDiscovered` (Action) + `areaInstanceMarkerHandler`
+  (`IAreaInstanceMarkerHandler` → `RefreshExploration()`, holds `MarkerInfo`). `TerrainAreaMarkerHandler`/
+  `BiomeAreaMarkerHandler` poll player vs `GetDiscoveryRadius()` to flip the flag and show the pin.
+  **Gotcha:** `areaInstanceMarkerHandler` is **null on cave AreaInstances even after force-loading their
+  tiles** — the handler/marker object isn't created by tile streaming (likely tied to `CaveAreaInstance.Root`,
+  instantiated only at close range). Reveal-without-walking is unsolved; see SeedScout handoff for leads
+  (CaveData.SetExploredState, ExplorationDataHandler, ObjectiveMarkerContainer). Dens/lakes aren't
+  AreaInstances → separate marker path (`WorldObjectiveMarker`/`StructureObjectiveMarker`).
+- **Den type/tier:** a `Den : Creature`'s own sheet is empty (`faction=Ignore`, `baseThreatScore=0`); the
+  type/tier is what its `alphaSpawner` (PopulationSpawner) spawns — `_populations[i].config`
+  (CreaturePopulationConfiguration) `.name` + `.populationInfo.name` (e.g. `WightBoss`, `DraugarAlpha`).
+  Full den→creature table in the SeedScout handoff.
 - **Dead end (still unresolved):** the runtime seed reads `<rng-null>` —
   `RandomGeneratorManager.seedPhrase`/`SetSeedPhrase` are never the path the seed travels at load. Non-blocking
   for a scorer (you type the seed); required only for an auto-finder. See the SeedScout handoff for the chase.

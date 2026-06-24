@@ -28,12 +28,19 @@ internal struct LakeHit
     public LakeHit(Vector2 pos, float water) { Pos = pos; Water = water; }
 }
 
-// A hostile spawner (den / enemy camp) captured as it spawns. Pos is world (x, z).
+// A hostile spawner (den / enemy camp) captured as it spawns. Pos is world (x, z). Kind is the broad
+// category ("Den"/"EnemyCamp"); Name is the specific type (e.g. localized den name); Threat is the
+// CreatureDataSheet.baseThreatScore difficulty number (0 if unknown).
 internal struct HostileHit
 {
     public Vector2 Pos;
     public string Kind;
-    public HostileHit(Vector2 pos, string kind) { Pos = pos; Kind = kind; }
+    public string Name;
+    public float Threat;
+    public HostileHit(Vector2 pos, string kind, string name, float threat)
+    {
+        Pos = pos; Kind = kind; Name = name; Threat = threat;
+    }
 }
 
 // PROBE v0.4 — introspection only.
@@ -51,6 +58,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> EnableMarkers = null!;
     internal static ConfigEntry<bool> ForceLoadTiles = null!;
     internal static ConfigEntry<int> ForceLoadRadius = null!;
+    internal static ConfigEntry<bool> RevealNativePins = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
     internal static readonly List<LakeHit> Lakes = new();
     internal static readonly List<HostileHit> Hostiles = new();
@@ -70,6 +78,10 @@ public class Plugin : BasePlugin
             "How many tile rings around each cave to force-load (0 = the cave's own tile only, " +
             "1 = 3x3, 2 = 5x5, 3 = 7x7). Higher = more of the map fills in but more streaming/memory. " +
             "Tile = ~128m. Clamped to 0-3. Editable live in this file (no rebuild needed).");
+
+        RevealNativePins = Config.Bind("SeedScout", "RevealNativeCavePins", true,
+            "Experimental: after force-load, mark each cave's area explored and refresh its marker handler " +
+            "to reveal the game's OWN native map pin (correct icon + name) without walking there.");
 
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");
