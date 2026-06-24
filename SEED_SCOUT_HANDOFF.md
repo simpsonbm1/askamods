@@ -1,9 +1,11 @@
 # SeedScoutMod — Handoff (Mod 9, WIP)
 
-**Last build: v0.12.0** (built, deployed, **CONFIRMED working in-game 2026-06-24**). v0.12.0 adds the
-**force-load** feature (see its section below — it works) and recolors cave dots **gray** (`0.78,0.78,0.80`
-— cyan was too close to lake blue). **`Den` hostile capture is now verified too** (dens logged at sane
-coords, red dots drawn); `HostileVikingSettlement`/EnemyCamp still unverified (none in the test seed).
+**Last build: v0.13.3** (built, deployed). The **force-load radius** (config `SeedScout/ForceLoadRadius`,
+default 2 = 5×5 tiles/cave) is **CONFIRMED working in-game (2026-06-24)** — radius 1 streamed 27 tiles
+(27 ok, 0 err) and surfaced 10 dens + a lake with the player stationary. The v0.12.0 force-load core is
+also confirmed, and cave dots are **gray** (`0.78,0.78,0.80`). **`Den` hostile capture verified**;
+`HostileVikingSettlement`/EnemyCamp still unverified (none in test seeds). The **seed read is still
+`<rng-null>`** (unresolved; non-blocking for the manual tool).
 Status: a working **in-world seed "scorer"** + **in-game map overlay**. Not a gameplay mod — it
 reads worldgen data, logs analysis to `LogOutput.log`, and draws POI dots on the map. No game
 state is changed (overlay is pure UI; co-op-safe).
@@ -59,11 +61,28 @@ showed caves/lakes/hostiles near every cave without exploring. The teleport-tour
 **not needed** for this purpose (keep it in the back pocket only if fuller coverage ever demands real
 presence).
 
-**Known limitation → next lever:** `RequestLoadWorldTile` loads only the **single tile** containing the
-cave (~128 m square). A lake/den just *outside* that tile still won't show. To widen coverage, request a
-**ring of neighbour tiles** around each cave (config a radius: 0 = cave tile only, 1 = 3×3, 2 = 5×5).
-Address neighbours via `WorldTileId.GetClosest(cave.x ± n·tileSize, cave.y ± n·tileSize, tileSize)` or
-`WorldTileId.WorldXY` grid offsets. Tradeoff: more resident tiles = more memory/streaming work.
+**Radius (v0.13.3 — CONFIRMED 2026-06-24):** force-load requests a **ring of neighbour tiles** around each
+cave, config `SeedScout/ForceLoadRadius` (0 = cave tile only, 1 = 3×3, 2 = 5×5, 3 = 7×7; clamped). Tile
+size from `WorldConfiguration.GetActive().tileSize` (=128).
+
+**The addressing gotcha (this took two iterations):**
+- A cave's **assigned `WorldTileId` does NOT necessarily contain its entrance position** — e.g. cave at
+  world `(-426,-722)` was assigned tile grid `(-3,-5)`, which spans `[-384,-256)×[-640,-512)` and does
+  **not** include that point. So you **cannot** derive a cave's tile from its entrance via any floor/round/
+  ceil of the entrance — that was the `chosen=none` failure.
+- **Address neighbours off the cave TILE's own centre**, not the entrance: `mid =
+  cave.WorldTileId.GetWorldMidPosition((int)ts)` → neighbour = `GetLowest(mid.x + dx·ts, mid.y + dy·ts, ts)`.
+  The cave's own tile uses its known-good `CaveAreaInstance.WorldTileId`.
+- **Tile grid convention is FLOOR:** tile `g` spans `[g·ts,(g+1)·ts)`, centre at `(g+0.5)·ts`; `GetLowest`
+  (floor) maps a centre back to its tile deterministically (no rounding tie at `x.5`). Code still probes
+  Lowest/Highest/Closest and self-calibrates (picks whichever round-trips every cave's centre→id) so it
+  can't silently mis-address; if none calibrates it drops to radius-0 (confirmed single-tile path).
+- Requests deduped by tile `Value` across overlapping caves.
+
+**Config gotcha:** changing a `Config.Bind` default in code does **not** change an existing
+`BepInEx/config/com.askamods.seedscout.cfg` — BepInEx keeps the persisted value. To change radius, edit the
+cfg (live, no rebuild) or delete it to pick up the new default. Verified line:
+`force-load: radius=N tileSize=128 … M unique tile(s) requested (M ok, 0 null/err)` + `chosen=Lowest`.
 
 **Confirmed streaming API (types/members verified to exist via Cecil dump):**
 - `SandSailorStudio.Streaming.WorldStreamingManager` (MonoBehaviour): tracks one `IStreamingActor
@@ -151,9 +170,10 @@ Address neighbours via `WorldTileId.GetClosest(cave.x ± n·tileSize, cave.y ± 
 - `Scout.cs` also owns the **force-load** routine (`ForceLoad()` + `_caveTiles`/`_reqGos`).
 
 ## Next steps (priority order)
-0. **DONE — force-load verified (v0.12.0).** Next lever for *range*: expand force-load from the single
-   cave tile to a **ring of neighbour tiles** (config radius) so features just outside the cave's tile also
-   spawn (see the limitation note in the force-load section). Teleport tour is no longer needed for this.
+0. **DONE — force-load + radius confirmed (v0.13.3).** The manual "load a seed → see viability at a glance"
+   tool is functional. Open questions for *next direction* (user to decide): tune default radius (1 was a
+   full picture; 2 is the new default), and whether to **automate** (needs the seed read resolved — see
+   dead ends) or keep it a manual tool.
 1. **Verify `HostileVikingSettlement`/EnemyCamp capture** (Den is now confirmed). Re-test on a seed that
    has an enemy camp. Do `Den`/`EnemyCamp` log at
    sane positions (not `(0,0)`)? Do red dots land on the actual den/camp? **`HostileVikingSettlement`

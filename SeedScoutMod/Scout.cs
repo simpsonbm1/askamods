@@ -113,37 +113,156 @@ internal static class Scout
         }
     }
 
-    // Ask WorldStreamingManager to stream the tile under each cave. RequestLoadWorldTile takes a
-    // caller id (so the request can be tracked/released) and an anchor transform — we park a hidden
-    // GO at the cave so the streamer has a stable position to associate. We deliberately keep the
-    // requests resident (no release) so the spawned lake/den markers stick for the session.
+    // Ask WorldStreamingManager to stream the tile(s) around each cave. RequestLoadWorldTile takes a
+    // caller id (so the request can be tracked/released) and an anchor transform — we park a hidden GO
+    // at the tile so the streamer has a stable position to associate. We deliberately keep the requests
+    // resident (no release) so the spawned lake/den markers stick for the session.
+    //
+    // Radius widens coverage past the cave's own ~128m tile: for each (dx,dy) in [-R..R] we request the
+    // neighbour tile. The cave's own tile uses its known-good WorldTileId (from CaveAreaInstance);
+    // neighbours are addressed by WorldTileId.GetClosest(offset world pos, tileSize). We round-trip each
+    // cave's own position through GetClosest first — if that doesn't reproduce the known tile id, the
+    // addressing (or tileSize) is wrong, so we fall back to cave-tile-only rather than request garbage.
     private static void ForceLoad()
     {
         var mgr = Plugin.Streaming;
         if (mgr == null) { Plugin.Logger.LogWarning("SeedScout force-load: no WorldStreamingManager captured — skipping."); return; }
         if (_caveTiles.Count == 0) { Plugin.Logger.LogInfo("SeedScout force-load: no cave tiles recorded — skipping."); return; }
 
-        int ok = 0;
+        int radius = Mathf.Clamp(Plugin.ForceLoadRadius.Value, 0, 3);
+        float ts = ReadTileSize();
+
+        // Calibrate neighbour addressing: GetClosest rounds to the nearest tile CENTRE, which isn't the
+        // tile that CONTAINS an off-centre cave — so it can miss. Find whichever of Lowest/Closest/Highest
+        // maps every cave's own position back to its known-good tile id; that one is then safe to use with
+        // ±tileSize offsets for neighbours. If none calibrates, drop to cave-tile-only.
+        AddrFn? fn = radius > 0 ? CalibrateAddressing(ts) : (AddrFn?)null;
+        LogAddressingDiag(ts, fn);
+        if (radius > 0 && fn == null)
+        {
+            Plugin.Logger.LogWarning($"SeedScout force-load: tile addressing failed to calibrate (tileSize={ts:0}) — " +
+                                     "falling back to cave-tile-only (radius 0).");
+            radius = 0;
+        }
+
+        int its = Mathf.RoundToInt(ts);
+        var requested = new HashSet<uint>();
+        int loaded = 0, nullOrErr = 0;
         foreach (var ct in _caveTiles)
         {
-            try
-            {
-                var go = new GameObject("SeedScout_TileReq");
-                go.transform.position = new Vector3(ct.Pos.x, 0f, ct.Pos.y);
-                UnityEngine.Object.DontDestroyOnLoad(go);
-                _reqGos.Add(go);
+            // Address neighbours off the cave TILE's own centre (GetWorldMidPosition), not the cave
+            // entrance — the entrance can sit in a different tile than the one the generator assigned.
+            Vector2Int mid;
+            try { mid = ct.Id.GetWorldMidPosition(its); }
+            catch { mid = new Vector2Int(Mathf.RoundToInt(ct.Pos.x), Mathf.RoundToInt(ct.Pos.y)); }
 
-                var wt = mgr.RequestLoadWorldTile(_reqId++, go.transform, ct.Id);
-                Plugin.Logger.LogInfo($"SeedScout force-load: requested tile {ct.Id} at ({ct.Pos.x:0},{ct.Pos.y:0}) -> {(wt == null ? "null" : "WorldTile")}");
-                ok++;
-            }
-            catch (Exception e)
+            for (int dx = -radius; dx <= radius; dx++)
+            for (int dy = -radius; dy <= radius; dy++)
             {
-                Plugin.Logger.LogWarning($"SeedScout force-load: request err at ({ct.Pos.x:0},{ct.Pos.y:0}): {e.Message}");
+                WorldTileId tileId;
+                Vector2 anchorPos = new Vector2(mid.x + dx * ts, mid.y + dy * ts);
+                if (dx == 0 && dy == 0) tileId = ct.Id;                                // known-good cave tile
+                else
+                {
+                    try { tileId = TileAt(fn!.Value, anchorPos.x, anchorPos.y, ts); }
+                    catch { nullOrErr++; continue; }
+                }
+
+                if (!requested.Add(tileId.Value)) continue;                            // dedupe overlaps
+
+                try
+                {
+                    var go = new GameObject("SeedScout_TileReq");
+                    go.transform.position = new Vector3(anchorPos.x, 0f, anchorPos.y);
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+                    _reqGos.Add(go);
+
+                    var wt = mgr.RequestLoadWorldTile(_reqId++, go.transform, tileId);
+                    if (wt != null) loaded++; else nullOrErr++;
+                }
+                catch (Exception e)
+                {
+                    nullOrErr++;
+                    Plugin.Logger.LogWarning($"SeedScout force-load: request err at ({anchorPos.x:0},{anchorPos.y:0}): {e.Message}");
+                }
             }
         }
-        Plugin.Logger.LogInfo($"SeedScout force-load: issued {ok}/{_caveTiles.Count} cave-tile request(s). " +
+        Plugin.Logger.LogInfo($"SeedScout force-load: radius={radius} tileSize={ts:0} over {_caveTiles.Count} cave(s) " +
+                              $"-> {requested.Count} unique tile(s) requested ({loaded} ok, {nullOrErr} null/err). " +
                               "Watch for lake/hostile spawn lines below, then open the map.");
+    }
+
+    // World tile size (metres) from the active world config; falls back to the known 128m default.
+    private static float ReadTileSize()
+    {
+        try
+        {
+            var cfg = WorldConfiguration.GetActive();
+            if (cfg != null && cfg.tileSize > 0) return cfg.tileSize;
+        }
+        catch { }
+        return 128f;
+    }
+
+    private enum AddrFn { Lowest, Closest, Highest }
+
+    private static WorldTileId TileAt(AddrFn fn, float x, float z, float ts)
+    {
+        switch (fn)
+        {
+            case AddrFn.Lowest:  return WorldTileId.GetLowest(x, z, ts);
+            case AddrFn.Highest: return WorldTileId.GetHighest(x, z, ts);
+            default:             return WorldTileId.GetClosest(x, z, ts);
+        }
+    }
+
+    // Pick the addressing fn (if any) that maps every cave TILE's own centre back to its known id. Using
+    // the tile centre (GetWorldMidPosition) — not the cave entrance — is what makes this round-trip
+    // reliably: a cave's assigned tile does NOT necessarily contain its entrance position. Confirmed
+    // in-game (2026-06-24) the convention is FLOOR — tile g spans [g·ts,(g+1)·ts), centre at (g+0.5)·ts,
+    // so GetLowest reproduces it deterministically (no rounding tie). We still probe all three as a net.
+    private static AddrFn? CalibrateAddressing(float ts)
+    {
+        if (ts <= 0f) return null;
+        int its = Mathf.RoundToInt(ts);
+        foreach (AddrFn fn in new[] { AddrFn.Lowest, AddrFn.Highest, AddrFn.Closest })
+        {
+            bool all = true;
+            foreach (var ct in _caveTiles)
+            {
+                try
+                {
+                    var mid = ct.Id.GetWorldMidPosition(its);
+                    if (TileAt(fn, mid.x, mid.y, ts).Value != ct.Id.Value) { all = false; break; }
+                }
+                catch { all = false; break; }
+            }
+            if (all) return fn;
+        }
+        return null;
+    }
+
+    // One-line diagnostic so a calibration failure is debuggable straight from the log (no extra build):
+    // shows the first cave's known tile id vs what each addressing fn produces.
+    private static void LogAddressingDiag(float ts, AddrFn? chosen)
+    {
+        try
+        {
+            if (_caveTiles.Count == 0) return;
+            var ct = _caveTiles[0];
+            var mid = ct.Id.GetWorldMidPosition(Mathf.RoundToInt(ts));
+            Plugin.Logger.LogInfo($"SeedScout force-load addr: cave({ct.Pos.x:0},{ct.Pos.y:0}) known={FmtTile(ct.Id)} mid=({mid.x},{mid.y}) " +
+                                  $"low={FmtTile(WorldTileId.GetLowest(mid.x, mid.y, ts))} " +
+                                  $"close={FmtTile(WorldTileId.GetClosest(mid.x, mid.y, ts))} " +
+                                  $"high={FmtTile(WorldTileId.GetHighest(mid.x, mid.y, ts))} chosen={(chosen?.ToString() ?? "none")}");
+        }
+        catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout force-load addr diag err: {e.Message}"); }
+    }
+
+    private static string FmtTile(WorldTileId id)
+    {
+        try { var xy = id.WorldXY; return $"{id.Value}({xy.x},{xy.y})"; }
+        catch { return id.Value.ToString(); }
     }
 
     private static void DestroyReqGos()

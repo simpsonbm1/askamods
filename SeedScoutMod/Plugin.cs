@@ -50,6 +50,7 @@ public class Plugin : BasePlugin
     internal static SandSailorStudio.RNG.RandomGeneratorManager? Rng;
     internal static ConfigEntry<bool> EnableMarkers = null!;
     internal static ConfigEntry<bool> ForceLoadTiles = null!;
+    internal static ConfigEntry<int> ForceLoadRadius = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
     internal static readonly List<LakeHit> Lakes = new();
     internal static readonly List<HostileHit> Hostiles = new();
@@ -64,6 +65,11 @@ public class Plugin : BasePlugin
         ForceLoadTiles = Config.Bind("SeedScout", "ForceLoadCaveTiles", true,
             "After world load, force the streamer to load the tile at each cave (RequestLoadWorldTile) " +
             "so lakes/hostiles near caves fill in without physically exploring. Experimental.");
+
+        ForceLoadRadius = Config.Bind("SeedScout", "ForceLoadRadius", 2,
+            "How many tile rings around each cave to force-load (0 = the cave's own tile only, " +
+            "1 = 3x3, 2 = 5x5, 3 = 7x7). Higher = more of the map fills in but more streaming/memory. " +
+            "Tile = ~128m. Clamped to 0-3. Editable live in this file (no rebuild needed).");
 
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");

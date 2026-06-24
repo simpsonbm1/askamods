@@ -617,10 +617,19 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   `Den.Start` — fire) while the player stays put. Verified: player never moved (`-209.9,33,-13.7`) yet dens +
   a lake spawned at cave tiles 468–1120 m away. So a *resident/requested* tile spawns content; it is **not**
   gated on the tile being *visible* near the player.
-- **Coverage nuance:** `RequestLoadWorldTile` loads only the **one tile** containing that position (~128 m
-  square). Features in adjacent tiles still won't spawn — to cover a cave's surroundings, request a **ring of
-  neighbour tiles** (offset the cave position by ±tileSize and `WorldTileId.GetClosest(worldX, worldZ, tileSize)`,
-  or read `WorldTileId.WorldXY` and address neighbours by grid coords).
+- **Coverage:** `RequestLoadWorldTile` loads only the **one tile** containing that position (~128 m square).
+  To cover a cave's surroundings, request a **ring of neighbour tiles** — CONFIRMED working (2026-06-24,
+  SeedScoutMod radius config). Addressing rules (these took two iterations to get right):
+  - **A cave's assigned `WorldTileId` does NOT necessarily contain its entrance `position`.** e.g. a cave at
+    `(-426,-722)` was assigned tile grid `(-3,-5)` = `[-384,-256)×[-640,-512)`, which excludes that point. So
+    **never derive a cave's tile from its entrance** via floor/round/ceil — it fails for some caves.
+  - **Address neighbours off the cave tile's own centre:** `mid = caveTile.GetWorldMidPosition((int)tileSize)`,
+    then neighbour tile = `WorldTileId.GetLowest(mid.x + dx·ts, mid.y + dy·ts, ts)`.
+  - **Tile grid convention is FLOOR:** tile `g` spans `[g·ts,(g+1)·ts)`, centre `(g+0.5)·ts`; `GetLowest`
+    (floor) maps a centre→its tile with no rounding tie. (`GetClosest`=round and `GetHighest`=ceil exist too;
+    round is tie-prone at a tile centre, so prefer `GetLowest`. Best practice: probe all three and keep the one
+    that round-trips every cave's centre→known id, so a wrong tileSize/convention self-corrects.)
+  - **`tileSize`** = `WorldConfiguration.GetActive().tileSize` (Int32, =128).
 - **WorldTileId helpers:** `GetClosest/GetHighest/GetLowest(worldX, worldZ, worldTileSize)`, `WorldXY` (grid),
   `GetWorldPosition(tileSize)`. Manager also exposes `GetTile(int x,int y)` / `GetTile(float worldX,float worldZ)`,
   `RegisterWorldTile`, `CancelLoading`, `StopAllStreaming`, `SetTrackTransform(Transform)`.
