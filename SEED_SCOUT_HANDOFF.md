@@ -159,9 +159,21 @@ The den-identity logging WORKS. **`Den : Creature`; its own sheet is useless** (
 | Wight Den | `WightsDenNetworkLogic` | `WightAlphaPopulation` | `Item_Population_WightBoss` |
 | Draugar den | `DraugarsDenNetworkLogic` | `DraugarAlphaPopulation` | `Item_Population_DraugarAlpha` |
 
-- The **tier lives in the creature/population name** (e.g. `WightBoss`, `SkeletonNecromancerAlpha`,
-  `DraugarAlpha`) — NOT a separate int (no readable `tier` field; `PopulationSpawner.UpdateTier()` is a
-  method with no exposed value). `max=1` = the alpha count.
+- **CORRECTION (user, 2026-06-24): `alphaSpawner` is only the den's BOSS, not the regular enemies.** The
+  boss spawns once you destroy all the den's spawner NODES. So the table above = boss per den, NOT the
+  actual population. For the real enemy roster + tier, read the **node spawners** — `Den.affectedSpawners`
+  (Il2CppReferenceArray of PopulationSpawner; the things you destroy) and/or `Den.subCreatures` — each
+  `PopulationSpawner._populations[i].config.populationInfo` gives a node's creature + `max` count. **Do
+  this next** (same read pattern as `SpawnerInfo`, but over `affectedSpawners` instead of `alphaSpawner`).
+- **Prefab variants DO map to in-game POI names:** `Skeleton Den Cluster` (boss `SkeletonNecromancer` =
+  "Rider" vs `Skeleton Den`'s `SkeletonNecromancerAlpha`) is the in-game **"large graveyard."** So the
+  skeleton family clearly has ≥2 tiers/sizes.
+- **Wight/Draugar tiers NOT yet seen:** this seed showed only one wight (`WightBoss`) and one draugar
+  (`DraugarAlpha`) — no tier variants. User says multiple tiers exist for wights+draugar too, so either
+  (a) need more seeds/biomes to surface higher-tier wight/draugar dens, or (b) the tier shows in the node
+  spawners (affectedSpawners), not the boss name. Reading affectedSpawners likely resolves both.
+- The boss tier IS in the creature/population name (e.g. `WightBoss`) — NOT a separate int (no readable
+  `tier` field; `PopulationSpawner.UpdateTier()` exposes no value). `max=1` = the alpha/boss count.
 - **User's difficulty axiom (base creature):** **Wight < Skeleton < Draugar** (wights easiest). Wulfar =
   animal/resource (meat/leather), treat as opportunity not threat. BUT tiers crosscut: a high-tier wight
   den can beat a low-tier skeleton den. So difficulty = f(populationInfo creature), ranked with the axiom
