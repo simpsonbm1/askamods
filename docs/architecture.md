@@ -597,3 +597,35 @@ for the full lever-by-lever log). **These are facts now, with dead-ends called o
   `object` to `Il2CppObjectBase` at runtime (Il2CppSystem.Object-derived types like `QuestData`/`Quest` are fine).
 - `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat), `AvoidImminentDanger`=46,
   `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0.
+
+## Worldgen / World Streaming
+How the world loads around the player, and how to make distant tiles stream **without moving the player**.
+Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEED_SCOUT_HANDOFF.md).
+
+- **Worldgen is deterministic, seed-phrase driven**, and runs at world **LOAD** (not in the create-world UI).
+  Caves (mines) are fully known at load (`BiomesManager._worldGenerator.GetDataMap()._areaInstances`, filter
+  `AreaInstance.TryCast<CaveAreaInstance>()`); ~3 per world. **Lakes, dens (hostiles), etc. spawn per-tile as
+  the world streams** near the tracked actor — that's why they only "fill in" as you walk.
+- **`AreaInstance.position` (Vector2Int) = WORLD METERS (x, z)**, not tile coords (verified twice, ~10 m).
+- **`SandSailorStudio.Streaming.WorldStreamingManager`** is the streamer (capture via its `Awake`). It follows
+  one `IStreamingActor TrackedActor` — which is the player's **`PlayerDrive`** (it implements `Teleport(Vector3)`
+  / `IsTeleporting()`, a first-class game teleport, not a raw transform write).
+- **Force-stream a tile without the player — CONFIRMED in-game (2026-06-24):**
+  `WorldStreamingManager.RequestLoadWorldTile(int requestId, Transform anchor, WorldTileId tileId)`. Each
+  `CaveAreaInstance` carries its own `WorldTileId` (no need to compute). Calling this for a **distant** tile
+  **does instantiate that tile's biome/den/lake entities** (their spawn hooks — `BiomeLakeStampMask._OnSpawnBiome`,
+  `Den.Start` — fire) while the player stays put. Verified: player never moved (`-209.9,33,-13.7`) yet dens +
+  a lake spawned at cave tiles 468–1120 m away. So a *resident/requested* tile spawns content; it is **not**
+  gated on the tile being *visible* near the player.
+- **Coverage nuance:** `RequestLoadWorldTile` loads only the **one tile** containing that position (~128 m
+  square). Features in adjacent tiles still won't spawn — to cover a cave's surroundings, request a **ring of
+  neighbour tiles** (offset the cave position by ±tileSize and `WorldTileId.GetClosest(worldX, worldZ, tileSize)`,
+  or read `WorldTileId.WorldXY` and address neighbours by grid coords).
+- **WorldTileId helpers:** `GetClosest/GetHighest/GetLowest(worldX, worldZ, worldTileSize)`, `WorldXY` (grid),
+  `GetWorldPosition(tileSize)`. Manager also exposes `GetTile(int x,int y)` / `GetTile(float worldX,float worldZ)`,
+  `RegisterWorldTile`, `CancelLoading`, `StopAllStreaming`, `SetTrackTransform(Transform)`.
+- **Alternative force-stream primitive:** `SSSGame.StreamingInstigator` (MonoBehaviour, `Request()`) — the game's
+  own "stream at this point." Not needed once `RequestLoadWorldTile` was confirmed working.
+- **Dead end (still unresolved):** the runtime seed reads `<rng-null>` —
+  `RandomGeneratorManager.seedPhrase`/`SetSeedPhrase` are never the path the seed travels at load. Non-blocking
+  for a scorer (you type the seed); required only for an auto-finder. See the SeedScout handoff for the chase.

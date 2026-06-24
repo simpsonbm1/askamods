@@ -5,6 +5,7 @@
       "PowerShell(cd \"d:\\Claude Projects\\askamods\\_explore\" ; dotnet run 2>&1)",
       "PowerShell(dotnet run --project \"d:\\Claude Projects\\askamods\\_explore\\explore.csproj\" 2>&1)",
       "PowerShell(& 'd:\\Claude Projects\\askamods\\_explore\\*",
+      "PowerShell(& \"d:\\Claude Projects\\askamods\\_explore\\*",
       "PowerShell(dotnet build \"d:\\Claude Projects\\askamods\\*",
       "PowerShell(cd \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\plugins\\TorchFuelMod\"; dotnet build 2>&1)",
       "PowerShell(cd \"D:\\SteamLibrary\\steamapps\\common\\ASKA\\BepInEx\\plugins\\HealthRegenMod\"; dotnet build 2>&1)",

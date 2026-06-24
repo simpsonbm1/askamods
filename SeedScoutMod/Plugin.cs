@@ -5,6 +5,7 @@ using BepInEx.Unity.IL2CPP;
 using BepInEx.Logging;
 using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
+using SandSailorStudio.Streaming;
 using SSSGame;
 using UnityEngine;
 
@@ -45,8 +46,10 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
 
     internal static BiomesManager? Biomes;
+    internal static WorldStreamingManager? Streaming;
     internal static SandSailorStudio.RNG.RandomGeneratorManager? Rng;
     internal static ConfigEntry<bool> EnableMarkers = null!;
+    internal static ConfigEntry<bool> ForceLoadTiles = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
     internal static readonly List<LakeHit> Lakes = new();
     internal static readonly List<HostileHit> Hostiles = new();
@@ -57,6 +60,10 @@ public class Plugin : BasePlugin
 
         EnableMarkers = Config.Bind("SeedScout", "EnableMapMarkers", true,
             "Draw cave (mine) dots on the in-game map. Pure UI overlay — no game objects touched.");
+
+        ForceLoadTiles = Config.Bind("SeedScout", "ForceLoadCaveTiles", true,
+            "After world load, force the streamer to load the tile at each cave (RequestLoadWorldTile) " +
+            "so lakes/hostiles near caves fill in without physically exploring. Experimental.");
 
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");

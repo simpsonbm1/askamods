@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace SeedScoutMod;
 
 // Draw POIs directly on the in-game map as plain UI Images parented to the map content:
-//   caves (mines) = cyan, lakes = blue, hostiles (dens/camps) = red.
+//   caves (mines) = gray, lakes = blue, hostiles (dens/camps) = red.
 // No game entities, no marker registration, no networking — cannot freeze or disconnect.
 internal static class MapOverlay
 {
@@ -25,12 +25,14 @@ internal static class MapOverlay
             var content = map.Content;
             if (content == null) { Plugin.Logger.LogWarning("SeedScout: map Content null."); return; }
 
-            foreach (var cave in Scout.Caves) AddDot(map, content, cave, Color.cyan);
+            // Light gray reads clearly against the blue lakes (was cyan — too close to lake blue).
+            var caveGray = new Color(0.78f, 0.78f, 0.80f);
+            foreach (var cave in Scout.Caves) AddDot(map, content, cave, caveGray);
             foreach (var l in Plugin.Lakes) AddDot(map, content, l.Pos, new Color(0.25f, 0.55f, 1f));
             foreach (var h in Plugin.Hostiles) AddDot(map, content, h.Pos, Color.red);
 
             Plugin.Logger.LogInfo($"SeedScout: drew {_dots.Count} map dot(s) " +
-                                  $"(caves={Scout.Caves.Count} cyan / lakes={Plugin.Lakes.Count} blue / hostiles={Plugin.Hostiles.Count} red).");
+                                  $"(caves={Scout.Caves.Count} gray / lakes={Plugin.Lakes.Count} blue / hostiles={Plugin.Hostiles.Count} red).");
         }
         catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout: map overlay build err: {e.Message}"); }
     }

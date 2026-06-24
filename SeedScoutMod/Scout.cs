@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Il2CppInterop.Runtime;
+using SandSailorStudio.Streaming;
 using SandSailorStudio.WorldGen;
 using SSSGame;
 using UnityEngine;
@@ -22,6 +23,21 @@ internal static class Scout
     private static bool _haveSpawn;
     private static readonly List<Vector2> _caves = new(); // world (x,z) of every cave, from _areaInstances
 
+    // Force-load: each cave's streaming tile id (read off CaveAreaInstance), the temp anchor GOs we
+    // hand RequestLoadWorldTile, and one-shot guard + settle timer.
+    private static readonly List<CaveTile> _caveTiles = new();
+    private static readonly List<GameObject> _reqGos = new();
+    private static int _reqId = 1000;
+    private static bool _forceLoadDone;
+    private static float _settleTimer;
+
+    private struct CaveTile
+    {
+        public Vector2 Pos;
+        public WorldTileId Id;
+        public CaveTile(Vector2 pos, WorldTileId id) { Pos = pos; Id = id; }
+    }
+
     // Read by MapOverlay to draw cave dots on the map.
     internal static IReadOnlyList<Vector2> Caves => _caves;
 
@@ -35,7 +51,8 @@ internal static class Scout
         if (biomes == null)
         {
             _areasDumped = false; _haveSpawn = false;
-            _lastScoreSig = -1; _caves.Clear();
+            _lastScoreSig = -1; _caves.Clear(); _caveTiles.Clear();
+            _forceLoadDone = false; _settleTimer = 0f; DestroyReqGos();
             Plugin.Lakes.Clear(); Plugin.Hostiles.Clear(); Plugin.RegisteredCaves.Clear();
             if (heartbeat) Plugin.Logger.LogInfo("SeedScout hb: not in a loaded world (BiomesManager = null)");
             return;
@@ -81,11 +98,65 @@ internal static class Scout
             try { DumpScore(_spawnPos); }
             catch (Exception e) { LogErrorOnce("score dump", e); }
         }
+
+        // Force-load: once caves are known, give the world a few seconds to settle, then ask the
+        // streamer to load each cave's tile in place so lakes/hostiles spawn without exploring.
+        if (_areasDumped && !_forceLoadDone && Plugin.ForceLoadTiles.Value)
+        {
+            _settleTimer += Time.deltaTime;
+            if (_settleTimer >= 3f)
+            {
+                _forceLoadDone = true;
+                try { ForceLoad(); }
+                catch (Exception e) { LogErrorOnce("force-load", e); }
+            }
+        }
+    }
+
+    // Ask WorldStreamingManager to stream the tile under each cave. RequestLoadWorldTile takes a
+    // caller id (so the request can be tracked/released) and an anchor transform — we park a hidden
+    // GO at the cave so the streamer has a stable position to associate. We deliberately keep the
+    // requests resident (no release) so the spawned lake/den markers stick for the session.
+    private static void ForceLoad()
+    {
+        var mgr = Plugin.Streaming;
+        if (mgr == null) { Plugin.Logger.LogWarning("SeedScout force-load: no WorldStreamingManager captured — skipping."); return; }
+        if (_caveTiles.Count == 0) { Plugin.Logger.LogInfo("SeedScout force-load: no cave tiles recorded — skipping."); return; }
+
+        int ok = 0;
+        foreach (var ct in _caveTiles)
+        {
+            try
+            {
+                var go = new GameObject("SeedScout_TileReq");
+                go.transform.position = new Vector3(ct.Pos.x, 0f, ct.Pos.y);
+                UnityEngine.Object.DontDestroyOnLoad(go);
+                _reqGos.Add(go);
+
+                var wt = mgr.RequestLoadWorldTile(_reqId++, go.transform, ct.Id);
+                Plugin.Logger.LogInfo($"SeedScout force-load: requested tile {ct.Id} at ({ct.Pos.x:0},{ct.Pos.y:0}) -> {(wt == null ? "null" : "WorldTile")}");
+                ok++;
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning($"SeedScout force-load: request err at ({ct.Pos.x:0},{ct.Pos.y:0}): {e.Message}");
+            }
+        }
+        Plugin.Logger.LogInfo($"SeedScout force-load: issued {ok}/{_caveTiles.Count} cave-tile request(s). " +
+                              "Watch for lake/hostile spawn lines below, then open the map.");
+    }
+
+    private static void DestroyReqGos()
+    {
+        foreach (var go in _reqGos)
+            if (go != null) UnityEngine.Object.Destroy(go);
+        _reqGos.Clear();
     }
 
     private static void DumpAreas(WorldDataMap map, Vector3 spawn)
     {
         _caves.Clear();
+        _caveTiles.Clear();
         var sb = new StringBuilder();
         sb.AppendLine("==================== SeedScout: AREA INSTANCES ====================");
         sb.AppendLine($"REAL seed (RngManager)='{SafeRealSeed()}'   (config default='{SafeActiveSeed()}')");
@@ -108,7 +179,15 @@ internal static class Scout
                 typeTally[cat] = typeTally.TryGetValue(cat, out var tc) ? tc + 1 : 1;
                 if (cat == "Cave")
                 {
-                    try { var p = a.position; _caves.Add(new Vector2(p.x, p.y)); } catch { }
+                    try
+                    {
+                        var p = a.position;
+                        var pos = new Vector2(p.x, p.y);
+                        _caves.Add(pos);
+                        var ca = a.TryCast<CaveAreaInstance>();
+                        if (ca != null) _caveTiles.Add(new CaveTile(pos, ca.WorldTileId));
+                    }
+                    catch { }
                 }
             }
         }

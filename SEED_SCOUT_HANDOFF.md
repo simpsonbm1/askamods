@@ -1,6 +1,9 @@
 # SeedScoutMod — Handoff (Mod 9, WIP)
 
-**Last build: v0.11.0** (built, deployed, **not yet tested in-game** — hostile capture is unverified).
+**Last build: v0.12.0** (built, deployed, **CONFIRMED working in-game 2026-06-24**). v0.12.0 adds the
+**force-load** feature (see its section below — it works) and recolors cave dots **gray** (`0.78,0.78,0.80`
+— cyan was too close to lake blue). **`Den` hostile capture is now verified too** (dens logged at sane
+coords, red dots drawn); `HostileVikingSettlement`/EnemyCamp still unverified (none in the test seed).
 Status: a working **in-world seed "scorer"** + **in-game map overlay**. Not a gameplay mod — it
 reads worldgen data, logs analysis to `LogOutput.log`, and draws POI dots on the map. No game
 state is changed (overlay is pure UI; co-op-safe).
@@ -35,6 +38,52 @@ distance from spawn → show on the in-game map.** User decisions:
 - **Hostiles (v0.11.0, UNVERIFIED):** `Den` (animal den / "wolf spawner") at `Den.Start`;
   `HostileVikingSettlement` (enemy camp) at `Awake`. Drawn **red**. Folded into the score as
   `nearestHostile`.
+
+## Force-load (v0.12.0 — CONFIRMED working 2026-06-24)
+**Goal:** eliminate the "run to every cave to load the rest of the map" step. Caves are fully known
+at load, but lakes/hostiles only spawn when the `WorldStreamingManager` streams a tile near its
+tracked actor — that's why they fill in as you walk. The idea: make those tiles stream *in place*,
+without moving the player, so the existing lake/den hooks fire.
+
+**What v0.12.0 does:** at world-load (3 s after caves are known), for each cave it calls
+`WorldStreamingManager.RequestLoadWorldTile(reqId, anchorTransform, CaveAreaInstance.WorldTileId)`,
+parking a hidden GO at the cave as the anchor. One-shot per world, gated by config
+`SeedScout/ForceLoadCaveTiles` (default true). Requests are **not** released (tiles stay resident so
+the markers stick). Verbose logs: `SeedScout force-load: requested tile … -> WorldTile|null`.
+
+**RESULT (test seed, 3 caves at 468/641/1120 m):** all 3 requests returned `WorldTile`, and **dens +
+a lake spawned at the distant cave tiles while the player never moved** (every heartbeat stayed at
+`player=(-209.9,33,-13.7)`). So the open question is answered **YES** — a *requested/resident* tile
+instantiates its biome/den/lake entities; it is **not** gated on visibility near the player. The map
+showed caves/lakes/hostiles near every cave without exploring. The teleport-tour fallback is therefore
+**not needed** for this purpose (keep it in the back pocket only if fuller coverage ever demands real
+presence).
+
+**Known limitation → next lever:** `RequestLoadWorldTile` loads only the **single tile** containing the
+cave (~128 m square). A lake/den just *outside* that tile still won't show. To widen coverage, request a
+**ring of neighbour tiles** around each cave (config a radius: 0 = cave tile only, 1 = 3×3, 2 = 5×5).
+Address neighbours via `WorldTileId.GetClosest(cave.x ± n·tileSize, cave.y ± n·tileSize, tileSize)` or
+`WorldTileId.WorldXY` grid offsets. Tradeoff: more resident tiles = more memory/streaming work.
+
+**Confirmed streaming API (types/members verified to exist via Cecil dump):**
+- `SandSailorStudio.Streaming.WorldStreamingManager` (MonoBehaviour): tracks one `IStreamingActor
+  TrackedActor` / `Transform TrackedTransform`; `SetTrackTransform(Transform)`, `_UpdateTrackedPosition`,
+  `SetStartPosition`, `SetIdlePosition`, `IsTeleporting`. Tile ops: `RequestLoadWorldTile(int, Transform,
+  WorldTileId) -> WorldTile`, `GetTile(int x,int y)` / `GetTile(float worldX,float worldZ)`,
+  `RegisterWorldTile(WorldTileId)`, `CancelLoading(WorldStreamingTile)`, `StopAllStreaming()`. Resident
+  vs visible vs active tile sets are distinct (`_activeTiles`, `ResidentArea`, `_visibleDistance`,
+  `_criticalTiles`) — the crux of the open question above.
+- `WorldTileId` (struct): `GetClosest/GetHighest/GetLowest(worldX, worldZ, worldTileSize)`, `WorldXY`,
+  `GetWorldPosition(tileSize)`. **`CaveAreaInstance.WorldTileId`** gives each cave's tile directly (no
+  need to compute from position).
+- Reaching the instance: captured via `WorldStreamingManager.Awake` (StreamingCapture.cs). Also held by
+  `MapMenu._streamingManager`, `UIGameMapManager._worldStreamingManager`, `WorldDataManager.streamingManager`.
+- **Teleport path (for the fallback):** the player's `PlayerDrive` IS the `IStreamingActor` and exposes
+  `Teleport(Vector3)` / `IsTeleporting()` / `_Teleport()` — a first-class game teleport (handles the
+  resident-area rebuild), not a raw transform write. `SailingShip.Rpc_Teleport*` exists for boats.
+- `SSSGame.StreamingInstigator` (MonoBehaviour): the game's own "force-stream at this point" primitive
+  (`Request()` / `RequestFromEvent()`, holds a `WorldStreamingManager` + own transform) — an alternative
+  force-load mechanism if `RequestLoadWorldTile` proves insufficient.
 
 ## Confirmed architecture (so the next session doesn't re-derive it)
 - **Worldgen is deterministic, seed-phrase driven.** `SandSailorStudio.RNG.RandomGeneratorManager`
@@ -95,12 +144,18 @@ distance from spawn → show on the in-game map.** User decisions:
 - `HostileCapture.cs` — `Den.Start` + `HostileVikingSettlement.Awake` → `Plugin.Hostiles` (NEW,
   unverified).
 - `CavesCapture.cs` — `CavesManager.RegisterCaves` (streamed cross-check; harmless).
+- `StreamingCapture.cs` — capture `WorldStreamingManager` (Awake) → `Plugin.Streaming` (force-load).
 - `RngCapture.cs` — seed-read attempt (currently null; see dead ends).
-- `MapOverlay.cs` — `MapMenu` OnActivate/OnUpdate/OnDeactivate/OnClosed → draw caves(cyan)/
+- `MapOverlay.cs` — `MapMenu` OnActivate/OnUpdate/OnDeactivate/OnClosed → draw caves(gray)/
   lakes(blue)/hostiles(red) dots.
+- `Scout.cs` also owns the **force-load** routine (`ForceLoad()` + `_caveTiles`/`_reqGos`).
 
 ## Next steps (priority order)
-1. **Verify v0.11.0 hostile capture in-game** (re-type the test seed). Do `Den`/`EnemyCamp` log at
+0. **DONE — force-load verified (v0.12.0).** Next lever for *range*: expand force-load from the single
+   cave tile to a **ring of neighbour tiles** (config radius) so features just outside the cave's tile also
+   spawn (see the limitation note in the force-load section). Teleport tour is no longer needed for this.
+1. **Verify `HostileVikingSettlement`/EnemyCamp capture** (Den is now confirmed). Re-test on a seed that
+   has an enemy camp. Do `Den`/`EnemyCamp` log at
    sane positions (not `(0,0)`)? Do red dots land on the actual den/camp? **`HostileVikingSettlement`
    is hooked at `Awake`, which may run before positioning** — if the camp lands at origin, rehook to
    a post-positioning method (`UpdateTerrainAnchors` / `_EnsureStructurePositions` /
