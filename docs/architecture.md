@@ -214,7 +214,7 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
 
 **Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
 - All names confirmed in-game against the inventory/storage UI (2026-06-17):
-  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fiber"` (singular)
+  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"` (PLURAL — verified live in the respawn log 2026-06-25; the config key `Fiber` still matches it via the case-insensitive `itemName.Contains(key)` substring test, so the override applies regardless)
   - `"Small Stone"` (ground pickup), `"Mussels"`, `"Feathers"` (Bird's Nest), `"Water"` (Natural Water Collector)
   - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
   - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
