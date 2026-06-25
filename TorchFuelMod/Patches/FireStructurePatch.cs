@@ -16,15 +16,23 @@ internal static class FireStructurePatch
     {
         try
         {
-            if (ownerStructure == null) return;
-            if (!Plugin.IsTargetStructure(ownerStructure.DefaultName) &&
-                !Plugin.IsTargetStructure(ownerStructure.StructureName))
-                return;
+            string? defaultName = ownerStructure != null ? ownerStructure.DefaultName : null;
+            string? structureName = ownerStructure != null ? ownerStructure.StructureName : null;
+            string? goName = null;
+            try { goName = __instance != null && __instance.gameObject != null ? __instance.gameObject.name : null; }
+            catch { /* gameObject may be unavailable mid-spawn; non-fatal */ }
 
-            if (!Plugin.TrackedFireStructures.Contains(__instance))
+            if (Plugin.LogAllFireStructures.Value)
+                Plugin.Logger.LogInfo($"[TorchFuelMod][diag] FireStructure default='{defaultName}' name='{structureName}' go='{goName}'");
+
+            // Match the owning structure's display name OR the fire's own GameObject name — the latter
+            // catches fires whose owner is a building (e.g. a campfire whose owner is "Tavern") but whose
+            // own object is still named like a torch/fire.
+            if (Plugin.IsTargetStructure(defaultName) ||
+                Plugin.IsTargetStructure(structureName) ||
+                Plugin.IsTargetStructure(goName))
             {
-                Plugin.TrackedFireStructures.Add(__instance);
-                Plugin.Logger.LogInfo($"[TorchFuelMod] Tracking '{ownerStructure.StructureName}' for infinite fuel.");
+                Plugin.TrackFireStructure(__instance, $"'{structureName ?? defaultName ?? goName}'");
             }
         }
         catch (Exception ex)

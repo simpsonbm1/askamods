@@ -19,6 +19,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> CheckIntervalSeconds = null!;
     internal static ConfigEntry<bool> PreventRainExtinguish = null!;
     internal static ConfigEntry<bool> AutoRelightAfterRain = null!;
+    internal static ConfigEntry<bool> KeepAllLightSources = null!;
+    internal static ConfigEntry<bool> LogAllFireStructures = null!;
 
     // Populated by FireStructurePatch as matching structures (torches) spawn/load in.
     internal static readonly List<FireStructure> TrackedFireStructures = new();
@@ -51,6 +53,18 @@ public class Plugin : BasePlugin
             defaultValue: false,
             description: "If true, any matched torch extinguished during rain is automatically re-lit when the rain stops. Has no effect if PreventRainExtinguish is also true.");
 
+        KeepAllLightSources = Config.Bind(
+            section: "TorchFuel",
+            key: "KeepAllLightSources",
+            defaultValue: false,
+            description: "If true, keep EVERY light-emitting fire fueled regardless of name — including fires built into buildings (e.g. the tavern campfire) and braziers that the name list above misses. Catches anything with a light outlet; leaves cooking stations/forges/kilns (no light outlet) alone. Note: cave WALL SCONCES are a separate equipment system and are NOT covered by this.");
+
+        LogAllFireStructures = Config.Bind(
+            section: "TorchFuel",
+            key: "LogAllFireStructures",
+            defaultValue: false,
+            description: "Diagnostic: log every fire structure and light outlet as it loads (owner DefaultName/StructureName + GameObject name), so you can find the exact name of a specific fire to add to TargetStructureNames. Leave off for normal play.");
+
         ClassInjector.RegisterTypeInIl2Cpp<TorchFuelTracker>();
         var go = new GameObject("TorchFuelMod_Tracker");
         UnityEngine.Object.DontDestroyOnLoad(go);
@@ -60,6 +74,16 @@ public class Plugin : BasePlugin
         harmony.PatchAll();
 
         Logger.LogInfo($"TorchFuelMod loaded. Targets=[{TargetStructureNames.Value}], CheckIntervalSeconds={CheckIntervalSeconds.Value}");
+    }
+
+    // Single entry point for both patches (name-matched torches and light-outlet fires) so
+    // dedupe + logging live in one place. No-op for nulls/dupes.
+    internal static void TrackFireStructure(FireStructure? fire, string label)
+    {
+        if (fire == null) return;
+        if (TrackedFireStructures.Contains(fire)) return;
+        TrackedFireStructures.Add(fire);
+        Logger.LogInfo($"[TorchFuelMod] Tracking {label} for infinite fuel.");
     }
 
     internal static bool IsTargetStructure(string? structureName)

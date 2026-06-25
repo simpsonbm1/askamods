@@ -411,10 +411,19 @@ RefuelableInteraction (abstract) → FireInteraction → (wrapped by LightOutlet
   - mirrors CurrentFuelVolume/MaxFuelVolume by forwarding to the wrapped FireStructure
   - LightOutlet and WarmthOutlet are SEPARATE AI-dispatcher components (light vs. warmth duty) but
     both wrap a FireInteraction → FireStructure — campfires/forges/kilns/cooking stations all use
-    FireStructure too, so filtering must happen by **structure name**, not by component type, to
-    avoid accidentally affecting non-torch fires
+    FireStructure too, so filtering by **structure name** keeps non-torch fires unaffected
+LightOutlet (StructureTaskDispatcher) .fireStructure / .fireInteraction / .Initialize(Structure)
+  - the light-duty dispatcher; attached to EVERY fire that exists to give off light — free-standing
+    torches AND fires built into buildings (tavern campfire, braziers). Cooking stations/forges/kilns
+    use CookingOutlet/WarmthOutlet and have NO LightOutlet, so patching LightOutlet.Initialize and
+    grabbing __instance.fireStructure is a name-free way to catch all *lighting* fires while leaving
+    crafting fires alone (TorchFuelMod's KeepAllLightSources path).
 ```
 **Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name (e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name`.
+
+**Built-in / composite-building fires (e.g. tavern campfire):** these ARE `FireStructure`s and DO fire `Initialize`, but their owning `Structure` is the *building* ("Tavern"), so a name filter of `"Torch"` misses them. Two ways to catch them: add the building/fire name to the name list, or use the `LightOutlet.Initialize` patch above (catches any light-emitting fire by component, no name needed).
+
+**⚠️ DEAD-END — cave wall sconces are NOT FireStructures.** Sticking a torch into a cave wall sconce goes through `SSSGame.CaveTorchOutlet` (a plain `MonoBehaviour`, *not* a NetworkBehaviour and *not* a FireStructure). It has **no fuel volume and no `Rpc_AddFuel`** — `IsLit()`/`IsAvailable()` are get-only, the actual light is a torch **equipment item** (`CaveTorchOutlet.torchReplacements[] : {GameObject replacementPrefab, EquipmentItemInfo torchInfo}`) held in an `EquipmentDisplaySlot` via `EquipmentManager`, that burns down by **item durability** and is *replaced* by a villager `LightkeepingQuest` (see `FSM_BuilderLightkeep`, `CaveLightingFilter`). Keeping sconces perpetually lit therefore is a *different* problem from fuel top-off — it needs blocking the equipped torch's durability decay or auto-re-equipping, not `Rpc_AddFuel`. The fuel-volume TorchFuelMod cannot touch them. (confirmed via interop dump 2026-06-25; in-game behavior pending)
 
 ---
 
