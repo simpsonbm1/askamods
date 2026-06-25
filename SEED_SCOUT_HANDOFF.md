@@ -5,8 +5,13 @@ default 2; tested up to 3 = 101–118 tiles, no hitch) are **CONFIRMED working (
 "first map" with caves/lakes/dens, player stationary. Cave dots are **gray**. **`Den` capture verified**;
 `HostileVikingSettlement`/EnemyCamp still unverified (none in test seeds). Seed read still `<rng-null>`.
 
+> **Native map pins were SOLVED in a separate mod — `WarpTour` (Mod 10), see [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md).**
+> A teleport tour discovers every POI for real, so the game drops its own pins. SeedScout deliberately stays
+> the **v0.15 colored-overlay scorer** (Mod 9); the native-pin work did not land here. The notes below about
+> the *failed* in-place pin attempt are kept only as the dead-end that motivated WarpTour.
+
 **Two active threads (pick up here):**
-1. **Native map pins via discovery — ATTEMPTED, FAILED so far** (v0.15.0). See its section below.
+1. **Native map pins via discovery — ATTEMPTED, FAILED so far** (v0.15.0; later SOLVED in WarpTour). See its section below.
 2. **Den type/tier classification — DATA IN HAND** (v0.14.1 spawner diagnostic). See its section below.
    The classification UI (colors/score breakdown) is **not built yet**; the raw signal is captured.
 Status: a working **in-world seed "scorer"** + **in-game map overlay**. Not a gameplay mod — it

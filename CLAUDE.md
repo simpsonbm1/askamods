@@ -75,6 +75,7 @@ askamods/
   VillagerFightBackMod/      ← Mod 7: villagers fight (vs flee) a whitelisted enemy set, e.g. Wisps
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9 (WIP tool): in-world seed scorer + in-game map overlay (caves/lakes/hostiles)
+  WarpTourMod/               ← Mod 10: teleport-tour every POI so the game drops its OWN native map pins (master on/off switch)
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -105,6 +106,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`DYNAMIC_NEEDS_HANDOFF.md`](DYNAMIC_NEEDS_HANDOFF.md) | DynamicVillagerNeedsMod handoff |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — VillagerFightBackMod test run + fallback |
 | [`SEED_SCOUT_HANDOFF.md`](SEED_SCOUT_HANDOFF.md) | Mod 9 — SeedScoutMod: worldgen findings, seed scorer + map overlay (WIP) |
+| [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md) | Mod 10 — WarpTourMod: teleport-tour POIs for native map pins (why cheap pins fail, tour design, tuning) |
 
 ## Reference Paths
 | Purpose | Path |
