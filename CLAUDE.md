@@ -19,6 +19,19 @@ Date in-game findings (`confirmed in-game (YYYY-MM-DD)`). Update an existing ent
 and always capture the **dead-ends**, not just what worked — the whole point is to stop a future session
 re-treading a ruled-out path. These doc updates ride along with the related work when it's committed.
 
+## Keep CLAUDE.md ↔ AGENTS.md In Sync (standing instruction)
+The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)**.
+These two files serve the same purpose for their respective tools. Whenever you update one, **also
+update the other** with any new information, pointers, structural changes, or status updates so
+both tools stay current. This includes:
+- New mods or status changes (WIP → COMPLETE, new blockers, etc.)
+- New IL2CPP gotchas or dead-ends
+- New documentation map entries or handoff files
+- Project structure changes
+
+If you're unsure whether a change belongs in the orientation file vs. deeper docs, match what the
+other file already does — both should stay parallel in scope and structure.
+
 ## Git (false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
