@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SSSGame;
+using SSSGame.Network;
 using SandSailorStudio.Procedural;
 using UnityEngine;
 
@@ -309,75 +310,135 @@ public class MineRefreshTracker : MonoBehaviour
             }
         }
 
-        // Global Wall Refresh using Spatial Association
-        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Searching for all CaveWallInteraction components in the cave root hierarchy.");
-        var allWalls = new List<CaveWallInteraction>();
+        // Global Wall Refresh using Network Identity and Hierarchy Search
+        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Searching for all CaveWallInteraction components.");
+        var wallSet = new HashSet<CaveWallInteraction>();
+
+        // 1. Search under CavesManager.cavesRoot (global root for all caves)
         try
         {
-            if (closestEntrance.transform.parent != null)
+            if (cavesManager.cavesRoot != null)
             {
-                GetComponentsInChildrenRecursive(closestEntrance.transform.parent, allWalls);
-                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {allWalls.Count} total CaveWallInteraction components in cave root.");
+                var rootWalls = new List<CaveWallInteraction>();
+                GetComponentsInChildrenRecursive(cavesManager.cavesRoot, rootWalls);
+                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {rootWalls.Count} CaveWallInteraction components under cavesRoot.");
+                foreach (var w in rootWalls)
+                {
+                    if (w != null) wallSet.Add(w);
+                }
             }
             else
             {
-                Plugin.Logger.LogWarning("[MineRefreshMod] [DEBUG] Cave entrance has no parent transform!");
+                Plugin.Logger.LogWarning("[MineRefreshMod] [DEBUG] CavesManager.cavesRoot is null.");
             }
         }
         catch (Exception ex)
         {
-            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Error searching for walls in cave root: {ex}");
+            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Error searching under cavesRoot: {ex}");
         }
+
+        // 2. Search under closest entrance's parent (fallback/sibling structure)
+        try
+        {
+            if (closestEntrance.transform.parent != null)
+            {
+                var parentWalls = new List<CaveWallInteraction>();
+                GetComponentsInChildrenRecursive(closestEntrance.transform.parent, parentWalls);
+                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {parentWalls.Count} CaveWallInteraction components under entrance parent.");
+                foreach (var w in parentWalls)
+                {
+                    if (w != null) wallSet.Add(w);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Error searching under entrance parent: {ex}");
+        }
+
+        var allWalls = new List<CaveWallInteraction>(wallSet);
+        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Total unique CaveWallInteraction components discovered: {allWalls.Count}.");
 
         if (allWalls.Count > 0)
         {
-            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Associating and refreshing {allWalls.Count} walls.");
+            int matchedWallsCount = 0;
+            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Filtering and refreshing walls for Cave ID {closestEntrance.caveId}.");
             for (int i = 0; i < allWalls.Count; i++)
             {
                 var wall = allWalls[i];
                 if (wall == null) continue;
 
-                // Find the closest CaveNode to this wall
-                CaveNode? closestNode = null;
-                float minNodeDist = float.MaxValue;
-                foreach (var node in caveNodes)
+                // Check network identity to match cave ID
+                int wallCaveId = -1;
+                int wallNodeId = -1;
+                if (wall._interactable != null)
                 {
-                    if (node == null) continue;
-                    float dist = Vector3.Distance(wall.transform.position, node.transform.position);
-                    if (dist < minNodeDist)
-                    {
-                        minNodeDist = dist;
-                        closestNode = node;
-                    }
+                    wallCaveId = wall._interactable._identity.caveId;
+                    wallNodeId = wall._interactable._identity.nodeId;
                 }
 
-                if (closestNode != null)
+                // If cave ID matches the closest entrance's cave ID, refresh the wall
+                if (wallCaveId == closestEntrance.caveId)
                 {
-                    try
+                    matchedWallsCount++;
+                    // Find the logical CaveNode corresponding to this wall's nodeId
+                    CaveNode? associatedNode = caveNodes.Find(n => n.index == wallNodeId);
+
+                    // Fallback to spatial lookup if node ID wasn't found in our list
+                    if (associatedNode == null)
                     {
-                        var caveData = closestNode.PersistentData;
-                        if (caveData != null)
+                        float minNodeDist = float.MaxValue;
+                        foreach (var node in caveNodes)
                         {
-                            var digData = caveData.GetDigData(closestNode.index, DataAccessMode.FETCH);
+                            if (node == null) continue;
+                            float dist = Vector3.Distance(wall.transform.position, node.transform.position);
+                            if (dist < minNodeDist)
+                            {
+                                minNodeDist = dist;
+                                associatedNode = node;
+                            }
+                        }
+                    }
+
+                    if (associatedNode != null)
+                    {
+                        try
+                        {
+                            var caveData = associatedNode.PersistentData;
+                            DigData? digData = null;
+                            if (caveData != null)
+                            {
+                                digData = caveData.GetDigData(associatedNode.index, DataAccessMode.FETCH);
+                            }
+
+                            // Fully restore the wall's physical and visual state
+                            wall.collapseWall = false;
+                            if (wall.gameObject != null)
+                            {
+                                wall.gameObject.SetActive(true);
+                            }
+
                             if (digData != null)
                             {
                                 wall.RefreshDigData(digData);
                             }
+
+                            wall.RefreshRendererData();
+                            wall.SetRenderersVisible(true);
+                            wallsRefreshed++;
                         }
-                        wall.RefreshRendererData();
-                        wall.SetRenderersVisible(true);
-                        wallsRefreshed++;
+                        catch (Exception ex)
+                        {
+                            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Wall {i + 1} (Cave {wallCaveId}, Node {wallNodeId}): Exception in refreshing: {ex}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Wall {i + 1} (associated with Node {closestNode.index}): Exception in refreshing: {ex}");
+                        Plugin.Logger.LogWarning($"[MineRefreshMod] [DEBUG] Wall {i + 1} (Cave {wallCaveId}, Node {wallNodeId}): Could not associate with any CaveNode!");
                     }
-                }
-                else
-                {
-                    Plugin.Logger.LogWarning($"[MineRefreshMod] [DEBUG] Wall {i + 1}: Could not find any close CaveNode!");
                 }
             }
+            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Matched and processed {matchedWallsCount} walls for cave ID {closestEntrance.caveId} out of {allWalls.Count} total walls.");
         }
 
         Plugin.Logger.LogInfo($"[MineRefreshMod] Mine successfully refreshed! Hallways={caveNodes.Count}, WallsRestored={wallsRefreshed}, ClearedCollapses={nodesUncollapsed}, SpawnersRun={itemsSpawned}");

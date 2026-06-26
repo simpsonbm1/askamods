@@ -98,7 +98,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.0.0]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.2.0]
 ```
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -117,7 +117,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
-| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan | Not on Nexus |
+| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, global identity-based wall search & restore | Not on Nexus |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |

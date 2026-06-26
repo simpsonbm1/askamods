@@ -89,7 +89,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9 (WIP tool): in-world seed scorer + in-game map overlay (caves/lakes/hostiles)
   WarpTourMod/               ← Mod 10: teleport-tour every POI so the game drops its OWN native map pins (master on/off switch)
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh (hotkey + safety proximity check) [COMPLETE]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh (hotkey + safety proximity check) [COMPLETE v1.2.0]
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
