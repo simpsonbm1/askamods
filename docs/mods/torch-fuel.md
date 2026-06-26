@@ -22,24 +22,26 @@ Free-standing torches matched the `"Torch"` name filter; **fires built into buil
 - All tracking now funnels through `Plugin.TrackFireStructure(fire, label)` (dedupe + single log site).
 - ⚠️ Built-in-fire fix is in-game-test pending; the interop facts behind it are confirmed (see architecture.md torch section).
 
-## v1.2.0 — burnable-building diagnostic (WIP toward "keep any burnable building fueled")
-Goal: a toggle for *any* burnable smithing/coal building, not just torches. Problem surfaced first: the
-in-game→type mapping is unknown (display names aren't in the binary — the building a player calls a
-"Kiln" might be the coalmaker, not the smelter). v1.2.0 ships a **read-only diagnostic** to resolve it
-before any fueling code is written:
-- New config **`LogBurnableBuildings`** (bool, default off). When on, postfix patches on
-  `Initialize(Structure)` of `KilnInteraction`, `BellowsInteraction`, `ForgeInteraction`,
-  `CharcoalStation`, and `Bloomstation` each emit one `[TorchFuelMod][burn-diag]` line: the building's
-  runtime type, its owner Structure's `DefaultName`/`StructureName`/`GetName()` (the in-game display
-  name), and **which fuel mechanism** it carries — `FireStructure(Rpc_AddFuel)` (with current/max fuel)
-  vs. `_fuelVAttr(coal items)` (with attr value + fuel-item count). All reads try/caught; signatures are
-  single-reference-param (no trampoline hazard).
-- **Why this matters for the eventual feature:** burnable smithing buildings span BOTH levers — the
-  bellows/forge/charcoal-pyre fires are `FireStructure` (the existing `Rpc_AddFuel` top-off already
-  works on them, just need their names or a "keep all FireStructures" option), while the bloomery's
-  **kiln** burns coal via `_fuelVAttr` (needs a `VariableAttribute.SetValue(max)` pin — a new path).
-- ⚠️ In-game-pending: run the diagnostic, read `LogOutput.log`, and confirm the name↔type↔mechanism map
-  before building the fueling toggle.
+## v1.2.0–1.2.1 burnable-building diagnostic — REVERTED in v1.2.2 (broke game launch)
+Goal was a toggle for *any* burnable smithing/coal building. The first step — a read-only diagnostic
+(`LogBurnableBuildings`) that postfix-patched `Initialize(Structure)` on `KilnInteraction`,
+`BellowsInteraction`, `ForgeInteraction`, `CharcoalStation`, `Bloomstation` — **broke the game**:
+v1.2.0 hard-froze during BepInEx chainloader; v1.2.1 (name guard + dropped `GetFuelCount()`) stopped the
+freeze but the game still wouldn't finish opening, with `Il2CppInterop … Handle is not initialized … (il2cpp
+-> managed) Initialize(...)` trampoline errors. **Cause:** patching `Initialize` on these MonoBehaviour
+`Interaction` types fails to marshal `__instance` at boot-prefab init — in the glue, before the patch body —
+so the original `Initialize` never completes and boot stalls. Full write-up + the general rule are in
+architecture.md (universal interop gotchas + torch-section coal dead-end). **v1.2.2 removed the diagnostic
+and the `LogBurnableBuildings` config entirely**, returning the mod to its proven-safe patch surface
+(`FireStructure.Initialize` + `LightOutlet.Initialize` only).
+
+**Safe way to discover the smithing/coal buildings instead:** turn on the existing **`LogAllFireStructures`**
+flag. The forge fire, the bloomery (via its **bellows** `FireStructure`), and the charcoal pyre all carry a
+`FireStructure`, so its already-safe `Initialize` patch logs each with the owner Structure's display name —
+no new patch needed. (The kiln's `_fuelVAttr` coal reservoir has no FireStructure, but the bloomery's name
+still surfaces via the bellows fire.) For the eventual "keep the kiln fueled" feature, capture instances via
+the NetworkBehaviour `Bloomstation.Spawned()` (Fusion lifecycle) and read its `.kiln`, **never** patch
+`KilnInteraction.Initialize`.
 
 ## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
 Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no
