@@ -17,6 +17,8 @@ public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<float> RespawnDays = null!;
+    internal static ConfigEntry<bool> ProtectStumps = null!;
+    internal static ConfigEntry<bool> EnableDiagnostics = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
@@ -45,6 +47,18 @@ public class Plugin : BasePlugin
             key: "RespawnDays",
             defaultValue: 3.0f,
             description: "In-game days before a felled tree respawns (stump must remain). Supports decimals — e.g. 0.05 ≈ 1 real minute in a 20-min day.");
+
+        ProtectStumps = Config.Bind(
+            section: "TreeRespawn",
+            key: "ProtectStumpsFromWoodcutters",
+            defaultValue: true,
+            description: "When true, village woodcutters won't harvest the stumps left by felled trees, so those stumps survive to regrow into a renewable forest. You can still clear a stump yourself by hand to make that spot permanent — clearing a stump cancels its respawn.");
+
+        EnableDiagnostics = Config.Bind(
+            section: "TreeRespawn",
+            key: "EnableDiagnostics",
+            defaultValue: false,
+            description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, and when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug). Off by default; turn on only when troubleshooting woodcutter behaviour.");
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,

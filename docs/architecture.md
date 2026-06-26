@@ -208,6 +208,63 @@ write-up + the three confirming tests: **`TreeRespawnMod/STONE_RESPAWN_HANDOFF.m
 achievable-but-unbuilt alternative is respawning the loose `Item_Stone_Raw`/`Item_Wood_*` nodes (those
 ARE `InventoryItemInstance` and managed-visible). All mining code was removed from TreeRespawnMod 2026-06-18.
 
+### Woodcutter / harvest-AI — and stump protection (forester ≠ woodcutter)
+**Forester and woodcutter are different jobs:** the **forester** (`SSSGame.ForestryStation`, a
+`FarmingStation`) *plants* trees (`ForesterPlantQuest`); the **woodcutter** *fells* trees for wood.
+Don't conflate them.
+
+Villager harvest AI runs through **`SSSGame.AI.GatherAndHarvestQuest` / `SSSGame.AI.FSM.FSM_GatherAndHarvest`**
+(FSM node bodies are ScriptableObjects — **not dumpable** in this IL2CPP build, only signatures). Each
+job's work zone is a **`SSSGame.HarvestMarker`** typed by `HarvestMarkerAreaType`
+(`FORESTRY`/`WOOD`/`STONE`/`FORAGING`/`HUNTING`/`PATROL`/`SETTLEMENT`). ASKA already ships native player
+control over *where* the woodcutter cuts: a forestry **painter UI** (`SSSGame.UI.ForestryPainterPanel` +
+`ForestryCellMap`/`ForestryDataHandler`), per-station villager **whitelisting**, and a forester
+`Rpc_ChangeNoNewHoles` toggle.
+
+**The AI resource search is patchable.** `SSSGame.ResourceManager` is a plain **MonoBehaviour** (unlike the
+Fusion scene-object wall that killed stone respawn). `FindResource(…)` / `CheckResources(…)` return the
+chosen `WorldItemInstance` and take an `IWorldItemInstanceFilter` + `IItemFilter` + `searchDepth`. Each
+candidate `BiomeItemInstance` is scored by **`GetNonExhaustedDepth(IItemFilter)`** ("how much harvestable
+matches my filter") — it also exposes `IsExhausted()` / `IsAvailable()`. Name of a harvestable:
+`BiomeItemInstance.Descriptor` (`BiomeItemDescriptor : WorldItemDescriptor`) → `GetFormalName()` / `.itemInfo`.
+
+**Stumps are valid woodcutter targets (confirmed in-game 2026-06-26):** with TreeRespawnMod installed but
+no manual stump-clearing, the user saw slow deforestation over ~30 in-game days — woodcutters occasionally
+harvest the leftover stump for **firewood** (stumps drop firewood — that's the draw), which sets the instance
+`Destroyed`, which `DayTracker` reads as "stump cleared → cancel respawn", so each pick permanently loses a tree.
+
+**What a "stump" actually IS (CONFIRMED in-game 2026-06-26, TreeRespawnMod v1.1.3 identity diagnostic).** The
+in-game "Tree Stump" label is a *display name only* — it is **not** a separate object. A tree is one
+`Harvest_Wood_<species><n>` GameObject backed by one **`BiomeItemInstance`** with multiple `harvestPieces`
+(a Fir has `pieces=2`: trunk, then stump). The **stump is that same instance at its LAST piece**; a standing
+tree is the same instance at an earlier piece. The fallen trunk and branches are **separate `Item_Wood_*`
+non-biome `WorldItemInstance`s** (loose logs/debris the woodcutter hauls). So:
+- `Harvest_Wood_Fir5`, `worldInst=Biome`, `pieces=2`, at last piece → **the stump** (`CanProvideItem → 6/8` firewood).
+- `Item_Wood_Fir5` / `Item_Wood_Bark` / `Item_Wood_RawLongStick`, `non-Biome` → fallen logs/debris (leave these alone — they're the haul).
+- ⚠️ **The HarvestInteraction's `transform.position` ≠ `BiomeItemInstance.GetPosition()`** (observed `225.9:40.7:583.0`
+  vs `225.8:38.0:582.9` — notably different Y). The biome-instance position is the canonical key
+  (`PendingRespawns`/`ActiveInstances` use it); never key a stump by the HarvestInteraction transform.
+
+**Which gate the woodcutter uses + the fix (CONFIRMED working in-game 2026-06-26, v1.1.6).** A v1.1.1 diagnostic instrumented
+every candidate gate for a stump: `GetNonExhaustedDepth` → **-1**, `IsExhausted()` → **True**, `IsAvailable()`
+→ **True** ("instance active", not "harvestable"), `Check(ItemInfo)` → **False** — all already read depleted,
+yet the woodcutter still picks the stump because **`HarvestInteraction.CanProvideItem(ItemInfo)` → 6/8** (it
+leaks the stump's firewood yield). **Fix:** Postfix `CanProvideItem` → `__result = 0` when the instance is a
+**multi-piece `BiomeItemInstance` (`pieces >= 2`) at its last piece** (i.e. a tree stump). This is a
+**structural** gate — it deliberately does NOT touch standing trees (same object, earlier piece → still
+felled) or loose `Item_Wood_*` logs (non-biome → still hauled). The player clears stumps via axe **damage
+(TakeDamage), not this query**, so manual clearing — and "cleared stump = permanent" — still works.
+- **Work-priority interaction (confirmed in-game):** if firewood is prioritized and the only firewood left is
+  protected stumps, woodcutters idle via `GatherAndHarvestData.ComplainNoResourcesFound` — vanilla priority
+  starvation, NOT a mod softlock. Keep logs/long-sticks at equal priority (or fell a tree near them) and they
+  resume. A toggle-gated diagnostic (`EnableDiagnostics`, `WorkerIdleDiagPatch`) Postfixes
+  `ComplainNoResourcesFound`/`ComplainNoGatherTask` to confirm this in the log.
+- **Dead ends (don't retry):** (1) zeroing/forcing `GetNonExhaustedDepth`/`IsExhausted`/`IsAvailable`/`Check`
+  does nothing — a stump already reports depleted/false through all of them. (2) Gating the `CanProvideItem`
+  fix on `PendingRespawns` membership (v1.1.2) **failed** — the `CanProvideItem` query races the fell-time
+  registration, so the position isn't in the set yet; gate structurally on piece index instead. (3) Do **not**
+  block damage to the stump — the AI would believe wood remains and swing forever; remove it from *selection*.
+
 ---
 
 ## Gather / Press-to-Collect System

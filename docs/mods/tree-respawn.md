@@ -25,6 +25,34 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - **Confirmed working in-game (2026-06-25):** flax bushes at sub-day thresholds (`0.01`) cycle exhausted→respawned→re-harvested repeatedly at the same position in the log — `Replenish()` genuinely restores gatherable harvestability, not just the visual. Triggered by villager *and* player gathering (patch is on `GatherInteraction.GatherItemsCharge`, the node's own collect method — source-agnostic, same as the tree patch).
 - **Respawn days is NOT a "more stock" lever.** It only sets how soon a node is harvestable *again*; it does not change yield-per-harvest or add gatherers. If a raw intermediate (e.g. fiber) still reads ~0 in storage with a `0.01` respawn, the bottleneck is downstream — consumption (weaving/tailoring eats fiber as fast as it's gathered) or gather labor/walk-time — not the mod. Lowering the threshold further can't help once the node is already almost always ready.
 
+## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
+- **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a
+  stump `Destroy`s the instance → `DayTracker` cancels its respawn → slow deforestation (~30 in-game days).
+- **What a stump is (confirmed in-game 2026-06-26):** NOT a separate object. A tree is one
+  `Harvest_Wood_<species><n>` `BiomeItemInstance` with multiple `harvestPieces` (Fir = 2: trunk, stump). The
+  **stump is that same instance at its last piece**; a standing tree is it at an earlier piece; the fallen
+  trunk/branches are separate `Item_Wood_*` non-biome instances (the wood haul). The "Tree Stump" you see is
+  just a display name.
+- **Fix:** `StumpProtectionPatch` — Postfix `HarvestInteraction.CanProvideItem` → `__result = 0` when the
+  instance is a **multi-piece `BiomeItemInstance` (`pieces >= 2`) at its last piece**. Structural gate: leaves
+  standing trees (still felled) and loose `Item_Wood_*` logs (still hauled) alone — only the stump goes dark
+  to the woodcutter's firewood search.
+- **Why earlier attempts missed:** every other gate (`GetNonExhaustedDepth`/`IsExhausted`/`IsAvailable`/
+  `Check`) already reads depleted for a stump — only `CanProvideItem` leaks the firewood yield. And keying on
+  `PendingRespawns` (v1.1.2) failed: the `CanProvideItem` query races fell-time registration, and the
+  HarvestInteraction transform position ≠ the biome-instance position. See architecture.md → Resource/Tree →
+  "What a stump actually IS" for the full table + dead-ends.
+- **Player control preserved:** clearing a stump is axe damage (`TakeDamage`), not this AI query — still works,
+  still cancels the respawn (makes the spot permanent).
+- **Work-priority interaction (confirmed):** if firewood is prioritized and the only firewood source left is
+  protected stumps, woodcutters go idle (`GatherAndHarvestData.ComplainNoResourcesFound`) — that's the vanilla
+  priority system, **not** a mod softlock. Felling a fresh tree near them, or keeping logs/long-sticks at the
+  same priority as firewood, gets them working again. (Firewood can also come from breaking down logs.)
+- Config: `TreeRespawn/ProtectStumpsFromWoodcutters` (bool, default `true`);
+  `TreeRespawn/EnableDiagnostics` (bool, default `false`) — verbose logs for the stump-hide and worker-idle
+  events (`WorkerIdleDiagPatch` Postfixes `ComplainNoResourcesFound`/`ComplainNoGatherTask`), kept in for
+  future troubleshooting.
+
 ## Shared infrastructure
 - Persistence: `com.askamods.treerespawn.save` — sections `# tree` and `# gather`; tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers load as tree entries (backward compatible); a legacy `# mining` section is silently skipped on load.
 - Day tracking via registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
