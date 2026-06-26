@@ -110,15 +110,7 @@ foreach (var kw in memberKeywords)
 
 // 4) Dump the Resource* family + interfaces
 foreach (var n in new[] {
-    "SSSGame.ResourceManager",
-    "SSSGame.ResourceObject",
-    "SSSGame.ResourceInstance",
-    "SSSGame.ResourceInfo",
-    "SSSGame.ResourceItem",
-    "SSSGame.IResourceResupply",
-    "SSSGame.IResourceProvider",
-    "SSSGame.IResourceAgent",
-    "SSSGame.IDamageHarvestable",
-    "SSSGame.ResourceOutlet",
-    "SSSGame.Combat.StructureHittable",
+    "SSSGame.CaveAreaInstance",
+    "SSSGame.CaveData",
+    "SSSGame.CaveWorldContext",
 }) Dump(n);

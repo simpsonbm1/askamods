@@ -735,3 +735,28 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
 - **Dead end (still unresolved):** the runtime seed reads `<rng-null>` —
   `RandomGeneratorManager.seedPhrase`/`SetSeedPhrase` are never the path the seed travels at load. Non-blocking
   for a scorer (you type the seed); required only for an auto-finder. See the SeedScout handoff for the chase.
+
+---
+
+## Caves, Mines & Hallway Excavation (confirmed in-game 2026-06-26)
+- **Caves Manager**: `SSSGame.CavesManager` is a persistent MonoBehaviour that tracks all mine/cave instances in the world. It exposes `GetAllCaves()` returning a list of `CaveEntrance` instances (which represent the root nodes of each cave/mine).
+- **Cave Node Tree**: A mine is a tree of `CaveNode`s (with `CaveEntrance` inheriting from `CaveNode`) structured using `SandSailorStudio.Procedural.LSystemNode`. You can recursively traverse the entire mine system starting from the entrance node using the `connections` list on `LSystemNode`.
+- **Hallway State (`DigData`)**:
+  - Each `CaveNode` stores the excavation progress of its mineable walls in a `SSSGame.DigData` object, accessed via `node.PersistentData.GetDigData(node.index, DataAccessMode.FETCH)`.
+  - `DigData` contains a list of crack damages (`crackDamagesLeft`, `crackDamagesRight`) and indices for the currently active walls (`wallIndexLeft`, `wallIndexRight`).
+  - Calling `digData.ResetCrackData()` and setting `wallIndexLeft = 0` / `wallIndexRight = 0` resets the wall's excavation state to brand new. Calling `digData.SetDirty()` flags the data for saving and replicates the reset state over the network to all clients in co-op.
+- **Wall Interaction & Renderers (`CaveWallInteraction`)**:
+  - Mineable walls are represented by the `CaveWallInteraction` component on child GameObjects of each node.
+  - To apply the reset `DigData` and update the visuals/physics instantly on the host, locate all `CaveWallInteraction` components in children and call `wall.RefreshDigData(digData)`, `wall.RefreshRendererData()`, and `wall.SetRenderersVisible(true)`.
+- **Rubble & Cave-In Clearing**:
+  - A hallway collapse (cave-in) is represented by `node.IsCollapsed` and `node.open = false`.
+  - A collapsed node can be programmatically cleared and reopened by setting `node.open = true`, `node._isCollapsed = false` (the writable backing field in the interop assembly), and calling `node.UpdateCollapsedState()`. This clears the rubble visuals and restores navigation.
+- **Resource Spawning**:
+  - Inside each hallway, loose items (chests, iron deposits, mushrooms) are spawned by `CaveItemSpawner` components. Calling `spawner.Run()` on all spawners in the node's `caveItemSpawners` list regenerates these resources.
+- **Character Proximity Scans**:
+  - Standard Unity `UnityEngine.Object.FindObjectsOfType(typeof(Character))` is used to query all active characters in the scene. 
+  - To check if a worker or player is inside the mine before refreshing, calculate their distance to *every* node in the traversed list. If anyone is within 25 meters, abort the refresh to prevent trapping them.
+- **IL2CPP Interop Quirks**:
+  - **UnityEngine.Object Casting**: Do NOT call `.TryCast<T>()` on `UnityEngine.Object`-derived types (like `Component` or `GameObject`) as it throws compile-time errors. Standard C# casting (`obj as Character`, `node as CaveNode`) is fully supported and works perfectly for these mirrored types.
+  - **IReadOnlyList Metadata**: `Il2CppSystem.Collections.Generic.IReadOnlyList<T>` lacks metadata showing it inherits from `IReadOnlyCollection<T>` in the interop assembly, making `.Count` and `GetEnumerator` unavailable directly. **Workaround**: Cast the list to `Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>` using `.TryCast<T>()` to safely retrieve `.Count`, and access elements by index `list[i]`.
+

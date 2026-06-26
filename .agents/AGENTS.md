@@ -98,6 +98,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.0.0]
 ```
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -115,6 +116,8 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
+| **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
+| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan | Not on Nexus |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |
@@ -122,7 +125,6 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
 | **VillagerFightBackMod** (7) | 🛑 BLOCKED — v1.0.14 crashes on launch | Root cause: flee = `fleeCombatBehaviour` FSM, not quest/flag. Fix: swap to `naturalCombatBehaviour` via `CombatQuest.GetFSMBehavior` postfix. Crash needs bisection. |
 | **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
-| **WarpTourMod** (10) | Working v1.0.0 | Teleport-tour POIs for native map pins. Config: Enabled=false by default. DwellSeconds min 0.5, DrainSeconds=8. |
 
 ---
 
@@ -166,6 +168,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`docs/mods/torch-fuel.md`](file:///d:/Claude%20Projects/askamods/docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
 | [`docs/mods/dynamic-villager-needs.md`](file:///d:/Claude%20Projects/askamods/docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
 | [`docs/mods/villager-fight-back.md`](file:///d:/Claude%20Projects/askamods/docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
+| [`docs/mods/mine-refresh.md`](file:///d:/Claude%20Projects/askamods/docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/nexus-upload.md`](file:///d:/Claude%20Projects/askamods/docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`DYNAMIC_HAULING_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — warehouse hauling filter |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — crash debug + behavior-swap approach |

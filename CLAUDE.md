@@ -89,6 +89,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9 (WIP tool): in-world seed scorer + in-game map overlay (caves/lakes/hostiles)
   WarpTourMod/               ← Mod 10: teleport-tour every POI so the game drops its OWN native map pins (master on/off switch)
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh (hotkey + safety proximity check) [COMPLETE]
 ```
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -113,6 +114,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/torch-fuel.md`](docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
 | [`docs/mods/dynamic-villager-needs.md`](docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
 | [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
+| [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing a mod update to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
 | [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |
