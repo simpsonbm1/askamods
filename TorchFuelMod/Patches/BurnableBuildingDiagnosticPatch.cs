@@ -13,9 +13,31 @@ namespace TorchFuelMod.Patches;
 //   * coal-item _fuelVAttr (VariableAttribute)  — the bloomery's kiln (NOT a FireStructure)
 //
 // Each target's Initialize(Structure ownerStructure) is a safe single-reference-param signature (no by-ref
-// trampoline hazard). Patches are postfix + fully try/caught so a diagnostic read can never break a build.
+// trampoline hazard). Patches are postfix + fully try/caught.
+//
+// CRASH NOTE (v1.2.1): Initialize also fires during early-boot prefab/pool init, where the instance is NOT
+// fully wired. Reading simple property getters there is fine (ForgeInteraction.fireStructure read null
+// safely at boot), but calling a *method* that walks internal state (e.g. KilnInteraction.GetFuelCount())
+// on an uninitialized prefab can trigger a native IL2CPP access violation that try/catch CANNOT catch —
+// which hard-froze the game. Two safeguards: only act on a REAL, named, in-world structure (boot prefabs
+// have empty names), and read simple getters only (no container-walking methods).
 internal static class BurnDiag
 {
+    // Boot-time prefab inits arrive with an empty owner name; real placed/loaded structures have one.
+    // Reading DefaultName/StructureName is the same proven-safe access the shipped FireStructurePatch
+    // does at Initialize. Gate ALL deeper member access behind this so we never touch a raw prefab.
+    internal static bool IsRealStructure(Structure? owner)
+    {
+        if (owner == null) return false;
+        try
+        {
+            if (!string.IsNullOrEmpty(owner.DefaultName)) return true;
+            if (!string.IsNullOrEmpty(owner.StructureName)) return true;
+        }
+        catch { }
+        return false;
+    }
+
     internal static string FireDetail(FireStructure? fire)
     {
         if (fire == null) return "fireStructure=null";
@@ -26,14 +48,14 @@ internal static class BurnDiag
         catch (Exception ex) { return $"mechanism=FireStructure (read failed: {ex.Message})"; }
     }
 
-    internal static string FuelAttrDetail(VariableAttribute? attr, int fuelCount)
+    internal static string FuelAttrDetail(VariableAttribute? attr)
     {
-        if (attr == null) return $"mechanism=_fuelVAttr(coal items) attr=null fuelItems={fuelCount}";
+        if (attr == null) return "mechanism=_fuelVAttr(coal items) attr=null";
         try
         {
-            return $"mechanism=_fuelVAttr(coal items) fuel={attr.GetValue():0.#} (norm={attr.GetNormalizedValue():0.00}) fuelItems={fuelCount}";
+            return $"mechanism=_fuelVAttr(coal items) fuel={attr.GetValue():0.#} (norm={attr.GetNormalizedValue():0.00})";
         }
-        catch (Exception ex) { return $"mechanism=_fuelVAttr(coal items) (read failed: {ex.Message}) fuelItems={fuelCount}"; }
+        catch (Exception ex) { return $"mechanism=_fuelVAttr(coal items) (read failed: {ex.Message})"; }
     }
 }
 
@@ -44,13 +66,12 @@ internal static class KilnInteractionDiagPatch
     static void Postfix(KilnInteraction __instance, Structure ownerStructure)
     {
         if (!Plugin.LogBurnableBuildings.Value) return;
+        if (!BurnDiag.IsRealStructure(ownerStructure)) return;
         try
         {
-            int fuelCount = 0;
             VariableAttribute? attr = null;
-            try { fuelCount = __instance.GetFuelCount(); } catch { }
             try { attr = __instance._fuelVAttr; } catch { }
-            Plugin.LogBurnableBuilding("KilnInteraction", ownerStructure, BurnDiag.FuelAttrDetail(attr, fuelCount));
+            Plugin.LogBurnableBuilding("KilnInteraction", ownerStructure, BurnDiag.FuelAttrDetail(attr));
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[TorchFuelMod] KilnInteractionDiagPatch: {ex}"); }
     }
@@ -63,6 +84,7 @@ internal static class BellowsInteractionDiagPatch
     static void Postfix(BellowsInteraction __instance, Structure ownerStructure)
     {
         if (!Plugin.LogBurnableBuildings.Value) return;
+        if (!BurnDiag.IsRealStructure(ownerStructure)) return;
         try
         {
             FireStructure? fire = null;
@@ -80,6 +102,7 @@ internal static class ForgeInteractionDiagPatch
     static void Postfix(ForgeInteraction __instance, Structure ownerStructure)
     {
         if (!Plugin.LogBurnableBuildings.Value) return;
+        if (!BurnDiag.IsRealStructure(ownerStructure)) return;
         try
         {
             FireStructure? fire = null;
@@ -97,6 +120,7 @@ internal static class CharcoalStationDiagPatch
     static void Postfix(CharcoalStation __instance, Structure ownerStructure)
     {
         if (!Plugin.LogBurnableBuildings.Value) return;
+        if (!BurnDiag.IsRealStructure(ownerStructure)) return;
         try
         {
             PyreStructure? pyre = null;
@@ -116,6 +140,7 @@ internal static class BloomstationDiagPatch
     static void Postfix(Bloomstation __instance, Structure ownerStructure)
     {
         if (!Plugin.LogBurnableBuildings.Value) return;
+        if (!BurnDiag.IsRealStructure(ownerStructure)) return;
         try
         {
             bool hasKiln = false, hasBellows = false, hasAnvil = false;

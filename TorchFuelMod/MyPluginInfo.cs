@@ -4,5 +4,5 @@ internal static class MyPluginInfo
 {
     public const string PLUGIN_GUID = "com.askamods.torchfuel";
     public const string PLUGIN_NAME = "TorchFuelMod";
-    public const string PLUGIN_VERSION = "1.2.0";
+    public const string PLUGIN_VERSION = "1.2.1";
 }
