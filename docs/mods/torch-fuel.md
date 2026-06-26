@@ -22,5 +22,37 @@ Free-standing torches matched the `"Torch"` name filter; **fires built into buil
 - All tracking now funnels through `Plugin.TrackFireStructure(fire, label)` (dedupe + single log site).
 - ⚠️ Built-in-fire fix is in-game-test pending; the interop facts behind it are confirmed (see architecture.md torch section).
 
+## v1.2.0 — burnable-building diagnostic (WIP toward "keep any burnable building fueled")
+Goal: a toggle for *any* burnable smithing/coal building, not just torches. Problem surfaced first: the
+in-game→type mapping is unknown (display names aren't in the binary — the building a player calls a
+"Kiln" might be the coalmaker, not the smelter). v1.2.0 ships a **read-only diagnostic** to resolve it
+before any fueling code is written:
+- New config **`LogBurnableBuildings`** (bool, default off). When on, postfix patches on
+  `Initialize(Structure)` of `KilnInteraction`, `BellowsInteraction`, `ForgeInteraction`,
+  `CharcoalStation`, and `Bloomstation` each emit one `[TorchFuelMod][burn-diag]` line: the building's
+  runtime type, its owner Structure's `DefaultName`/`StructureName`/`GetName()` (the in-game display
+  name), and **which fuel mechanism** it carries — `FireStructure(Rpc_AddFuel)` (with current/max fuel)
+  vs. `_fuelVAttr(coal items)` (with attr value + fuel-item count). All reads try/caught; signatures are
+  single-reference-param (no trampoline hazard).
+- **Why this matters for the eventual feature:** burnable smithing buildings span BOTH levers — the
+  bellows/forge/charcoal-pyre fires are `FireStructure` (the existing `Rpc_AddFuel` top-off already
+  works on them, just need their names or a "keep all FireStructures" option), while the bloomery's
+  **kiln** burns coal via `_fuelVAttr` (needs a `VariableAttribute.SetValue(max)` pin — a new path).
+- ⚠️ In-game-pending: run the diagnostic, read `LogOutput.log`, and confirm the name↔type↔mechanism map
+  before building the fueling toggle.
+
+## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
+Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no
+structure named "Furnace"/"Smelter" in the game at all, and the smelting building — the **Kiln**
+(`SSSGame.KilnInteraction`) — is **not a `FireStructure`** (it's a `MonoBehaviour` `Interaction`, not
+even a `NetworkBehaviour`), so it never reaches the `FireStructure.Initialize` patch and has no
+`CurrentFuelVolume`/`Rpc_AddFuel`. Its fuel is `_fuelVAttr` (a writable `VariableAttribute`) burned
+from **coal items** in an `ItemContainer` — a different mechanic end-to-end. Keeping a kiln fueled is a
+**new sub-feature** (pin `_fuelVAttr` to max, or refill its coal container), captured at
+`KilnInteraction.Initialize(Structure)` with its own tracker list; **co-op replication is unverified**
+(no `Rpc_AddFuel` equivalent, plain MonoBehaviour — solo/host safe, co-op clients open). Full breakdown:
+architecture.md torch section "DEAD-END — coal-burning buildings". Confirmed via interop dump 2026-06-25;
+matches the user's in-game report that `"furnace"` in the name list has no effect.
+
 ## NOT covered: cave wall sconces (separate system)
 Torches stuck into **cave wall sconces** are **`SSSGame.CaveTorchOutlet`**, not `FireStructure` — an *equipment-item* mechanism (a torch `EquipmentItemInfo` that burns by **durability** and is replaced by a villager `LightkeepingQuest`), with **no fuel volume / no `Rpc_AddFuel`**. This mod's fuel top-off cannot keep them lit. See the architecture.md torch section "DEAD-END — cave wall sconces" for the full breakdown; a future feature would have to block the equipped torch's durability decay or auto-re-equip it — a different approach from this mod.

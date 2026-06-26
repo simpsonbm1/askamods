@@ -21,6 +21,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> AutoRelightAfterRain = null!;
     internal static ConfigEntry<bool> KeepAllLightSources = null!;
     internal static ConfigEntry<bool> LogAllFireStructures = null!;
+    internal static ConfigEntry<bool> LogBurnableBuildings = null!;
 
     // Populated by FireStructurePatch as matching structures (torches) spawn/load in.
     internal static readonly List<FireStructure> TrackedFireStructures = new();
@@ -65,6 +66,12 @@ public class Plugin : BasePlugin
             defaultValue: false,
             description: "Diagnostic: log every fire structure and light outlet as it loads (owner DefaultName/StructureName + GameObject name), so you can find the exact name of a specific fire to add to TargetStructureNames. Leave off for normal play.");
 
+        LogBurnableBuildings = Config.Bind(
+            section: "TorchFuel",
+            key: "LogBurnableBuildings",
+            defaultValue: false,
+            description: "Diagnostic: log every smithing/coal building (bloomery kiln, bellows, forge, charcoal station) as it loads — its in-game display name AND which fuel mechanism it uses (FireStructure fuel volume vs. coal-item _fuelVAttr). Use this to find which building you want to keep fueled and what lever applies. Leave off for normal play.");
+
         ClassInjector.RegisterTypeInIl2Cpp<TorchFuelTracker>();
         var go = new GameObject("TorchFuelMod_Tracker");
         UnityEngine.Object.DontDestroyOnLoad(go);
@@ -73,7 +80,7 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"TorchFuelMod loaded. Targets=[{TargetStructureNames.Value}], CheckIntervalSeconds={CheckIntervalSeconds.Value}");
+        Logger.LogInfo($"TorchFuelMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Targets=[{TargetStructureNames.Value}], CheckIntervalSeconds={CheckIntervalSeconds.Value}, LogBurnableBuildings={LogBurnableBuildings.Value}");
     }
 
     // Single entry point for both patches (name-matched torches and light-outlet fires) so
@@ -84,6 +91,21 @@ public class Plugin : BasePlugin
         if (TrackedFireStructures.Contains(fire)) return;
         TrackedFireStructures.Add(fire);
         Logger.LogInfo($"[TorchFuelMod] Tracking {label} for infinite fuel.");
+    }
+
+    // Diagnostic helper: emit one "[burn-diag]" line tying a smithing/coal building's runtime type to its
+    // in-game display name (owner Structure) and a per-mechanism detail string. Owner-name reads are each
+    // wrapped because some name fields can be unset mid-spawn.
+    internal static void LogBurnableBuilding(string typeName, Structure? owner, string detail)
+    {
+        if (!LogBurnableBuildings.Value) return;
+
+        string? def = null, name = null, getName = null;
+        try { def = owner != null ? owner.DefaultName : null; } catch { }
+        try { name = owner != null ? owner.StructureName : null; } catch { }
+        try { getName = owner != null ? owner.GetName() : null; } catch { }
+
+        Logger.LogInfo($"[TorchFuelMod][burn-diag] {typeName} owner default='{def}' name='{name}' getName='{getName}' | {detail}");
     }
 
     internal static bool IsTargetStructure(string? structureName)
