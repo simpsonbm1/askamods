@@ -16,6 +16,19 @@ especially **in-game-verified** facts and **dead-ends** — record it before tre
 findings (`confirmed in-game (YYYY-MM-DD)`). Always capture dead-ends — the whole point is to
 stop future sessions re-treading a ruled-out path.
 
+### Keep CLAUDE.md ↔ AGENTS.md In Sync
+The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)**.
+These two files serve the same purpose for their respective tools. Whenever you update one, **also
+update the other** with any new information, pointers, structural changes, or status updates so
+both tools stay current. This includes:
+- New mods or status changes (WIP → COMPLETE, new blockers, etc.)
+- New IL2CPP gotchas or dead-ends
+- New documentation map entries or handoff files
+- Project structure changes
+
+If you're unsure whether a change belongs in the orientation file vs. deeper docs, match what the
+other file already does — both should stay parallel in scope and structure.
+
 ### Git
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 Session-startup may falsely report "not a git repo" due to the space in `D:\Claude Projects\...`.
