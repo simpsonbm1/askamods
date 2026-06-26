@@ -1,4 +1,4 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.0.9)
+# Mod 11: MineRefreshMod — COMPLETE (v1.1.0)
 
 **Goal:** Safely and fully refresh/regenerate a mine and all its sub-hallways and mine-able resources on-demand via a configurable hotkey.
 

@@ -286,94 +286,6 @@ public class MineRefreshTracker : MonoBehaviour
                 Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception handling collapse state: {ex}");
             }
 
-            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Finding wall components via manual traversal and references.");
-            var walls = new List<CaveWallInteraction>();
-            
-            // 1. Search transform hierarchy
-            try
-            {
-                GetComponentsInChildrenRecursive(node.transform, walls);
-                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Found {walls.Count} walls in transform hierarchy.");
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception in transform hierarchy search: {ex}");
-            }
-
-            // 2. Search objectsActiveWhileOpened references (contains streamed objects active when node is open)
-            try
-            {
-                if (node.objectsActiveWhileOpened != null)
-                {
-                    Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Searching objectsActiveWhileOpened ({node.objectsActiveWhileOpened.Length} items).");
-                    for (int i = 0; i < node.objectsActiveWhileOpened.Length; i++)
-                    {
-                        var go = node.objectsActiveWhileOpened[i];
-                        if (go != null)
-                        {
-                            GetComponentsInChildrenRecursive(go.transform, walls);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception in objectsActiveWhileOpened search: {ex}");
-            }
-
-            // 3. Search objectsActiveWhileInside references (contains streamed objects active when player is inside)
-            try
-            {
-                if (node.objectsActiveWhileInside != null)
-                {
-                    Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Searching objectsActiveWhileInside ({node.objectsActiveWhileInside.Length} items).");
-                    for (int i = 0; i < node.objectsActiveWhileInside.Length; i++)
-                    {
-                        var go = node.objectsActiveWhileInside[i];
-                        if (go != null)
-                        {
-                            GetComponentsInChildrenRecursive(go.transform, walls);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception in objectsActiveWhileInside search: {ex}");
-            }
-
-            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Total CaveWallInteraction components found: {walls.Count}.");
-
-            if (walls.Count > 0)
-            {
-                for (int i = 0; i < walls.Count; i++)
-                {
-                    var wall = walls[i];
-                    if (wall == null) continue;
-
-                    Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Processing wall {i + 1}/{walls.Count}.");
-                    try
-                    {
-                        if (digData != null)
-                        {
-                            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Wall {i + 1}: Refreshing DigData.");
-                            wall.RefreshDigData(digData);
-                        }
-                        
-                        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Wall {i + 1}: Refreshing Renderer Data.");
-                        wall.RefreshRendererData();
-                        
-                        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Wall {i + 1}: Setting Renderers Visible.");
-                        wall.SetRenderersVisible(true);
-                        wallsRefreshed++;
-                    }
-                    catch (Exception ex)
-                    {
-                        Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception in wall {i + 1} processing: {ex}");
-                    }
-                }
-            }
-
             if (Plugin.RespawnItems.Value && node.caveItemSpawners != null)
             {
                 Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Node {node.index}: Running {node.caveItemSpawners.Count} item spawners.");
@@ -393,6 +305,77 @@ public class MineRefreshTracker : MonoBehaviour
                             Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Node {node.index}: Exception running spawner {i + 1}: {ex}");
                         }
                     }
+                }
+            }
+        }
+
+        // Global Wall Refresh using Spatial Association
+        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Searching for all CaveWallInteraction components in the cave root hierarchy.");
+        var allWalls = new List<CaveWallInteraction>();
+        try
+        {
+            if (closestEntrance.transform.parent != null)
+            {
+                GetComponentsInChildrenRecursive(closestEntrance.transform.parent, allWalls);
+                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {allWalls.Count} total CaveWallInteraction components in cave root.");
+            }
+            else
+            {
+                Plugin.Logger.LogWarning("[MineRefreshMod] [DEBUG] Cave entrance has no parent transform!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Error searching for walls in cave root: {ex}");
+        }
+
+        if (allWalls.Count > 0)
+        {
+            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Associating and refreshing {allWalls.Count} walls.");
+            for (int i = 0; i < allWalls.Count; i++)
+            {
+                var wall = allWalls[i];
+                if (wall == null) continue;
+
+                // Find the closest CaveNode to this wall
+                CaveNode? closestNode = null;
+                float minNodeDist = float.MaxValue;
+                foreach (var node in caveNodes)
+                {
+                    if (node == null) continue;
+                    float dist = Vector3.Distance(wall.transform.position, node.transform.position);
+                    if (dist < minNodeDist)
+                    {
+                        minNodeDist = dist;
+                        closestNode = node;
+                    }
+                }
+
+                if (closestNode != null)
+                {
+                    try
+                    {
+                        var caveData = closestNode.PersistentData;
+                        if (caveData != null)
+                        {
+                            var digData = caveData.GetDigData(closestNode.index, DataAccessMode.FETCH);
+                            if (digData != null)
+                            {
+                                wall.RefreshDigData(digData);
+                            }
+                        }
+                        wall.RefreshRendererData();
+                        wall.SetRenderersVisible(true);
+                        wallsRefreshed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Wall {i + 1} (associated with Node {closestNode.index}): Exception in refreshing: {ex}");
+                    }
+                }
+                else
+                {
+                    Plugin.Logger.LogWarning($"[MineRefreshMod] [DEBUG] Wall {i + 1}: Could not find any close CaveNode!");
                 }
             }
         }
