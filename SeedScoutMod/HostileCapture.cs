@@ -56,7 +56,7 @@ internal static class HostileCapture
             string spawnInfo = SpawnerInfo(den);
 
             Plugin.Hostiles.Add(new HostileHit(pos, "Den", label, threat));
-            Plugin.Logger.LogInfo($"SeedScout: Den at ({pos.x:0},{pos.y:0}) name='{name}' " +
+            Plugin.LogInfo($"SeedScout: Den at ({pos.x:0},{pos.y:0}) name='{name}' " +
                                   $"go='{go}' loc='{loc}' faction={faction} threat={threat:0.#} subs={subs}{spawnInfo}  " +
                                   $"hostiles={Plugin.Hostiles.Count}");
         }
@@ -76,7 +76,7 @@ internal static class HostileCapture
 
             string go = Safe(() => s.gameObject.name);
             Plugin.Hostiles.Add(new HostileHit(pos, "EnemyCamp", "EnemyCamp", 0f));
-            Plugin.Logger.LogInfo($"SeedScout: EnemyCamp at ({pos.x:0},{pos.y:0}) go='{go}'  hostiles={Plugin.Hostiles.Count}");
+            Plugin.LogInfo($"SeedScout: EnemyCamp at ({pos.x:0},{pos.y:0}) go='{go}'  hostiles={Plugin.Hostiles.Count}");
         }
         catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout: settlement capture err: {e.Message}"); }
     }

@@ -12,7 +12,7 @@ internal static class BiomesAwakePatch
     static void Postfix(BiomesManager __instance)
     {
         Plugin.Biomes = __instance;
-        Plugin.Logger.LogInfo("SeedScout: BiomesManager.Awake — captured (a world is loading).");
+        Plugin.LogInfo("SeedScout: BiomesManager.Awake — captured (a world is loading).");
     }
 }
 

@@ -92,6 +92,13 @@ size from `WorldConfiguration.GetActive().tileSize` (=128).
 cfg (live, no rebuild) or delete it to pick up the new default. Verified line:
 `force-load: radius=N tileSize=128 … M unique tile(s) requested (M ok, 0 null/err)` + `chosen=Lowest`.
 
+**Logging master switch (v0.16.0):** `SeedScout/EnableLogging` (bool, default true) gates all of
+SeedScout's informational output — the 5s heartbeat (`SeedScout hb:`), per-spawn lake/den/camp captures,
+and the area-tree dumps — through `Plugin.LogInfo(string)`. Genuine `Logger.LogWarning/LogError` and the
+one-time load line stay on regardless. Set it false to declutter `LogOutput.log` while testing another mod
+(the heartbeat alone prints every 5s and buries other lines). Don't reintroduce raw `Plugin.Logger.LogInfo`
+for chatty output — route it through `Plugin.LogInfo` so the switch keeps working.
+
 **Confirmed streaming API (types/members verified to exist via Cecil dump):**
 - `SandSailorStudio.Streaming.WorldStreamingManager` (MonoBehaviour): tracks one `IStreamingActor
   TrackedActor` / `Transform TrackedTransform`; `SetTrackTransform(Transform)`, `_UpdateTrackedPosition`,

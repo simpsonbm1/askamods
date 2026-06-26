@@ -59,6 +59,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ForceLoadTiles = null!;
     internal static ConfigEntry<int> ForceLoadRadius = null!;
     internal static ConfigEntry<bool> RevealNativePins = null!;
+    internal static ConfigEntry<bool> EnableLogging = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
     internal static readonly List<LakeHit> Lakes = new();
     internal static readonly List<HostileHit> Hostiles = new();
@@ -83,6 +84,11 @@ public class Plugin : BasePlugin
             "Experimental: after force-load, mark each cave's area explored and refresh its marker handler " +
             "to reveal the game's OWN native map pin (correct icon + name) without walking there.");
 
+        EnableLogging = Config.Bind("SeedScout", "EnableLogging", true,
+            "Master switch for SeedScout's informational log output (the 5s heartbeat, per-spawn lake/den/" +
+            "camp captures, area-tree dumps, etc.). Set false to silence the spam so other mods' log lines " +
+            "are easy to find. Genuine warnings/errors and the one-time load line still show regardless.");
+
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");
         Object.DontDestroyOnLoad(go);
@@ -91,6 +97,15 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll();
 
         Logger.LogInfo($"SeedScoutMod {MyPluginInfo.PLUGIN_VERSION} loaded (probe). " +
+                       $"EnableLogging={EnableLogging.Value}. " +
                        "Load a world; the dump walks the area tree and reports registered caves.");
+    }
+
+    // Gated informational logging. Routed through here so EnableLogging=false silences the chatty
+    // heartbeat/per-spawn/dump output. Warnings/errors call Logger.LogWarning/LogError directly so
+    // they always surface regardless of this switch.
+    internal static void LogInfo(string msg)
+    {
+        if (EnableLogging.Value) Logger.LogInfo(msg);
     }
 }

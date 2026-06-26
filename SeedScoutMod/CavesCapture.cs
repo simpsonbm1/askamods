@@ -32,6 +32,6 @@ internal static class RegisterCavesPatch
             if (!dup) { Plugin.RegisteredCaves.Add(new CaveHit(pos, bounds)); added++; }
         }
         if (added > 0)
-            Plugin.Logger.LogInfo($"SeedScout: RegisterCaves +{added} (total {Plugin.RegisteredCaves.Count})");
+            Plugin.LogInfo($"SeedScout: RegisterCaves +{added} (total {Plugin.RegisteredCaves.Count})");
     }
 }

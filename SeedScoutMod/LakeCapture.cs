@@ -24,7 +24,7 @@ internal static class LakeSpawnPatch
             try { water = __instance.GetWaterLevel(); } catch { }
 
             Plugin.Lakes.Add(new LakeHit(pos, water));
-            Plugin.Logger.LogInfo($"SeedScout: lake spawned at ({pos.x:0},{pos.y:0})  total {Plugin.Lakes.Count}");
+            Plugin.LogInfo($"SeedScout: lake spawned at ({pos.x:0},{pos.y:0})  total {Plugin.Lakes.Count}");
         }
         catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout: lake capture err: {e.Message}"); }
     }

@@ -62,7 +62,7 @@ internal static class Scout
             _forceLoadDone = false; _settleTimer = 0f; DestroyReqGos();
             _caveAreas.Clear(); _discoverDone = false; _discoverTimer = 0f; _discoverAttempts = 0;
             Plugin.Lakes.Clear(); Plugin.Hostiles.Clear(); Plugin.RegisteredCaves.Clear();
-            if (heartbeat) Plugin.Logger.LogInfo("SeedScout hb: not in a loaded world (BiomesManager = null)");
+            if (heartbeat) Plugin.LogInfo("SeedScout hb: not in a loaded world (BiomesManager = null)");
             return;
         }
 
@@ -87,7 +87,7 @@ internal static class Scout
         if (havePlayer && !_haveSpawn) { _spawnPos = playerPos; _haveSpawn = true; } // first known pos ≈ spawn
 
         if (heartbeat)
-            Plugin.Logger.LogInfo($"SeedScout hb: ready={ready} map={(map == null ? "null" : "ok")} " +
+            Plugin.LogInfo($"SeedScout hb: ready={ready} map={(map == null ? "null" : "ok")} " +
                                   $"caves={_caves.Count} lakes={Plugin.Lakes.Count} regCaves={Plugin.RegisteredCaves.Count} " +
                                   $"player={(havePlayer ? playerPos.ToString("0.#") : "none")}");
 
@@ -158,7 +158,7 @@ internal static class Scout
             }
             catch { }
         }
-        Plugin.Logger.LogInfo($"SeedScout discover: refreshed {ok}/{_caveAreas.Count} cave marker(s) " +
+        Plugin.LogInfo($"SeedScout discover: refreshed {ok}/{_caveAreas.Count} cave marker(s) " +
                               $"(noHandler={noHandler}, attempt {_discoverAttempts + 1}). Open the map.");
         return ok;
     }
@@ -177,7 +177,7 @@ internal static class Scout
     {
         var mgr = Plugin.Streaming;
         if (mgr == null) { Plugin.Logger.LogWarning("SeedScout force-load: no WorldStreamingManager captured — skipping."); return; }
-        if (_caveTiles.Count == 0) { Plugin.Logger.LogInfo("SeedScout force-load: no cave tiles recorded — skipping."); return; }
+        if (_caveTiles.Count == 0) { Plugin.LogInfo("SeedScout force-load: no cave tiles recorded — skipping."); return; }
 
         int radius = Mathf.Clamp(Plugin.ForceLoadRadius.Value, 0, 3);
         float ts = ReadTileSize();
@@ -237,7 +237,7 @@ internal static class Scout
                 }
             }
         }
-        Plugin.Logger.LogInfo($"SeedScout force-load: radius={radius} tileSize={ts:0} over {_caveTiles.Count} cave(s) " +
+        Plugin.LogInfo($"SeedScout force-load: radius={radius} tileSize={ts:0} over {_caveTiles.Count} cave(s) " +
                               $"-> {requested.Count} unique tile(s) requested ({loaded} ok, {nullOrErr} null/err). " +
                               "Watch for lake/hostile spawn lines below, then open the map.");
     }
@@ -301,7 +301,7 @@ internal static class Scout
             if (_caveTiles.Count == 0) return;
             var ct = _caveTiles[0];
             var mid = ct.Id.GetWorldMidPosition(Mathf.RoundToInt(ts));
-            Plugin.Logger.LogInfo($"SeedScout force-load addr: cave({ct.Pos.x:0},{ct.Pos.y:0}) known={FmtTile(ct.Id)} mid=({mid.x},{mid.y}) " +
+            Plugin.LogInfo($"SeedScout force-load addr: cave({ct.Pos.x:0},{ct.Pos.y:0}) known={FmtTile(ct.Id)} mid=({mid.x},{mid.y}) " +
                                   $"low={FmtTile(WorldTileId.GetLowest(mid.x, mid.y, ts))} " +
                                   $"close={FmtTile(WorldTileId.GetClosest(mid.x, mid.y, ts))} " +
                                   $"high={FmtTile(WorldTileId.GetHighest(mid.x, mid.y, ts))} chosen={(chosen?.ToString() ?? "none")}");
@@ -370,7 +370,7 @@ internal static class Scout
         foreach (var c in _caves.Select(c => (d: Horiz(spawn, c.x, c.y), c)).OrderBy(t => t.d).Take(30))
             sb.AppendLine($"   cave ({c.c.x:0},{c.c.y:0})  dist={Fmt(c.d)}m");
         sb.AppendLine("===================================================================");
-        Plugin.Logger.LogInfo(sb.ToString());
+        Plugin.LogInfo(sb.ToString());
     }
 
     private static void DumpScore(Vector3 spawn)
@@ -404,7 +404,7 @@ internal static class Scout
                           $"nearestLake={Fmt(lakeDist)}m  nearestHostile={Fmt(dangerDist)}m");
         }
         sb.AppendLine("--------------------------------------------------------------------------");
-        Plugin.Logger.LogInfo(sb.ToString());
+        Plugin.LogInfo(sb.ToString());
     }
 
     // AreaInstance is a plain Il2CppSystem.Object — TryCast is valid (gotcha is only UnityEngine.Object).

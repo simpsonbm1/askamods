@@ -31,7 +31,7 @@ internal static class MapOverlay
             foreach (var l in Plugin.Lakes) AddDot(map, content, l.Pos, new Color(0.25f, 0.55f, 1f));
             foreach (var h in Plugin.Hostiles) AddDot(map, content, h.Pos, Color.red);
 
-            Plugin.Logger.LogInfo($"SeedScout: drew {_dots.Count} map dot(s) " +
+            Plugin.LogInfo($"SeedScout: drew {_dots.Count} map dot(s) " +
                                   $"(caves={Scout.Caves.Count} gray / lakes={Plugin.Lakes.Count} blue / hostiles={Plugin.Hostiles.Count} red).");
         }
         catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout: map overlay build err: {e.Message}"); }

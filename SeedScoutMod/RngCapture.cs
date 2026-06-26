@@ -20,6 +20,6 @@ internal static class RngSetSeedPatch
 {
     static void Postfix(string seedPhrase)
     {
-        Plugin.Logger.LogInfo($"SeedScout: RandomGeneratorManager.SetSeedPhrase('{seedPhrase}')");
+        Plugin.LogInfo($"SeedScout: RandomGeneratorManager.SetSeedPhrase('{seedPhrase}')");
     }
 }

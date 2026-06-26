@@ -12,6 +12,6 @@ internal static class StreamingAwakePatch
     static void Postfix(WorldStreamingManager __instance)
     {
         Plugin.Streaming = __instance;
-        Plugin.Logger.LogInfo("SeedScout: WorldStreamingManager.Awake — captured.");
+        Plugin.LogInfo("SeedScout: WorldStreamingManager.Awake — captured.");
     }
 }
