@@ -222,7 +222,7 @@ public class MineRefreshTracker : MonoBehaviour
         }
 
         Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Host authority confirmed. Executing refresh.");
-        int wallsRefreshed = 0;
+        int volumesRefreshed = 0;
         int nodesUncollapsed = 0;
         int itemsSpawned = 0;
 
@@ -310,21 +310,21 @@ public class MineRefreshTracker : MonoBehaviour
             }
         }
 
-        // Global Wall Refresh using Network Identity and Hierarchy Search
-        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Searching for all CaveWallInteraction components.");
-        var wallSet = new HashSet<CaveWallInteraction>();
+        // Global Wall Refresh using native DigVolume components
+        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Searching for all DigVolume components.");
+        var volumeSet = new HashSet<DigVolume>();
 
         // 1. Search under CavesManager.cavesRoot (global root for all caves)
         try
         {
             if (cavesManager.cavesRoot != null)
             {
-                var rootWalls = new List<CaveWallInteraction>();
-                GetComponentsInChildrenRecursive(cavesManager.cavesRoot, rootWalls);
-                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {rootWalls.Count} CaveWallInteraction components under cavesRoot.");
-                foreach (var w in rootWalls)
+                var rootVolumes = new List<DigVolume>();
+                GetComponentsInChildrenRecursive(cavesManager.cavesRoot, rootVolumes);
+                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {rootVolumes.Count} DigVolume components under cavesRoot.");
+                foreach (var v in rootVolumes)
                 {
-                    if (w != null) wallSet.Add(w);
+                    if (v != null) volumeSet.Add(v);
                 }
             }
             else
@@ -342,12 +342,12 @@ public class MineRefreshTracker : MonoBehaviour
         {
             if (closestEntrance.transform.parent != null)
             {
-                var parentWalls = new List<CaveWallInteraction>();
-                GetComponentsInChildrenRecursive(closestEntrance.transform.parent, parentWalls);
-                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {parentWalls.Count} CaveWallInteraction components under entrance parent.");
-                foreach (var w in parentWalls)
+                var parentVolumes = new List<DigVolume>();
+                GetComponentsInChildrenRecursive(closestEntrance.transform.parent, parentVolumes);
+                Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Found {parentVolumes.Count} DigVolume components under entrance parent.");
+                foreach (var v in parentVolumes)
                 {
-                    if (w != null) wallSet.Add(w);
+                    if (v != null) volumeSet.Add(v);
                 }
             }
         }
@@ -356,92 +356,72 @@ public class MineRefreshTracker : MonoBehaviour
             Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Error searching under entrance parent: {ex}");
         }
 
-        var allWalls = new List<CaveWallInteraction>(wallSet);
-        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Total unique CaveWallInteraction components discovered: {allWalls.Count}.");
+        var allVolumes = new List<DigVolume>(volumeSet);
+        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Total unique DigVolume components discovered: {allVolumes.Count}.");
 
-        if (allWalls.Count > 0)
+        if (allVolumes.Count > 0)
         {
-            int matchedWallsCount = 0;
-            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Filtering and refreshing walls for Cave ID {closestEntrance.caveId}.");
-            for (int i = 0; i < allWalls.Count; i++)
+            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Filtering and refreshing DigVolumes for Cave ID {closestEntrance.caveId}.");
+            for (int i = 0; i < allVolumes.Count; i++)
             {
-                var wall = allWalls[i];
-                if (wall == null) continue;
+                var volume = allVolumes[i];
+                if (volume == null) continue;
 
-                // Check network identity to match cave ID
-                int wallCaveId = -1;
-                int wallNodeId = -1;
-                if (wall._interactable != null)
+                // Match by entrance reference, entrance cave ID, or if the node belongs to our caveNodes list
+                bool isTargetCave = false;
+                if (volume._entrance != null)
                 {
-                    wallCaveId = wall._interactable._identity.caveId;
-                    wallNodeId = wall._interactable._identity.nodeId;
+                    isTargetCave = (volume._entrance == closestEntrance || volume._entrance.caveId == closestEntrance.caveId);
+                }
+                else if (volume._node != null)
+                {
+                    isTargetCave = caveNodes.Contains(volume._node);
                 }
 
-                // If cave ID matches the closest entrance's cave ID, refresh the wall
-                if (wallCaveId == closestEntrance.caveId)
+                if (isTargetCave)
                 {
-                    matchedWallsCount++;
-                    // Find the logical CaveNode corresponding to this wall's nodeId
-                    CaveNode? associatedNode = caveNodes.Find(n => n.index == wallNodeId);
-
-                    // Fallback to spatial lookup if node ID wasn't found in our list
-                    if (associatedNode == null)
+                    try
                     {
-                        float minNodeDist = float.MaxValue;
-                        foreach (var node in caveNodes)
+                        Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Refreshing DigVolume {i + 1}/{allVolumes.Count} (associated with Node {(volume._node != null ? volume._node.index.ToString() : "unknown")}).");
+
+                        // 1. Reset its DigData
+                        var digData = volume._digData;
+                        if (digData != null)
                         {
-                            if (node == null) continue;
-                            float dist = Vector3.Distance(wall.transform.position, node.transform.position);
-                            if (dist < minNodeDist)
+                            digData.ResetCrackData();
+                            digData.wallIndexLeft = 0;
+                            digData.wallIndexRight = 0;
+                            digData.SetDirty();
+                        }
+
+                        // Also reset the node's persistent DigData in CaveData to be completely sure
+                        if (volume._node != null && volume._node.PersistentData != null)
+                        {
+                            var nodeDigData = volume._node.PersistentData.GetDigData(volume._node.index, DataAccessMode.FETCH);
+                            if (nodeDigData != null)
                             {
-                                minNodeDist = dist;
-                                associatedNode = node;
+                                nodeDigData.ResetCrackData();
+                                nodeDigData.wallIndexLeft = 0;
+                                nodeDigData.wallIndexRight = 0;
+                                nodeDigData.SetDirty();
                             }
                         }
+
+                        // 2. Trigger the native wall reset and refresh on the volume
+                        volume.ResetWalls(true);
+                        volume.ForceUpdateCaveWallStateAndRefreshWalls();
+                        volumesRefreshed++;
                     }
-
-                    if (associatedNode != null)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            var caveData = associatedNode.PersistentData;
-                            DigData? digData = null;
-                            if (caveData != null)
-                            {
-                                digData = caveData.GetDigData(associatedNode.index, DataAccessMode.FETCH);
-                            }
-
-                            // Fully restore the wall's physical and visual state
-                            wall.collapseWall = false;
-                            if (wall.gameObject != null)
-                            {
-                                wall.gameObject.SetActive(true);
-                            }
-
-                            if (digData != null)
-                            {
-                                wall.RefreshDigData(digData);
-                            }
-
-                            wall.RefreshRendererData();
-                            wall.SetRenderersVisible(true);
-                            wallsRefreshed++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] Wall {i + 1} (Cave {wallCaveId}, Node {wallNodeId}): Exception in refreshing: {ex}");
-                        }
-                    }
-                    else
-                    {
-                        Plugin.Logger.LogWarning($"[MineRefreshMod] [DEBUG] Wall {i + 1} (Cave {wallCaveId}, Node {wallNodeId}): Could not associate with any CaveNode!");
+                        Plugin.Logger.LogError($"[MineRefreshMod] [DEBUG] DigVolume {i + 1}: Exception in refreshing: {ex}");
                     }
                 }
             }
-            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Matched and processed {matchedWallsCount} walls for cave ID {closestEntrance.caveId} out of {allWalls.Count} total walls.");
+            Plugin.Logger.LogInfo($"[MineRefreshMod] [DEBUG] Matched and processed {volumesRefreshed} DigVolumes for cave ID {closestEntrance.caveId} out of {allVolumes.Count} total discovered.");
         }
 
-        Plugin.Logger.LogInfo($"[MineRefreshMod] Mine successfully refreshed! Hallways={caveNodes.Count}, WallsRestored={wallsRefreshed}, ClearedCollapses={nodesUncollapsed}, SpawnersRun={itemsSpawned}");
+        Plugin.Logger.LogInfo($"[MineRefreshMod] Mine successfully refreshed! Hallways={caveNodes.Count}, HallwaySegmentsRestored={volumesRefreshed}, ClearedCollapses={nodesUncollapsed}, SpawnersRun={itemsSpawned}");
         ShowMessage("Mine successfully refreshed! Resources regenerated.");
     }
 

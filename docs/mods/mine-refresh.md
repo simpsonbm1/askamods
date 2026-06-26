@@ -1,4 +1,4 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.2.0)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.0)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
 
@@ -10,17 +10,14 @@
 - **Proximity Safety Check**: Scans all active characters in the world using our high-performance local `Plugin.ActiveCharacters` list. If any player or worker (excluding the player triggering the refresh) is within `SafetyRadius` (default: 25m) of *any* hallway/node in the target mine, the refresh is blocked, and their name is displayed in-game to prevent trapping them.
 - **Host-Only Execution**: The refresh is gated on server authority (`Plugin.LocalPlayer.NetworkObject.Runner.IsServer == true`) to prevent multiplayer desyncs.
 - **Recursive Cave Traversal**: Recursively traverses the mine tree starting from the `CaveEntrance` (which inherits from `CaveNode`) using the `connections` list on `SandSailorStudio.Procedural.LSystemNode`.
-- **Global & Local Wall Discovery**: 
-  - Searches recursively under the global `CavesManager.cavesRoot` (where the game instantiates all cave instances) and the entrance's parent transform using a custom recursive child traversal.
-  - Combines discoveries into a `HashSet` to ensure all active and streamed-in `CaveWallInteraction` components are found, bypassing Unity's culling and streaming boundaries.
-- **Network Identity Wall Filtering**: 
-  - Reads each wall's network identity via `wall._interactable._identity`.
-  - Filters walls to match the current cave by checking `identity.caveId == closestEntrance.caveId`.
-  - Associates each wall with its logical `CaveNode` using `identity.nodeId == node.index`.
-- **Wall & State Reset (`DigData`)**:
-  - Accesses the persistent `DigData` for each node using `caveData.GetDigData(node.index, DataAccessMode.FETCH)`.
-  - Resets the wall health and excavation progress by calling `digData.ResetCrackData()`, setting `wallIndexLeft = 0` and `wallIndexRight = 0`, and calling `digData.SetDirty()` for network replication.
-  - Fully restores the physical, visual, and active state of each matched wall: sets `wall.collapseWall = false`, ensures the GameObject is active via `SetActive(true)`, and calls `wall.RefreshDigData(digData)`, `wall.RefreshRendererData()`, and `wall.SetRenderersVisible(true)`.
+- **Global & Local DigVolume Discovery**: 
+  - Searches recursively under the global `CavesManager.cavesRoot` (where the game instantiates all cave instances) and the entrance's parent transform for persistent `DigVolume` components using a custom recursive child traversal.
+  - Combines discoveries into a `HashSet` to ensure all active and streamed-in `DigVolume` components are found. Because `DigVolume` components are the persistent managers for each hallway section (and are not destroyed when walls are mined out), they are guaranteed to be found.
+- **DigVolume Association & Filtering**: 
+  - Filters matching `DigVolume`s by checking `volume._entrance == closestEntrance` or if `volume._node` belongs to the cave's logical nodes list.
+- **Native Wall Regeneration via DigVolume**:
+  - Accesses and resets the `DigData` associated with the volume (clears crack damage lists, sets left/right wall indices to 0, flags dirty state for network synchronization).
+  - Triggers the game's native wall reset and refresh on the volume by calling `volume.ResetWalls(true)` and `volume.ForceUpdateCaveWallStateAndRefreshWalls()`. This mimics the game's native cave-in refresh pathway perfectly, reconstructing the physical hallway walls instantly without requiring the player to deal with rubble or collapses.
 - **Rubble & Cave-In Clearing**: If any hallways were collapsed, clears the rubble and reopens them by setting `node.open = true`, `node._isCollapsed = false` (writing directly to the backing field), and calling `node.UpdateCollapsedState()`.
 - **Loose Item Spawning**: If enabled, runs all `CaveItemSpawner`s on the nodes (`spawner.Run()`) to regenerate chests, iron deposits, and mushrooms.
 - **Dropshadow HUD Overlay**: Draws beautiful, high-visibility yellow on-screen notification text with a black drop shadow at the top of the screen using a self-contained Unity `OnGUI` method on the tracker.
