@@ -43,6 +43,28 @@ still surfaces via the bellows fire.) For the eventual "keep the kiln fueled" fe
 the NetworkBehaviour `Bloomstation.Spawned()` (Fusion lifecycle) and read its `.kiln`, **never** patch
 `KilnInteraction.Initialize`.
 
+### Confirmed smithing/coal building NAMES (in-game via LogAllFireStructures, 2026-06-25)
+Each carries a `FireStructure` caught by the safe `FireStructure.Initialize` patch, so each is keepable via
+the plain `TargetStructureNames` list — **no new code**:
+
+| In-game display name | FireStructure GameObject | Building |
+|---|---|---|
+| `Bloomery` / `Improved Bloomery` | `KilnInteractionArea_dmgRec` | the smelter (the user's original "furnace" — there is NO "Furnace") |
+| `Metalworker` / `Improved Metalworker` | `StorageArea_Forge` | the forge |
+| `Coal Maker` | `PyreInteractionArea` | the coalmaker (charcoal pyre) |
+
+So the working config for "keep smithing/coal fires fueled" is just
+`TargetStructureNames = Torch, Camp, Fire, Bloomery, Metalworker, Coal Maker` (substring match, so `Bloomery`
+catches `Improved Bloomery` too). Note `Fire` also matches `Small Fireplace` and the `Cooking Hut` fire.
+
+⚠️ **Open in-game question — does topping the bloomery's FireStructure remove the COAL chore?** The
+`KilnInteractionArea` FireStructure is the bloomery's fire/bellows heat; the coal the kiln *consumes* is the
+separate `_fuelVAttr` reservoir (no FireStructure). So adding `Bloomery` keeps the fire lit but may NOT stop
+coal demand — needs a play-test. If the bloomery still asks for coal, the fallback is the `_fuelVAttr` pin via
+the safe `Bloomstation.Spawned()` capture (above). The forge (`Metalworker`) and `Coal Maker` fires ARE their
+own fuel, so topping those should work directly. Also watch for **overbake** on items left in a perpetually-lit
+forge/bloomery.
+
 ## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
 Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no
 structure named "Furnace"/"Smelter" in the game at all, and the smelting building — the **Kiln**
