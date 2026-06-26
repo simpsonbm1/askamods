@@ -57,13 +57,22 @@ So the working config for "keep smithing/coal fires fueled" is just
 `TargetStructureNames = Torch, Camp, Fire, Bloomery, Metalworker, Coal Maker` (substring match, so `Bloomery`
 catches `Improved Bloomery` too). Note `Fire` also matches `Small Fireplace` and the `Cooking Hut` fire.
 
-⚠️ **Open in-game question — does topping the bloomery's FireStructure remove the COAL chore?** The
-`KilnInteractionArea` FireStructure is the bloomery's fire/bellows heat; the coal the kiln *consumes* is the
-separate `_fuelVAttr` reservoir (no FireStructure). So adding `Bloomery` keeps the fire lit but may NOT stop
-coal demand — needs a play-test. If the bloomery still asks for coal, the fallback is the `_fuelVAttr` pin via
-the safe `Bloomstation.Spawned()` capture (above). The forge (`Metalworker`) and `Coal Maker` fires ARE their
-own fuel, so topping those should work directly. Also watch for **overbake** on items left in a perpetually-lit
-forge/bloomery.
+🛑 **CONFIRMED (in-game 2026-06-25) — do NOT force-fuel the `Bloomery`; it breaks the smelt.** Adding
+`Bloomery` to the list and pinning its FireStructure fuel to max **breaks the bloomery's temperature
+mini-game**: normally a villager pumps the bellows to hold TEMP in the correct band to convert ore → bloom,
+but with fuel locked at ~100% the heat output is stuck and **no amount of pumping gets TEMP into the bake
+range — zero bloom is produced.** The kiln's heat is a function of the fuel *ratio* (the `KilnInteraction`
+`fuelRatioToPower` AnimationCurve + `_fuelBurnRateAttr`/`airIntakeToBurnRate`/`bakeTemperatureInterval`),
+so the mechanic *requires* fuel to deplete; pinning it removes the controllable range. **Fix applied: removed
+`Bloomery` from the default list** (v1.2.4) and the config description now warns against it.
+- **The forge (`Metalworker`) and `Coal Maker` are confirmed FINE force-fueled** (user-verified) — kept in
+  the list. So this is a Bloomery-specific interaction, not a general crafting-fire problem.
+- **To investigate next session (if we still want a fueled bloomery):** the goal isn't "pin fuel high" — it's
+  "remove the coal *delivery* chore without breaking heat control." Likely needs feeding the kiln's `_fuelVAttr`
+  only when it's actually *low* (mimicking a coal top-up the villager would do) rather than pinning it at max,
+  or topping a different reservoir than the one feeding `fuelRatioToPower`. Capture the kiln via the safe
+  `Bloomstation.Spawned()` → `.kiln` (NEVER `KilnInteraction.Initialize` — that boot-crashes, see the
+  architecture coal dead-end). Left unbuilt for now.
 
 ## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
 Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no

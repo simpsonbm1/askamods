@@ -33,7 +33,7 @@ public class Plugin : BasePlugin
             section: "TorchFuel",
             key: "TargetStructureNames",
             defaultValue: "Torch",
-            description: "Comma-separated list of structure names to keep perpetually fueled. Case-insensitive substring match (e.g. 'Torch' matches 'Flimsy Torch', 'Standing Torch'). Known fire buildings you can add (confirmed in-game): smelter='Bloomery' (also matches 'Improved Bloomery'); forge='Metalworker' (also 'Improved Metalworker'); charcoal='Coal Maker'; plus base fires 'Campfire', 'Small Fireplace', 'Cooking Hut'. (There is NO 'Furnace' in this game.)");
+            description: "Comma-separated list of structure names to keep perpetually fueled. Case-insensitive substring match (e.g. 'Torch' matches 'Flimsy Torch'). Fine to add (confirmed in-game): forge='Metalworker' (also 'Improved Metalworker'); charcoal='Coal Maker'; base fires 'Campfire', 'Small Fireplace', 'Cooking Hut'. DO NOT add the smelter 'Bloomery' (a.k.a. Improved Bloomery): force-fueling pins its heat and BREAKS the bellows temperature mini-game so no bloom is produced (needs investigation - see torch-fuel.md). (There is NO 'Furnace' in this game.)");
 
         CheckIntervalSeconds = Config.Bind(
             section: "TorchFuel",
