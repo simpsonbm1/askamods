@@ -27,23 +27,17 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> CombatTopUpSeconds = null!;
     internal static ConfigEntry<bool> DebugLogging = null!;
 
-    // Mock entries to preserve references in existing patches without cluttering the config file
-    internal class MockConfigEntry<T>
-    {
-        public T Value { get; }
-        public MockConfigEntry(T val) => Value = val;
-    }
-
-    internal static MockConfigEntry<bool> SuppressSpook = new(true);
-    internal static MockConfigEntry<bool> ForceEngage = new(true);
-    internal static MockConfigEntry<bool> BoostCombatPriority = new(true);
-    internal static MockConfigEntry<bool> BoostTriggerPriority = new(true);
-    internal static MockConfigEntry<bool> SuspendWorkWhileEngaged = new(true);
-    internal static MockConfigEntry<bool> UseNaturalCombatBehaviour = new(true);
-    internal static MockConfigEntry<bool> PreventFlee = new(true);
-    internal static MockConfigEntry<bool> TreatAsWarrior = new(true);
-    internal static MockConfigEntry<bool> PreventRunMovement = new(true);
-    internal static MockConfigEntry<bool> KeepCombatAlive = new(true);
+    // Clean C# static properties replacing the experimental configuration settings
+    internal static bool SuppressSpook => true;
+    internal static bool ForceEngage => true;
+    internal static bool BoostCombatPriority => true;
+    internal static bool BoostTriggerPriority => true;
+    internal static bool SuspendWorkWhileEngaged => true;
+    internal static bool UseNaturalCombatBehaviour => true;
+    internal static bool PreventFlee => true;
+    internal static bool TreatAsWarrior => true;
+    internal static bool PreventRunMovement => true;
+    internal static bool KeepCombatAlive => true;
 
     private static string[] _nameTokens = Array.Empty<string>();
     private static string[] _factionTokens = Array.Empty<string>();
@@ -282,8 +276,9 @@ public class Plugin : BasePlugin
     }
 
     // Reading an IL2CPP target's name can throw if the underlying object was destroyed.
-    internal static string SafeName(IAttackTarget t)
+    internal static string SafeName(IAttackTarget? t)
     {
+        if (t == null) return "(null)";
         try { var n = t.GetTargetName(); return string.IsNullOrEmpty(n) ? "(unnamed)" : n; }
         catch { return "(name-threw)"; }
     }

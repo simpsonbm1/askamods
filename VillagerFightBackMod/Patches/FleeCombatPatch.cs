@@ -75,13 +75,16 @@ internal static class FleeCombatShouldFightPatch
             // Keep combat alive while engaged with a whitelisted enemy (authority only). Done here
             // because this getter is polled frequently. If the target is dead, force end the combat timer
             // so they return to work immediately.
-            if (Plugin.KeepCombatAlive.Value)
+            if (Plugin.KeepCombatAlive)
             {
                 var survK = __instance._survival;
                 if (survK == null || survK._hasAuthority)
                 {
                     try
                     {
+                        if (Plugin.DebugLogging.Value)
+                            Plugin.Logger.LogInfo($"[VillagerFightBack][timer] wl={wl} decisionTarget={Plugin.SafeName(decisionTarget)} isAlive={isAlive} ct={__instance._combatTimeRemaining}");
+
                         if (wl)
                         {
                             float limit = Plugin.CombatTopUpSeconds.Value;
@@ -91,6 +94,8 @@ internal static class FleeCombatShouldFightPatch
                         else if (decisionTarget != null && !isAlive)
                         {
                             __instance._combatTimeRemaining = 0f;
+                            if (Plugin.DebugLogging.Value)
+                                Plugin.Logger.LogInfo("[VillagerFightBack][timer] Force ended combat time (0).");
                         }
                     }
                     catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] combatTime adjustment: {ex}"); }
@@ -191,13 +196,13 @@ internal static class FleeCombatGetSpookedPatch
             // Force engagement: set the wisp as her combat target so she ENTERS combat and attacks it,
             // rather than ignoring it while doing a job. onlyIfNotPresent=true so we never steal an
             // existing (possibly more dangerous) target.
-            if (Plugin.ForceEngage.Value && villager != null)
+            if (Plugin.ForceEngage && villager != null)
             {
                 try { villager.SetTarget(spookyTarget, true); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] SetTarget failed: {ex}"); }
             }
 
-            if (!Plugin.SuppressSpook.Value) return true; // engage but still allow vanilla spook
+            if (!Plugin.SuppressSpook) return true; // engage but still allow vanilla spook
             return false;                                 // skip _GetSpooked → no spook → no flee
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] GetSpooked prefix: {ex}"); return true; }
@@ -217,7 +222,7 @@ internal static class CombatPriorityPatch
     {
         try
         {
-            if (!Plugin.EnabledCfg.Value || !Plugin.BoostCombatPriority.Value) return;
+            if (!Plugin.EnabledCfg.Value || !Plugin.BoostCombatPriority) return;
             if (questData == null || questData.Pointer == IntPtr.Zero) return;
 
             var cqd = questData as CombatQuest.CombatQuestData;
@@ -282,7 +287,7 @@ internal static class CombatBehaviourSwapPatch
             }
             catch { }
 
-            if (!Plugin.UseNaturalCombatBehaviour.Value) return; // refresh only; no behaviour swap
+            if (!Plugin.UseNaturalCombatBehaviour) return; // refresh only; no behaviour swap
 
             var surv = cqd._survival;
             if (surv == null || Plugin.PtrOf(surv) == IntPtr.Zero) return;
@@ -326,7 +331,7 @@ internal static class FleeTriggerPriorityPatch
     {
         try
         {
-            if (!Plugin.EnabledCfg.Value || !Plugin.BoostTriggerPriority.Value) return;
+            if (!Plugin.EnabledCfg.Value || !Plugin.BoostTriggerPriority) return;
             if (__instance == null) return;
 
             IAttackTarget? remembered = Plugin.GetRememberedSpook(__instance.Pointer);
@@ -378,7 +383,7 @@ internal static class QuestRunnerUpdatePatch
     {
         try
         {
-            if (!Plugin.EnabledCfg.Value || !Plugin.SuspendWorkWhileEngaged.Value) return;
+            if (!Plugin.EnabledCfg.Value || !Plugin.SuspendWorkWhileEngaged) return;
             if (__instance == null) return;
 
             // Is this villager currently engaged with a whitelisted enemy?
@@ -447,7 +452,7 @@ internal static class BlockFleeingPatch
     {
         try
         {
-            if (!Plugin.EnabledCfg.Value || !Plugin.PreventFlee.Value) return true;
+            if (!Plugin.EnabledCfg.Value || !Plugin.PreventFlee) return true;
             if (__instance == null || !__instance.fleeingState) return true; // only block "start fleeing"
             if (fsmBehaviour == null) return true;
 
@@ -477,7 +482,7 @@ internal static class WarriorCheckPatch
         try
         {
             if (__result) return; // already a warrior — nothing to do
-            if (!Plugin.EnabledCfg.Value || !Plugin.TreatAsWarrior.Value) return;
+            if (!Plugin.EnabledCfg.Value || !Plugin.TreatAsWarrior) return;
             if (fsmBehaviour == null) return;
 
             var targeting = fsmBehaviour.AiTargeting;
@@ -518,7 +523,7 @@ internal static class RunFromTargetPatch
             IAttackTarget? target = targeting != null ? targeting.CurrentTarget : null;
             if (target == null || !Plugin.IsWhitelisted(target)) return false;
 
-            bool block = Plugin.EnabledCfg.Value && Plugin.PreventRunMovement.Value;
+            bool block = Plugin.EnabledCfg.Value && Plugin.PreventRunMovement;
             if (isEnter && Plugin.DebugLogging.Value && Plugin.ShouldLogRun())
                 Plugin.Logger.LogInfo(
                     $"[VillagerFightBack] FSM_RunFromTarget entered vs '{Plugin.SafeName(target)}' (block={block}).");

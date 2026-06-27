@@ -4,7 +4,7 @@
 
 **Game subsystem:** [Villager Combat / Fight-vs-Flee System](../architecture.md#villager-combat--fight-vs-flee-system)
 
-## Working Design (v1.0.24)
+## Working Design (v1.0.25)
 The solution requires two axes: redirecting the combat behavior FSM and resolving QuestRunner arbitration (work quests competing with combat).
 
 1. **FSM Behaviour Swap (`UseNaturalCombatBehaviour`)**
