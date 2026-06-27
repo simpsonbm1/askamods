@@ -24,7 +24,7 @@ internal static class FleeCombatShouldFightPatch
         try
         {
             if (!Plugin.EnabledCfg.Value) return;
-            if (__instance == null) return;
+            if (__instance == null || __instance.Pointer == IntPtr.Zero) return;
 
             // _engagedEnemy is frequently null at getter time, so fall back to the attacker we
             // stashed in _GetSpooked for this quest instance (see Plugin.GetRememberedSpook).
@@ -34,7 +34,8 @@ internal static class FleeCombatShouldFightPatch
 
             // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
             // Tells us whether the getter is even polled in combat, what it sees, and why it bails.
-            bool wl = decisionTarget != null && Plugin.IsWhitelisted(decisionTarget);
+            bool isAlive = decisionTarget != null && decisionTarget.IsAlive();
+            bool wl = isAlive && Plugin.IsWhitelisted(decisionTarget!);
 
             // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
             // Now also reports the active quest + remaining combat time over the whole encounter, to
@@ -50,7 +51,7 @@ internal static class FleeCombatShouldFightPatch
                     $"[VillagerFightBack][diag] ShouldFight result={__result} " +
                     $"engaged={(engaged != null ? Plugin.SafeName(engaged) : "null")} " +
                     $"remembered={(remembered != null ? Plugin.SafeName(remembered) : "null")} " +
-                    $"auth={au} activeQuest={aq} activePrio={ap:0.0} combatTime={ct:0.0} whitelisted={wl}");
+                    $"auth={au} activeQuest={aq} activePrio={ap:0.0} combatTime={ct:0.0} whitelisted={wl} isAlive={isAlive}");
             }
 
             // Refresh the "engaging a whitelisted enemy" window from this frequently-polled getter so
@@ -63,23 +64,34 @@ internal static class FleeCombatShouldFightPatch
                 try
                 {
                     var q = __instance.Quest;
-                    if (q != null) Plugin.RememberSpook(q.Pointer, decisionTarget);
+                    if (q != null && Plugin.PtrOf(q) != IntPtr.Zero) Plugin.RememberSpook(q.Pointer, decisionTarget);
                     var qr = __instance.QuestRunner;
-                    if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
+                    if (qr != null && Plugin.PtrOf(qr) != IntPtr.Zero && q != null && Plugin.PtrOf(q) != IntPtr.Zero) 
+                        Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
                 }
                 catch { }
             }
 
             // Keep combat alive while engaged with a whitelisted enemy (authority only). Done here
-            // because this getter is polled frequently; must run BEFORE the early-out below since
-            // ShouldFight is already true in practice.
-            if (wl && Plugin.KeepCombatAlive.Value)
+            // because this getter is polled frequently. If the target is dead, force end the combat timer
+            // so they return to work immediately.
+            if (Plugin.KeepCombatAlive.Value)
             {
                 var survK = __instance._survival;
                 if (survK == null || survK._hasAuthority)
                 {
-                    try { if (__instance._combatTimeRemaining < 30f) __instance._combatTimeRemaining = 60f; }
-                    catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] combatTime top-up: {ex}"); }
+                    try
+                    {
+                        if (wl)
+                        {
+                            if (__instance._combatTimeRemaining < 4f) __instance._combatTimeRemaining = 8f;
+                        }
+                        else if (decisionTarget != null && !isAlive)
+                        {
+                            __instance._combatTimeRemaining = 0f;
+                        }
+                    }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] combatTime adjustment: {ex}"); }
                 }
             }
 
@@ -91,7 +103,7 @@ internal static class FleeCombatShouldFightPatch
             var surv = __instance._survival;
             if (surv != null && !surv._hasAuthority) return;
 
-            if (Plugin.IsWhitelisted(decisionTarget))
+            if (wl)
             {
                 __result = true;
                 if (Plugin.DebugLogging.Value && Plugin.ShouldLogFlip())
@@ -199,15 +211,15 @@ internal static class FleeCombatGetSpookedPatch
 [HarmonyPatch(typeof(CombatQuest), nameof(CombatQuest.GetPriority))]
 internal static class CombatPriorityPatch
 {
-    static void Postfix(QuestData questData, ref float __result)
+    static void Postfix(CombatQuest __instance, QuestData questData, ref float __result)
     {
         try
         {
             if (!Plugin.EnabledCfg.Value || !Plugin.BoostCombatPriority.Value) return;
-            if (questData == null) return;
+            if (questData == null || questData.Pointer == IntPtr.Zero) return;
 
-            var cqd = questData.TryCast<CombatQuest.CombatQuestData>();
-            if (cqd == null) return;
+            var cqd = questData as CombatQuest.CombatQuestData;
+            if (cqd == null || Plugin.PtrOf(cqd) == IntPtr.Zero) return;
 
             IAttackTarget? enemy = cqd._engagedEnemy ?? Plugin.GetRememberedSpook(questData.Pointer);
             if (enemy == null || !Plugin.IsWhitelisted(enemy)) return;
@@ -242,18 +254,18 @@ internal static class CombatPriorityPatch
 [HarmonyPatch(typeof(CombatQuest), nameof(CombatQuest.GetFSMBehavior))]
 internal static class CombatBehaviourSwapPatch
 {
-    static void Postfix(QuestData questData, ref vFSMBehaviour __result)
+    static void Postfix(CombatQuest __instance, QuestData questData, ref vFSMBehaviour __result)
     {
         try
         {
             if (!Plugin.EnabledCfg.Value) return;
-            if (questData == null) return;
+            if (questData == null || questData.Pointer == IntPtr.Zero) return;
 
-            var cqd = questData.TryCast<CombatQuest.CombatQuestData>();
-            if (cqd == null) return;
+            var cqd = questData as CombatQuest.CombatQuestData;
+            if (cqd == null || Plugin.PtrOf(cqd) == IntPtr.Zero) return;
 
             IAttackTarget? enemy = cqd._engagedEnemy ?? Plugin.GetRememberedSpook(questData.Pointer);
-            if (enemy == null || !Plugin.IsWhitelisted(enemy)) return;
+            if (enemy == null || enemy.Pointer == IntPtr.Zero || !enemy.IsAlive() || !Plugin.IsWhitelisted(enemy)) return;
 
             // Keep the "engaging a whitelisted enemy" window alive for the whole fight — this method is
             // called while the combat quest runs, so the work-suspension's restore can't fire mid-combat.
@@ -261,18 +273,19 @@ internal static class CombatBehaviourSwapPatch
             try
             {
                 var q = cqd.Quest;
-                if (q != null) Plugin.RememberSpook(q.Pointer, enemy);
+                if (q != null && Plugin.PtrOf(q) != IntPtr.Zero) Plugin.RememberSpook(q.Pointer, enemy);
                 var qr = cqd.QuestRunner;
-                if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, questData.Pointer);
+                if (qr != null && Plugin.PtrOf(qr) != IntPtr.Zero && q != null && Plugin.PtrOf(q) != IntPtr.Zero)
+                    Plugin.RememberVillagerCombat(qr, q, questData.Pointer);
             }
             catch { }
 
             if (!Plugin.UseNaturalCombatBehaviour.Value) return; // refresh only; no behaviour swap
 
             var surv = cqd._survival;
-            if (surv == null) return;
+            if (surv == null || Plugin.PtrOf(surv) == IntPtr.Zero) return;
             var natural = surv.naturalCombatBehaviour;
-            if (natural == null) return;
+            if (natural == null || Plugin.PtrOf(natural) == IntPtr.Zero) return;
 
             // Already the stand-and-fight behaviour? nothing to do.
             if (Plugin.PtrOf(__result) == Plugin.PtrOf(natural)) return;
@@ -327,7 +340,7 @@ internal static class FleeTriggerPriorityPatch
                     $"remembered={(remembered != null ? Plugin.SafeName(remembered) : "null")}.");
             }
 
-            if (remembered == null || !Plugin.IsWhitelisted(remembered)) return;
+            if (remembered == null || !remembered.IsAlive() || !Plugin.IsWhitelisted(remembered)) return;
 
             int boost = Plugin.GetTriggerBoost();
             if (__result < boost)

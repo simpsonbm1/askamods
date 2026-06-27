@@ -665,12 +665,16 @@ for the full lever-by-lever log). **These are facts now, with dead-ends called o
   returns the flee one. Idle villagers fight Wisps because they use the *natural* behaviour. Every lever that
   poked the flee quest (suppress spook, block flee-flag/run-action, force `ShouldFight`, boost priority,
   remove job) was de-fanging the wrong FSM.
-- **The fix under test (v1.0.14): postfix `CombatQuest.GetFSMBehavior` → return `_survival.naturalCombatBehaviour`
+- **The working fix (v1.0.22): postfix `CombatQuest.GetFSMBehavior` → return `_survival.naturalCombatBehaviour`
   for a whitelisted enemy.** `FleeCombatQuest` does **not** override `GetFSMBehavior`, so patching `CombatQuest`'s
-  covers it. Safe sig (reference types). Get `naturalCombatBehaviour` + `_engagedEnemy`/`_survival` off the
-  `CombatQuest.CombatQuestData`. If the swap doesn't take, the heavier fallback is real **warrior status**
-  (`VillagerSurvival._warriorCombatQuest`/`_warriorQuestAdded`/`_CheckWarriorStatus()`) — the game's own
-  stand-and-fight path. (`vFSMBehaviour` is on the Unity object chain → use `Plugin.PtrOf(object)` to compare.)
+  covers it.
+  - **TryCast Crash Gotcha:** Calling the native `TryCast<CombatQuest.CombatQuestData>()` on dummy/placeholder
+    `QuestData` assets during early startup asset loading causes a native Access Violation (`0xc0000005`).
+    **Resolution:** Use standard C# `as` casting (`var cqd = questData as CombatQuest.CombatQuestData`) and
+    `Plugin.PtrOf(cqd) == IntPtr.Zero` checks, which executes in managed code without invoking the native casting runtime.
+  - **Immediate Combat Drop:** Upon enemy death (`!decisionTarget.IsAlive()`), reset `_combatTimeRemaining = 0f` and
+    bridge active combat with a tight `8f` second (rather than `60f` second) top-up. This allows the villager to drop
+    out of the combat quest and resume their suspended work quest within seconds of the fight ending.
 - **Scope FSM-action patches by target** via `IFSMBehaviourController.AiTargeting.CurrentTarget`.
 - **Quest back-refs (confirmed):** `QuestData.Quest` + `QuestData.QuestRunner`, and `CombatQuestData.GetVillager()`
   — so from a `FleeCombatQuestData` patch you can reach the villager's runner/quest without `FindObjectsByType`.

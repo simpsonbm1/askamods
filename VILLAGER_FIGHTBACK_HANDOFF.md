@@ -1,20 +1,15 @@
-# Mod 7 — VillagerFightBackMod — Handoff (BLOCKED — v1.0.14 CRASHES on launch; parked/disabled)
+# Mod 7 — VillagerFightBackMod — Handoff (COMPLETE — v1.0.22 WORKING; verified in-game)
 
-## 🛑 CURRENT BLOCKER (2026-06-23, session 4): v1.0.14 CRASHES THE GAME ON LAUNCH
-**Confirmed.** With VillagerFightBackMod **1.0.14** active, ASKA hard-crashes during startup — a native access
-violation (**`0xc0000005`**) in **`ASKA\dotnet\coreclr.dll`** (the .NET 6 runtime BepInEx hosts mods on), per
-the Windows Application event log. Reproducible across launches (same fault bucket). The crash lands **after**
-BepInEx logs `Chainloader startup complete` and Unity's `Player.log` reaches `Input initialized` — i.e.
-**before the main menu**, not in gameplay. **Disabling VFB makes the game launch normally**, so 1.0.14 is
-**definitively** the cause. All patches applied cleanly first (PatchAll returned, the config readout printed,
-no Harmony error logged) → it is **not** a managed patch-application exception; it's a native AV, most likely a
-detour (or its trampoline codegen) hit during early engine init.
+## RESOLVED (2026-06-27): v1.0.14 Crash resolved by using C# `as` operator instead of IL2CPP `TryCast`
+The native access violation (**`0xc0000005`**) on startup was caused by calling the native `Il2CppObjectBase.TryCast<T>()` on uninitialized/dummy `QuestData` assets during early engine asset loading. 
+By replacing the native `TryCast` with standard C# `as` casting (`var cqd = questData as CombatQuest.CombatQuestData`) and validating pointers using `Plugin.PtrOf(cqd) == IntPtr.Zero`, we completely avoid invoking the native IL2CPP casting runtime on uninitialized structures. This resolved the startup crash.
 
-**Currently PARKED:** the deployed DLL is renamed **`VillagerFightBackMod.dll.off`** in
-`ASKA\BepInEx\plugins\VillagerFightBackMod\` so the game runs. Source is intact at v1.0.14.
-**⚠️ Rebuilding re-arms the crash** — the csproj `CopyToPlugins` target drops a fresh `VillagerFightBackMod.dll`
-into that plugins folder, re-activating the mod, so the game will crash again until the bug is fixed. For a
-clean launch without fixing it, re-park (rename the built `.dll` → `.dll.off`).
+Additionally, to resolve the issue where villagers remained in combat/look-out mode for a long time (~1 minute) after killing the Wisps, we:
+- Check `decisionTarget.IsAlive()` and immediately force the combat time remaining to `0f` when the target dies.
+- Tightened the in-combat top-up threshold to `8f` seconds (rather than `60f` seconds).
+This allows the villager to immediately drop out of combat and restore their suspended work quests within seconds of the fight ending.
+
+**Status as of 2026-06-27:** Deployed **v1.0.22**, launched clean, and verified in-game. Villagers stand and fight Wisps and return to their jobs immediately after.
 
 **Bisection plan (fix path):** the config feature-flags only gate behavior *inside* each postfix — the Harmony
 **detours install regardless** — so bisect at the **source**: comment out groups of `[HarmonyPatch]` classes in

@@ -95,7 +95,7 @@ askamods/
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
   (WarehouseFilterMod)       ← Mod 6: hauling filter (DESIGN READY, NO CODE)
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [BLOCKED - crash on launch]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.22]
   CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
@@ -117,6 +117,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
+| **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Not on Nexus |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
 | **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Not on Nexus |
 
@@ -124,7 +125,6 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | Mod | Status | Key Issue |
 |---|---|---|
 | **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
-| **VillagerFightBackMod** (7) | 🛑 BLOCKED — v1.0.14 crashes on launch | Root cause: flee = `fleeCombatBehaviour` FSM, not quest/flag. Fix: swap to `naturalCombatBehaviour` via `CombatQuest.GetFSMBehavior` postfix. Crash needs bisection. |
 | **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
 
 ---

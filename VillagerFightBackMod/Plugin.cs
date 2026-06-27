@@ -169,7 +169,7 @@ public class Plugin : BasePlugin
         DebugLogging = Config.Bind(
             section: "VillagerFightBack",
             key: "DebugLogging",
-            defaultValue: true,
+            defaultValue: false,
             description: "Log the name + faction of each enemy that spooks a villager (so you can fill " +
                          "FightBackAgainst), and log when a villager is flipped to fight. Defaults ON while " +
                          "this mod is being verified in-game; turn off once your whitelist is dialed in.");

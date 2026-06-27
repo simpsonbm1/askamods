@@ -1,45 +1,40 @@
-# Mod 7: VillagerFightBackMod — PENDING IN-GAME VERIFICATION
+# Mod 7: VillagerFightBackMod — COMPLETE (Verified In-Game)
 
-**Goal:** Let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies** instead
-of fleeing — e.g. Wisps, which anything with a pulse can kill — while still fleeing from genuinely
-dangerous attackers (draugar, wolves, …). Requested by a Nexus commenter on DynamicVillagerNeedsMod
-("villagers can't fight back against the Wisps"). Villager-only; the player is never touched.
+**Goal:** Let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies** instead of fleeing — e.g., Wisps, which anything can kill — while still fleeing from genuinely dangerous attackers (draugar, wolves, ...). Villager-only; the player is never touched.
 
 **Game subsystem:** [Villager Combat / Fight-vs-Flee System](../architecture.md#villager-combat--fight-vs-flee-system)
-— the competing combat quests, warrior status, `IAttackTarget` identification, and the
-pending-verification list all live there. Read it first.
 
-**Working approach:**
-- Pure Harmony, no polling MonoBehaviour. Two patches in `Patches/FleeCombatPatch.cs`:
-  - **`FleeCombatShouldFightPatch`** — Postfix on `FleeCombatQuest/FleeCombatQuestData.get_ShouldFight`.
-    When the game decides to flee (`__result==false`) but `__instance._engagedEnemy` is on the whitelist,
-    flip `__result=true`. `ShouldFight` is GET-only/computed (home-safety/HP/defense-score), so we
-    post-process the getter rather than setting a field. Reading `_engagedEnemy` is what makes it
-    per-enemy. Gated on `__instance._survival._hasAuthority` (host/solo). Pure read + return-a-bool →
-    no networked write → co-op-safe.
-  - **`FleeCombatGetSpookedPatch`** — Postfix on `FleeCombatQuestData._GetSpooked(IAttackTarget)`,
-    log-only. Logs each distinct attacker's `GetTargetName()` + `Faction` once (creature names are
-    runtime ScriptableObject values, not in the binary) so the player can fill the whitelist.
-- **Whitelist:** `FightBackAgainst` = comma-separated **name** substrings (case-insensitive, matched on
-  the attacker's display name); `FightBackFactions` = optional comma-separated **faction** names
-  (coarser — `Undead` would include draugar). Name matching is the precise lever; faction is the blunt one.
+## Working Design (v1.0.22)
+The solution requires two axes: redirecting the combat behavior FSM and resolving QuestRunner arbitration (work quests competing with combat).
 
-**Config `[VillagerFightBack]`** (`BepInEx/config/com.askamods.villagerfightback.cfg`):
+1. **FSM Behaviour Swap (`UseNaturalCombatBehaviour`)**
+   - **Harmony Patch:** Postfix `CombatQuest.GetFSMBehavior(QuestData)`.
+   - **Mechanism:** A villager has two combat FSMs: `fleeCombatBehaviour` (runs/kites) and `naturalCombatBehaviour` (stands & fights). `FleeCombatQuest` runs the flee behavior by default. When a whitelisted enemy is encountered, this patch overrides the return to use `naturalCombatBehaviour` instead.
+   - **Pointer Safety:** Standard C# `as` casting (`var cqd = questData as CombatQuest.CombatQuestData`) and `Plugin.PtrOf(cqd) == IntPtr.Zero` checks are used to prevent native IL2CPP `TryCast` wrapper crashes on uninitialized assets during startup.
+
+2. **Quest Arbitration & Work Suspension (`SuspendWorkWhileEngaged`)**
+   - **Harmony Patch:** Postfix `QuestRunner.Update`.
+   - **Mechanism:** In gameplay, an active work quest (e.g. `TerraformingQuest`) out-prioritizes combat, causing villagers to oscillate and try to run back to their job markers. To solve this, when a villager is actively engaged with a whitelisted enemy, we suspend/remove their active work quest via the game's `QuestRunner.RemoveQuest` (making them effectively idle, so the combat quest takes over fully).
+   - Once the enemy is dead or gone, we restore the suspended work quests using `QuestRunner.AddQuest`.
+
+3. **Fast Combat Drop (`KeepCombatAlive` / Exit)**
+   - **Harmony Patch:** Postfix `FleeCombatQuestData.ShouldFight` (getter).
+   - **Mechanism:** Keeps the combat timer topped up to a tight `8f` seconds (rather than `60f` seconds) during the fight to bridge any frame gaps.
+   - **Instant Exit:** The moment the target dies (`!decisionTarget.IsAlive()`), we set `_combatTimeRemaining = 0f` to drop combat instantly, prompting the QuestRunner to restore work quests and return the villager to their job in under a second.
+
+---
+
+## Config `[VillagerFightBack]`
+(`BepInEx/config/com.askamods.villagerfightback.cfg`)
 - `Enabled` (true)
-- `FightBackAgainst` (`"Wisp"`) — name substrings to fight; empty = vanilla flee
-- `FightBackFactions` (`""`) — optional factions to also fight (Critters/Danger/Undead/Vikings/Neutral/Structures/Ignore)
-- `DebugLogging` (**true** by default while unverified) — logs what spooks villagers + when a flip happens; turn off once the whitelist is dialed in
+- `FightBackAgainst` (`"Wisp"`) — name substrings to fight back against.
+- `FightBackFactions` (`""`) — optional factions (coarser).
+- `DebugLogging` (**false** by default now) — logs when spook events and swaps occur.
 
-**⚠️ NOT yet confirmed in-game** (see the subsystem doc's pending list — the deciding facts can't be read
-from the IL2CPP binary):
-1. Whether `ShouldFight==true` makes a non-warrior actually *attack* vs merely stop fleeing. If they
-   just stand there, fall back to routing whitelisted encounters through the warrior path.
-2. Whether `_engagedEnemy` is populated when `ShouldFight` is read (if often null, capture the target
-   from `_GetSpooked` instead).
-3. The exact Wisp name/faction.
+---
 
-**First-run test plan:** new save, get a villager near the beach where Wisps spawn, set
-`DebugLogging=true`. Confirm (a) the spook log prints the Wisp's real name/faction, (b) the
-"Forced ShouldFight=TRUE" log fires, (c) the villager actually swings at and kills the Wisp rather
-than standing idle. Then verify a draugr/wolf still makes them flee. Adjust `FightBackAgainst` to the
-logged name if it isn't literally "Wisp".
+## Verified In-Game Findings (2026-06-27)
+1. **Wisp:** `IAttackTarget.GetTargetName() == "Wisp"`, Faction is `Undead`. Whitelisting "Wisp" targets them precisely without affecting Draugar (which are also `Undead`).
+2. **Attacking:** Standard villagers using `naturalCombatBehaviour` swing their weapons/fists and successfully kill Wisps.
+3. **Resuming Jobs:** Once the combat timer is reset upon Wisp death, the suspended work quest is restored and building/terraforming tasks are resumed within seconds.
+4. **Fleeing Threats:** Villagers still correctly flee from wolves and draugar since they are not on the whitelist.
