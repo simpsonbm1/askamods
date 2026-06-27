@@ -288,6 +288,20 @@ public class Plugin : BasePlugin
         catch { return "(name-threw)"; }
     }
 
+    // Safely check if the target is alive and viable, returning false if the target has been destroyed.
+    internal static bool SafeIsAlive(IAttackTarget? target)
+    {
+        if (target == null || PtrOf(target) == IntPtr.Zero) return false;
+        try
+        {
+            return target.IsAlive() && target.IsViable();
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     // Priority to give a combat quest engaged with a whitelisted enemy so it outranks work. We sit
     // just above c_Flee — flee already interrupts work in vanilla, so matching it +1 guarantees we
     // beat work AND any lingering flee, without exceeding survival/imminent-danger quests.

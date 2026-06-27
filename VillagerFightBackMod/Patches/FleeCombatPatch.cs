@@ -34,7 +34,7 @@ internal static class FleeCombatShouldFightPatch
 
             // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
             // Tells us whether the getter is even polled in combat, what it sees, and why it bails.
-            bool isAlive = decisionTarget != null && decisionTarget.IsAlive();
+            bool isAlive = Plugin.SafeIsAlive(decisionTarget);
             bool wl = isAlive && Plugin.IsWhitelisted(decisionTarget!);
 
             // Diagnostic: only while an engagement/recent spook exists, so it's silent out of combat.
@@ -267,7 +267,7 @@ internal static class CombatBehaviourSwapPatch
             if (cqd == null || Plugin.PtrOf(cqd) == IntPtr.Zero) return;
 
             IAttackTarget? enemy = cqd._engagedEnemy ?? Plugin.GetRememberedSpook(questData.Pointer);
-            if (enemy == null || enemy.Pointer == IntPtr.Zero || !enemy.IsAlive() || !Plugin.IsWhitelisted(enemy)) return;
+            if (enemy == null || enemy.Pointer == IntPtr.Zero || !Plugin.SafeIsAlive(enemy) || !Plugin.IsWhitelisted(enemy)) return;
 
             // Keep the "engaging a whitelisted enemy" window alive for the whole fight — this method is
             // called while the combat quest runs, so the work-suspension's restore can't fire mid-combat.
@@ -342,7 +342,7 @@ internal static class FleeTriggerPriorityPatch
                     $"remembered={(remembered != null ? Plugin.SafeName(remembered) : "null")}.");
             }
 
-            if (remembered == null || !remembered.IsAlive() || !Plugin.IsWhitelisted(remembered)) return;
+            if (remembered == null || !Plugin.SafeIsAlive(remembered) || !Plugin.IsWhitelisted(remembered)) return;
 
             int boost = Plugin.GetTriggerBoost();
             if (__result < boost)

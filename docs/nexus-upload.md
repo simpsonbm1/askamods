@@ -18,6 +18,8 @@ gh run watch <run-id> --exit-status     # then: gh run view <run-id> --log  → 
 | DynamicVillagerNeedsMod | Dynamic Villager Needs | `7567346` |
 | HealthRegenMod | Passive Health Regen | `7551800` |
 | TreeRespawnMod | Tree and Gatherable Respawner | `7551668` |
+| MineRefreshMod | Mine Refresh | *(Create page to get ID)* |
+| VillagerFightBackMod | Villager Fight Back | *(Create page to get ID)* |
 
 BowDamageMod and TorchFuelMod aren't on Nexus yet — to add one: create its page + first file, then add a line to the workflow's `case` block and an option to the `mod` input.
 
