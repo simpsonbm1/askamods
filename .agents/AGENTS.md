@@ -74,6 +74,7 @@ These are the recurring traps. Full detail in [`docs/architecture.md`](file:///d
 6. **`UniqueId` is NOT globally unique** — per-buffer index restarting per chunk. Key by **world position**.
 7. **Gate all state writes on authority** (`HasAuthority` / `_hasAuthority`).
 8. **Prefer game's own RPCs** over direct networked-state writes for co-op safety.
+9. **Query persistent managers over ephemeral components** — some interactive components (like `CaveWallInteraction` walls) are destroyed and removed from the scene once depleted. To restore them, query their persistent parent managers (like `DigVolume`) which remain in the scene hierarchy, and invoke their native regeneration methods (e.g., `ResetWalls(true)`) to let the game rebuild the visual and physical objects correctly.
 
 ---
 
