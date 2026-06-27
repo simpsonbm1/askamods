@@ -36,3 +36,36 @@ BowDamageMod and TorchFuelMod aren't on Nexus yet — to add one: create its pag
 (e.g. the 1.1.0 note: *"1.1.0: Villagers no longer get stuck at an empty food store … Also adds optional hunger/thirst drain-rate multipliers (default 1.0 = vanilla)."*)
 
 **Main description page (Description tab) — MANUAL, but don't forget it:** the API can't edit it (the mod endpoint is GET-only; verified against the v3 OpenAPI schema). So whenever a pushed/uploaded version adds a **user-facing feature worth calling out on the main page**, the assistant should — after the upload — **ask the user to paste the current Description-tab source**, then regenerate the **full** description block with the new Features/Configuration bits inserted in place (the DynamicVillagerNeedsMod 1.1.0 edit is the template: two Features bullets + the matching Configuration entries) and hand it back for them to paste over the whole description. The upload workflow prints this same reminder in its run summary. Browser-automating the mod-edit form (session-cookie scraping) is the only "API" path and is deliberately avoided (fragile + ToS-sensitive).
+
+---
+
+## Initial Mod Page Setup & Formatting (New Mod Page Drafts)
+
+When creating a new mod page on Nexus Mods, the upload API cannot be used (the page must be created manually first on the website). 
+
+When the user asks to **"draft the mod page"**, you must generate two blocks:
+
+### 1. Short Description (Max 350 characters)
+A punchy, player-facing summary under 350 characters that summarizes what the mod does without technical jargon.
+
+### 2. Main Page BBCode Description
+Use the following standard template and colors to ensure visual consistency across all ASKA mods:
+
+```bbcode
+[size=4][b]Description[/b][/size]
+[size=3][color=#D4D4D8]Describe the main purpose of your mod in player-facing terms. Explain the core mechanics simply without technical dev jargon (e.g. use "Active Retaliation" instead of "FSM behavior swap").[/color][/size]
+
+[size=4][b]Installation instructions[/b][/size]
+[size=3][color=#D4D4D8]1. Install BepInEx 6 (IL2CPP build).
+2. Place the [ModName].dll into your [i]ASKA/BepInEx/plugins/[/i] folder.[/color][/size]
+
+[size=4][b]Main features[/b][/size]
+[size=3][color=#D4D4D8]- Bullet point describing core feature 1
+- Bullet point describing core feature 2
+- Bullet point describing core feature 3[/color][/size]
+
+[size=4][b]Requirements[/b][/size]
+[size=3][color=#D4D4D8]- BepInEx 6 (IL2CPP)
+(Note: Do not list ASKA itself as a requirement, as it is implied by being on the ASKA page)[/color][/size]
+```
+
