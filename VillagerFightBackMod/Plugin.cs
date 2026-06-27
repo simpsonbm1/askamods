@@ -24,17 +24,26 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> EnabledCfg = null!;
     internal static ConfigEntry<string> FightBackAgainst = null!;
     internal static ConfigEntry<string> FightBackFactions = null!;
-    internal static ConfigEntry<bool> SuppressSpook = null!;
-    internal static ConfigEntry<bool> ForceEngage = null!;
-    internal static ConfigEntry<bool> BoostCombatPriority = null!;
-    internal static ConfigEntry<bool> BoostTriggerPriority = null!;
-    internal static ConfigEntry<bool> SuspendWorkWhileEngaged = null!;
-    internal static ConfigEntry<bool> UseNaturalCombatBehaviour = null!;
-    internal static ConfigEntry<bool> PreventFlee = null!;
-    internal static ConfigEntry<bool> TreatAsWarrior = null!;
-    internal static ConfigEntry<bool> PreventRunMovement = null!;
-    internal static ConfigEntry<bool> KeepCombatAlive = null!;
+    internal static ConfigEntry<float> CombatTopUpSeconds = null!;
     internal static ConfigEntry<bool> DebugLogging = null!;
+
+    // Mock entries to preserve references in existing patches without cluttering the config file
+    internal class MockConfigEntry<T>
+    {
+        public T Value { get; }
+        public MockConfigEntry(T val) => Value = val;
+    }
+
+    internal static MockConfigEntry<bool> SuppressSpook = new(true);
+    internal static MockConfigEntry<bool> ForceEngage = new(true);
+    internal static MockConfigEntry<bool> BoostCombatPriority = new(true);
+    internal static MockConfigEntry<bool> BoostTriggerPriority = new(true);
+    internal static MockConfigEntry<bool> SuspendWorkWhileEngaged = new(true);
+    internal static MockConfigEntry<bool> UseNaturalCombatBehaviour = new(true);
+    internal static MockConfigEntry<bool> PreventFlee = new(true);
+    internal static MockConfigEntry<bool> TreatAsWarrior = new(true);
+    internal static MockConfigEntry<bool> PreventRunMovement = new(true);
+    internal static MockConfigEntry<bool> KeepCombatAlive = new(true);
 
     private static string[] _nameTokens = Array.Empty<string>();
     private static string[] _factionTokens = Array.Empty<string>();
@@ -65,106 +74,13 @@ public class Plugin : BasePlugin
                          "(Critters, Danger, Undead, Vikings, Neutral, Structures, Ignore). Coarser than " +
                          "names — e.g. Undead would include draugar. Usually leave empty and use names.");
 
-        SuppressSpook = Config.Bind(
+        CombatTopUpSeconds = Config.Bind(
             section: "VillagerFightBack",
-            key: "SuppressSpook",
-            defaultValue: true,
-            description: "PRIMARY fight-back mechanism. When a whitelisted enemy would spook a villager, " +
-                         "skip the spook entirely so they're never frightened into fleeing it — their " +
-                         "normal chase/attack behavior (which already exists) then continues uninterrupted. " +
-                         "Non-whitelisted enemies (draugar, wolves) still spook & flee normally.");
-
-        ForceEngage = Config.Bind(
-            section: "VillagerFightBack",
-            key: "ForceEngage",
-            defaultValue: true,
-            description: "When a whitelisted enemy attacks, actively set it as the villager's combat " +
-                         "target so they ENTER combat and attack it — instead of ignoring it while " +
-                         "walking to a job (a villager doing a job never enters the combat state on " +
-                         "their own, so they only ever flee). Only sets a target if the villager isn't " +
-                         "already targeting something.");
-
-        BoostCombatPriority = Config.Bind(
-            section: "VillagerFightBack",
-            key: "BoostCombatPriority",
-            defaultValue: true,
-            description: "THE key lever. While a villager is engaged with a whitelisted enemy, raise their " +
-                         "combat quest's priority above work so it HOLDS — a villager with a job otherwise " +
-                         "drops combat instantly because the work quest out-prioritizes it (which is why " +
-                         "they fight when idle but not when busy). Self-limiting: reverts when the enemy is gone.");
-
-        BoostTriggerPriority = Config.Bind(
-            section: "VillagerFightBack",
-            key: "BoostTriggerPriority",
-            defaultValue: true,
-            description: "THE arbitration fix. The QuestRunner selects the active quest by each quest's " +
-                         "TriggerPriority — NOT GetPriority (boosting GetPriority fired in-game but combat " +
-                         "still lost to work, proving the runner gates eligibility on TriggerPriority). A busy " +
-                         "villager's flee-combat quest only spikes its TriggerPriority for an instant when " +
-                         "freshly spooked, so the work quest reclaims her in the gaps and drags her back to the " +
-                         "job marker. This pins her flee-combat quest's TriggerPriority at the flee tier for the " +
-                         "whole encounter (while a whitelisted enemy is remembered), so combat stays selected and " +
-                         "she commits to the fight. Self-reverting: expires ~8s after the enemy is gone.");
-
-        SuspendWorkWhileEngaged = Config.Bind(
-            section: "VillagerFightBack",
-            key: "SuspendWorkWhileEngaged",
-            defaultValue: true,
-            description: "THE arbitration fix (v1.0.13). Idle villagers already fight Wisps fine — the only thing " +
-                         "dragging a busy one off is her active WORK quest out-competing combat. So while she's " +
-                         "engaged with a whitelisted enemy, remove her active work quest (via the game's own " +
-                         "QuestRunner.RemoveQuest, from a QuestRunner.Update poll) so she drops to idle and fights; " +
-                         "add it back (RemoveQuest/AddQuest) once the enemy is gone. Survival/combat/idle quests are " +
-                         "name-protected and never touched. Replaces the priority-boost and FindNextBestQuest " +
-                         "approaches (the latter crashed: its Single& out-param is an IL2CPP trampoline hazard).");
-
-        UseNaturalCombatBehaviour = Config.Bind(
-            section: "VillagerFightBack",
-            key: "UseNaturalCombatBehaviour",
-            defaultValue: true,
-            description: "THE likely real fix (v1.0.14). A villager has TWO combat FSM behaviours: " +
-                         "'fleeCombatBehaviour' (kite/run) and 'naturalCombatBehaviour' (stand & fight). The " +
-                         "FleeCombatQuest runs the FLEE one — which is why she runs even after we remove her job " +
-                         "and force ShouldFight/melee: the running IS the flee combat behaviour itself, not the " +
-                         "job. This postfixes CombatQuest.GetFSMBehavior and, for a whitelisted enemy, returns " +
-                         "VillagerSurvival.naturalCombatBehaviour instead, routing her into the stand-and-fight " +
-                         "FSM (the same one idle villagers use to kill Wisps). Safe signature (QuestData in, " +
-                         "vFSMBehaviour out — both reference types).");
-
-        PreventFlee = Config.Bind(
-            section: "VillagerFightBack",
-            key: "PreventFlee",
-            defaultValue: true,
-            description: "THE actual fix. Blocks the FSM from setting a villager's 'fleeing' flag when " +
-                         "their current combat target is whitelisted, so their combat FSM falls through " +
-                         "to the melee branch (the one that already works when idle) instead of running. " +
-                         "Only applies while targeting a whitelisted enemy; real threats flee normally.");
-
-        TreatAsWarrior = Config.Bind(
-            section: "VillagerFightBack",
-            key: "TreatAsWarrior",
-            defaultValue: true,
-            description: "THE fix. The villager combat FSM branches on 'is this a warrior?' — warriors " +
-                         "melee, non-warriors run. While a villager's current target is whitelisted, we " +
-                         "answer that decision 'yes', routing them into the existing melee behavior " +
-                         "instead of the run-away branch. Only applies vs whitelisted targets.");
-
-        PreventRunMovement = Config.Bind(
-            section: "VillagerFightBack",
-            key: "PreventRunMovement",
-            defaultValue: true,
-            description: "Blocks the FSM_RunFromTarget action (the actual run-away movement) while the " +
-                         "villager's current target is whitelisted. The fear flag is already suppressed; " +
-                         "this stops the remaining physical retreat so the combat FSM can melee instead.");
-
-        KeepCombatAlive = Config.Bind(
-            section: "VillagerFightBack",
-            key: "KeepCombatAlive",
-            defaultValue: true,
-            description: "Keeps a villager's combat timer topped up while engaged with a whitelisted enemy. " +
-                         "A non-warrior's combat ends quickly, dropping them out of melee back to their " +
-                         "previous quest (which reads as running off); this holds them in the fight until " +
-                         "the enemy is gone.");
+            key: "CombatTopUpSeconds",
+            defaultValue: 8.0f,
+            description: "Time in seconds to keep combat active after the last attack. A smaller value " +
+                         "helps villagers return to work faster, but too small might drop combat mid-fight. " +
+                         "Reverts to 0 instantly when the enemy dies.");
 
         DebugLogging = Config.Bind(
             section: "VillagerFightBack",
@@ -182,12 +98,7 @@ public class Plugin : BasePlugin
 
         Logger.LogInfo($"VillagerFightBackMod loaded. Enabled={EnabledCfg.Value}, " +
                        $"FightBackAgainst=\"{FightBackAgainst.Value}\", FightBackFactions=\"{FightBackFactions.Value}\", " +
-                       $"SuppressSpook={SuppressSpook.Value}, ForceEngage={ForceEngage.Value}, " +
-                       $"BoostCombatPriority={BoostCombatPriority.Value}, BoostTriggerPriority={BoostTriggerPriority.Value}, " +
-                       $"SuspendWorkWhileEngaged={SuspendWorkWhileEngaged.Value}, " +
-                       $"UseNaturalCombatBehaviour={UseNaturalCombatBehaviour.Value}, PreventFlee={PreventFlee.Value}, " +
-                       $"TreatAsWarrior={TreatAsWarrior.Value}, PreventRunMovement={PreventRunMovement.Value}, " +
-                       $"KeepCombatAlive={KeepCombatAlive.Value}, DebugLogging={DebugLogging.Value}");
+                       $"CombatTopUpSeconds={CombatTopUpSeconds.Value}, DebugLogging={DebugLogging.Value}");
 
         if (DebugLogging.Value)
         {

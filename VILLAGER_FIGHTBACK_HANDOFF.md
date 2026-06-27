@@ -1,4 +1,4 @@
-# Mod 7 — VillagerFightBackMod — Handoff (COMPLETE — v1.0.22 WORKING; verified in-game)
+# Mod 7 — VillagerFightBackMod — Handoff (COMPLETE — v1.0.23 WORKING; verified in-game)
 
 ## RESOLVED (2026-06-27): v1.0.14 Crash resolved by using C# `as` operator instead of IL2CPP `TryCast`
 The native access violation (**`0xc0000005`**) on startup was caused by calling the native `Il2CppObjectBase.TryCast<T>()` on uninitialized/dummy `QuestData` assets during early engine asset loading. 
@@ -9,7 +9,10 @@ Additionally, to resolve the issue where villagers remained in combat/look-out m
 - Tightened the in-combat top-up threshold to `8f` seconds (rather than `60f` seconds).
 This allows the villager to immediately drop out of combat and restore their suspended work quests within seconds of the fight ending.
 
-**Status as of 2026-06-27:** Deployed **v1.0.22**, launched clean, and verified in-game. Villagers stand and fight Wisps and return to their jobs immediately after.
+**Configuration Cleanup (v1.0.23):**
+Removed all experimental debug and behavioral toggles from the BepInEx configuration file (mocking them internally to always be active). The config file now only contains the essential options: `Enabled`, `FightBackAgainst`, `FightBackFactions`, `CombatTopUpSeconds`, and `DebugLogging`.
+
+**Status as of 2026-06-27:** Deployed **v1.0.23**, launched clean, and verified in-game. Villagers stand and fight Wisps and return to their jobs immediately after.
 
 **Bisection plan (fix path):** the config feature-flags only gate behavior *inside* each postfix — the Harmony
 **detours install regardless** — so bisect at the **source**: comment out groups of `[HarmonyPatch]` classes in

@@ -26,10 +26,11 @@ The solution requires two axes: redirecting the combat behavior FSM and resolvin
 
 ## Config `[VillagerFightBack]`
 (`BepInEx/config/com.askamods.villagerfightback.cfg`)
-- `Enabled` (true)
-- `FightBackAgainst` (`"Wisp"`) — name substrings to fight back against.
-- `FightBackFactions` (`""`) — optional factions (coarser).
-- `DebugLogging` (**false** by default now) — logs when spook events and swaps occur.
+- `Enabled` (`true`) — Master switch.
+- `FightBackAgainst` (`"Wisp"`) — Comma-separated name substrings to fight back against.
+- `FightBackFactions` (`""`) — Optional factions (coarser).
+- `CombatTopUpSeconds` (`8.0`) — Time in seconds to keep combat active after the last attack (ends instantly on enemy death).
+- `DebugLogging` (`false`) — Logs when spook events and swaps occur.
 
 ---
 

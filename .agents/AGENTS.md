@@ -95,7 +95,7 @@ askamods/
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
   (WarehouseFilterMod)       ← Mod 6: hauling filter (DESIGN READY, NO CODE)
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.22]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.23]
   CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]

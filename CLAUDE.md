@@ -85,7 +85,7 @@ askamods/
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.22]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.23]
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9 (WIP tool): in-world seed scorer + in-game map overlay (caves/lakes/hostiles)
   WarpTourMod/               ← Mod 10: teleport-tour every POI so the game drops its OWN native map pins (master on/off switch)

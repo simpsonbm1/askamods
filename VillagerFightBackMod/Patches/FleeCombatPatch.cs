@@ -84,7 +84,9 @@ internal static class FleeCombatShouldFightPatch
                     {
                         if (wl)
                         {
-                            if (__instance._combatTimeRemaining < 4f) __instance._combatTimeRemaining = 8f;
+                            float limit = Plugin.CombatTopUpSeconds.Value;
+                            float threshold = limit / 2f;
+                            if (__instance._combatTimeRemaining < threshold) __instance._combatTimeRemaining = limit;
                         }
                         else if (decisionTarget != null && !isAlive)
                         {
