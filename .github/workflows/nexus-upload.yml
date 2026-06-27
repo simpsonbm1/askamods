@@ -66,8 +66,8 @@ jobs:
             DynamicVillagerNeedsMod) file_id=7567346 ;;   # Dynamic Villager Needs
             HealthRegenMod)          file_id=7551800 ;;   # Passive Health Regen
             TreeRespawnMod)          file_id=7551668 ;;   # Tree and Gatherable Respawner
-            MineRefreshMod)          file_id=YOUR_MINE_REFRESH_GROUP_ID ;; # TODO: Update with real Group ID once created
-            VillagerFightBackMod)    file_id=YOUR_VILLAGER_FIGHTBACK_GROUP_ID ;; # TODO: Update with real Group ID once created
+            MineRefreshMod)          file_id=7586480 ;;
+            VillagerFightBackMod)    file_id=7587134 ;;
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"

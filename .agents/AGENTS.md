@@ -117,9 +117,9 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
-| **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Not on Nexus |
+| **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Group 7587134 |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
-| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Not on Nexus |
+| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Group 7586480 |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |
