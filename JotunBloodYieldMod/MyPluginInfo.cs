@@ -4,6 +4,6 @@ namespace JotunBloodYieldMod
     {
         public const string PLUGIN_GUID = "com.askamods.jotunbloodyield";
         public const string PLUGIN_NAME = "Jotun Blood Yield Mod";
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "1.1.0";
     }
 }
