@@ -19,18 +19,39 @@ Date in-game findings (`confirmed in-game (YYYY-MM-DD)`). Update an existing ent
 and always capture the **dead-ends**, not just what worked — the whole point is to stop a future session
 re-treading a ruled-out path. These doc updates ride along with the related work when it's committed.
 
-## Keep CLAUDE.md ↔ AGENTS.md In Sync (standing instruction)
-The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)**.
-These two files serve the same purpose for their respective tools. Whenever you update one, **also
-update the other** with any new information, pointers, structural changes, or status updates so
-both tools stay current. This includes:
-- New mods or status changes (WIP → COMPLETE, new blockers, etc.)
-- New IL2CPP gotchas or dead-ends
-- New documentation map entries or handoff files
-- Project structure changes
+## Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to (standing instruction)
+The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)** across
+two machines, switching tools when a token budget runs out. These two files are the same orientation
+for different tools and **WILL silently drift unless every session actively runs the checks below.**
+This has already bitten the project: a whole mod (SeedHarvesterMod) went missing from both files, a
+version + technique change (JotunBloodYieldMod v1.1.0) went unrecorded, and CLAUDE.md ended up with a
+duplicated copy of its own body. Treat the three rituals here as non-optional.
 
-If you're unsure whether a change belongs in the orientation file vs. deeper docs, match what the
-other file already does — both should stay parallel in scope and structure.
+**Ritual 1 — Drift check at session START (and again before any commit).** Do not trust the
+orientation files; reconcile them against ground truth first. Verify (commands illustrative — adapt
+to your shell):
+- `ls -d */` → **every** mod folder must appear in BOTH files' Project Structure.
+- `grep -r PLUGIN_VERSION */MyPluginInfo.cs` → the version shown for each mod in BOTH files must match the code.
+- `ls *HANDOFF*.md docs/mods/*.md` → every handoff/mod doc must be in BOTH Documentation Maps.
+- `git log --oneline` since you last worked → scan for new mods, version bumps, status changes,
+  new gotchas, or new docs that never made it into the orientation files.
+Fix every mismatch in BOTH files before starting new work.
+
+**Ritual 2 — Definition of Done (dual-write, blocks the commit).** A change is **NOT done and must
+NOT be committed** until BOTH `CLAUDE.md` AND `.agents/AGENTS.md` reflect it. Edit them in the same
+change whenever you:
+- add / rename / remove a mod folder, or change a mod's status (WIP→COMPLETE, COMPLETE→PARKED/BLOCKED, new blocker);
+- bump a mod version, or change its core technique/approach (update the mod's `docs/mods/*.md` too);
+- add a new IL2CPP gotcha or a dead-end;
+- add a handoff doc or a `docs/mods/` file → add it to BOTH Documentation Maps.
+Tag in-game-verified facts with `confirmed in-game (YYYY-MM-DD)`.
+
+**Ritual 3 — Integrity guard (catch accidental duplication).** After rewriting a whole orientation
+file, confirm you didn't append a second copy instead of replacing: `grep -c "^# AskaMods" CLAUDE.md`
+and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
+
+If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
+does — both stay parallel in scope and structure.
 
 ## Git (false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
