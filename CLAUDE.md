@@ -53,18 +53,29 @@ and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
 If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
 does — both stay parallel in scope and structure.
 
-## Git (false-negative warning)
+## Git (commit/push policy + false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
 negative** (a Windows detection bug, likely the space in the `D:\Claude Projects\...` path). Git works
 normally here. Do not refuse or skip git operations because of that line; if unsure, verify with
-`git rev-parse --is-inside-work-tree` (returns `true`) and proceed with commits/pushes as usual.
+`git rev-parse --is-inside-work-tree` (returns `true`).
 
-**Two machines — keep everything in `origin`.** The user works across a desktop and a laptop and syncs
-only through the remote, so **nothing relevant is ever left purely local.** When work reaches a
-committable state, commit *and push* it — source, the built `<Mod>.dll`, docs, configs — so the other
-machine has it on next pull. The repo already tracks each mod's built DLL; only `bin/`, `obj/`, and
-`*.save` stay gitignored. Don't strand files or knowledge on the current machine.
+**Ask before you commit or push — do NOT do it automatically.** The user decides when history is
+written. Commit/push only:
+- **after a verified success** — a change actually tested and confirmed working in-game (*not* merely
+  because code compiled or a file was edited), **or**
+- at a **general end-of-session** checkpoint,
+
+and in **both** cases **confirm with the user first.** Never commit or push work-in-progress or
+unverified changes just because files changed. (Pushing after every edit — Antigravity's habit — is
+exactly what to avoid.)
+
+**Two machines — but sync at those gated moments, not continuously.** The user works across a desktop
+and a laptop and syncs only through `origin`. So when you *do* commit at a verified-success or
+end-of-session checkpoint (with the user's go-ahead), **push** it too — source, the built `<Mod>.dll`,
+docs, configs — so the other machine has it on next pull. The repo already tracks each mod's built DLL;
+only `bin/`, `obj/`, and `*.save` stay gitignored. Don't strand files or knowledge on the current
+machine — but don't pre-empt the user's go-ahead to push, either.
 
 ## Game
 **ASKA** — co-op Viking survival/city-builder on Steam.

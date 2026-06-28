@@ -50,14 +50,21 @@ and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
 If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
 does — both stay parallel in scope and structure.
 
-### Git
+### Git — ask before committing; never auto-push
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 Session-startup may falsely report "not a git repo" due to the space in `D:\Claude Projects\...`.
 Verify with `git rev-parse --is-inside-work-tree` if unsure. Git works normally.
 
-**Two machines — keep everything in `origin`.** The user works across desktop and laptop, syncing
-only through the remote. When work is committable, **commit AND push** — source, built DLLs, docs,
-configs. Only `bin/`, `obj/`, and `*.save` stay gitignored.
+**Ask before you commit or push — never do it automatically.** Commit/push only **after a verified
+success** (a change actually tested and confirmed working in-game — not just "code changed/compiled")
+**or** at a **general end-of-session** checkpoint, and **confirm with the user first** each time. Do
+NOT push work-in-progress or unverified edits just because files changed. **This is the single most
+important habit to break vs. the previous workflow** — do not push after every code update.
+
+**Two machines — sync at those gated moments only.** The user syncs desktop ↔ laptop solely through
+`origin`, so when you *do* commit (with the user's go-ahead), **push** it — source, built DLLs, docs,
+configs — so the other machine pulls it. Only `bin/`, `obj/`, and `*.save` are gitignored. Don't
+strand files locally, but don't pre-empt the user's go-ahead to push, either.
 
 ---
 
