@@ -39,3 +39,14 @@ If this log appears, the sync hook successfully caught the Client's action, and 
 
 ### [UPDATE 2026-06-27] FAILURE NOTED
 The current `v1.1.7` patch crashes the game on startup. The patches to `GatherInteraction.OnWorldInstanceDataChanged` and `HarvestInteraction._OnWorldInstanceDataChanged` violate rule #5 in `AGENTS.md` (Do not patch Initialize/lifecycle methods on MonoBehaviours). The native engine invokes these before the GC handle is set up, resulting in a fatal `System.InvalidOperationException: Handle is not initialized` in the native->managed trampoline. The `DataSyncPatch` hooks have been temporarily commented out to allow the game to boot. Further work is required to fix the co-op client respawn issue safely.
+
+### [UPDATE 2026-06-28] SUCCESSFUL RESOLUTION
+To bypass the MonoBehaviour lifecycle crashes, we shifted the patch target to the pure C# object that backs these MonoBehaviours. 
+By patching `WorldItemInstance._OnDataChanged(WorldItemInstance __instance)` directly, we intercept the exact same network synchronization event but without triggering the Unity engine's GC handle exceptions (since `WorldItemInstance` is not a `MonoBehaviour`).
+
+Inside the single `DataSyncPatch.cs`:
+1. We check if the `WorldItemInstance` is a `BiomeItemInstance` and has a valid `gameObject`.
+2. We try to `GetComponent<HarvestInteraction>()` or `GetComponent<GatherInteraction>()` off the object.
+3. If found, we evaluate the respawn logic (`harvestPieces.Count`, `CheckAvailableItemCount()`, etc.) just like before, caching it into `Plugin.PendingRespawns` on the host side.
+
+The game now successfully boots, and client actions properly trigger the respawn cycle on the host. The version has been incremented.
