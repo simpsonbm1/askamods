@@ -48,7 +48,7 @@ internal static class HarvestPatch
     }
 }
 
-[HarmonyPatch(typeof(HarvestInteraction), nameof(HarvestInteraction._OnWorldInstanceDataChanged), typeof(WorldItemInstance))]
+// [HarmonyPatch(typeof(HarvestInteraction), nameof(HarvestInteraction._OnWorldInstanceDataChanged), typeof(WorldItemInstance))]
 internal static class HarvestDataSyncPatch
 {
     static void Postfix(HarvestInteraction __instance)

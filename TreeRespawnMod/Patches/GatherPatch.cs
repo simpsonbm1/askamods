@@ -51,7 +51,7 @@ internal static class GatherPatch
     }
 }
 
-[HarmonyPatch(typeof(GatherInteraction), nameof(GatherInteraction.OnWorldInstanceDataChanged), typeof(WorldItemInstance))]
+// [HarmonyPatch(typeof(GatherInteraction), nameof(GatherInteraction.OnWorldInstanceDataChanged), typeof(WorldItemInstance))]
 internal static class GatherDataSyncPatch
 {
     static void Postfix(GatherInteraction __instance)

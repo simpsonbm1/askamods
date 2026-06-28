@@ -36,3 +36,6 @@ During the next co-op session, monitor the `LogOutput.log` on the Host machine w
 > `[TreeRespawnMod] Tree felled (data sync) at <pos>...`
 
 If this log appears, the sync hook successfully caught the Client's action, and the respawn cycle has begun.
+
+### [UPDATE 2026-06-27] FAILURE NOTED
+The current `v1.1.7` patch crashes the game on startup. The patches to `GatherInteraction.OnWorldInstanceDataChanged` and `HarvestInteraction._OnWorldInstanceDataChanged` violate rule #5 in `AGENTS.md` (Do not patch Initialize/lifecycle methods on MonoBehaviours). The native engine invokes these before the GC handle is set up, resulting in a fatal `System.InvalidOperationException: Handle is not initialized` in the native->managed trampoline. The `DataSyncPatch` hooks have been temporarily commented out to allow the game to boot. Further work is required to fix the co-op client respawn issue safely.

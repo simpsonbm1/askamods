@@ -34,12 +34,11 @@ function Dump($fullName) {
     Write-Output "`n##### $($t.FullName)"
     Write-Output "  : $(BaseChain $t)"
     foreach ($i in $t.Interfaces) { Write-Output "  IFACE $($i.InterfaceType.Name)" }
-    foreach ($f in ($t.Fields | Where-Object { -not $_.Name.StartsWith("Native") } | Sort-Object Name)) {
-        $st = ""; if ($f.IsStatic) { $st = "static " }
-        Write-Output "  F $st$($f.FieldType.Name) $($f.Name)"
+    foreach ($f in $t.Fields) {
+        Write-Output ("  F {0} {1}" -f $f.FieldType.Name, $f.Name)
     }
-    foreach ($p in ($t.Properties | Sort-Object Name)) {
-        Write-Output "  P $($p.PropertyType.Name) $($p.Name)"
+    foreach ($p in $t.Properties) {
+        Write-Output ("  P {0} {1}" -f $p.PropertyType.Name, $p.Name)
     }
     foreach ($m in ($t.Methods | Where-Object { -not $_.IsConstructor -and -not $_.IsGetter -and -not $_.IsSetter } | Sort-Object Name)) {
         $st = ""; if ($m.IsStatic) { $st = "static " }
