@@ -100,8 +100,11 @@ askamods/
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
-  JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.0.0]
+  JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
+  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked]
 ```
+
+> **TreeRespawnMod (2)** is at **v1.1.8** — includes the co-op client respawn fix (`COOP_RESPAWN_HANDOFF.md`).
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
 The `CopyToPlugins` MSBuild target handles deployment automatically on build.
@@ -121,13 +124,14 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Group 7587134 |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
 | **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Group 7586480 |
-| **JotunBloodYieldMod** (13) | Patches HarvestSpawner._GetAwardedLootCount and LootSpawner.GetLootStack to map blood stone yields 1->3, 2->5, 3->6 | Not on Nexus |
+| **JotunBloodYieldMod** (13, v1.1.0) | Postfix `HarvestSpawner.Awake` duplicates "Blood"/"Jotun" entries in `pieceLoot`/`bitLoot` (1 entry→3 rolls, 2→6; guard skips lists already ≥3); postfix `LootSpawner.GetLootStack` remaps quantity 1→3, 2→5, 3+→6. (Replaced the old `_GetAwardedLootCount` hook, which didn't reliably fire.) | Not on Nexus |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |
 |---|---|---|
 | **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
 | **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
+| **SeedHarvesterMod** (14) | PARKED — patch disabled | "Fast Harvest" coroutine regenerates seeds in-memory in seconds, but every seed scores `-9999`: cave `AreaInstance` GameObjects are never instantiated by `UpdateDataAsync` (a 1-frame `yield` doesn't force it — dead-end 2026-06-28), so cave positions can't be read. Would need a `GameAssembly.dll` dump to parse raw data buffers. `SEED_HARVESTER_HANDOFF.md`. |
 
 ---
 
@@ -180,6 +184,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`SEED_SCOUT_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_SCOUT_HANDOFF.md) | Mod 9 — worldgen findings, scorer + overlay |
 | [`WARP_TOUR_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WARP_TOUR_HANDOFF.md) | Mod 10 — teleport-tour design + tuning |
 | [`COOP_RESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/COOP_RESPAWN_HANDOFF.md) | Mod 2 — co-op client respawn fix |
+| [`SEED_HARVESTER_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
 
 ---
 
