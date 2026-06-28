@@ -8,8 +8,24 @@ namespace TreeRespawnMod;
 
 public class DayTracker : MonoBehaviour
 {
+    private int _worldCheck;
+
     void Update()
     {
+        // Resolve which world we're in (StorageManager.ActiveSessionID) so we use the right per-world
+        // save file. Poll every frame until known; afterwards poll occasionally to catch a world
+        // switch (loading a different save without restarting the game).
+        if (Plugin.CurrentWorldId == null)
+        {
+            Plugin.PollWorldId();
+            if (Plugin.CurrentWorldId == null) return;
+        }
+        else if (++_worldCheck >= 60)
+        {
+            _worldCheck = 0;
+            Plugin.PollWorldId();
+        }
+
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
         var ws = WeatherSystem.Instance;

@@ -507,6 +507,19 @@ So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, wit
 - `GenerateWorldMapAsync(filterTag)` executes the procedural generation logic, producing a `WorldDataMap` (with `_areaInstances` containing caves/lakes/dens).
 - **CRITICAL BLOCKER:** `WorldGenerator` relies on `RandomGeneratorManager`. Instantiating `RandomGeneratorManager` directly via `AddComponent` throws an NRE in `OnEnable()` and `_PadSeedPhrase()` because it requires serialized IL2CPP struct arrays (like `generatorNames`, `seedKeyLength`) that are normally provided by its prefab. You must find an existing instance or initialize these arrays manually before it can process a seed string.
 
+### Identifying the loaded world / save (for per-world mod state)
+- **Use `SandSailorStudio.Storage.StorageManager.ActiveSessionID` (String).** `StorageManager` is a
+  `MonoBehaviour` — get it via `FindAnyObjectByType<StorageManager>()` — and `ActiveSessionID` is a unique
+  per-save id that **is populated for LOADED saves** (also `_activeSessionName` for a friendly name, plus
+  `LoadActiveSession`, `SaveCurrentSession`, `ScanSaveGames`, `GetStoragePath`, `CreateNewSessionID`). This is
+  the stable key for any mod that must keep per-world state (TreeRespawnMod v1.2.1 keys its respawn save on it).
+  Confirmed in-game 2026-06-28: singleplayer and co-op each produced their own distinct per-world file.
+- **❌ Dead-end — the world SEED is unusable as a world key (confirmed in-game 2026-06-28).** On a *loaded*
+  save the seed is empty/absent: `RandomGeneratorManager.SetSeedPhrase` only fires during fresh world
+  generation, and `RandomGeneratorManager.seedPhrase` / `SSSGame.Network.NetworkSession.Parameters.seed` read
+  back null/empty once a world is loaded (SeedScout's dump shows `Seed = <rng-null>` for the same reason).
+  TreeRespawnMod v1.2.0 tried this and silently did nothing — don't retry it.
+
 ---
 
 ## Villager Schedule / Needs / Happiness System

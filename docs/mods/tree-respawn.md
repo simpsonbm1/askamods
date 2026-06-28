@@ -54,8 +54,41 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
   future troubleshooting.
 
 ## Shared infrastructure
-- Persistence: `com.askamods.treerespawn.save` — sections `# tree` and `# gather`; tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers load as tree entries (backward compatible); a legacy `# mining` section is silently skipped on load.
+- Persistence: **per-world** file `com.askamods.treerespawn.<sanitizedSessionId>-<fnv32>.save` in
+  `BepInEx/config` (v1.2.1; per-world isolation **confirmed in-game 2026-06-28** — singleplayer and co-op
+  produced two separate files). Sections `# tree` and `# gather`;
+  tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers
+  load as tree entries (backward compatible); a legacy `# mining` section is silently skipped on load.
 - Day tracking via registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
+
+## Per-world save isolation (v1.2.1 — confirmed in-game 2026-06-28)
+- **Why:** before v1.2.0 there was ONE global save file (`com.askamods.treerespawn.save`) shared by every
+  world. Entries are keyed only by world position (`x:y:z`), and **positions collide across worlds**
+  (worldgen reuses the same coordinate space), so a singleplayer world and a co-op world cross-contaminated:
+  an entry registered in world A could `Replenish()` or cancel the wrong node — or get consumed — when world
+  B was loaded. This corrupted respawn state and made the save file untrustworthy for diagnosis.
+- **World identity = `SandSailorStudio.Storage.StorageManager.ActiveSessionID`** (a `MonoBehaviour`; also
+  exposes `_activeSessionName` for a friendly label). This is a unique per-save id that IS populated for
+  **loaded** saves. `DayTracker` polls it via `Plugin.PollWorldId()` (`FindAnyObjectByType<StorageManager>()`,
+  then a cheap property read; every frame until resolved, then every ~60 frames to catch a world switch
+  without a restart). Filename fragment = sanitized id + FNV-1a-32 hash (deterministic across runs, unlike
+  `String.GetHashCode`) to stay collision-free.
+- **❌ Dead-end — the world SEED is NOT usable as the key (confirmed in-game 2026-06-28, v1.2.0).** v1.2.0
+  keyed on the seed via a `RandomGeneratorManager.SetSeedPhrase` Postfix + a `NetworkSession.Parameters.seed`
+  fallback. Both are **empty/absent on a LOADED save**: `SetSeedPhrase` only fires during *new-world
+  generation*, and `RandomGeneratorManager`/`NetworkSession.seed` read back null/empty once a world is
+  loaded (SeedScout sees the same thing — its dump logs `Seed = <rng-null>`). Result: `OnWorldSeedKnown`
+  never fired, no per-world file was created, the mod silently did nothing. Don't retry the seed route — use
+  `StorageManager.ActiveSessionID`.
+- **On world switch (id changes without restart):** `OnWorldChanged` flushes the old world's file, clears
+  `PendingRespawns`/`PendingGatherRespawns`/`RegisteredStumps` **and** `ActiveInstances` (drop stale
+  cross-world live pointers — repopulated by `BiomeInstancePatch` as the new world streams in). On the FIRST
+  resolve it deliberately does NOT clear `ActiveInstances` (there's no previous world, and instances may have
+  registered during early load before the poll resolved). Save path is unknown at `BasePlugin.Load()` time
+  (no world picked yet), so loading is deferred until the id is known; `Save/LoadPending` no-op while null.
+- **Migration:** the old global `com.askamods.treerespawn.save` is **not** migrated (we can't tell which
+  world its blended entries belong to) — it's left orphaned and unused; new per-world files start empty.
+- **Co-op:** registration/timers stay `IsServer`-gated, so only the host writes; the host's session id is the key.
 
 ## Mining / stone-clump respawn — abandoned
 Investigated and abandoned; do not re-attempt. Full reasoning is in

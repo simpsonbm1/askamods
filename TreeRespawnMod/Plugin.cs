@@ -36,7 +36,11 @@ public class Plugin : BasePlugin
     // Position → live instance, populated by BiomeInstancePatch as the world loads.
     internal static readonly Dictionary<string, SSSGame.BiomeItemInstance> ActiveInstances = new();
 
-    private static string _saveFilePath = null!;
+    // The current world's StorageManager.ActiveSessionID, set once a world loads (see PollWorldId).
+    // Until it's known we don't know WHICH world we're in, so no pending-respawn file is read/written.
+    internal static string? CurrentWorldId = null;
+
+    private static string? _saveFilePath = null;
 
     public override void Load()
     {
@@ -97,8 +101,10 @@ public class Plugin : BasePlugin
         // (Harvest_Stone4) are Fusion scene objects with no mod-reachable respawn path.
         // See STONE_RESPAWN_HANDOFF.md for the full investigation and why it was abandoned.
 
-        _saveFilePath = Path.Combine(Paths.ConfigPath, "com.askamods.treerespawn.save");
-        LoadPending();
+        // The pending-respawn save file is per-world (keyed by StorageManager.ActiveSessionID) and is
+        // selected only once a world loads — DayTracker calls PollWorldId until it resolves. So
+        // singleplayer and co-op worlds never share or cross-contaminate respawn state (world
+        // positions collide across worlds, so a single shared file would respawn/cancel wrong nodes).
 
         ClassInjector.RegisterTypeInIl2Cpp<DayTracker>();
         var go = new GameObject("TreeRespawnMod_DayTracker");
@@ -124,8 +130,84 @@ public class Plugin : BasePlugin
         return _gatherDefaultDays.Value;
     }
 
+    // ── Per-world save selection ────────────────────────────────────────────────────────────
+    // World identity comes from SandSailorStudio.Storage.StorageManager.ActiveSessionID — a unique
+    // per-save id that is populated for LOADED saves (the world seed is not: it's null on a loaded
+    // save, only set during fresh world generation). DayTracker polls this. We need a per-world save
+    // file because pending respawns are keyed by world position, and positions collide across worlds
+    // (worldgen reuses the same coordinate space) — a single shared file let one world's entries
+    // respawn or cancel the wrong nodes in another (singleplayer ⇄ co-op cross-contamination).
+    private static SandSailorStudio.Storage.StorageManager? _storage;
+
+    // Read the active session id (cheap once the manager is cached) and switch worlds if it changed.
+    internal static void PollWorldId()
+    {
+        try
+        {
+            if (_storage == null)
+                _storage = UnityEngine.Object.FindAnyObjectByType<SandSailorStudio.Storage.StorageManager>();
+            if (_storage == null) return;
+
+            string id = _storage.ActiveSessionID;
+            if (string.IsNullOrEmpty(id)) return;   // at main menu / no session loaded yet
+            if (id == CurrentWorldId) return;        // same world still active
+
+            string name = "";
+            try { name = _storage._activeSessionName ?? ""; } catch { }
+            OnWorldChanged(id, name);
+        }
+        catch { _storage = null; /* re-find next poll */ }
+    }
+
+    private static void OnWorldChanged(string id, string name)
+    {
+        // Leaving a previous world: flush it, then drop its in-memory state + stale live pointers so
+        // the new world can't Replenish/cancel against the old world's instances. (On the very first
+        // resolve there is no previous world, so we keep any instances BiomeInstancePatch already
+        // registered during early load.)
+        if (CurrentWorldId != null)
+        {
+            SavePending();
+            PendingRespawns.Clear();
+            PendingGatherRespawns.Clear();
+            RegisteredStumps.Clear();
+            ActiveInstances.Clear();
+        }
+
+        CurrentWorldId = id;
+        _saveFilePath = Path.Combine(Paths.ConfigPath,
+            $"com.askamods.treerespawn.{SanitizeId(id)}.save");
+
+        LoadPending();
+
+        Logger.LogInfo(
+            $"[TreeRespawnMod] World '{name}' (session {id}) active → {Path.GetFileName(_saveFilePath)} " +
+            $"({PendingRespawns.Count} tree + {PendingGatherRespawns.Count} gather pending).");
+    }
+
+    // Turn an arbitrary session id into a safe, collision-free file-name fragment.
+    private static string SanitizeId(string id)
+    {
+        var sb = new System.Text.StringBuilder(id.Length + 9);
+        foreach (char c in id)
+            sb.Append(char.IsLetterOrDigit(c) ? c : '_');
+        sb.Append('-');
+        sb.Append(StableHash(id).ToString("x8")); // disambiguates ids that sanitize alike
+        return sb.ToString();
+    }
+
+    // FNV-1a 32-bit — deterministic across processes (unlike String.GetHashCode, which is randomized).
+    private static uint StableHash(string s)
+    {
+        uint hash = 2166136261u;
+        foreach (char c in s) { hash ^= c; hash *= 16777619u; }
+        return hash;
+    }
+
     internal static void SavePending()
     {
+        var path = _saveFilePath;
+        if (path == null) return; // no world loaded yet — nothing to persist
         try
         {
             var lines = new List<string>();
@@ -135,7 +217,7 @@ public class Plugin : BasePlugin
             lines.Add("# gather");
             foreach (var kvp in PendingGatherRespawns)
                 lines.Add($"{kvp.Key},{kvp.Value.gameTime.ToString("R", CultureInfo.InvariantCulture)},{kvp.Value.itemName}");
-            File.WriteAllLines(_saveFilePath, lines);
+            File.WriteAllLines(path, lines);
         }
         catch (Exception ex)
         {
@@ -145,11 +227,12 @@ public class Plugin : BasePlugin
 
     private static void LoadPending()
     {
+        var path = _saveFilePath;
+        if (path == null || !File.Exists(path)) return;
         try
         {
-            if (!File.Exists(_saveFilePath)) return;
             string section = "tree"; // default for files written before sections were added
-            foreach (var line in File.ReadAllLines(_saveFilePath))
+            foreach (var line in File.ReadAllLines(path))
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 if (line.StartsWith("# ")) { section = line[2..].Trim(); continue; }

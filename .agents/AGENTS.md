@@ -118,7 +118,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [COMPLETE]
+  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [COMPLETE v1.2.1]
   HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
@@ -132,7 +132,11 @@ askamods/
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked]
 ```
 
-> **TreeRespawnMod (2)** is at **v1.1.8** — includes the co-op client respawn fix (`COOP_RESPAWN_HANDOFF.md`).
+> **TreeRespawnMod (2)** is at **v1.2.1** — co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
+> **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files): the pending-respawn file is keyed
+> by `StorageManager.ActiveSessionID` (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer
+> share/cross-contaminate respawn state. **The world SEED was a dead-end** (empty on loaded saves — v1.2.0
+> silently did nothing); see `docs/mods/tree-respawn.md` + architecture.md "Identifying the loaded world".
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
 The `CopyToPlugins` MSBuild target handles deployment automatically on build.
@@ -145,7 +149,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | Mod | Key Technique | Nexus |
 |---|---|---|
 | **BowDamageMod** (1) | Prefix on `Creature.TakeDamage`, match arrow name in `DamageData.weapon` | Not on Nexus |
-| **TreeRespawnMod** (2) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem` | Group 7551668 |
+| **TreeRespawnMod** (2, v1.2.1) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 | Group 7551668 |
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
@@ -211,7 +215,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — crash debug + behavior-swap approach |
 | [`SEED_SCOUT_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_SCOUT_HANDOFF.md) | Mod 9 — worldgen findings, scorer + overlay |
 | [`WARP_TOUR_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WARP_TOUR_HANDOFF.md) | Mod 10 — teleport-tour design + tuning |
-| [`COOP_RESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/COOP_RESPAWN_HANDOFF.md) | Mod 2 — co-op client respawn fix |
+| [`TREERESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D + diagnosis plan) |
 | [`SEED_HARVESTER_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
 
 ---
