@@ -1,5 +1,7 @@
 # JotunBloodYieldMod
 
+**Status: COMPLETE v1.1.0 — confirmed in-game (2026-06-28)** that the buffed yields drop as intended.
+
 ## Overview
 Modifies the yield of Jotun Blood obtained from mining "Blood Stone" nodes (and anywhere else items with "Blood" in their name drop).
 

@@ -124,7 +124,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Group 7587134 |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
 | **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Group 7586480 |
-| **JotunBloodYieldMod** (13, v1.1.0) | Postfix `HarvestSpawner.Awake` duplicates "Blood"/"Jotun" entries in `pieceLoot`/`bitLoot` (1 entry→3 rolls, 2→6; guard skips lists already ≥3); postfix `LootSpawner.GetLootStack` remaps quantity 1→3, 2→5, 3+→6. (Replaced the old `_GetAwardedLootCount` hook, which didn't reliably fire.) | Not on Nexus |
+| **JotunBloodYieldMod** (13, v1.1.0) | Postfix `HarvestSpawner.Awake` duplicates "Blood"/"Jotun" entries in `pieceLoot`/`bitLoot` (1 entry→3 rolls, 2→6; guard skips lists already ≥3); postfix `LootSpawner.GetLootStack` remaps quantity 1→3, 2→5, 3+→6. (Replaced the old `_GetAwardedLootCount` hook, which didn't reliably fire.) **Confirmed in-game 2026-06-28.** | Not on Nexus |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |
