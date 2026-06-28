@@ -37,6 +37,9 @@ internal static class Scout
     private static bool _discoverDone;
     private static float _discoverTimer;
     private static int _discoverAttempts;
+    
+    private static bool _finalScoreLogged;
+    private static float _finalScoreTimer;
 
     private struct CaveTile
     {
@@ -47,6 +50,7 @@ internal static class Scout
 
     // Read by MapOverlay to draw cave dots on the map.
     internal static IReadOnlyList<Vector2> Caves => _caves;
+    internal static Vector2? BestVillageCenter { get; private set; }
 
     internal static void Tick()
     {
@@ -61,7 +65,8 @@ internal static class Scout
             _lastScoreSig = -1; _caves.Clear(); _caveTiles.Clear();
             _forceLoadDone = false; _settleTimer = 0f; DestroyReqGos();
             _caveAreas.Clear(); _discoverDone = false; _discoverTimer = 0f; _discoverAttempts = 0;
-            Plugin.Lakes.Clear(); Plugin.Hostiles.Clear(); Plugin.RegisteredCaves.Clear();
+            _finalScoreLogged = false; _finalScoreTimer = 0f; BestVillageCenter = null;
+            Plugin.Seas.Clear(); Plugin.Lakes.Clear(); Plugin.Hostiles.Clear(); Plugin.RegisteredCaves.Clear();
             if (heartbeat) Plugin.LogInfo("SeedScout hb: not in a loaded world (BiomesManager = null)");
             return;
         }
@@ -136,6 +141,31 @@ internal static class Scout
                     if (ok >= _caveAreas.Count || _discoverAttempts >= 5) _discoverDone = true;
                 }
                 catch (Exception e) { _discoverDone = true; LogErrorOnce("discover", e); }
+            }
+        }
+
+        if (_forceLoadDone && !_finalScoreLogged)
+        {
+            _finalScoreTimer += Time.deltaTime;
+            if (_finalScoreTimer >= 10f)
+            {
+                _finalScoreLogged = true;
+                string scoreStr = CalculateBestScore(_spawnPos);
+                string seed = SafeRealSeed();
+                if (Plugin.EnableSeedLogging.Value)
+                {
+                    Plugin.Logger.LogInfo($"SeedScout: Seed = {seed}, Score = {scoreStr}");
+                }
+                
+                try 
+                {
+                    string path = System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "SeedScout_Scores.txt");
+                    System.IO.File.AppendAllText(path, $"Seed = {seed}, Score = {scoreStr}{Environment.NewLine}");
+                }
+                catch (Exception e) 
+                {
+                    Plugin.Logger.LogWarning($"SeedScout: Failed to write to scores file: {e.Message}");
+                }
             }
         }
     }
@@ -327,6 +357,7 @@ internal static class Scout
         _caves.Clear();
         _caveTiles.Clear();
         _caveAreas.Clear();
+        Plugin.Seas.Clear();
         var sb = new StringBuilder();
         sb.AppendLine("==================== SeedScout: AREA INSTANCES ====================");
         sb.AppendLine($"REAL seed (RngManager)='{SafeRealSeed()}'   (config default='{SafeActiveSeed()}')");
@@ -357,6 +388,15 @@ internal static class Scout
                         _caveAreas.Add(a);                       // live ref for native-pin discovery
                         var ca = a.TryCast<CaveAreaInstance>();
                         if (ca != null) _caveTiles.Add(new CaveTile(pos, ca.WorldTileId));
+                    }
+                    catch { }
+                }
+                else if (cat == "Sea")
+                {
+                    try
+                    {
+                        var p = a.position;
+                        Plugin.Seas.Add(new Vector2(p.x, p.y));
                     }
                     catch { }
                 }
@@ -407,6 +447,87 @@ internal static class Scout
         Plugin.LogInfo(sb.ToString());
     }
 
+    private static string CalculateBestScore(Vector3 spawn)
+    {
+        var caves = _caves;
+        var lakes = Plugin.Lakes;
+        var seas = Plugin.Seas;
+        var hostiles = Plugin.Hostiles;
+
+        if (caves.Count == 0) return "TBD (no caves)";
+
+        float bestScore = -9999f;
+        string bestScoreBreakdown = "TBD";
+        Vector2? newVillageCenter = null;
+
+        foreach (var c in caves)
+        {
+            float waterDist = float.MaxValue;
+            Vector2 bestWater = Vector2.zero;
+
+            if (lakes.Count > 0)
+            {
+                var l = lakes.OrderBy(x => Horiz2(c, x.Pos)).First();
+                float d = Horiz2(c, l.Pos);
+                if (d < waterDist) { waterDist = d; bestWater = l.Pos; }
+            }
+            if (seas.Count > 0)
+            {
+                var s = seas.OrderBy(x => Horiz2(c, x)).First();
+                float d = Horiz2(c, s);
+                if (d < waterDist) { waterDist = d; bestWater = s; }
+            }
+
+            if (waterDist == float.MaxValue) continue;
+
+            float score = 100f; 
+            float waterScore = 1000f - (waterDist * 2.5f);
+            score += waterScore;
+
+            Vector2 villageCenter = (c + bestWater) / 2f;
+            float huntingScore = 0f;
+            float dangerPenalty = 0f;
+            int wulfarCount = 0;
+            int nonWulfarCount = 0;
+
+            foreach (var h in hostiles)
+            {
+                float dVillage = Horiz2(villageCenter, h.Pos);
+                float dCave = Horiz2(c, h.Pos);
+                
+                // Penalty for being too close to the mine (workers get harassed)
+                if (dCave < 150f) 
+                {
+                    dangerPenalty -= 40f;
+                }
+
+                if (h.IsWulfar)
+                {
+                    if (dVillage < 400f) { dangerPenalty -= 20f; wulfarCount++; } // Too close! Harassment threat.
+                    else if (dVillage <= 700f) { huntingScore += 30f; wulfarCount++; } // Sweet spot for hunters
+                }
+                else
+                {
+                    if (dVillage <= 300f) { dangerPenalty -= 40f; nonWulfarCount++; }
+                }
+            }
+
+            score += huntingScore + dangerPenalty;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                newVillageCenter = villageCenter;
+                bestScoreBreakdown = $"{score:0} (cave={c.x:0},{c.y:0} waterDist={waterDist:0}m wulfars={wulfarCount} hostiles={nonWulfarCount})";
+            }
+        }
+
+        BestVillageCenter = newVillageCenter;
+
+        if (bestScore == -9999f) return "TBD (no water found)";
+        return bestScoreBreakdown;
+    }
+
     // AreaInstance is a plain Il2CppSystem.Object — TryCast is valid (gotcha is only UnityEngine.Object).
     private static string Categorize(AreaInstance a)
     {
@@ -435,6 +556,16 @@ internal static class Scout
 
     private static string SafeRealSeed()
     {
+        try
+        {
+            var session = UnityEngine.Object.FindObjectOfType<SSSGame.Network.NetworkSession>();
+            if (session != null && session.Parameters != null && !string.IsNullOrEmpty(session.Parameters.seed))
+            {
+                return session.Parameters.seed;
+            }
+        }
+        catch (Exception e) { Plugin.Logger.LogWarning($"SeedScout: NetworkSession seed read error: {e.Message}"); }
+
         try
         {
             var rng = Plugin.Rng;

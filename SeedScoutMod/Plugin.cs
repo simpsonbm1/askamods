@@ -41,6 +41,10 @@ internal struct HostileHit
     {
         Pos = pos; Kind = kind; Name = name; Threat = threat;
     }
+
+    public bool IsWulfar => !string.IsNullOrEmpty(Name) && 
+                            (Name.IndexOf("Wulfar", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             Name.IndexOf("Wolf", System.StringComparison.OrdinalIgnoreCase) >= 0);
 }
 
 // PROBE v0.4 — introspection only.
@@ -60,7 +64,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> ForceLoadRadius = null!;
     internal static ConfigEntry<bool> RevealNativePins = null!;
     internal static ConfigEntry<bool> EnableLogging = null!;
+    internal static ConfigEntry<bool> EnableSeedLogging = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
+    internal static readonly List<Vector2> Seas = new();
     internal static readonly List<LakeHit> Lakes = new();
     internal static readonly List<HostileHit> Hostiles = new();
 
@@ -88,6 +94,10 @@ public class Plugin : BasePlugin
             "Master switch for SeedScout's informational log output (the 5s heartbeat, per-spawn lake/den/" +
             "camp captures, area-tree dumps, etc.). Set false to silence the spam so other mods' log lines " +
             "are easy to find. Genuine warnings/errors and the one-time load line still show regardless.");
+
+        EnableSeedLogging = Config.Bind("SeedScout", "EnableSeedLogging", true,
+            "When true, logs a succinct 'Seed = X, Score = Y' line as the map streams, independent of EnableLogging. " +
+            "Turn off EnableLogging and keep this on for a clean seed-hunting workflow.");
 
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");

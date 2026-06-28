@@ -119,6 +119,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing a mod update to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
 | [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |
+| [`WAREHOUSE_CAPACITY_HANDOFF.md`](WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |
 | [`DYNAMIC_NEEDS_HANDOFF.md`](DYNAMIC_NEEDS_HANDOFF.md) | DynamicVillagerNeedsMod handoff |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — VillagerFightBackMod test run + fallback |
 | [`SEED_SCOUT_HANDOFF.md`](SEED_SCOUT_HANDOFF.md) | Mod 9 — SeedScoutMod: worldgen findings, seed scorer + map overlay (WIP) |

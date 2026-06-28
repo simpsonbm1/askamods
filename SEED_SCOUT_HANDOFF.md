@@ -1,9 +1,7 @@
 # SeedScoutMod — Handoff (Mod 9, WIP)
 
-**Last build: v0.15.0** (built, deployed). Force-load + **radius** (config `SeedScout/ForceLoadRadius`,
-default 2; tested up to 3 = 101–118 tiles, no hitch) are **CONFIRMED working (2026-06-24)** — fills the
-"first map" with caves/lakes/dens, player stationary. Cave dots are **gray**. **`Den` capture verified**;
-`HostileVikingSettlement`/EnemyCamp still unverified (none in test seeds). Seed read still `<rng-null>`.
+**Last build: v0.16.5** (built, deployed).
+**Status**: [COMPLETE] — Seed reading resolved via NetworkSession, automated seed scoring implemented and tuned, map overlay colors differentiated (orange for Wulfars, blue for Seas, green for optimal village center), and automatic output to `SeedScout_Scores.txt` implemented.
 
 > **Native map pins were SOLVED in a separate mod — `WarpTour` (Mod 10), see [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md).**
 > A teleport tour discovers every POI for real, so the game drops its own pins. SeedScout deliberately stays

@@ -1,0 +1,1251 @@
+﻿========== SUBTYPES ==========
+
+[derives from WorldItemInstance]
+  SSSGame.BiomeItemInstance  (WorldItemInstance -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.InventoryItemInstance  (WorldItemInstance -> Object -> Il2CppObjectBase -> Object)
+
+[derives from WorldItemDescriptor]
+  SSSGame.BiomeItemDescriptor  (WorldItemDescriptor -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.InventoryItemDescriptor  (WorldItemDescriptor -> Object -> Il2CppObjectBase -> Object)
+
+[derives from Interaction]
+  SSSGame.BuildInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PaintInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.ProxyRepairInteraction  (RepairInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.RepairInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.VillagerSupplyInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.AnvilInteraction  (CraftInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.BellowsInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CarpenterInteraction  (AnvilInteraction -> CraftInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CraftInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CrockpotInteraction  (CookingInteraction -> StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.DyeingInteraction  (CraftInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.ForgeInteraction  (CookingInteraction -> StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.KilnInteraction  (CookingInteraction -> StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.TroughInteraction  (StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.ActivationInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CartInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CharacterCustomizationInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CommandInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CreatureInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.DiningInteraction  (RestInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.DoorInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.FarmCropInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.HealInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.RefuelableInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.LadderInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.MultiInteractionProxy  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PenInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PetInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PlayerInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PottyInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PrayInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.ProxyActivatableInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.RestInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.RowingInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.SimpleInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.StowCreatureInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.StructureInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.StudyInteraction  (StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.TerraformingFieldInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.TerraformingSplineInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.TootInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.VillagerInteraction  (StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.WorkstationInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CavePillarInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CaveWallInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.CookingInteraction  (StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.DigInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.FireInteraction  (RefuelableInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.RefuelInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.FishingInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.GatherInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.HarvestInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.NestInteraction  (StorageInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.PickupInteraction  (ProxyActivatableInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.StorageInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.AnchorInteraction  (BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.BattleshipInteraction  (HoldFastInteraction -> BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.BoatInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.EmbarkInteraction  (HoldFastInteraction -> BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.HoldFastInteraction  (BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.PickupCreatureInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.RideCreatureInteraction  (PickupCreatureInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.RudderInteraction  (BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.SailInteraction  (BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Water.TowInteraction  (BoatInteraction -> Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+  SSSGame.Combat.TrapInteraction  (Interaction -> MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object)
+
+
+========== TYPE NAME SEARCH (game types only) ==========
+
+[type ~ 'Stone']
+  SSSGame.Combat.StoneGolemBoss
+  SSSGame.Combat.StoneGolemBoss/__StoneRecoveryRoutine_d__77
+  SSSGame.Combat.StoneGolemMinion
+  SSSGame.Combat.StoneGolemMinion/__StoneRecoveryRoutine_d__42
+  SSSGame.Combat.StoneGolemTotem
+
+[type ~ 'Harvest']
+  SSSGame.AI.FindHarvestingToolsQuest
+  SSSGame.AI.FindHarvestingToolsQuest/FindHarvestingToolsQuestData
+  SSSGame.AI.FSM.FSM_AquireHarvestTool
+  SSSGame.AI.FSM.FSM_GatherAndHarvest
+  SSSGame.AI.FSM.FSM_HarborHarvest
+  SSSGame.AI.FSM.FSM_HarborHarvest/HarvestData
+  SSSGame.AI.FSM.FSM_HarborHarvest/HarvestStage
+  SSSGame.AI.FSM.FSM_MineGatherAndHarvest
+  SSSGame.AI.FSM.FSM_ReturnHarvest
+  SSSGame.AI.FSM.RavenHarvestFilter
+  SSSGame.AI.GatherAndHarvestQuest
+  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData
+  SSSGame.AI.HarborHarvestQuest
+  SSSGame.AI.HarborHarvestQuest/HarborHarvestQuestData
+  SSSGame.AI.HarvestMarkerComplaint
+  SSSGame.AI.WaitForHarvestMarkerTask
+  SSSGame.Combat.HarvestDamageReceiver
+  SSSGame.Deeds.HarvestCondition
+  SSSGame.Deeds.HarvestEventData
+  SSSGame.HarvestInteraction
+  SSSGame.HarvestInteraction/HarvestPiece
+  SSSGame.HarvestMarker
+  SSSGame.HarvestMarkerAreaType
+  SSSGame.HarvestMarkerAutobuilderHelper
+  SSSGame.HarvestSpawner
+  SSSGame.IDamageHarvestable
+  SSSGame.IResourceHarvestModifier
+  SSSGame.LiveOps.HarvestAnalyticsHelper
+  SSSGame.Network.NetworkHarvestMarkerState
+  SSSGame.PetHarvestInteractionConfig
+  SSSGame.PetHarvestInteractionConfig/PetHarvestInteractionSession
+  SSSGame.PlayerHarvestInteractionConfig
+  SSSGame.PlayerHarvestInteractionConfig/PlayerHarvestInteractionSession
+  SSSGame.SerializedHarvestMarker
+  SSSGame.SmolkrPenHarvestQuest
+  SSSGame.SmolkrPenHarvestQuest/SmolkrPenHarvestQuestData
+  SSSGame.UI.ContextMenu/HarvestCustomActionEventData
+  SSSGame.VillagerHarvestInteractionConfig
+  SSSGame.VillagerHarvestInteractionConfig/VillagerHarvestInteractionSession
+
+[type ~ 'Resource']
+  Controls/IResourceFinderActions
+  Controls/ResourceFinderActions
+  SSSGame.AI.AquireResourcesQuest
+  SSSGame.AI.FSM.FSM_TryFindResourceTarget
+  SSSGame.AI.FSM.FSM_TryFindTargetResource
+  SSSGame.AI.FSM.HiddenFromResourceGatherersFilter
+  SSSGame.AI.ResourceFetchTask
+  SSSGame.AI.ResourceGatherStep
+  SSSGame.AI.ResourceGatherTask
+  SSSGame.AI.ResourceStorageComplainQuest
+  SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData
+  SSSGame.AI.ResourceStorageTaskData
+  SSSGame.AI.WorkstationIdleQuest/ResourceStorageIdleQuestData
+  SSSGame.BiomeResourceInfo
+  SSSGame.CaveCustomizationData/ResourceMultiplierData
+  SSSGame.CaveResourceStorage
+  SSSGame.Combat.ResourceSpawnEvent
+  SSSGame.Combat.ResourceSpawnEvent/ResourceSpawnEventAdditionalData
+  SSSGame.Combat.ResourceSpawnEvent/ResourceSpawnEventConfig
+  SSSGame.IResourceAgent
+  SSSGame.IResourceDataQueryProcessor
+  SSSGame.IResourceGatherModifier
+  SSSGame.IResourceHarvestModifier
+  SSSGame.IResourceHealthModifier
+  SSSGame.IResourceProvider
+  SSSGame.IResourceResupply
+  SSSGame.IResourceStorageSite
+  SSSGame.MineResourceConfig
+  SSSGame.Network.NetworkCompositeResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_12
+  SSSGame.Network.NetworkSimpleResourceStorage_2
+  SSSGame.Network.NetworkSimpleResourceStorage_22
+  SSSGame.Network.NetworkSimpleResourceStorage_3
+  SSSGame.Network.NetworkSimpleResourceStorage_4
+  SSSGame.Network.NetworkSimpleResourceStorage_42
+  SSSGame.Network.NetworkSimpleResourceStorage_45
+  SSSGame.Network.NetworkSimpleResourceStorage_5
+  SSSGame.Network.NetworkSimpleResourceStorage_8
+  SSSGame.PlayerInteractionAgent/__ResourceFinderRoutine_d__179
+  SSSGame.PositionObject/__RemoveResources_d__36
+  SSSGame.PreviewManager/InvalidResourceHighlightEntry
+  SSSGame.ResourceCheckQueryProcessor
+  SSSGame.ResourceFindAllProcessor
+  SSSGame.ResourceFindDebugger
+  SSSGame.ResourceFindDebugger/ResourceFindItem
+  SSSGame.ResourceFindQueryProcessor
+  SSSGame.ResourceInfo
+  SSSGame.ResourceInstance
+  SSSGame.ResourceItem
+  SSSGame.ResourceManager
+  SSSGame.ResourceManager/__SpawnResourceAroundSettlement_d__63
+  SSSGame.ResourceManager/FindResourceResult
+  SSSGame.ResourceMaterialConfig
+  SSSGame.ResourceObject
+  SSSGame.ResourceOutlet
+  SSSGame.ResourcePieces
+  SSSGame.ResourcePileDisplay
+  SSSGame.ResourcePositionSearchConfig
+  SSSGame.ResourceQuadTree
+  SSSGame.ResourceQuadTreeNode
+  SSSGame.ResourceRowDisplay
+  SSSGame.ResourceSearchContext
+  SSSGame.ResourceSerializableFactory
+  SSSGame.ResourceStorage
+  SSSGame.TestSpawnResources
+  SSSGame.UI.SelectActionMenu/ResourceStorageEntry
+  SSSGame.Vegetation.ResourceVegetationConfig
+  SSSGame.Vegetation.ResourceVegetationConfig/VegetationResource
+  SSSGame.Vegetation.ResourceVegetationScanner
+  SSSGame.VegetationResourceInfo
+  SSSGame.VegetationResourceItem
+  SSSGame.VehicleResourceStorage
+  TMPro.TMP_DefaultControls/Resources
+  UnityEngine.Application/get_isBuildingEditorResourcesDelegate
+  UnityEngine.Rendering.GPUInstanceDataBufferGrower/GPUResources
+  UnityEngine.Rendering.GPUInstanceDataBufferUploader/GPUResources
+  UnityEngine.Rendering.GPUPrefixSum/RenderGraphResources
+  UnityEngine.Rendering.GPUPrefixSum/SupportResources
+  UnityEngine.Rendering.GPUPrefixSum/SystemResources
+  UnityEngine.Rendering.GPUSort/RenderGraphResources
+  UnityEngine.Rendering.GPUSort/SupportResources
+  UnityEngine.Rendering.GPUSort/SystemResources
+  UnityEngine.Rendering.HighDefinition.HDShadowManager/BindShadowGlobalResourcesPassData
+  UnityEngine.Rendering.HighDefinition.UpscalerResources/CameraResources
+  UnityEngine.Rendering.HighDefinition.UpscalerResources/CameraResourcesHandles
+  UnityEngine.Rendering.HighDefinition.UpscalerResources/ViewResourceHandles
+  UnityEngine.Rendering.HighDefinition.UpscalerResources/ViewResources
+  UnityEngine.Rendering.LineRendering/SystemResources
+  UnityEngine.Rendering.ProbeReferenceVolume/RuntimeResources
+  UnityEngine.Rendering.RenderGraphModule.RenderGraph/CompiledResourceInfo
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphPass/RandomWriteResourceInfo
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphResourcePool`1/ResourceLogInfo
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphResourceRegistry/RenderGraphResourcesData
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphResourceRegistry/ResourceCallback
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphResourceRegistry/ResourceCreateCallback
+  UnityEngine.Rendering.Sampling.SamplingResources/ResourceType
+  UnityEngine.Rendering.STP/RuntimeResources
+  UnityEngine.Rendering.STP/ShaderResources
+  UnityEngine.Resources/UnloadAssetImplResourceManager_InjectedDelegate
+  UnityEngine.Terrain/get_freeUnusedRenderingResources_InjectedDelegate
+  UnityEngine.Terrain/get_keepUnusedRenderingResources_InjectedDelegate
+  UnityEngine.Terrain/GetKeepUnusedCameraRenderingResources_InjectedDelegate
+  UnityEngine.Terrain/set_freeUnusedRenderingResources_InjectedDelegate
+  UnityEngine.Terrain/set_keepUnusedRenderingResources_InjectedDelegate
+  UnityEngine.UI.DefaultControls/Resources
+  UnityEngine.Windows.WebCam.PhotoCapture/OnCaptureResourceCreatedCallback
+  UnityEngine.Windows.WebCam.VideoCapture/OnVideoCaptureResourceCreatedCallback
+
+[type ~ 'Deposit']
+  SSSGame.AI.FSM.FSM_SmolkrDepositSmilk
+
+[type ~ 'Ore']
+  AnimatorEventUnityEvent
+  AwesomeTechnologies.ColliderSystem.ColliderManager/MultiBeforeDestroyColliderDelegate
+  AwesomeTechnologies.ColliderSystem.ColliderSystemPro/MultiBeforeDestroyColliderDelegate
+  AwesomeTechnologies.VegetationSystem.VegetationSystemPro/MultiOnVegetationStudioRefreshDelegate
+  ForestMaker
+  Fusion.NetworkRunner/OnBeforeSpawned
+  Fusion.Simulation/StateReplicatorEventualConsistencyBase
+  Fusion.Simulation/StateReplicatorEventualConsistencyClientServer
+  Fusion.Simulation/StateReplicatorEventualConsistencyShared
+  Invector.vEventSystems.vAnimatorEvent/vAnimatorEventTrigger
+  Invector.vEventSystems.vAnimatorEventReceiver/vAnimatorEvent
+  Invector.vEventSystems.vAnimatorTagAdvanced/vAnimatorEventTriggerType
+  MagicaCloth2.TransformData/RestoreTransformJob
+  MagicaCloth2.TransformManager/RestoreBaseTransformJob
+  MagicaCloth2.TransformManager/RestoreTransformJob
+  Newtonsoft.Json.JsonTextReader/_DoReadAsBooleanAsync_d__40
+  Newtonsoft.Json.JsonTextReader/_DoReadAsBytesAsync_d__42
+  Newtonsoft.Json.JsonTextReader/_DoReadAsDateTimeAsync_d__45
+  Newtonsoft.Json.JsonTextReader/_DoReadAsDateTimeOffsetAsync_d__47
+  Newtonsoft.Json.JsonTextReader/_DoReadAsDecimalAsync_d__49
+  Newtonsoft.Json.JsonTextReader/_DoReadAsDoubleAsync_d__51
+  Newtonsoft.Json.JsonTextReader/_DoReadAsInt32Async_d__53
+  Newtonsoft.Json.JsonTextReader/_DoReadAsStringAsync_d__55
+  Newtonsoft.Json.JsonTextReader/_DoReadAsync_d__3
+  Newtonsoft.Json.Linq.JToken/_BeforeSelf_d__50
+  PlayFab.Events.PlayFabEvents/PlayFabErrorEvent
+  PlayFab.Internal.PlayFabHttp/ApiProcessErrorEvent
+  RootMotion.FinalIK.InteractionObject/AnimatorEvent
+  SandSailorStudio.WorldGen.BiomemapDistributionNode/ComputeSDFFromShorelineJob
+  SSSGame.AI.AnimatorManager/AnimatorEnabler
+  SSSGame.AI.AutoRepathMode
+  SSSGame.AI.FSM.FSM_AnimatorEvent
+  SSSGame.AI.FSM.FSM_CanDoReligion
+  SSSGame.AI.FSM.FSM_CanSitAtCore
+  SSSGame.AI.FSM.FSM_DoReligion
+  SSSGame.AI.FSM.FSM_HasTargetGotThreatScore
+  SSSGame.AI.FSM.FSM_ResetController/ThingsToReset
+  SSSGame.AI.FSM.FSM_SetClosestCorePosition
+  SSSGame.AnimatorEventPlaySounds
+  SSSGame.BiomeDetectorEvents
+  SSSGame.Combat.ForestryCellProcess
+  SSSGame.CoreStructure
+  SSSGame.DoorInteraction/DoorEvents
+  SSSGame.ForesterComplaintQuest
+  SSSGame.ForesterComplaintQuest/ForesterComplaintData
+  SSSGame.ForesterIdleQuest
+  SSSGame.ForesterIdleQuest/ForesterIdleQuestData
+  SSSGame.ForesterPlantQuest
+  SSSGame.ForesterPlantQuest/ForesterPlantQuestData
+  SSSGame.ForestryCellDataContainer
+  SSSGame.ForestryCellMap
+  SSSGame.ForestryCellState
+  SSSGame.ForestryCellTester
+  SSSGame.ForestryCrop
+  SSSGame.ForestryDataHandler
+  SSSGame.ForestryStation
+  SSSGame.GameState_Play/__MoveCharacterToRespawnPoint_d__83
+  SSSGame.Monster/__WaitForEquipment_d__69
+  SSSGame.Network.IBeforeSpawned
+  SSSGame.Network.NetworkChatSession/__ConnectToRegion_d__44
+  SSSGame.Network.NetworkForester
+  SSSGame.Network.NetworkForester_10
+  SSSGame.Network.NetworkForester_15
+  SSSGame.Network.NetworkSession/_ConnectToRegion_d__107
+  SSSGame.Network.NetworkWorldDataManager/CaveExploreChange
+  SSSGame.StructureScoreManager
+  SSSGame.UI.CreateOrEditTaskPage
+  SSSGame.UI.ForestryPainterPanel
+  SSSGame.UI.MapMenu/__BeforeCloseRoutine_d__68
+  SSSGame.UI.StatisticsMenuParameters/IScoreEntry
+  SSSGame.UI.StatisticsMenuParameters/ScoreDataEntry
+  SSSGame.UI.StatisticsMenuParameters/ScoreHeaderEntry
+  SSSGame.UI.StatisticsMenuParameters/ScoreSeparator
+  SSSGame.UI.TrialOverMenu/__ShowScoreRoutine_d__16
+  SSSGame.UI.UIGameMapManager/Explorer
+  SSSGame.Weather.WeatherSystem/Forecast
+  Steamworks.ISteamMatchmakingPingResponse/InternalServerFailedToRespond
+  Steamworks.ISteamMatchmakingPingResponse/ServerFailedToRespond
+  Steamworks.ISteamMatchmakingPlayersResponse/InternalPlayersFailedToRespond
+  Steamworks.ISteamMatchmakingPlayersResponse/PlayersFailedToRespond
+  Steamworks.ISteamMatchmakingRulesResponse/InternalRulesFailedToRespond
+  Steamworks.ISteamMatchmakingRulesResponse/RulesFailedToRespond
+  Steamworks.ISteamMatchmakingServerListResponse/InternalServerFailedToRespond
+  Steamworks.ISteamMatchmakingServerListResponse/ServerFailedToRespond
+  Ua2CoreInitializeCallback
+  Unity.Curl.UnityCurl/GetMoreBodyDelegate
+  Unity.Curl.UnityCurl/SendMoreBodyDelegate
+  Unity.Properties.Internal.PropertyBagStore/TypedStore`1
+  Unity.Services.Core.Internal.CoreDiagnostics/_SendCoreDiagnosticsAsync_d__24
+  Unity.Services.Core.Registration.CorePackageInitializer/_GetSerializedConfigOrEmptyAsync_d__54
+  UnityEngine.AI.NavMeshAgent/get_autoRepath_InjectedDelegate
+  UnityEngine.Android.AndroidAssetPacks/CoreUnityAssetPacksDownloadedDelegate
+  UnityEngine.AndroidJNI/ToReflectedFieldDelegate
+  UnityEngine.AndroidJNI/ToReflectedMethodDelegate
+  UnityEngine.AudioRenderer/Internal_AudioRenderer_AddMixerGroupSink_InjectedDelegate
+  UnityEngine.AudioRenderer/Internal_AudioRenderer_GetSampleCountForCaptureFrameDelegate
+  UnityEngine.AudioRenderer/Internal_AudioRenderer_RenderDelegate
+  UnityEngine.AudioRenderer/Internal_AudioRenderer_StartDelegate
+  UnityEngine.AudioRenderer/Internal_AudioRenderer_StopDelegate
+  UnityEngine.AudioSource/get_ignoreListenerPause_InjectedDelegate
+  UnityEngine.AudioSource/get_ignoreListenerVolume_InjectedDelegate
+  UnityEngine.AudioSource/set_ignoreListenerPause_InjectedDelegate
+  UnityEngine.AudioSource/set_ignoreListenerVolume_InjectedDelegate
+  UnityEngine.Camera/get_forceIntoRenderTexture_InjectedDelegate
+  UnityEngine.Camera/RenderDontRestore_InjectedDelegate
+  UnityEngine.Camera/set_forceIntoRenderTexture_InjectedDelegate
+  UnityEngine.ClusterSerialization/RestoreClusterInputStateInternalDelegate
+  UnityEngine.ClusterSerialization/RestoreInputManagerStateInternalDelegate
+  UnityEngine.ClusterSerialization/RestoreTimeManagerStateInternalDelegate
+  UnityEngine.EnumTests/ParameterOutVectorEnum_InjectedDelegate
+  UnityEngine.EnumTests/ParameterVectorEnum_InjectedDelegate
+  UnityEngine.InputSystem.Utilities.SavedStructState`1/TypedRestore
+  UnityEngine.IO.File/GetMainThreadFileIORestrictionDelegate
+  UnityEngine.IO.File/SetMainThreadFileIORestrictionDelegate
+  UnityEngine.LensFlare/get_ignoreLayers_InjectedDelegate
+  UnityEngine.LensFlare/set_ignoreLayers_InjectedDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/IgnorePhysicsJoint_Create_InjectedDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/IgnorePhysicsJoint_GetDefaultDefinition_InjectedDelegate
+  UnityEngine.Physics/GetIgnoreCollision_InjectedDelegate
+  UnityEngine.Physics/GetIgnoreLayerCollisionDelegate
+  UnityEngine.Physics/IgnoreLayerCollisionDelegate
+  UnityEngine.Physics2D/GetIgnoreCollision_InjectedDelegate
+  UnityEngine.Physics2D/GetIgnoreLayerCollision_InternalDelegate
+  UnityEngine.Physics2D/IgnoreCollision_InjectedDelegate
+  UnityEngine.Physics2D/IgnoreLayerCollision_InternalDelegate
+  UnityEngine.PlayerLoop.EarlyUpdate/AnalyticsCoreStatsUpdate
+  UnityEngine.PlayerLoop.EarlyUpdate/ARCoreUpdate
+  UnityEngine.PlayerLoop.EarlyUpdate/PresentBeforeUpdate
+  UnityEngine.Projector/get_ignoreLayers_InjectedDelegate
+  UnityEngine.Projector/set_ignoreLayers_InjectedDelegate
+  UnityEngine.QualitySettings/get_streamingMipmapsMaxFileIORequestsDelegate
+  UnityEngine.QualitySettings/set_streamingMipmapsMaxFileIORequestsDelegate
+  UnityEngine.RenderBuffer/GetStoreActionDelegate
+  UnityEngine.RenderBuffer/SetStoreActionDelegate
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline/RestoreNonJitteredPassData
+  UnityEngine.Rendering.LoadStoreActionDebugModeSettings/get_LoadStoreDebugModeEnabledDelegate
+  UnityEngine.Rendering.LoadStoreActionDebugModeSettings/set_LoadStoreDebugModeEnabledDelegate
+  UnityEngine.Rendering.PostProcessing.PostProcessRenderContext/StereoRenderingMode
+  UnityEngine.RenderingLayerMask/NameToRenderingLayer_InjectedDelegate
+  UnityEngine.RenderTexture/MarkRestoreExpected_InjectedDelegate
+  UnityEngine.ScreenCapture/CaptureScreenshotIntoRenderTexture_InjectedDelegate
+  UnityEngine.StringTests/ParameterCoreString_InjectedDelegate
+  UnityEngine.StringTests/ParameterCoreStringVectorDelegate
+  UnityEngine.StringTests/ReturnCoreString_InjectedDelegate
+  UnityEngine.StringTests/ReturnCoreStringRef_InjectedDelegate
+  UnityEngine.StringTests/ReturnCoreStringVectorDelegate
+  UnityEngine.SystemInfo/SupportsStoreAndResolveActionDelegate
+  UnityEngine.Terrain/get_ignoreQualitySettings_InjectedDelegate
+  UnityEngine.Terrain/set_ignoreQualitySettings_InjectedDelegate
+  UnityEngine.Texture/Internal_GetStoredColorSpace_InjectedDelegate
+  UnityEngine.Texture2D/IgnoreMipmapLimit_InjectedDelegate
+  UnityEngine.Texture2DArray/IgnoreMipmapLimit_InjectedDelegate
+  UnityEngine.Texture2DArray/SetIgnoreMipmapLimitAndReload_InjectedDelegate
+  UnityEngine.UIElements.DataBindingManager/IgnoreUIChangesData
+  UnityEngine.UIElements.DataBindingManager/IgnoreUIChangesScope
+  UnityEngine.UIElements.Experimental.EventDebugger/<DoReplayEvents>d__34
+  UnityEngine.UIElements.Layout.LayoutDataStore/ComponentDataStore
+  UnityEngine.UIElements.UIR.Utility/IsScissorEnabledDelegate
+  UnityEngine.UIElements.VisualManager/GetClassNameStore_InjectedDelegate
+  UnityEngine.VFX.VFXSpawnerState/get_delayBeforeLoop_InjectedDelegate
+  UnityEngine.VFX.VFXSpawnerState/set_delayBeforeLoop_InjectedDelegate
+  UnityEngine.Video.VideoPlayer/ErrorEventHandler
+  UnityEngine.WebCamTexture/get_videoVerticallyMirrored_InjectedDelegate
+  UnityEngine.XR.XRSettings/StereoRenderingMode
+
+[type ~ 'Vein']
+  Fusion.CloudServices/_HandleReflexiveInfoMessage_d__90
+  Fusion.CloudServices/_QueryReflexiveInfo_d__104
+  Newtonsoft.Json.JsonTextReader/_ParseNumberNegativeInfinityAsync_d__28
+  Newtonsoft.Json.JsonTextReader/_ParseNumberPositiveInfinityAsync_d__27
+  SSSGame.UI.SaveIndicatorWidget
+  SSSGame.UI.SaveIndicatorWidget/__SaveIndicatorRoutine_d__10
+  UnityEngine.Animations.AnimationLayerMixerPlayable/IsLayerAdditiveInternalDelegate
+  UnityEngine.Animations.AnimationLayerMixerPlayable/SetLayerAdditiveInternalDelegate
+  UnityEngine.Animations.PropertySceneHandle/ResolveInternalDelegate
+  UnityEngine.ClusterSerialization/SaveInputManagerStateInternalDelegate
+  UnityEngine.Mesh/GetNativeIndexBufferPtr_InjectedDelegate
+  UnityEngine.Rendering.RayTracingAccelerationStructure/RemoveInstance_Renderer_InjectedDelegate
+  UnityEngine.Rendering.RayTracingAccelerationStructure/RemoveInstances_InjectedDelegate
+  UnityStandardAssets.CrossPlatformInput.CrossPlatformInputManager/ActiveInputMethod
+
+[type ~ 'Rock']
+  SSSGame.AI.FSM.FSM_CleanupCrockpot
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies
+  SSSGame.Combat.DraugarSleepFx/Rock
+  SSSGame.CrockpotInteraction
+  SSSGame.CrockpotRecipe
+  SSSGame.CrockpotRecipeInfo
+  SSSGame.Deeds.CrockpotCookedCondition
+  SSSGame.PlayerCrockpotInteractionConfig
+  SSSGame.PlayerCrockpotInteractionConfig/PlayerCrockpotInteractionSession
+  SSSGame.UI.CrockpotMenu
+
+[type ~ 'Hittable']
+  SSSGame.Combat.StructureHittable
+  SSSGame.Network.NetworkHittable
+
+
+========== MEMBER SEARCH (SSSGame, real) ==========
+
+[member ~ 'Replenish']
+  M LootChestBuilder._OnReplenish()
+  M DomesticSmolkr._ReplenishSmilkOverTime(WeatherEventData)
+  M HostileVikingSettlement.add_OnReplenish(Action)
+  M HostileVikingSettlement.remove_OnReplenish(Action)
+  M HostileVikingSettlement.Replenish()
+  M FishingGround.CheckReplenish(WeatherEventData)
+  M FishingGround._Replenish()
+  M BiomePopulation.Replenish()
+  M VillagerSurvival.GetReplenishFoodQuest()
+  M VillagerSurvival.GetReplenishWaterQuest()
+  M GatherInteraction.add_OnItemsReplenished(Action`2)
+  M GatherInteraction.remove_OnItemsReplenished(Action`2)
+  M GatherInteraction.ReplenishChargesClient(Int32)
+  M GatherInteraction.ReplenishCharges(Int32)
+  M GatherInteraction.ReplenishOneChargeIfTrue(Boolean)
+  M GatherInteraction.ReplenishFullQuantityClient()
+  M GatherInteraction.ReplenishFullQuantity()
+  M BiomeItemsOwner.GetReplenishData()
+  M BiomeItemsOwner.SetReplenishData(Il2CppStructArray`1)
+  M BiomeItemsOwner.ClearReplenishFlags()
+  M BiomeProceduralDataHandler.RegisterReplenishCell(BiomeCellDataContainer)
+  M BiomeProceduralDataHandler.Replenish(BiomeItemDescriptor)
+  M BiomeItemDescriptor.add_OnReplenish(Action)
+  M BiomeItemDescriptor.remove_OnReplenish(Action)
+  M BiomeItemDescriptor.Replenish()
+  M BiomeItemInstance.Replenish()
+  M VFXItemRenderer.Bid_Replenish()
+
+[member ~ 'Reactivat']
+  M StructureCullHandler._OnStructureActivate(Structure)
+  M PlacementGridFootprint._OnStructureActivate(Structure)
+  M StructureAppearance._OnStructureActivated(Structure)
+  M StructureAutobuilder._OnAuthorityStructureActivate(Structure)
+  M StructureFxSpawner._OnStructureActivate(Structure)
+  M StructureOutpostColorHelper._OnStructureActivate(Structure)
+  M StructureScoreManager._OnChildStructureActivated(Structure)
+  M StructureScoreManager._OnSettlementStructureActivated(Structure)
+  M StructureSurvival._OnOwnerStructureActivate(Structure)
+  M ChildPaintPart._OnStructureActivated(Structure)
+  M PaintPart._OnStructureActivated(Structure)
+  M TrainingOutlet._OnStructureActivate(Structure)
+  M CampBuildingStation._OnOwnerStructureActivate(Structure)
+  M CookingStation._OnStructureActivated(Structure)
+  M CraftingStation._OnStructureActivated(Structure)
+  M HarboringStation._OnStructureActivate(Structure)
+  M VillagerOutlet._OnStructureActivated(Structure)
+  M FarmCrop._OnStructureActivated(Structure)
+  M FarmingOutlet._OnStructureActivate(Structure)
+  M BlueprintConditionsDatabase.OnStructureActivated(Structure)
+  M Kennel._OnStructureActivated(Structure)
+  M HarvestMarker._OnStructureActivated(Structure)
+  M CaveResourceStorage._OnCaveStructureActivated(Structure)
+  M DiningStation._OnStructureActivated(Structure)
+  M LightOutlet._OnStructureActivate(Structure)
+  M Marketplace._OnStructureActivated(Structure)
+  M ResourceOutlet._OnStructureActivated(Structure)
+  M ResourceStorage._OnStructureActivated(Structure)
+  M WarmthOutlet._OnStructureActivate(Structure)
+  M StructureStatusEffectTrigger._OnLateStructureActivation(Structure)
+  M StructureObjectiveMarker._OnStructureActivated(Structure)
+  M PlayfabManager.SendCoreActivationEvent(String)
+  M SailingShip._OnCampStructureActivate(Structure)
+  M StructureDamageDealer._OnStructureActivate(Structure)
+  M Trap._OnStructureActivated(Structure)
+  M StructureTaskDispatcher._OnStructureActivate(Structure)
+
+[member ~ 'Restore']
+  M BuildingModulePlacementTool._RestoreAllMaterials()
+  M FakeFootprint.RestoreMaterials()
+  M PlayerCharacterAppearance.RestoreLockedMaterials()
+  M DangerPingSource._RestoreOriginalTargets()
+  M EquipmentItemObject.RestoreCustomization()
+  M CustomizerHandleId.RestoreCustomizationObjects(IEquipmentObject,List`1)
+  M OfflineTerrainVS.RestoreTerrainMaterial()
+  M StreamingTerrainVS.RestoreTerrainMaterial()
+  M TerrainWrapperVS.RestoreTerrainMaterial()
+  M SubSelectableGroup.TryRestoreGroupSelection()
+  M CharacterSelectionTabPage._RestoreToUnlockedAppearance()
+
+[member ~ 'Refill']
+
+[member ~ 'Respawn']
+  M StructureAutobuilder.NotifyStructureSpawnedFromDeserialization(Structure)
+  M PlayerCharacter.BeforeSpawned()
+  M PlayerCharacterDefinition._OnPreSpawn(Vector3)
+  M RespawnZone.SetRespawnPointHere()
+  M TutorialNPC._RespawnRoutine(Boolean,Boolean)
+  M TutorialNPC._Respawn(Boolean,Boolean)
+  M Den.IgnorePopulationSpawnersRespawning(Boolean)
+  M CreaturePopulationConfiguration.OnCreatureSpawned(Creature)
+  M MonsterPopulationConfiguration.OnCreatureSpawned(Creature)
+  M GameState_Play.RespawnPlayerAsNewCharacterForced()
+  M GameState_Play.RespawnPlayerAsNewCharacter()
+  M GameState_Play.RespawnPlayer()
+  M GameState_Play.RespawnPlayerAsGhost(Boolean)
+  M GameState_Play._RespawnRoutine()
+  M GameState_Play._RespawnAsGhostRoutine(Boolean)
+  M GameState_Play._MoveCharacterToRespawnPoint()
+  M GameState_Play.__RespawnAsGhostRoutine_b__77_0()
+  M PlayfabManager.SendPlayerRespawnOption_Ghost(String)
+  M PlayfabManager.SendPlayerRespawnOption_Menu(String)
+  M PlayfabManager.SendPlayerRespawnOption_Quit(String)
+  M NetworkCuller.BeforeSpawned()
+  M NetworkMover`1.BeforeSpawned()
+  M NetworkPositionYRotation.BeforeSpawned()
+  M NetworkSpawner._OnBeforeSpawn(NetworkObject)
+  M NetworkSpawner._OnBeforeStructureSpawn(NetworkRunner,NetworkObject,SpawnData,Boolean)
+  M NetworkSpawner._AfterStructureSpawn(NetworkRunner,NetworkObject,SpawnData)
+  M NetworkSpawner._OnBeforeDomesticCreatureSpawn(NetworkObject,SpawnData)
+  M IBeforeSpawned.BeforeSpawned()
+  M DeathScreenMenu.BtnRespawn()
+  M DeathScreenMenu.BtnRespawnAsGhost()
+  M PopulationSpawner.RespawnAllPopulations(Boolean)
+  M PopulationSpawner._HandleRespawnProgress(WeatherEventData)
+  M FSM_Seek._OnNoMoreSpawners(HuntingData,GatherAndHarvestData,FSMData`1)
+
+[member ~ 'Regrow']
+
+[member ~ 'Reset']
+  M Homestead.SerializeTasksPreset(Structure)
+  M Homestead.DeserializeTasksPresetData(DataObject,Structure)
+  M PlayerParty.SerializeTasksPreset(Structure)
+  M PlayerParty.DeserializeTasksPresetData(DataObject,Structure)
+  M Workstation.SerializeTasksPreset(Structure)
+  M Workstation.DeserializeTasksPresetData(DataObject,Structure)
+  M FireStructure.add_OnVolumeProgressReset(Action)
+  M FireStructure.remove_OnVolumeProgressReset(Action)
+  M BuildingAttachmentPoint.ResetRotation()
+  M BuildingModule.ResetAttachments()
+  M BuildingModule.ResetAnchorInfluences()
+  M BuildingModuleAnchor.ResetInfluence()
+  M BuildingModuleAnchorInfluenced.ResetInfluences()
+  M ModularBuilding.ResetAnchorsBasedOnValidConfiguration(BuildingModule)
+  M PlacementGrid.ResetTemporaryGridTiles()
+  M PlacementGridRenderer.ResetTemporaryGridTiles()
+  M RepairPart._ResetRepairsManifest()
+  M PlayerIdleEvents.ResetIdleWaitTime()
+  M PlayerManager._ResetPlayers()
+  M PlayerSessionConfigurationManager.TryGetPresetsForCharacter(PlayerCharacterDefinition,Il2CppStructArray`1&)
+  M PlayerSpawner.ResetSpawnLocation()
+  M CreatureItemObject._ResetControllerGeometryOffset()
+  M Den._ResetComponentsAndAlphaSpawner()
+  M FarmCrop._ResetCellData(Int32)
+  M PreferencesManager.SaveSchedulePreset(String,Il2CppStructArray`1)
+  M PreferencesManager.DeleteSchedulePreset(VillagerSchedulePreset&)
+  M PreferencesManager.DeleteSchedulePreset(Int32)
+  M PreferencesManager._MakePresetNameUnique(String)
+  M PreferencesManager.SaveEquipmentColorPreset(String,List`1)
+  M PreferencesManager.RemoveEquipmentColorPreset(String)
+  M PreferencesManager.LoadEquipmentColorPreset(String,Workstation)
+  M PreferencesManager.SetEquipmentColorPresetData(String,List`1)
+  M PreferencesManager.DeleteEquipmentColorPresetData(String)
+  M PreferencesManager.LoadEquipmentPresetData(String,Workstation)
+  M PreferencesManager.TrySaveTasksPreset(String,Structure)
+  M PreferencesManager.TryLoadTasksPreset(TasksPreset&,Structure)
+  M PreferencesManager.RemoveTasksPreset(TasksPreset&)
+  M PreferencesManager.CreateTasksPresetDataForStructure(String,Structure)
+  M PreferencesManager.LoadTasksPresetDataForStructure(String,Structure)
+  M PreferencesManager.DeleteTasksPresetData(String)
+  M QualityPresetList.GetPreset(Int32)
+  M Setting`1.ResetToDefault(Boolean)
+  M SettingsManager._onQualityPresetApply(Int32)
+  M SettingsManager.ResetVideoSettings(Action,Boolean)
+  M SettingsManager.ResetGameplaySettings()
+  M SettingsManager._SetQualityPreset(Int32)
+  M SettingsManager.GetCurrentQualityPresetAsset()
+  M SettingsManager.ResetRenderDistances()
+  M GameState_Menu.ResetRandomSeed()
+  M RebindAction.ResetBind()
+  M RebindManager.ResetBindings(String)
+  M PlayerPenInteractionSession.ResetSession()
+  M PlayerStowCreatureInteractionSession.ResetSession()
+  M DoorInteractionSession.ResetSession()
+  M VillagerRowingInteractionSession.ResetSession()
+  M InteractRestrictionManager.ResetPreviousLevel()
+  M InteractionSession.ResetSession()
+  M PickupInteractionSession.ResetSession()
+  M PlayerStorageInteractionSession.ResetSession()
+  M StorageInteractionSession.ResetSession()
+  M LootSpawner.CheckCreatureSetup()
+  M Villager.ResetScheduleToDefault()
+  M VillagerSurvival.ResetLookForTargetTimers()
+  M ResourceFindQueryProcessor.Reset(ItemInfo,Int32,Int32,Int32)
+  M ResourceFindQueryProcessor.Reset(IItemFilter,Int32,Int32,Int32)
+  M ResourceCheckQueryProcessor.Reset(IItemFilter,Int32,Int32)
+  M ResourceFindAllProcessor.Reset()
+  M ResourceStorage.SerializeTasksPreset(Structure)
+  M ResourceStorage.DeserializeTasksPresetData(DataObject,Structure)
+  M InteractSlot.ResetIconColor()
+  M InteractSlot.ResetNameColor()
+  M InteractSlot_Bar.ResetBarColor()
+  M MainMenu.ResetChangelogProgress()
+  M DigData.ResetCrackData()
+  M DigVolume.ResetWalls(Boolean)
+  M InstanceColliderManager._ResetCurrentCells()
+  M WorldDataManager.OnGameStateReset()
+  M BiomeAreaNode.ResetEvaluation()
+  M BiomeAreaSetNode.ResetEvaluation()
+  M BiomeAreaWeightedSetNode.ResetEvaluation()
+  M WaypointPathNodePool.Reset()
+  M OfflineTerrainVS.ResetData()
+  M StreamingTerrainVS.ResetData()
+  M HeightmapTool.ResetHeightReference()
+  M TerrainSurfaceData.Reset()
+  M TerrainWrapperVS.Reset()
+  M WeatherSystem._Presetup()
+  M WeatherSystem.ResetWeatherForecast()
+  M WeatherSystem._ResetWeatherConditions(Single&)
+  M PathSeekerPath.Reset()
+  M ResourceVegetationScanner.Reset()
+  M VegetationVFXAddon.Reset()
+  M IntermittentStateInterpolator`1.Reset(Single)
+  M NetworkChatSession._ResetInGameChat()
+  M NetworkLink._ResetCachedLinks()
+  M NetworkPreferencesManager.add_OnSchedulePresetsChanged(Action)
+  M NetworkPreferencesManager.remove_OnSchedulePresetsChanged(Action)
+  M NetworkPreferencesManager._OnSchedulePresetsChanged(Changed`1)
+  M NetworkPreferencesManager._OnSchedulePresetsChanged()
+  M NetworkPreferencesManager._OnTaskPresetsChanged(Changed`1)
+  M NetworkPreferencesManager._OnTasksPresetsChanged(Changed`1)
+  M NetworkPreferencesManager._MakePresetNameUnique(String,Int32,Func`2)
+  M NetworkPreferencesManager._IsSchedulePresetNameUnique(String)
+  M NetworkPreferencesManager._IsTaskPresetNameUnique(String)
+  M NetworkPreferencesManager._IsEquipmentColorPresetNameUnique(String)
+  M NetworkPreferencesManager._GetNextAvailableSchedulePresetSlot()
+  M NetworkPreferencesManager._GetNextAvailableTaskPresetSlot()
+  M NetworkPreferencesManager._GetNextAvailableEquipmentColorPresetSlot()
+  M NetworkPreferencesManager.AddSchedulePreset(VillagerSchedulePreset&)
+  M NetworkPreferencesManager.Rpc_AddSchedulePreset(SchedulePreset)
+  M NetworkPreferencesManager.RemoveSchedulePreset(VillagerSchedulePreset&)
+  M NetworkPreferencesManager.Rpc_RemoveSchedulePreset(SchedulePreset)
+  M NetworkPreferencesManager.AddTasksPreset(String,Structure)
+  M NetworkPreferencesManager.AddTaskPresetFromDeserialization(String,Int32,String&)
+  M NetworkPreferencesManager.AddEquipmentPresetFromDeserialization(String,String&)
+  M NetworkPreferencesManager.Rpc_CreateAndAddTasksPreset(NetworkTasksPreset,NetworkId)
+  M NetworkPreferencesManager.RemoveTaskPreset(String)
+  M NetworkPreferencesManager.Rpc_RemoveTaskPreset(String)
+  M NetworkPreferencesManager.LoadTaskPreset(String,Structure)
+  M NetworkPreferencesManager.Rpc_LoadTasksPreset(NetworkTasksPreset,NetworkId)
+  M NetworkPreferencesManager.AddEquipmentColorPreset(String,List`1)
+  M NetworkPreferencesManager.RemoveEquipmentColorPreset(String)
+  M NetworkPreferencesManager.LoadEquipmentColorPreset(String,Workstation)
+  M NetworkPreferencesManager.Rpc_LoadEquipmentColorPreset(NetworkTasksPreset,NetworkId)
+  M NetworkPreferencesManager.Rpc_AddEquipmentColorPreset(NetworkEquipmentColorPreset,Il2CppStructArray`1)
+  M NetworkPreferencesManager.Rpc_RemoveEquipmentColorPreset(NetworkEquipmentColorPreset)
+  M NetworkPreferencesManager._PackEquipmentColorPresetData(List`1)
+  M NetworkPreferencesManager._UnpackEquipmentColorPresetData(Il2CppStructArray`1)
+  M NetworkPreferencesManager._OnEquipmentColorPresetsChanged(Changed`1)
+  M NetworkPreferencesManager._OnEquipmentColorPresetsChanged()
+  M NetworkSession.ResetPassword()
+  M NetworkSessionListTabPage.ResetLastSessionSelected()
+  M NetworkWorldDataManager.OnGameStateReset()
+  M NetworkWorkstation`1._ResetRemainingNetworkTasks(Int32)
+  M DeedsDatabase.ResetProgress()
+  M PickupCreatureInteractionSession.ResetSession()
+  M BoatMotor._ResetPathfindingState()
+  M PlayerBoatInteractionSession.ResetSession()
+  M SailInteraction.ResetAccelerations()
+  M SailingShip.DeserializeTasksPresetData(DataObject,Structure)
+  M SailingShip.SerializeTasksPreset(Structure)
+  M TowInteraction.ResetTowHandlePos()
+  M Pier.ResetTetherPointsVisuals()
+  M ExpeditionPanel._OnSavePresetPressed()
+  M ExpeditionPanel._OnLoadPresetPressed()
+  M TaskDataPanel._ResetPersistentData()
+  M VillagerSchedulePanel._onSchedulePresetsValueChanged(Int32)
+  M VillagerSchedulePanel.ResetSchedule()
+  M VillagerSchedulePanel.OnLoadSchedulePreset()
+  M VillagerSchedulePanel._LoadPreset(VillagerSchedulePreset&)
+  M VillagerSchedulePanel._RefreshPresetsList()
+  M TabButtonUpgradeItem.OnReset()
+  M AudioSettingsTabPage.ResetSettings()
+  M CharacterSelectionTabPage.SetupSelectPresetPanel(IncreaseDecreasePanel)
+  M CharacterSelectionTabPage._OnSelectedPresetPanelChanged(Int32)
+  M CharacterSelectionTabPage.SelectAppearancePreset(Int32)
+  M CharacterSelectionTabPage._HasAnyCustomPresets()
+  M CharacterSelectionTabPage.ShowResetDialogue()
+  M CharacterSelectionTabPage.SaveSelectedPreset()
+  M CharacterSelectionTabPage.ResetSelectedPreset()
+  M CharacterSelectionTabPage._ShowResetDialogue_b__94_0(ConfirmActionMenu)
+  M GameplaySettingsTabPage.ResetSettings()
+  M KeyboardSettingsTabPage.ResetSettings()
+  M NewGameTabPage.ResetSeed()
+  M SettingsTabPage._onResetClicked()
+  M SettingsTabPage.ResetSettings()
+  M SettingsTabPage.__onResetClicked_b__15_0(ConfirmActionMenu)
+  M VideoSettingsTabPage.OnQualityPresetsPanelChanged(Int32)
+  M VideoSettingsTabPage.ResetSettings()
+  M WorkstationEquipmentColorTabPage.OnSavePresetClicked()
+  M WorkstationEquipmentColorTabPage.OnLoadPresetClicked()
+  M WorkstationEquipmentColorTabPage._OnEquipmentColorPresetEntryDeleted(SelectActionMenu,SelectActionMenuEntry)
+  M WorkstationEquipmentColorTabPage._onEquipmentColorPresetLoadConfirmed(ConfirmActionMenu)
+  M WorkstationEquipmentColorTabPage._OnSavePresetClicked_b__16_0(ConfirmActionMenu)
+  M WorldCustomizationTabPage.ResetCustomizationToDefaults()
+  M WorldCustomizationTabPage.OnSaveCurrentPreset()
+  M WorldCustomizationTabPage.OnLoadPreset()
+  M WorldCustomizationTabPage._onConfirmPresetLoad(ConfirmActionMenu)
+  M WorldCustomizationTabPage._onPresetEntryDeleted(ConfirmActionMenu,SelectActionMenuEntry)
+  M WorldCustomizationTabPage._saveCustomizationPreset(String)
+  M WorldCustomizationTabPage._loadCustomizationPreset(String)
+  M WorldCustomizationTabPage._scanCustomizationPresetsGames()
+  M WorldCustomizationTabPage._getCustomizationPresetsPath()
+  M WorldCustomizationTabPage._makePresetNameUnique(String)
+  M WorldCustomizationTabPage._OnSaveCurrentPreset_b__9_0(ConfirmActionMenu)
+  M TutorialsDatabase.ResetDontShowStatus()
+  M ChatMenu.ResetPrivilegeCheckResult()
+  M CustomActionEventData.Reset()
+  M WorkstationMenu._SaveCurrentTaskPreset()
+  M WorkstationMenu._LoadTaskPreset(Boolean)
+  M WorkstationMenu.SaveCurrentTaskPreset(Structure)
+  M WorkstationMenu.LoadTaskPreset(Structure,Boolean)
+  M WorkstationMenu._OnSaveCurrentTasksPreset()
+  M WorkstationMenu._OnLoadTasksPreset()
+  M WorkstationMenu._OnTasksPresetEntryDeleted(SelectActionMenu,SelectActionMenuEntry)
+  M WorkstationMenu._ValidateSelectedTasksPresetEntry(SelectActionMenuEntry)
+  M WorkstationMenu._onTasksPresetLoadConfirmed(ConfirmActionMenu)
+  M WorkstationMenu.__SaveCurrentTaskPreset_b__174_0(ConfirmActionMenu)
+  M StructureDamageGeometry._ResetDamagedLook()
+  M Threat.Reset()
+  M FishingMeleeObject._ResetHook()
+  M LoadoutItem.Reset()
+  M DebugDamageReceiver._ResetRoutine()
+  M TrapProcess._ResetFinder()
+  M IControlAI.ResetAreaMask()
+  M AttackTargetComplaint._ResetCache()
+  F TaskDataComponents.HasTasksPresets
+  M IWorkstation.SerializeTasksPreset(Structure)
+  M IWorkstation.DeserializeTasksPresetData(DataObject,Structure)
+  F PathStatusChangeMode.Reset
+  M PathState.Reset()
+  M CreatureController.ResetPath()
+  M CreatureController.ResetAreaMask()
+  M CreatureController.ResetGroundOffest()
+  M ProxyControlAI.ResetAreaMask()
+  M SeaController.ResetAreaMask()
+  M QuestToolData.Reset()
+  M QuestToolData.ResetFilter()
+  M PriorityItemFilter.Reset()
+  M PriorityItemFilter.ResetTopPriority()
+  M ItemClassFilter.Reset()
+  M WorldInstanceFiltersList.Reset()
+  M InstanceCheckFilter.Reset()
+  M InstanceCheckFilter.ResetExcludedItems()
+  M ItemTierFilter.Reset()
+  M InstanceTierFilter.Reset()
+  M CaveLightingFilter.Reset()
+  M UndergroundItemFilter.Reset()
+  M FSMBehaviourController.ResetFSM()
+  M IFSMBehaviourController.ResetFSM()
+
+[member ~ 'Activate']
+  M PlayerHouse._OnActivate(Structure)
+  M BuildInputMode.Deactivate()
+  M Settlement.ActivateStructure(Structure)
+  M BoatStructure.Activate()
+  M FireStructureCullHandler.ActivateLowQuality()
+  M FireStructureCullHandler.ActivateHighQuality()
+  M FireStructureCullHandler.Deactivate()
+  M StructureCullHandler._OnStructureActivate(Structure)
+  M VehicleCullHandler.ActivateLowQuality()
+  M VehicleCullHandler.ActivateHighQuality()
+  M VehicleCullHandler.Deactivate()
+  M FireStructure._OnActivate(Structure)
+  M FireStructure.__OnActivate_b__91_0(Interaction,Int32,IInteractionAgent,Type)
+  M ItemContainerRetargeter._OnActivate(Structure)
+  M OutpostStructure.OnBuildstationAddonActivated(Structure)
+  M OutpostStructure.Activate()
+  M OutpostStructure._OnBuildstationAddonActivated_b__45_0(ITaskDispatcher)
+  M PlacementGridFootprint._OnStructureActivate(Structure)
+  M Structure.ActivateIssueMarker(Boolean)
+  M Structure.Activate()
+  M Structure.Rpc_Activate()
+  M StructureAppearance._OnStructureActivated(Structure)
+  M StructureAutobuilder._OnAuthorityStructureActivate(Structure)
+  M StructureContainer.add_OnDirectChildActivate(Action`1)
+  M StructureContainer.remove_OnDirectChildActivate(Action`1)
+  M StructureContainer._OnDirectChildActivate(Structure)
+  M StructureFxSpawner._OnStructureActivate(Structure)
+  M StructureOutpostColorHelper._OnStructureActivate(Structure)
+  M StructureScoreManager._OnChildStructureActivated(Structure)
+  M StructureScoreManager._OnSettlementStructureActivated(Structure)
+  M StructureSurvival._OnOwnerStructureActivate(Structure)
+  M ChildPaintPart._OnStructureActivated(Structure)
+  M PaintPart._OnStructureActivated(Structure)
+  M PlayerCharacter._ActivatePickables(Boolean)
+  M TrainingOutlet._OnStructureActivate(Structure)
+  M Bloomstation._Structure_OnActivate(Structure)
+  M BoatBuildingStation._OnChildBoatActivate(Structure)
+  M CampBuildingStation._OnOwnerStructureActivate(Structure)
+  M CharcoalStation._Structure_OnActivate(Structure)
+  M CookingStation._OnRecipeActivated(ItemCollection,Item,Int32,ItemEventContext)
+  M CookingStation._OnRecipeDeactivated(ItemCollection,Item,Int32,ItemEventContext)
+  M CookingStation._OnStructureActivated(Structure)
+  M CraftInteraction.ActivateBlueprint(CraftBlueprint)
+  M CraftingAgent.ActivateBlueprint(CraftBlueprint)
+  M CraftingStation._OnStructureActivated(Structure)
+  M HarboringStation._OnStructureActivate(Structure)
+  M HealingStation._Structure_OnActivate(Structure)
+  M ICraftingAgent.ActivateBlueprint(CraftBlueprint)
+  M Praystation._Structure_OnActivate(Structure)
+  M Praystation.__Structure_OnActivate_b__95_0(Single,Single,Single,Single)
+  M Praystation.__Structure_OnActivate_b__95_1(Single,Single,Single,Single)
+  M PyreStructure.Activate()
+  M Creature._ActivateStunFx(Boolean&)
+  M Creature._ActivatePickables(Boolean&)
+  M CreatureCullHandler.Deactivate()
+  M CreatureCullHandler.ActivateHighQuality()
+  M CreatureCullHandler.ActivateLowQuality()
+  M Den._ActivateComponentHitzones(Int32)
+  M VillagerOutlet.Activate()
+  M VillagerOutlet._OnStructureActivated(Structure)
+  M FarmCrop._OnStructureActivated(Structure)
+  M FarmingConfig.Activate()
+  M FarmingConfig.Deactivate()
+  M FarmingOutlet._OnStructureActivate(Structure)
+  M FarmingStation._Structure_OnActivate(Structure)
+  M GameStateActivator.ActivateGameState()
+  M GameState_Boot.OnActivate()
+  M GameState_Boot.OnDeactivate()
+  M GameState_Boot._OnDeactivate_b__10_0()
+  M GameState_Join.OnActivate()
+  M GameState_Join.OnDeactivate()
+  M GameState_Join._OnActivate_b__15_0()
+  M GameState_Join._OnActivate_b__15_1()
+  M GameState_Join._OnDeactivate_b__17_0()
+  M GameState_Join._OnDeactivate_b__17_1()
+  M GameState_Join._OnDeactivate_b__17_2()
+  M GameState_Load.OnActivate()
+  M GameState_Load.OnDeactivate()
+  M GameState_Load._OnActivate_b__6_1()
+  M GameState_Load._OnDeactivate_b__7_0()
+  M GameState_Menu.OnActivate()
+  M GameState_Menu.OnDeactivate()
+  M GameState_Menu._ActivateMainMenuRoutine()
+  M GameState_Play.OnActivate()
+  M GameState_Play.OnDeactivate()
+  M GameState_Reset.OnActivate()
+  M GameState_Reset.OnDeactivate()
+  M GameState_Reset._OnActivate_b__7_1()
+  M GameState_Reset._OnDeactivate_b__8_0()
+  M GameState_Trial.OnActivate()
+  M GameState_Trial.OnDeactivate()
+  M GameState_Trial._OnActivate_b__9_0()
+  M GameState_Trial._OnDeactivate_b__10_0()
+  M InputManager._OnPlatformOverlayActivated(Boolean)
+  M InputMode.Activate()
+  M InputMode.Deactivate()
+  M PlayerInteractionAgent.ActivateResourceFinder()
+  M StandaloneInteractionArea._ActivatePickables(Boolean&)
+  M EquipmentItemObject._ActivatePickables(Boolean&)
+  M ItemObject._ActivatePickables(Boolean&)
+  M ItemDisplayCullContext.ActivateLowQuality()
+  M ItemDisplayCullContext.ActivateHighQuality()
+  M ItemDisplayCullContext.Deactivate()
+  M EquipmentCullContext.ActivateLowQuality()
+  M EquipmentCullContext.ActivateHighQuality()
+  M EquipmentCullContext.Deactivate()
+  M BlueprintConditionsDatabase.OnStructureActivated(Structure)
+  M CookingRecipe.Activate()
+  M CraftBlueprint.Activate()
+  M StructureBlueprint.Activate()
+  M Kennel._OnStructureActivated(Structure)
+  M PopulationManager.CanActivateDen(Den)
+  M Villager._ActivatePickables(Boolean&)
+  M HarvestMarker._OnStructureActivated(Structure)
+  M IResourceResupply.Activate(Boolean)
+  M VegetationObject._ActivatePickables(Boolean&)
+  M CaveResourceStorage._OnCaveStructureActivated(Structure)
+  M DiningStation._OnStructureActivated(Structure)
+  M LightOutlet._OnStructureActivate(Structure)
+  M Marketplace._OnStructureActivated(Structure)
+  M ResourceOutlet._OnStructureActivated(Structure)
+  M ResourceStorage._OnStructureActivated(Structure)
+  M WarmthOutlet._OnStructureActivate(Structure)
+  M SoundManager.DeactivateBiomeSet(BiomeVegetationSet)
+  M SoundManager.ActivateBiomeSet(BiomeVegetationSet)
+  M HUDWidget.Activate()
+  M HUDWidget.Deactivate()
+  M BuildPanel.OnActivate()
+  M BuildPanel.OnDeactivate()
+  M CallendarWidget.Activate()
+  M CallendarWidget.Deactivate()
+  M CompassWidget.Activate()
+  M DeedsPinsWidget.Activate()
+  M DeedsPinsWidget.Deactivate()
+  M InteractWidget.Activate()
+  M InteractWidget.Deactivate()
+  M MinimapWidget.Activate()
+  M MinimapWidget.Deactivate()
+  M PlayerPartyWidget.Activate()
+  M PlayerPartyWidget.Deactivate()
+  M SettlementIssueTrackerWidget.Activate()
+  M SettlementIssueTrackerWidget.Deactivate()
+  M WeatherWidget.Activate()
+  M WeatherWidget.Deactivate()
+  M MainMenu.OnActivate()
+  M MainMenu.OnDeactivate()
+  M MainMenu._OnActivate_b__52_0(ConfirmActionMenu)
+  M SupplyMenu.OnActivate()
+  M ItemSpawner.ActivateSpawning(Boolean)
+  M ItemSpawner.RunIfActivated()
+  M TreeFallHelper.ActivateTreeFall()
+  M BiomeAreaDataHandler.ActivateData(WorldTileData)
+  M BiomeProceduralDataHandler.ActivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M BiomeProceduralDataHandler.DeactivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M BiomeProceduralDataHandler.OnActivateInstance(WorldItemInstance)
+  M BiomeProceduralDataHandler.OnDeactivateInstance(WorldItemInstance)
+  M BiomeProceduralDataHandler.ActivateData(WorldTileData)
+  M BiomeItemInstance._OnActivateInstance()
+  M BiomeItemInstance._OnDeactivateInstance()
+  M BiomeObject._ActivatePickables(Boolean&)
+  M CaveDataHandler.ActivateData(WorldTileData)
+  M ZoneCullContext.ActivateLowQuality()
+  M ZoneCullContext.ActivateHighQuality()
+  M ZoneCullContext.Deactivate()
+  M AreaInstanceStateHandler.ActivateTile(WorldTileData)
+  M AreaInstanceStateHandler.DeactivateTile(WorldTileData)
+  M IInstanceDataHandler.ActivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M IInstanceDataHandler.DeactivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M IInstanceDataHandler.OnActivateInstance(WorldItemInstance)
+  M IInstanceDataHandler.OnDeactivateInstance(WorldItemInstance)
+  M WorldDataHandler.ActivateData(WorldTileData)
+  M WorldDataManager.ActivateData(WorldTileData)
+  M WorldDataManager.ActivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M WorldDataManager.DeactivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M WorldItemInstance.ActivateContext(InstanceActivationContext)
+  M WorldItemInstance.DeactivateContext(InstanceActivationContext)
+  M WorldItemInstance._OnActivateInstance()
+  M WorldItemInstance._OnDeactivateInstance()
+  M WorldItemInstance._OnActivateContext(InstanceActivationContext)
+  M WorldItemInstance._OnDeactivateContext(InstanceActivationContext)
+  M EntityDataHandler.ActivateData(WorldTileData)
+  M ForestryDataHandler.ActivateData(WorldTileData)
+  M InventoryItemDataHandler.ActivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M InventoryItemDataHandler.DeactivateInstancesContext(ICollection`1,InstanceActivationContext,IWorldItemInstanceFilter)
+  M InventoryItemDataHandler.ActivateData(WorldTileData)
+  M InventoryItemDataHandler.OnActivateInstance(WorldItemInstance)
+  M InventoryItemDataHandler.OnDeactivateInstance(WorldItemInstance)
+  M InventoryItemInstance._OnActivateContext(InstanceActivationContext)
+  M InventoryItemInstance._OnDeactivateContext(InstanceActivationContext)
+  M InventoryItemInstance._OnActivateInstance()
+  M InventoryItemInstance._OnDeactivateInstance()
+  M PathfindingDataHandler.ActivateData(WorldTileData)
+  M StreamingInstigator.ActivateEvent()
+  M TerrainDataHandler.ActivateData(WorldTileData)
+  M StructureObjectiveMarker._OnStructureActivated(Structure)
+  M WeatherStation.ActivatePreparedSuperSeasonToday()
+  M WeatherStation.ActivateSuperSeasonToday(Int32)
+  M WeatherStation.Rpc_ActivateSuperSeasonToday(Int32)
+  M NavigationDataHandler.ActivateData(WorldTileData)
+  M VegetationRenderActor.Activate()
+  M VegetationRenderActor.Deactivate()
+  M Pickable._Activate()
+  M Pickable._Deactivate()
+  M PickingManager.ActivatePickable(Pickable)
+  M PickingManager.DeactivatePickable(Pickable)
+  M PickingManager.ActivateSelection(IPickingSelection)
+  M PickingManager.DeactivateSelection(IPickingSelection)
+  M NetworkItemStorage._OnBuildSiteLayerActivated(BuildLayer)
+  M FishingLineSinker._ActivateBuoyancer(Boolean&)
+  M PlayerRudderInteractionSession._ActivateLandingPreviewMode(Boolean&)
+  M SailingShip._OnCampStructureActivate(Structure)
+  M SailingShip._OnLandingActivate(Structure)
+  M ExplorationDataHandler.ActivateData(WorldTileData)
+  M ContextMenu.OnActivate()
+  M ContextMenu.OnDeactivate()
+  M WidgetMenu.OnActivate()
+  M WidgetMenu.OnDeactivate()
+  M ItemDetailsPanel.DeactivateAndRemoveAllSources()
+  M ConfirmActionMenu.OnActivate()
+  M ConfirmActionMenu.OnDeactivate()
+  M InputFieldConfirmActionMenu.OnActivate()
+  M InputFieldConfirmActionMenu.OnDeactivate()
+  M SelectWheel.OnActivate()
+  M SelectWheel.OnDeactivate()
+  M SubSelectableGroup.Activate(Boolean)
+  M SubSelectableGroup.Activate(Boolean,Boolean)
+  M UIChartPanel._ActivateHoverIndicator(Boolean)
+  M AttributesWidget.Deactivate()
+  M BuildsiteWidget.Activate()
+  M BuildsiteWidget.Deactivate()
+  M ButtonPromptsWidget.Activate()
+  M DefencePerimeterWidget.Activate()
+  M DefencePerimeterWidget.Deactivate()
+  M ExpeditionWidget.Activate()
+  M FixedHpBarWidget.Activate()
+  M InventoryWidget.Activate()
+  M InventoryWidget.Deactivate()
+  M MenuInteractWidget.Activate()
+  M MenuInteractWidget.Deactivate()
+  M PlayerAttributesWidget.Activate()
+  M PlayerGhostCountdownWidget.Activate()
+  M PlayerGhostCountdownWidget.Deactivate()
+  M PlayerModifiersWidget.Activate()
+  M PlayerWidget.Activate()
+  M PlayerWidget.Deactivate()
+  M QuickBarWidget.Activate()
+  M QuickBarWidget.Deactivate()
+  M SaveIndicatorWidget.Activate()
+  M SaveIndicatorWidget.Deactivate()
+  M SettlementWidget.Activate()
+  M SettlementWidget.Deactivate()
+  M StructureModifiersWidget.Activate()
+  M VillagerModifiersWidget.Deactivate()
+  M BuildMenu.OnActivate()
+  M BuildMenu.OnDeactivate()
+  M ChatMenu.OnDeactivate()
+  M ChatMenu._onInputFieldActivated()
+  M ChatMenu.OnActivate()
+  M CraftMenu.OnActivate()
+  M CustomInputModule.ActivateModule()
+  M CustomInputModule.DeactivateModule()
+  M DeathScreenMenu.OnActivate()
+  M DeathScreenMenu.OnDeactivate()
+  M DeviceLostMenu.OnActivate()
+  M DeviceLostMenu.OnDeactivate()
+  M EulaMenu.OnActivate()
+  M InventoryMenu.OnActivate()
+  M InventoryMenu.OnDeactivate()
+  M MapMenu.OnActivate()
+  M MapMenu._onActivateFiltersPerformed(CallbackContext)
+  M MapMenu.OnDeactivate()
+  M MovieMenu.OnActivate()
+  M MovieMenu.OnDeactivate()
+  M MultiplayerMenu.OnActivate()
+  M MultiplayerMenu.OnDeactivate()
+  M PauseMenu.OnActivate()
+  M PetMenu.OnActivate()
+  M PlayerMenu.OnActivate()
+  M PlayerMenu.OnDeactivate()
+  M RebindMenu.OnActivate()
+  M RebindMenu.OnDeactivate()
+  M ScheduleEditorMenu.OnActivate()
+  M ScheduleEditorMenu.OnDeactivate()
+  M StorageMenu.OnActivate()
+  M StorageMenu.OnDeactivate()
+  M StorageMenu.OnDeactivatedByStackMenu(Menu)
+  M StructureMenu.OnActivate()
+  M TargetingDebugMenu.OnActivate()
+  M TargetingDebugMenu.OnDeactivate()
+  M TradeMenu.OnActivate()
+  M TradeMenu.OnDeactivate()
+  M TrialOverMenu.OnActivate()
+  M VillagerDebugMenu.OnActivate()
+  M VillagerDebugMenu.OnDeactivate()
+  M VillagerMenu.OnActivate()
+  M VillagerMenu.OnDeactivate()
+  M WisdomMenu.OnActivate()
+  M WisdomMenu.OnDeactivate()
+  M WorkstationMenu.OnActivate()
+  M WorkstationMenu.OnDeactivate()
+  M StructureDamageDealer._OnStructureActivate(Structure)
+  M Boss.add_OnActivated(Action`1)
+  M Boss.remove_OnActivated(Action`1)
+  M Boss.Activate(Boolean)
+  M Boss._OnNetActivatedChanged(Changed`1)
+  M DamageNumbers.Activate()
+  M DamageNumbers.Deactivate()
+  M FishingMeleeObject.ActivateFishing(Boolean)
+  M MeleeManager.ActivateAttackPoint(String&,DamageFlags&,Single&)
+  M MeleeManager.DeactivateAttackPoint(String&)
+  M MeleeManager.DeactivateAllAttackPoints()
+  M MeleeManager.ActivateDefensePoint(String&,Boolean&)
+  M MeleeManager.DeactivateDefensePoint(String&,Boolean&)
+  M MeleeObject.ActivateDamage(MeleeManager)
+  M MeleeObject.DeactivateDamage(MeleeManager)
+  M StoneGolemBoss._OnBossActivated(Boolean)
+  M StoneGolemTotem._ActivateHealingRay(HealingRayFx,Boolean)
+  M Trap._OnStructureActivated(Structure)
+  M AnimatorManager.ActivateDebugMarker(AnimatorEnabler,Boolean)
+  M DynamicTask._ActivateGroup(Int32)
+  M TaskStepGroup.Activate()
+  M TaskStepSequence.Activate()
+  M TaskStepStack.Activate()
+  M StructureTaskDispatcher._OnStructureActivate(Structure)
+
+##### [NOT FOUND] SSSGame.CaveAreaInstance
+
+##### SSSGame.CaveData
+  : Object -> Il2CppObjectBase -> Object
+  P Dictionary`2 biomeNodesMap
+  P Int32 caveId
+  P List`1 digStates
+  P Boolean explored
+  P Action`1 OnExploredStatusChanged
+  P Action`2 OnNodeOpenStatusChanged
+  P List`1 openNodes
+  M Void add_OnExploredStatusChanged(Action`1 value)
+  M Void add_OnNodeOpenStatusChanged(Action`2 value)
+  M Int32 GetBiomeSpawnedCount(CaveNode caveNode)
+  M Int32 GetBiomeSpawnedCount(Int32 caveNodeIndex)
+  M DigData GetDigData(Int32 nodeIndex, DataAccessMode mode)
+  M Boolean GetOpenState(CaveNode node)
+  M Boolean GetOpenState(Int32& index)
+  M Boolean HasOpenedNodes()
+  M Void ReadSnapshot(BinaryReader reader)
+  M Void remove_OnExploredStatusChanged(Action`1 value)
+  M Void remove_OnNodeOpenStatusChanged(Action`2 value)
+  M Void SetBiomeSpawnedCount(CaveNode caveNode, Int32 spawnersCount)
+  M Void SetBiomeSpawnedCount(Int32 caveNodeIndex, Int32 spawnersCount)
+  M Void SetExploredState(Boolean explored)
+  M Boolean SetOpenState(CaveNode caveNode)
+  M Boolean SetOpenState(Int32& index, Boolean& open)
+  M Void WriteSnapshot(BinaryWriter writer)
+
+##### SSSGame.CaveWorldContext
+  : PlayerWorldContext -> Object -> Il2CppObjectBase -> Object
+  P CaveEntrance _entrance
+  M WorldContextLevels GetLevel()
+  M IPlayerWorldContextOwner GetOwner()
+
+##### SSSGame.VillagerCharacterDefinition/MethodInfoStoreGeneric__Shuffle_Private_Void_IList_1_T_IRandomGenerator_0`1
+  : Object
+  F static IntPtr Pointer
+
+##### SandSailorStudio.Utils.IRandomGenerator_Utils
+  : Il2CppObjectBase -> Object
+  M Int32 Get()
+  M Int32 GetPercent()
+  M Int32 GetRange(Int32 min, Int32 max)
+  M Single GetRange(Single min, Single max)
+  M Void SetSeed(Int32 seed)
+
+##### SandSailorStudio.RNG.IRandomGenerator
+  : Il2CppObjectBase -> Object
+  M Int32 Get()
+  M Int32 GetPercent()
+  M Int32 GetRange(Int32 min, Int32 max)
+  M Single GetRange(Single min, Single max)
+  M Int32 GetSeed()
+  M Single GetWeight()
+  M Void Reset()
+  M Void SetSeed(Int32 seed)
+
+##### SandSailorStudio.RNG.RandomGenerator
+  : Object -> Il2CppObjectBase -> Object
+  P SystemRandom _prng
+  P Int32 _seed
+  M Int32 Get()
+  M Int32 GetPercent()
+  M Int32 GetRange(Int32 min, Int32 max)
+  M Single GetRange(Single min, Single max)
+  M Int32 GetSeed()
+  M Single GetWeight()
+  M Void Reset()
+  M Void SetSeed(Int32 seed)
+
+##### SandSailorStudio.RNG.RandomGeneratorConfig
+  : ScriptableObject -> Object -> Object -> Il2CppObjectBase -> Object
+  P Il2CppStructArray`1 _generationChars
+  P String _seedPhrase
+  P Boolean _seedPhraseGenerated
+  P Boolean appendOffsetToHash
+  P Int32 generatedSeedPhraseLength
+  P Boolean generateSeed
+  P Int32 seedKeyLength
+  P String seedPhrase
+  M Void _GenerateSeedPhrase()
+  M Void _GetSeedPhrase()
+  M Void _SetSeed(IRandomGenerator gen, Int32 offset)
+  M String GenerateSeed()
+  M IRandomGenerator GetGenerator(Int32 seedId)
+  M String GetSeedPhrase()
+  M Void OnEnable()
+  M Void ReinitRandomGenerator(RandomGenerator randomGenerator, Int32 seedPhraseOffset)
+  M Void ResetSeedPhrase()
+  M Void SetSeedPhrase(String phrase)
+
+##### SandSailorStudio.RNG.RandomGeneratorManager
+  : MonoBehaviour -> Behaviour -> Component -> Object -> Object -> Il2CppObjectBase -> Object
+  P Il2CppStructArray`1 _chars
+  P Dictionary`2 _generators
+  P String _paddedSeedPhrase
+  P Int32 generatedSeedPhraseLength
+  P Boolean generateSeed
+  P Il2CppStringArray generatorNames
+  P Int32 seedKeyLength
+  P String seedPhrase
+  M Void _DistributeSeedKeys()
+  M Void _GenerateSeedPhrase()
+  M Void _PadSeedPhrase()
+  M RandomGenerator GetGenerator(String name)
+  M RandomGenerator GetGenerator(Int32 seedPhraseOffset)
+  M Void OnEnable()
+  M Void SetSeedPhrase(String seedPhrase)
+
+##### SandSailorStudio.RNG.UnityRandomGenerator
+  : Object -> Il2CppObjectBase -> Object
+  P Int32 _seed
+  M Int32 Get()
+  M Int32 GetPercent()
+  M Int32 GetRange(Int32 min, Int32 max)
+  M Single GetRange(Single min, Single max)
+  M Int32 GetSeed()
+  M Single GetWeight()
+  M Void Reset()
+  M Void SetSeed(Int32 seed)
+
+##### SandSailorStudio.WorldGen.RandomGeneratorNode
+  : Node -> ScriptableObject -> Object -> Object -> Il2CppObjectBase -> Object
+  P RandomGeneratorNode Output
+  M IRandomGenerator GetGenerator()
+
+##### SandSailorStudio.WorldGen.DungeonGenerator/MethodInfoStoreGeneric__Shuffle_Private_Static_Void_List_1_T_IRandomGenerator_0`1
+  : Object
+  F static IntPtr Pointer

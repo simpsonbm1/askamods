@@ -4,9 +4,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>SeedScoutMod</AssemblyName>
-    <RootNamespace>SeedScoutMod</RootNamespace>
-    <Version>0.16.8</Version>
+    <AssemblyName>SeedHarvesterMod</AssemblyName>
+    <RootNamespace>SeedHarvesterMod</RootNamespace>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

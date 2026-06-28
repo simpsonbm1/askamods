@@ -27,9 +27,17 @@ internal static class MapOverlay
 
             // Light gray reads clearly against the blue lakes (was cyan — too close to lake blue).
             var caveGray = new Color(0.78f, 0.78f, 0.80f);
+            var wulfarOrange = new Color(1f, 0.65f, 0f);
+
             foreach (var cave in Scout.Caves) AddDot(map, content, cave, caveGray);
+            foreach (var s in Plugin.Seas) AddDot(map, content, s, Color.blue);
             foreach (var l in Plugin.Lakes) AddDot(map, content, l.Pos, new Color(0.25f, 0.55f, 1f));
-            foreach (var h in Plugin.Hostiles) AddDot(map, content, h.Pos, Color.red);
+            foreach (var h in Plugin.Hostiles) AddDot(map, content, h.Pos, h.IsWulfar ? wulfarOrange : Color.red);
+
+            if (Scout.BestVillageCenter.HasValue)
+            {
+                AddDot(map, content, Scout.BestVillageCenter.Value, Color.green);
+            }
 
             Plugin.LogInfo($"SeedScout: drew {_dots.Count} map dot(s) " +
                                   $"(caves={Scout.Caves.Count} gray / lakes={Plugin.Lakes.Count} blue / hostiles={Plugin.Hostiles.Count} red).");

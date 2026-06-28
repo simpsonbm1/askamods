@@ -172,6 +172,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`docs/mods/mine-refresh.md`](file:///d:/Claude%20Projects/askamods/docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/nexus-upload.md`](file:///d:/Claude%20Projects/askamods/docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`DYNAMIC_HAULING_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — warehouse hauling filter |
+| [`WAREHOUSE_CAPACITY_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — crash debug + behavior-swap approach |
 | [`SEED_SCOUT_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_SCOUT_HANDOFF.md) | Mod 9 — worldgen findings, scorer + overlay |
 | [`WARP_TOUR_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WARP_TOUR_HANDOFF.md) | Mod 10 — teleport-tour design + tuning |

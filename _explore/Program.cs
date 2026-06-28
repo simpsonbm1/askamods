@@ -114,3 +114,4 @@ foreach (var n in new[] {
     "SSSGame.CaveData",
     "SSSGame.CaveWorldContext",
 }) Dump(n);
+foreach (var t in allTypes.Where(x => x.Name.Contains("RandomGenerator"))) Dump(t.FullName);
