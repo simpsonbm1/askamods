@@ -13,7 +13,9 @@ The scoring algorithm fails because `wg.GetDataMap()._areaInstances` is complete
    - The map generation creates `AreaDataElement`s in the `AreaDataBuffer`. If we can extract the cave `Vector2` positions directly from these elements (or a related buffer like `CaveAreaData`) *before* the GameObjects are instantiated, we can evaluate the map instantly.
    
 2. **Force AreaInstance Instantiation**
-   - If we absolutely need the `AreaInstance` GameObjects to score, we need to find the missing method call in our Fast Harvest loop that actually instantiates them. Look into `BiomeAreaDataHandler.ActivateData()`, `CavesManager.RegisterCaves()`, or check if Unity's Job system simply needs a `yield return null` frame wait for instantiation to complete.
+   - *Dead end confirmed (2026-06-28):* Adding a 1-frame `yield return null` after `CavesManager.UpdateDataAsync` does NOT cause the engine to instantiate the `CaveAreaInstance` GameObjects. The `_areaInstances` dictionary remains empty.
+   - This means we cannot use the GameObjects to read cave positions. We MUST extract the positions from the raw data buffers (like `CavesManager._dataMap` or `BiomesManager._biomeAreaDataHandler`).
+   - Because we only have Il2CppInterop trampolines and not the actual C# method bodies, locating and parsing these raw buffers likely requires dumping `GameAssembly.dll` and reverse-engineering the native code using Ghidra or Cpp2IL.
 
 3. **TreeRespawnMod Coop Crash (Sidenote)**
    - The user noted that `TreeRespawnMod` does not work in co-op and crashes the game. This was investigated previously and documented at the bottom of `COOP_RESPAWN_HANDOFF.md`. The crash is caused by a `System.InvalidOperationException: Handle is not initialized` resulting from a Harmony hook on `HarvestInteraction._OnWorldInstanceDataChanged`, which violates IL2CPP Rule #5 (patching lifecycle/initialization methods before GC handles are ready). This fix will need to be reworked using a safer network sync polling mechanism.
