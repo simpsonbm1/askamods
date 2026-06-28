@@ -110,8 +110,5 @@ foreach (var kw in memberKeywords)
 
 // 4) Dump the Resource* family + interfaces
 foreach (var n in new[] {
-    "SSSGame.CaveAreaInstance",
-    "SSSGame.CaveData",
-    "SSSGame.CaveWorldContext",
+    "SSSGame.Weather.WeatherSystem",
 }) Dump(n);
-foreach (var t in allTypes.Where(x => x.Name.Contains("RandomGenerator"))) Dump(t.FullName);

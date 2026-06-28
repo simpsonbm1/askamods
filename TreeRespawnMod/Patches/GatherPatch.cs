@@ -24,7 +24,7 @@ internal static class GatherPatch
             if (Plugin.PendingGatherRespawns.ContainsKey(posKey)) return;
 
             var weather = WeatherSystem.Instance;
-            if (weather == null)
+            if (weather == null || weather.Runner == null || !weather.Runner.IsServer)
             {
                 Plugin.Logger.LogWarning("[TreeRespawnMod] WeatherSystem not available, skipping gather respawn registration.");
                 return;
@@ -47,6 +47,45 @@ internal static class GatherPatch
         catch (Exception ex)
         {
             Plugin.Logger.LogError($"[TreeRespawnMod] GatherPatch: {ex}");
+        }
+    }
+}
+
+[HarmonyPatch(typeof(GatherInteraction), nameof(GatherInteraction.OnWorldInstanceDataChanged), typeof(WorldItemInstance))]
+internal static class GatherDataSyncPatch
+{
+    static void Postfix(GatherInteraction __instance)
+    {
+        try
+        {
+            var biomeInst = __instance._worldInstance?.TryCast<BiomeItemInstance>();
+            if (biomeInst == null) return;
+
+            var weather = WeatherSystem.Instance;
+            if (weather == null || weather.Runner == null || !weather.Runner.IsServer) return;
+
+            if (__instance.CheckAvailableItemCount() > 0) return;
+
+            string posKey = Plugin.PosKey(biomeInst.GetPosition());
+            if (Plugin.PendingGatherRespawns.ContainsKey(posKey)) return;
+
+            string itemName = __instance.GetGatherableItemInfo()?.Name ?? "";
+            float threshold = Plugin.GetGatherThreshold(itemName);
+
+            Plugin.PendingGatherRespawns[posKey] = (weather.NetworkedCurrentGameTime, itemName);
+            Plugin.SavePending();
+
+            if (threshold <= 0)
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] Gather resource \"{itemName}\" exhausted (data sync) at {posKey} — respawn disabled by config.");
+            else
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] Gather resource \"{itemName}\" exhausted (data sync) at {posKey}. " +
+                    $"Will respawn in {threshold} days.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[TreeRespawnMod] GatherDataSyncPatch: {ex}");
         }
     }
 }

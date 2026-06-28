@@ -13,7 +13,7 @@ public class DayTracker : MonoBehaviour
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
         var ws = WeatherSystem.Instance;
-        if (ws == null) return;
+        if (ws == null || ws.Runner == null || !ws.Runner.IsServer) return;
 
         float dayLength = ws.dayLength;
         float threshold = Plugin.RespawnDays.Value;
