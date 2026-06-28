@@ -100,6 +100,7 @@ askamods/
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
+  JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.0.0]
 ```
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
@@ -120,6 +121,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Group 7587134 |
 | **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
 | **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Group 7586480 |
+| **JotunBloodYieldMod** (13) | Patches HarvestSpawner._GetAwardedLootCount and LootSpawner.GetLootStack to map blood stone yields 1->3, 2->5, 3->6 | Not on Nexus |
 
 ### In Progress / Blocked
 | Mod | Status | Key Issue |
@@ -170,6 +172,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`docs/mods/dynamic-villager-needs.md`](file:///d:/Claude%20Projects/askamods/docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
 | [`docs/mods/villager-fight-back.md`](file:///d:/Claude%20Projects/askamods/docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
 | [`docs/mods/mine-refresh.md`](file:///d:/Claude%20Projects/askamods/docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
+| [`docs/mods/jotun-blood-yield.md`](file:///d:/Claude%20Projects/askamods/docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
 | [`docs/nexus-upload.md`](file:///d:/Claude%20Projects/askamods/docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`DYNAMIC_HAULING_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — warehouse hauling filter |
 | [`WAREHOUSE_CAPACITY_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |

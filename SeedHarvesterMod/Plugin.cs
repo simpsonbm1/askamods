@@ -27,7 +27,7 @@ namespace SeedHarvesterMod
             Logger = Log;
             LogPath = Path.Combine(Paths.ConfigPath, "SeedHarvester_Results.txt");
             Log.LogInfo($"Plugin com.askamods.seedharvester is loaded!");
-            Harmony.CreateAndPatchAll(typeof(GameStateLoadPatch));
+            // Harmony.CreateAndPatchAll(typeof(GameStateLoadPatch));
         }
     }
 
