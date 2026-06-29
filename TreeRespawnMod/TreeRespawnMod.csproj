@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TreeRespawnMod</AssemblyName>
     <RootNamespace>TreeRespawnMod</RootNamespace>
-    <Version>1.2.1</Version>
+    <Version>1.2.5</Version>
   </PropertyGroup>
 
   <PropertyGroup>

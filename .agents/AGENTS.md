@@ -118,7 +118,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [COMPLETE v1.2.1]
+  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.5 — Issues C/D CLOSED 2026-06-28 (exhausted, not resolved); Issue A (co-op) still open, see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
@@ -129,14 +129,33 @@ askamods/
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
-  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked]
+  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
 ```
 
-> **TreeRespawnMod (2)** is at **v1.2.1** — co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
-> **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files): the pending-respawn file is keyed
-> by `StorageManager.ActiveSessionID` (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer
-> share/cross-contaminate respawn state. **The world SEED was a dead-end** (empty on loaded saves — v1.2.0
-> silently did nothing); see `docs/mods/tree-respawn.md` + architecture.md "Identifying the loaded world".
+> **TreeRespawnMod (2)** is at **v1.2.5** — co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
+> **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files, on
+> both machines): the pending-respawn file is keyed by `StorageManager.ActiveSessionID`
+> (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer share/cross-contaminate respawn
+> state. **The world SEED was a dead-end** (empty on loaded saves — v1.2.0 silently did nothing); see
+> `docs/mods/tree-respawn.md` + architecture.md "Identifying the loaded world". **v1.2.2 was a
+> version-only bump** — Smart App Control blocked the v1.2.1 DLL hash on the second machine
+> (`FileLoadException ... 0x800711C7`); bumping the version changes the hash so SAC re-evaluates it.
+> **v1.2.3 adds `EnableDiagnostics` logging** for the still-open Issues C (distant villager gather
+> doesn't respawn) and D (overdue respawns stuck while their node is unloaded) — `[diag] init <posKey>`
+> in `BiomeInstancePatch` and a throttled `[diag] overdue-but-not-loaded` summary in `DayTracker`.
+> **v1.2.4 dedupes `[diag] init`** to log once per position per world instead of every re-stream — a
+> single test run logged the same handful of positions 90+ times each and caused noticeable hitching
+> (confirmed in-game 2026-06-28). **Two controlled Issue C tests ran 2026-06-28** (host far from village;
+> host far then back near village) — gather never registered either way, and idle complaints
+> persisted/worsened even at the village, which weakens distance/streaming as the sole cause. **v1.2.5**
+> enriches the `NoResourcesFound` complaint with the villager's name and the actual `ItemManifest` they
+> wanted, to find out whether they're fixated on something genuinely unavailable or just not finding
+> stock that's actually there. **Issues C and D are now CLOSED (2026-06-28)** — a deliberate test (new
+> marker, realistic respawn threshold, harvest, run far away, save, reload, wait, return) provoked both
+> theories at once and neither reproduced; the original incident's evidence is gone (old global save
+> already deleted) so it can't be diagnosed further. Found Issue F (a vanilla villager-AI fiber lockout,
+> unrelated, tracked separately) along the way. Issue A (co-op) is the only originally-tracked item
+> still open.
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
 The `CopyToPlugins` MSBuild target handles deployment automatically on build.
@@ -149,7 +168,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | Mod | Key Technique | Nexus |
 |---|---|---|
 | **BowDamageMod** (1) | Prefix on `Creature.TakeDamage`, match arrow name in `DamageData.weapon` | Not on Nexus |
-| **TreeRespawnMod** (2, v1.2.1) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 | Group 7551668 |
+| **TreeRespawnMod** (2, v1.2.5) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 on both machines; `EnableDiagnostics` also logs node-streaming (deduped, once/position/world), overdue-unloaded entries, and (v1.2.5) villager+wanted-item detail on `NoResourcesFound` for open Issues C/D | Group 7551668 |
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
@@ -163,7 +182,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 |---|---|---|
 | **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
 | **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
-| **SeedHarvesterMod** (14) | PARKED — patch disabled | "Fast Harvest" coroutine regenerates seeds in-memory in seconds, but every seed scores `-9999`: cave `AreaInstance` GameObjects are never instantiated by `UpdateDataAsync` (a 1-frame `yield` doesn't force it — dead-end 2026-06-28), so cave positions can't be read. Would need a `GameAssembly.dll` dump to parse raw data buffers. `SEED_HARVESTER_HANDOFF.md`. |
+| **SeedHarvesterMod** (14) | PARKED — patch disabled; installed .dll renamed to .dll.off 2026-06-28 | "Fast Harvest" coroutine regenerates seeds in-memory in seconds, but every seed scores `-9999`: cave `AreaInstance` GameObjects are never instantiated by `UpdateDataAsync` (a 1-frame `yield` doesn't force it — dead-end 2026-06-28), so cave positions can't be read. Would need a `GameAssembly.dll` dump to parse raw data buffers. `SEED_HARVESTER_HANDOFF.md`. |
 
 ---
 
@@ -215,7 +234,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — crash debug + behavior-swap approach |
 | [`SEED_SCOUT_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_SCOUT_HANDOFF.md) | Mod 9 — worldgen findings, scorer + overlay |
 | [`WARP_TOUR_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WARP_TOUR_HANDOFF.md) | Mod 10 — teleport-tour design + tuning |
-| [`TREERESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D + diagnosis plan) |
+| [`TREERESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
 | [`SEED_HARVESTER_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
 
 ---

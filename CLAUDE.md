@@ -113,7 +113,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.1 — co-op respawn fix + per-world save isolation (keyed on StorageManager.ActiveSessionID) confirmed in-game 2026-06-28]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.5 — co-op respawn fix + per-world save isolation (keyed on StorageManager.ActiveSessionID) confirmed in-game 2026-06-28 on both machines; Issues C/D CLOSED 2026-06-28 (investigation exhausted — distance/rot theories didn't reproduce under direct testing, original incident's evidence no longer exists); Issue A (co-op) is the only originally-tracked item still open — see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
@@ -123,15 +123,16 @@ askamods/
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
-  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked]
+  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike: its "Fast Harvest" coroutine regenerates seeds
 > in-memory in seconds, but every seed scores `-9999` because cave `AreaInstance` GameObjects are
 > never instantiated by `UpdateDataAsync`, so cave positions can't be read (a 1-frame `yield` does
-> not force instantiation — dead-end confirmed 2026-06-28). The Harmony patch is commented out.
-> Reading positions would require dumping `GameAssembly.dll` to parse the raw data buffers. See
-> `SEED_HARVESTER_HANDOFF.md`.
+> not force instantiation — dead-end confirmed 2026-06-28). The Harmony patch is commented out, and
+> as of 2026-06-28 the installed plugin DLL is also renamed to `SeedHarvesterMod.dll.off` (same
+> convention as CookingStationFixMod) so BepInEx doesn't load it at all. Reading positions would
+> require dumping `GameAssembly.dll` to parse the raw data buffers. See `SEED_HARVESTER_HANDOFF.md`.
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
 The build target `CopyToPlugins` handles this automatically on build.
@@ -168,7 +169,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — VillagerFightBackMod test run + fallback |
 | [`SEED_SCOUT_HANDOFF.md`](SEED_SCOUT_HANDOFF.md) | Mod 9 — SeedScoutMod: worldgen findings, seed scorer + map overlay (WIP) |
 | [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md) | Mod 10 — WarpTourMod: teleport-tour POIs for native map pins (why cheap pins fail, tour design, tuning) |
-| [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D + diagnosis plan) |
+| [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
 | [`SEED_HARVESTER_HANDOFF.md`](SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
 
 ## Reference Paths

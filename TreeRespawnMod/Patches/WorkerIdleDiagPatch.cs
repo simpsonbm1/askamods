@@ -1,5 +1,7 @@
 using System;
+using System.Text;
 using HarmonyLib;
+using SandSailorStudio.Inventory;
 using SSSGame.AI;
 
 namespace TreeRespawnMod.Patches;
@@ -31,9 +33,41 @@ internal static class WorkerIdleDiag
     nameof(GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound))]
 internal static class ComplainNoResourcesDiag
 {
-    static void Postfix(bool value)
+    // finderManifest is WHAT the worker was searching for — naming it here is what lets us tell a real
+    // "nothing exists nearby" starve apart from "fixated on an unavailable higher-priority resource
+    // while something else gatherable sits right there" (see TREERESPAWN_HANDOFF.md Issue C).
+    static void Postfix(GatherAndHarvestQuest.GatherAndHarvestData __instance, bool value, ItemManifest finderManifest)
     {
-        if (value) WorkerIdleDiag.Log("NoResourcesFound (searched, found no allowed target → starved, not broken)");
+        if (!value || !Plugin.EnableDiagnostics.Value) return;
+        try
+        {
+            string who = __instance?.GetVillager()?.GetName() ?? "?";
+            string wanted = DescribeManifest(finderManifest);
+            WorkerIdleDiag.Log($"NoResourcesFound: '{who}' wants {wanted} (searched, found no allowed target → starved, not broken)");
+        }
+        catch { }
+    }
+
+    private static string DescribeManifest(ItemManifest manifest)
+    {
+        if (manifest == null) return "(no manifest)";
+        try
+        {
+            var items = manifest.GetItems();
+            if (items == null || items.Count == 0) return "(empty manifest)";
+            var sb = new StringBuilder();
+            int shown = 0;
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (shown >= 5) { sb.Append(", ..."); break; }
+                if (shown > 0) sb.Append(", ");
+                var iq = items[i];
+                sb.Append(iq.itemInfo != null ? iq.itemInfo.Name : "?").Append('x').Append(iq.quantity);
+                shown++;
+            }
+            return sb.ToString();
+        }
+        catch { return "(unreadable)"; }
     }
 }
 

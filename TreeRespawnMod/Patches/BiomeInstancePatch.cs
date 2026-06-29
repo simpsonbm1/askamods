@@ -14,7 +14,17 @@ internal static class BiomeInstancePatch
         try
         {
             var pos = __instance.GetPosition();
-            Plugin.ActiveInstances[Plugin.PosKey(pos)] = __instance;
+            string posKey = Plugin.PosKey(pos);
+            bool firstSeenThisWorld = !Plugin.ActiveInstances.ContainsKey(posKey);
+            Plugin.ActiveInstances[posKey] = __instance;
+
+            // Tells us whether a distant/villager-only area streams in on the host at all —
+            // see TREERESPAWN_HANDOFF.md Issue C. Logged once per position per world (not every
+            // re-stream) to keep EnableDiagnostics usable for a real play session instead of
+            // flooding the log (a single run-through logged the same handful of positions 90+
+            // times each — confirmed in-game 2026-06-28).
+            if (firstSeenThisWorld && Plugin.EnableDiagnostics.Value)
+                Plugin.Logger.LogInfo($"[TreeRespawnMod] [diag] init {posKey}");
         }
         catch { }
     }

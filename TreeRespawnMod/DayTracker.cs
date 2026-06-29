@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using SSSGame;
 using SSSGame.Weather;
@@ -9,6 +10,7 @@ namespace TreeRespawnMod;
 public class DayTracker : MonoBehaviour
 {
     private int _worldCheck;
+    private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
 
     void Update()
     {
@@ -34,6 +36,10 @@ public class DayTracker : MonoBehaviour
         float dayLength = ws.dayLength;
         float threshold = Plugin.RespawnDays.Value;
 
+        bool diag = Plugin.EnableDiagnostics.Value;
+        List<string>? overdueTreeNotLoaded = diag ? new List<string>() : null;
+        List<string>? overdueGatherNotLoaded = diag ? new List<string>() : null;
+
         var toRemove = new List<string>();
         foreach (var kvp in Plugin.PendingRespawns)
         {
@@ -41,7 +47,15 @@ public class DayTracker : MonoBehaviour
             float gameTimeFelled = kvp.Value;
 
             // Look up the live instance by position — safe after scene reloads and restarts.
-            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst)) continue;
+            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst))
+            {
+                if (overdueTreeNotLoaded != null)
+                {
+                    float elapsed = ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
+                    if (elapsed >= threshold) overdueTreeNotLoaded.Add($"{posKey}({elapsed:F1}d)");
+                }
+                continue;
+            }
 
             if (inst.Destroyed)
             {
@@ -89,7 +103,15 @@ public class DayTracker : MonoBehaviour
                 continue;
             }
 
-            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst)) continue;
+            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst))
+            {
+                if (overdueGatherNotLoaded != null)
+                {
+                    float elapsed = ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
+                    if (elapsed >= gatherThreshold) overdueGatherNotLoaded.Add($"{posKey}({elapsed:F1}d,{itemName})");
+                }
+                continue;
+            }
 
             float elapsedDays =
                 ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
@@ -109,6 +131,21 @@ public class DayTracker : MonoBehaviour
                         $"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
                 }
             }
+        }
+
+        // Throttled summary (Issue D): entries past their threshold that can't respawn because their
+        // node isn't streamed in right now. Combined tree+gather under one throttle so a noisy one
+        // can't crowd out the other.
+        if (diag && (overdueTreeNotLoaded!.Count > 0 || overdueGatherNotLoaded!.Count > 0)
+            && (DateTime.UtcNow - _lastOverdueDiagLog).TotalSeconds >= 5)
+        {
+            _lastOverdueDiagLog = DateTime.UtcNow;
+            if (overdueTreeNotLoaded.Count > 0)
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] [diag] overdue-but-not-loaded (tree): {overdueTreeNotLoaded.Count} — {string.Join(", ", overdueTreeNotLoaded.Take(5))}");
+            if (overdueGatherNotLoaded!.Count > 0)
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] [diag] overdue-but-not-loaded (gather): {overdueGatherNotLoaded.Count} — {string.Join(", ", overdueGatherNotLoaded.Take(5))}");
         }
 
         bool anyChanges = toRemove.Count > 0 || toRemoveGather.Count > 0;

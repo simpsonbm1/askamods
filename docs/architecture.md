@@ -284,6 +284,13 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
   - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
   - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
 - **Not their own GatherInteraction** (bonus drops bundled with parent gather — can't trigger respawn): `"Seeds"` (plants), `"Wild Egg"` (Bird's Nest)
+- **No stump-equivalent visual state (confirmed in-game 2026-06-28):** unlike a felled tree (which leaves
+  a visible stump — see Resource/Tree System), an exhausted gather resource (reed/flax/berry bush etc.)
+  just **disappears entirely** with no depleted-but-present model left behind. This means you can't tell
+  by looking whether a bare spot still has a live `BiomeItemInstance` waiting on a pending respawn, or
+  whether the underlying object was destroyed/removed some other way — there's no observational test that
+  distinguishes the two. Relevant if investigating "a gathered resource never came back": don't expect a
+  stump-like visual cue the way tree respawn debugging can rely on.
 
 ---
 
@@ -299,6 +306,24 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
 - **Get a typed component off a structure:** `structure.TryGetStructureComponent<T>(out T comp)` (bool) or `GetStructureComponent<T>()` / `FindStructureComponent(predicate)`. This is how you ask "is this building a `CraftingStation`/`ResourceStorage`/…".
 - **Workstations** (`ResourceStorage`, `CraftingStation`, `CookingStation`, etc.) are `Workstation : NetworkBehaviour` structure-components. Each owns a set of AI **Quests** (`SSSGame.AI.*Quest`, e.g. `CrafterFetchQuest`, `SupplyPatrolQuest`, `GatherAndHarvestQuest`) exposed as `vFSMBehaviour` fields, and runs them through **FSM nodes** under `SSSGame.AI.FSM.*` (ScriptableObjects — their method bodies are NOT dumpable in IL2CPP, only signatures). Active work is tracked by `SSSGame.AI.TaskRunner`.
 - **Per-villager whitelisting** exists on workstations: `IsWhitelisted(Villager)`, `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which villagers may use this station."
+
+### `GatherAndHarvestQuest` — fiber gather can get permanently stuck (confirmed in-game 2026-06-28)
+`GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound(bool value, ItemManifest
+finderManifest)` — the `finderManifest` parameter (previously unread by any mod) names what the worker
+was searching for. Confirmed in **two independent worlds** with **two different villagers**: both
+permanently stuck wanting exactly `Fibers x 15` (`ItemManifest.GetItems()` → `ItemInfoQuantity[]`,
+`.itemInfo.Name`/`.quantity`), even with flax visibly present and reachable — the complaint just repeats
+forever. The identical "15" across unrelated worlds/villagers means it's a fixed constant (most likely a
+workstation/recipe stockpile target — same shape as `CookingStockpileQuestData`'s `NeededSpecificSupplies`/
+`NeededFillerSupplies` fixed-target manifests, see Cooking Station Pipeline below), not a per-world
+computed deficit. **Leading hypothesis, not fully confirmed:** the resource-search needs a single source
+able to satisfy the whole manifest in one shot; since one flax harvest yields only 6-7 fiber, no source
+can ever satisfy a 15-unit request, so it fails forever regardless of flax abundance/proximity. **Can't
+be confirmed further without an IL decompile** — `SSSGame.AI.FSM.*` quest-behavior nodes are
+ScriptableObjects whose method bodies Cecil can't dump (signatures only). Full writeup, evidence, and the
+cheap in-game verification (check the stuck villager's job for a workstation needing exactly 15 fiber):
+[`../TREERESPAWN_HANDOFF.md`](../TREERESPAWN_HANDOFF.md) Issue F. **Not a TreeRespawnMod bug** —
+discovered through its diagnostics, but the mod doesn't touch quest targets or resource search.
 
 ---
 

@@ -62,7 +62,7 @@ public class Plugin : BasePlugin
             section: "TreeRespawn",
             key: "EnableDiagnostics",
             defaultValue: false,
-            description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, and when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug). Off by default; turn on only when troubleshooting woodcutter behaviour.");
+            description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug), every biome-instance Initialize (to see whether a distant area streams in on the host), and a throttled summary of pending respawns stuck because their node isn't currently loaded. Off by default; very chatty (especially the Initialize log) — turn on only for a short troubleshooting session, not for normal play.");
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,
