@@ -40,7 +40,7 @@ Fix every mismatch in BOTH files before starting new work.
 **Ritual 2 — Definition of Done (dual-write, blocks the commit).** A change is **NOT done and must
 NOT be committed** until BOTH `CLAUDE.md` AND `.agents/AGENTS.md` reflect it. Edit them in the same
 change whenever you:
-- add / rename / remove a mod folder, or change a mod's status (WIP→COMPLETE, COMPLETE→PARKED/BLOCKED, new blocker);
+- add / rename / remove a mod folder, or change a mod's status (WIP→COMPLETE, COMPLETE→PARKED/BLOCKED, new blocker) — if a mod is PARKED or un-parked, also update `$ParkedByDefault` in `sync-plugins.ps1`;
 - bump a mod version, or change its core technique/approach (update the mod's `docs/mods/*.md` too);
 - add a new IL2CPP gotcha or a dead-end;
 - add a handoff doc or a `docs/mods/` file → add it to BOTH Documentation Maps.
@@ -77,6 +77,22 @@ docs, configs — so the other machine has it on next pull. The repo already tra
 only `bin/`, `obj/`, and `*.save` stay gitignored. Don't strand files or knowledge on the current
 machine — but don't pre-empt the user's go-ahead to push, either.
 
+## Syncing live plugins from git (helper script)
+`sync-plugins.ps1` (repo root) copies each committed `<Mod>\<Mod>.dll` into the live
+`ASKA\BepInEx\plugins\<Mod>\`. A `git pull` refreshes the repo's DLLs but never the live game folder,
+so after pulling on a machine the live mods lag until this runs.
+
+**When the user asks to "sync the plugins from git to the live folder" (or to push / refresh the live
+mods — e.g. after a pull, or between machines), RUN this script. Don't hand-roll a manual copy.**
+- Preview: `.\sync-plugins.ps1 -DryRun`  ·  Apply: `.\sync-plugins.ps1`
+- A machine whose ASKA lives elsewhere: pass `-PluginsDir <path>` or set `$env:ASKA_PLUGINS`.
+
+It copies only when the hash differs, preserves each mod's live enabled/`.dll.off` state, backs up
+replaced DLLs under `%TEMP%\askamods-sync-backups\`, and reminds you to confirm the loaded versions in
+`LogOutput.log` — it can't dodge SAC, so a blocked DLL still needs a version bump + rebuild. Its
+`$ParkedByDefault` list (CookingStationFixMod, SeedHarvesterMod) makes parked spikes install disabled
+on a fresh machine — keep that list in step with mod parked-status changes (see Ritual 2).
+
 ## Game
 **ASKA** — co-op Viking survival/city-builder on Steam.
 Install path: `D:\SteamLibrary\steamapps\common\ASKA`
@@ -107,6 +123,7 @@ DLLs, not the original game DLLs. The interop layer has sharp edges — see
 ```
 askamods/
   CLAUDE.md                  ← this file (orientation + pointers)
+  sync-plugins.ps1           ← push committed mod DLLs → live BepInEx\plugins (see "Syncing live plugins from git")
   docs/                      ← detailed knowledge base (read on demand)
     architecture.md          ← how the game works + what doesn't (by subsystem)
     nexus-upload.md          ← publishing/CI workflow
