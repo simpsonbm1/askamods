@@ -19,6 +19,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> RespawnDays = null!;
     internal static ConfigEntry<bool> ProtectStumps = null!;
     internal static ConfigEntry<bool> EnableDiagnostics = null!;
+    internal static ConfigEntry<bool> RefillUnloadedNodes = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
@@ -35,6 +36,19 @@ public class Plugin : BasePlugin
 
     // Position → live instance, populated by BiomeInstancePatch as the world loads.
     internal static readonly Dictionary<string, SSSGame.BiomeItemInstance> ActiveInstances = new();
+
+    // BiomesManager captured at world load (Patches/Captures.cs). Only used by the v1.2.7 gather-reg
+    // diagnostic to read the local player's position; null until a world is loading.
+    internal static SSSGame.BiomesManager? Biomes;
+
+    // Data handler captured from any live instance (BiomeInstancePatch). The v1.2.9 experimental path uses
+    // it to resolve a usable instance for a DEACTIVATED node — handler.GetInstance(onlyIfActive:false).
+    internal static SSSGame.BiomeProceduralDataHandler? DataHandler;
+
+    // posKey → the node's WorldItemInstanceId, captured at harvest (when the instance is valid). Needed to
+    // re-resolve the instance via the handler later, because the cached ActiveInstances pointer goes stale
+    // (deregistered, UniqueId reset to 0) once the chunk deactivates. Per-session only (not persisted).
+    internal static readonly Dictionary<string, SSSGame.WorldItemInstanceId> GatherWid = new();
 
     // The current world's StorageManager.ActiveSessionID, set once a world loads (see PollWorldId).
     // Until it's known we don't know WHICH world we're in, so no pending-respawn file is read/written.
@@ -63,6 +77,17 @@ public class Plugin : BasePlugin
             key: "EnableDiagnostics",
             defaultValue: false,
             description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug), every biome-instance Initialize (to see whether a distant area streams in on the host), and a throttled summary of pending respawns stuck because their node isn't currently loaded. Off by default; very chatty (especially the Initialize log) — turn on only for a short troubleshooting session, not for normal play.");
+
+        RefillUnloadedNodes = Config.Bind(
+            section: "TreeRespawn",
+            key: "RefillUnloadedGatherNodes",
+            defaultValue: true,
+            description: "When ON (default), a gather node whose respawn timer elapses while its chunk is " +
+                "unloaded/deactivated is refilled through the data handler — GetInstance(onlyIfActive:false) + " +
+                "Replenish() + SetDirty — instead of being faked against the stale, deregistered pointer. This is " +
+                "what lets distant forage markers (e.g. the shoreline reeds) refill so villagers keep working them " +
+                "while you're elsewhere. Host-only. Turn OFF to revert to the old near-node-only behavior. The " +
+                "[diag] exp-replenish log lines require EnableDiagnostics.");
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,
@@ -120,6 +145,49 @@ public class Plugin : BasePlugin
     internal static string PosKey(Vector3 pos) =>
         $"{pos.x:F1}:{pos.y:F1}:{pos.z:F1}";
 
+    // Local player's position via the captured BiomesManager (same source WarpTour trusts).
+    // Diagnostic-only — used to log player→node distance at harvest time. Returns false if the
+    // player transform isn't available yet (e.g. at the main menu).
+    internal static bool TryGetPlayerPos(out Vector3 pos)
+    {
+        pos = default;
+        try
+        {
+            var pt = Biomes?._localPlayerTransform;
+            if (pt == null) return false;
+            pos = pt.position;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    // v1.2.8 read-only probe (diagnostic-only): is this (possibly deactivated) instance still addressable
+    // in its persistent VegetationSystem buffer? This decides whether a respawn can be written to the
+    // persistent arrays directly while the node is deactivated (buffer live + find >= 0) or whether the
+    // node is gone/disposed while deactivated (→ force-load is the only lever). All reads wrapped — a
+    // throw on a disposed native array is itself a signal (len=disposed), and must not disturb anything.
+    internal static string ProbeBuffer(SSSGame.BiomeItemInstance inst)
+    {
+        string buf = "?", len = "?", find = "?", reg = "?", act = "?";
+        try { buf = inst._buffer != null ? "set" : "null"; } catch (Exception e) { buf = "err:" + e.GetType().Name; }
+        try { reg = inst.RegisteredInstanceIdx.ToString(); } catch { }
+        uint uid = 0; bool haveUid = false;
+        try { uid = inst.UniqueId; haveUid = true; } catch { }
+        try
+        {
+            var b = inst._buffer;
+            if (b != null)
+            {
+                try { act = b.activeInstances.Count.ToString(); } catch { act = "err"; }
+                var arr = b.instances;
+                try { len = arr.Length.ToString(); } catch { len = "disposed"; }
+                if (haveUid) { try { find = arr.FindIndexOfUniqueId(uid).ToString(); } catch { find = "err"; } }
+            }
+        }
+        catch { }
+        return $"buf={buf} reg={reg} uid={(haveUid ? uid.ToString() : "?")} find={find} len={len} active={act}";
+    }
+
     // Returns respawn days for a gathered item. Checks per-resource entries first (substring match),
     // falls back to Default. Returns 0 if respawn is disabled for this item.
     internal static float GetGatherThreshold(string itemName)
@@ -172,6 +240,7 @@ public class Plugin : BasePlugin
             PendingGatherRespawns.Clear();
             RegisteredStumps.Clear();
             ActiveInstances.Clear();
+            GatherWid.Clear();
         }
 
         CurrentWorldId = id;
@@ -216,7 +285,14 @@ public class Plugin : BasePlugin
                 lines.Add($"{kvp.Key},{kvp.Value.ToString("R", CultureInfo.InvariantCulture)}");
             lines.Add("# gather");
             foreach (var kvp in PendingGatherRespawns)
-                lines.Add($"{kvp.Key},{kvp.Value.gameTime.ToString("R", CultureInfo.InvariantCulture)},{kvp.Value.itemName}");
+            {
+                // Persist the node's WorldItemInstanceId (as its raw ulong) so a far/unloaded marker can still
+                // be re-resolved and refilled after a reload — without it, a save-loaded entry has no way to
+                // address its deactivated instance. 0 = unknown (older entries; falls back to near-node refill).
+                ulong widRaw = 0;
+                if (GatherWid.TryGetValue(kvp.Key, out var wid)) { try { widRaw = wid.Raw; } catch { } }
+                lines.Add($"{kvp.Key},{kvp.Value.gameTime.ToString("R", CultureInfo.InvariantCulture)},{widRaw},{kvp.Value.itemName}");
+            }
             File.WriteAllLines(path, lines);
         }
         catch (Exception ex)
@@ -243,7 +319,9 @@ public class Plugin : BasePlugin
 
                 if (section == "gather")
                 {
-                    // Format: posKey,gameTime,name  (old saves: posKey,gameTime)
+                    // Format (v1.2.10+): posKey,gameTime,widRaw,itemName
+                    //         older:     posKey,gameTime,itemName        (no widRaw)
+                    //         oldest:    posKey,gameTime
                     // posKey = "x:y:z" — no commas, so first comma ends posKey.
                     var c1 = line.IndexOf(',');
                     if (c1 < 0) continue;
@@ -251,10 +329,22 @@ public class Plugin : BasePlugin
                     var rest = line[(c1 + 1)..];
                     var c2 = rest.IndexOf(',');
                     string gameTimeStr = c2 >= 0 ? rest[..c2] : rest;
-                    string name        = c2 >= 0 ? rest[(c2 + 1)..] : "";
+                    string afterGt     = c2 >= 0 ? rest[(c2 + 1)..] : "";
                     if (!float.TryParse(gameTimeStr, NumberStyles.Float,
                             CultureInfo.InvariantCulture, out float gameTime)) continue;
+
+                    // Tell the new (widRaw,itemName) format from the old (itemName) one: the wid field is a
+                    // ulong and no gather item name is purely numeric, so a ulong-parse of the field before the
+                    // next comma disambiguates safely (and preserves any comma inside a legacy item name).
+                    ulong widRaw = 0; string name;
+                    int c3 = afterGt.IndexOf(',');
+                    if (c3 >= 0 && ulong.TryParse(afterGt[..c3], NumberStyles.Integer, CultureInfo.InvariantCulture, out widRaw))
+                        name = afterGt[(c3 + 1)..];
+                    else { name = afterGt; widRaw = 0; }
+
                     PendingGatherRespawns[posKey] = (gameTime, name);
+                    if (widRaw != 0)
+                        try { GatherWid[posKey] = new SSSGame.WorldItemInstanceId(widRaw); } catch { }
                 }
                 else
                 {

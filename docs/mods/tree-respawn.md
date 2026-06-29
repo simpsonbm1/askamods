@@ -12,7 +12,8 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - `_worldInstance.TryCast<BiomeItemInstance>()` to get the biome instance; non-biome resources (rocks etc.) return null and are skipped
 - Store `WeatherSystem.NetworkedCurrentGameTime` at fell time; compare elapsed via `GetTimeDifferenceFromCurrentGameTimeInSeconds() / dayLength` against threshold
 - Key everything by **world position** string (`GetPosition()` rounded to 0.1m, format `x:y:z`) — `UniqueId` is NOT globally unique
-- `BiomeInstancePatch` Postfix on `BiomeItemInstance.Initialize()` populates `ActiveInstances[posKey]` as world loads; `DayTracker` looks up the live instance at check time — no stale pointers stored
+- `BiomeInstancePatch` Postfix on `BiomeItemInstance.Initialize()` populates `ActiveInstances[posKey]` as world loads; `DayTracker` looks up the live instance at check time
+  - ⚠️ **`ActiveInstances` is only *added to* / *wiped on world-switch*** — it is never pruned when an individual node unloads, so a streamed-out node leaves a **stale** pointer (`Active=false`/`Destroyed`). For trees this just means a respawn waits until the node streams back in. For gather nodes, **resolved in v1.2.10** — see "Gather resource respawn" below for the deactivated-node refill path.
 - Stump-harvested detection: check `inst.Destroyed` at each tick (no event subscription needed)
 - Config: `TreeRespawn/RespawnDays` (float, default 3.0)
 
@@ -24,6 +25,7 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - Substring match on item name (case-insensitive) — `"Mushroom"` matches `"Gray Mushroom"`, `"Yellow Mushroom"` etc. Note this is `itemName.Contains(configKey)`, so the config key must be a substring of the in-game item name: key `Fiber` matches item `"Fibers"` (the real, plural name — see architecture.md gather table).
 - **Confirmed working in-game (2026-06-25):** flax bushes at sub-day thresholds (`0.01`) cycle exhausted→respawned→re-harvested repeatedly at the same position in the log — `Replenish()` genuinely restores gatherable harvestability, not just the visual. Triggered by villager *and* player gathering (patch is on `GatherInteraction.GatherItemsCharge`, the node's own collect method — source-agnostic, same as the tree patch).
 - **Respawn days is NOT a "more stock" lever.** It only sets how soon a node is harvestable *again*; it does not change yield-per-harvest or add gatherers. If a raw intermediate (e.g. fiber) still reads ~0 in storage with a `0.01` respawn, the bottleneck is downstream — consumption (weaving/tailoring eats fiber as fast as it's gathered) or gather labor/walk-time — not the mod. Lowering the threshold further can't help once the node is already almost always ready.
+- **Distant/villager-only nodes whose chunk has deactivated also respawn (v1.2.10, confirmed in-game 2026-06-30).** When a gather node's timer elapses while its `BiomeItemInstance` is no longer live (chunk streamed out — the stale-`ActiveInstances`-pointer case above), `DayTracker` re-resolves a fresh, writable instance through `SSSGame.BiomeProceduralDataHandler.GetInstance(tileId, widId, onlyIfActive:false, noPooling:true)` — this works *without* force-loading the tile — and calls the game's own `Replenish()` on that handle, then `handler.SetDirty(cell)` + `handler.OnInstanceDataChanged(instance)` to flush/notify. The node's `WorldItemInstanceId` is cached at harvest time and persisted across save/reload so this keeps working after a reload, not just within a session. Config: `TreeRespawn/RefillUnloadedGatherNodes` (bool, default `true`). This is what lets distant forage markers (e.g. shoreline reeds) keep refilling for villagers while you're elsewhere — see `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30" for the full investigation (Issues C/D).
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
 - **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a
@@ -57,8 +59,11 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - Persistence: **per-world** file `com.askamods.treerespawn.<sanitizedSessionId>-<fnv32>.save` in
   `BepInEx/config` (v1.2.1; per-world isolation **confirmed in-game 2026-06-28** — singleplayer and co-op
   produced two separate files). Sections `# tree` and `# gather`;
-  tree format `posKey,gameTime`; gather format `posKey,gameTime,itemName`. Old saves without section headers
-  load as tree entries (backward compatible); a legacy `# mining` section is silently skipped on load.
+  tree format `posKey,gameTime`; gather format `posKey,gameTime,widRaw,itemName` (v1.2.10 adds `widRaw` —
+  the node's `WorldItemInstanceId.Raw` — so a deactivated node can still be re-resolved and refilled after
+  a reload; older `posKey,gameTime,itemName` lines still parse, `widRaw` defaults to 0/unknown for those).
+  Old saves without section headers load as tree entries (backward compatible); a legacy `# mining` section
+  is silently skipped on load.
 - Day tracking via registered `MonoBehaviour` (`DayTracker`) with `Update()` polling — avoids IL2CPP delegate subscription issues
 - ⚠️ **Known caveat (confirmed in-game 2026-06-28, parked as Issue E in `TREERESPAWN_HANDOFF.md`):** the
   `.save` file is written immediately on every registration, independent of whether the *game* actually
@@ -130,17 +135,41 @@ story," so `ComplainNoResourcesDiag` (`Patches/WorkerIdleDiagPatch.cs`) now capt
 for (`finderManifest.GetItems()` → up to 5 `ItemInfoQuantity` entries as `Name x Qty`) instead of just
 the bare `bool` it logged before. Full reasoning and next steps in `TREERESPAWN_HANDOFF.md` Issue C.
 
-## Issues C & D — CLOSED 2026-06-28 (investigation exhausted, not resolved)
-A deliberate "marker test" (new resource marker, `Thatch` threshold bumped to a realistic 0.1 days,
-harvest, run far away, save, reload, wait, return) was designed to provoke both the distance/streaming
-theory (Issue C) and the rot-while-unloaded theory (Issue D) at once. Neither reproduced: every pending
-entry respawned cleanly regardless of host distance, and the area streamed back in almost immediately on
-reload. The original "shoreline reeds never refill" symptom can't be reproduced under current code, and
-the evidence that could explain its original cause (a pre-v1.2.1 cross-world-contaminated registration —
-see Issue B) no longer exists, since the old global save was already deleted earlier in this same
-investigation. Gather resources also leave no stump-equivalent visual trace when harvested (confirmed
-in-game 2026-06-28, see architecture.md → Gather/Press-to-Collect System), so the original bare spots
-can't be inspected for more clues either. Full writeup: `TREERESPAWN_HANDOFF.md`.
+## v1.2.6 — gather-respawn liveness diagnostic (2026-06-29, awaiting test)
+Re-opens Issues C/D after a fresh shoreline-reed recurrence in Session 3 (reeds visually gone; the per-world
+save has **zero `Thatch` pending** despite the bare shore → the harvests never registered). Adds a passive,
+`EnableDiagnostics`-gated snapshot in `DayTracker`'s gather-respawn block: right before `Replenish()`, logs
+`[diag] gather-respawn "X" at <pos>: Destroyed=.. Active=.. avail A->B qty A->B` and tags `<-- FAKE RESPAWN`
+when the instance is dead/streamed-out or the stock didn't move. Behavior-unchanged (it's the M2 *probe*, not
+the *guard*). Full incident, M1-vs-M2 framing, test procedure, and candidate fixes in
+`TREERESPAWN_HANDOFF.md` → "RE-OPENED 2026-06-29".
+
+## v1.2.8 — deactivated-buffer addressability probe (2026-06-29/30, confirmed in-game)
+Read-only diagnostic (`Plugin.ProbeBuffer`) confirming a deactivated node's persistent
+`InstancesDataArrays` buffer stays addressable (`buf=set len=<N>`) without force-loading its tile — the
+finding that unlocked the v1.2.9 fix below.
+
+## v1.2.9 — handler-based replenish for deactivated nodes (2026-06-29/30, confirmed in-game)
+`BiomeProceduralDataHandler.GetInstance(tileId, widId, onlyIfActive:false, noPooling:true)` resolves a
+fresh, writable instance for a deactivated gather node; `Replenish()` on that handle + `SetDirty`/
+`OnInstanceDataChanged` writes real persistent stock. Confirmed in-game: villagers cycled to a distant
+shoreline reed marker and back to base twice while the player stayed put; reeds were genuinely there on
+inspection. Shipped behind a config flag, defaulted on once verified (v1.2.10 below).
+
+## v1.2.10 — productionized + persisted across reload (2026-06-30, confirmed in-game)
+Renamed the config to `RefillUnloadedGatherNodes` (default `true`); persists each pending gather entry's
+`WorldItemInstanceId` across save/reload (the original "shoreline empty after loading a save" symptom);
+adds a 30s retry/liveness-guard cooldown so an unresolved node is retried, not dropped. Confirmed in-game
+across a save→reload→reload sequence: the deactivated-refill path kept working correctly after a reload,
+fixing the original bug. Full mechanism + test evidence in `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30".
+
+## Issues C & D — RESOLVED 2026-06-30 (history: CLOSED 2026-06-28, RE-OPENED 2026-06-29, see v1.2.6-v1.2.10 above)
+The 2026-06-28 "marker test" closure didn't catch the real mechanism because it saved+reloaded, which
+refreshes every live pointer and masked the actual failure mode (a stale `ActiveInstances` pointer once a
+chunk deactivates mid-session). The 2026-06-29 recurrence reopened the investigation; v1.2.8 found the
+node's persistent data stays addressable while deactivated, and v1.2.9/v1.2.10 turned that into a working,
+reload-safe fix (see above). The original "shoreline reeds never refill" symptom is now fixed and
+confirmed in-game. Full writeup: `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30".
 
 ## Mining / stone-clump respawn — abandoned
 Investigated and abandoned; do not re-attempt. Full reasoning is in

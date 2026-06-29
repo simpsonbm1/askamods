@@ -50,6 +50,14 @@ Tag in-game-verified facts with `confirmed in-game (YYYY-MM-DD)`.
 file, confirm you didn't append a second copy instead of replacing: `grep -c "^# AskaMods" CLAUDE.md`
 and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
 
+**Cadence — these rituals are commit-gated, NOT build-gated.** In an iterative build→test→build loop,
+each cycle do only: edit code, bump the version (`PLUGIN_VERSION` + csproj `<Version>` — needed so Smart
+App Control re-evaluates the new DLL hash and so the loaded version is confirmable), build, and convey
+test steps in chat. **Defer the dual-write sync (Ritual 2), the integrity guard (Ritual 3), and any
+handoff/`docs/` prose to the commit checkpoint, and do them once** — uncommitted edits don't reach the
+other machine until a push, so nothing is lost. A full doc pass on every build is wasted token cost
+(the user runs every task, including doc cleanup, on Opus).
+
 If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
 does — both stay parallel in scope and structure.
 
@@ -130,7 +138,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.5 — co-op respawn fix + per-world save isolation (keyed on StorageManager.ActiveSessionID) confirmed in-game 2026-06-28 on both machines; Issues C/D CLOSED 2026-06-28 (investigation exhausted — distance/rot theories didn't reproduce under direct testing, original incident's evidence no longer exists); Issue A (co-op) is the only originally-tracked item still open — see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.10 — co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op) still open — see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
@@ -186,7 +194,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — VillagerFightBackMod test run + fallback |
 | [`SEED_SCOUT_HANDOFF.md`](SEED_SCOUT_HANDOFF.md) | Mod 9 — SeedScoutMod: worldgen findings, seed scorer + map overlay (WIP) |
 | [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md) | Mod 10 — WarpTourMod: teleport-tour POIs for native map pins (why cheap pins fail, tour design, tuning) |
-| [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, open issues C/D, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
+| [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, issues C/D RESOLVED v1.2.10, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
 | [`SEED_HARVESTER_HANDOFF.md`](SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
 
 ## Reference Paths

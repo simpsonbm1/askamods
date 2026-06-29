@@ -4,5 +4,5 @@ internal static class MyPluginInfo
 {
     public const string PLUGIN_GUID = "com.askamods.treerespawn";
     public const string PLUGIN_NAME = "TreeRespawnMod";
-    public const string PLUGIN_VERSION = "1.2.5";
+    public const string PLUGIN_VERSION = "1.2.10";
 }

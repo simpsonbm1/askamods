@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TreeRespawnMod</AssemblyName>
     <RootNamespace>TreeRespawnMod</RootNamespace>
-    <Version>1.2.5</Version>
+    <Version>1.2.10</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -52,6 +52,10 @@
     </Reference>
     <Reference Include="SandSailorStudio">
       <HintPath>$(BepInExPath)\interop\SandSailorStudio.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AwesomeTechnologies.VegetationStudioPro.Runtime">
+      <HintPath>$(BepInExPath)\interop\AwesomeTechnologies.VegetationStudioPro.Runtime.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Fusion.Runtime">

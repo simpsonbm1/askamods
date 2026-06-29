@@ -6,7 +6,7 @@ General handoff for **Mod 2 (TreeRespawnMod)**. Supersedes the old `COOP_RESPAWN
 `docs/mods/tree-respawn.md` (shipped recipe/config) and `docs/architecture.md`
 (Resource/Tree, Gather, Worldgen/Streaming subsystems).
 
-Current version: **v1.2.5**. v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
+Current version: **v1.2.10**. v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
 the v1.2.1 DLL hash on the second machine with `FileLoadException ... 0x800711C7`; bumping the version
 changes the hash so SAC re-evaluates it and lets it load (no logic changed). v1.2.3 implements the
 diagnostic logging for Issues C/D described below (was previously just a plan) — see "Diagnostic
@@ -15,7 +15,16 @@ world instead of on every re-stream — a single test run logged the same handfu
 each (confirmed in-game 2026-06-28) and caused noticeable hitching; same diagnostic value, far less log
 volume. v1.2.5 enriches the `NoResourcesFound` worker-idle diagnostic with the villager's name and the
 actual `ItemManifest` they were searching for — needed after 2026-06-28 testing complicated the
-distance-only theory for Issue C (see that section).
+distance-only theory for Issue C (see that section). v1.2.6 (2026-06-29) added a passive liveness/stock
+snapshot to the gather-respawn path (the **M2** probe) and v1.2.7 added a complementary registration-time
+probe (player→node distance + liveness at harvest) — both diagnostic-only, see "v1.2.6 RESULT + v1.2.7
+probe" below for what they found. **v1.2.8 (2026-06-29/30) confirmed a deactivated node's persistent data
+buffer stays addressable without force-loading the tile**, which unlocked **v1.2.9**'s handler-based
+replenish (`BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()`) — confirmed
+in-game refilling a distant shoreline marker while the player stayed at base. **v1.2.10 (2026-06-30)
+productionizes that mechanism** (`RefillUnloadedGatherNodes`, default ON) with `WorldItemInstanceId`
+persistence across save/reload and a retry/liveness-guard cooldown. **Issues C and D are RESOLVED** —
+see "RESOLVED 2026-06-30 — the GetInstance(onlyIfActive:false) breakthrough" below.
 
 ---
 
@@ -25,10 +34,252 @@ distance-only theory for Issue C (see that section).
 |---|---|---|
 | A | Co-op **client** respawn (client's harvests didn't start a timer on host) | **Fix in place** (DataSyncPatch) — ⚠️ NOT re-confirmed in a live co-op session |
 | B | **Cross-world** save contamination (one global file shared by all worlds) | ✅ **FIXED v1.2.1**, confirmed in-game 2026-06-28 |
-| C | **Distant villager** gather harvests don't respawn (far foraging markers stay empty) | ⚫ **CLOSED 2026-06-28** — distance hypothesis refuted by direct testing; original incident unreproducible, evidence gone |
-| D | **Overdue** respawns not serviced until you stand near the node as the timer elapses | ⚫ **CLOSED 2026-06-28** — not reproduced under direct testing; fix stays designed as a defensive measure only |
+| C | **Distant villager** gather harvests don't respawn (far foraging markers stay empty) | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — `GetInstance(onlyIfActive:false)` + `Replenish()` refills the node through the persistent data handler without streaming the tile in; see "RESOLVED 2026-06-30" below |
+| D | **Overdue** respawns not serviced until you stand near the node as the timer elapses | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — same fix as C (the overdue-but-unloaded case is exactly what the handler-based replenish services); retry/liveness-guard cooldown added so an unresolved node is retried, not dropped |
 | E | Mod's save file isn't tied to the game's own save event (can register a respawn the game never persisted) | 🟡 **PARKED** — confirmed benign 2026-06-28, fix designed, not being chased yet |
 | F | Villagers permanently stuck wanting `Fibers x 15` — **NOT a TreeRespawnMod bug**, see dedicated section | 🔵 **TRACKED, OUT OF SCOPE** — confirmed repeatable in 2 independent worlds 2026-06-28; vanilla AI/quota quirk |
+
+---
+
+## RE-OPENED 2026-06-29 — shoreline reeds gone again (fresh incident, the live investigation)
+
+**This is the current focus.** Per the closure note's own instruction ("if a *harvested but never respawns*
+symptom shows up again under current code, treat it as a **new, fresh incident**"), C/D are re-opened. The
+2026-06-28 "CLOSED" writeups further down are kept for history; **read this section first.**
+
+### The incident
+User spent a whole session parked at the **Session 3** base (`e7915_240626011713`). The shoreline reed
+marker (reeds yield item `Thatch`) was respawning fine "for a while," then **suddenly stopped** — the
+shoreline is **visually empty again** (user-confirmed in-game 2026-06-29).
+
+### Evidence (this is solid)
+- **Log:** `Thatch exhausted`/`respawned` pairs cycle rapidly early (shoreline z≈613–666), then **vanish
+  entirely** partway through — zero `Thatch` lines of any kind afterward — while fibers/trees/veggies keep
+  registering and respawning at **inland** coords (z 480–632).
+- **Save (`...e7915_240626011713-18ea39d0.save`):** holds trees + 1 Fibers + 1 Onion pending and **zero
+  Thatch entries.** So the mod has **no record those reeds need respawning** → not a "timer hasn't elapsed"
+  case; they will *never* return on their own.
+- **Confirmed in-game 2026-06-29:** walking to the marker and standing next to the empty reeds does **not**
+  refill them — consistent with "nothing is registered," not "waiting on a timer."
+- Registration is logged **unconditionally** (`GatherPatch` etc.), so the absence of late `Thatch exhausted`
+  lines means the emptying harvests **never reached the mod's hook** on this machine.
+
+### The reframe that narrows everything (important)
+1. **Villager gathers DO register — when the chunk is loaded.** The same log shows villagers farming flax
+   across x 100–284 (a 280m spread the player wasn't walking), every one caught by `GatherItemsCharge`. So
+   this is **not** "villagers use a different code path." When loaded, our pipeline sees villager harvests.
+2. **A loaded reed cannot stay empty.** `Thatch = 0.01d` ⇒ respawns in seconds while loaded. So an empty
+   shoreline *proves* the reeds were emptied during a window when their chunk was **not loaded on the host**
+   — or that the respawn was silently undone (M2). There is no "loaded but stuck empty" state.
+
+→ The failure is **specifically and only the unloaded-chunk case.**
+
+### Two mechanisms fit the evidence — different fixes. The diagnostics-off log can't separate them:
+- **M1 — never registered.** Villagers (or an abstract village sim) deplete reeds while the chunk is
+  unloaded on the host → `GatherItemsCharge` never runs here → no registration → no respawn. The final
+  emptying would have **no log line at all.**
+- **M2 — fake respawn on unload.** A reed is harvested while loaded → registered → its chunk unloads within
+  the pending window → on the next tick `DayTracker` finds the **stale, never-pruned** `ActiveInstances`
+  pointer to the dead instance, calls `Replenish()` on garbage, and **drops the entry anyway**. Bookkeeping
+  thinks it respawned; the node never refills. Final emptying would show an `exhausted`+`respawned` pair.
+
+**Code fact backing M2 (verified 2026-06-29):** `ActiveInstances` is only ever *added to*
+(`BiomeInstancePatch.cs:19`, every re-stream) or *wiped wholesale on a world switch* (`Plugin.cs:174`).
+**Nothing prunes it when an individual node unloads** — so dead pointers linger, and the gather loop in
+`DayTracker` has **no liveness/`Destroyed` check** (unlike the tree loop, which checks `inst.Destroyed`).
+A streamed-out `BiomeItemInstance` reports `Active=false` (and/or `Destroyed`) even while still in the
+registry. So M2 is *structurally possible*, independent of whether it's the cause here.
+
+**Why the 2026-06-28 marker test missed M2:** that test **saved + reloaded**, which re-streams the scene and
+**repopulates `ActiveInstances` with fresh live pointers** — so it serviced reeds against live instances (a
+real respawn). M2 only bites in a **continuous (no-reload) session** where the pointer goes stale and the
+timer crosses while it's still in the registry. That condition was never created.
+
+### v1.2.6 diagnostic (the M2 probe — built 2026-06-29, awaiting test)
+Purely additive, `EnableDiagnostics`-gated, behavior-unchanged. In the gather-respawn block, right before
+`Replenish()`, it snapshots the instance and logs (reads wrapped so a throw on a dead instance can't disturb
+the `Replenish`/removal path):
+```
+[diag] gather-respawn "Thatch" at <pos>: Destroyed=False Active=True avail False->True qty 0->3
+```
+- `Active=false` ⇒ streamed-out/deactivated (the stale-pointer case `Destroyed` alone would miss).
+- `avail X->Y` / `qty X->Y` ⇒ stock **before vs. after** `Replenish` — proves functionally whether it did
+  anything. A non-live instance or a no-op refill gets tagged:
+  `... avail False->False qty 0->0  <-- FAKE RESPAWN (instance not live / did not refill)`.
+
+That tag is the **M2 fingerprint** — no distance-guessing; just grep the log.
+
+### TEST INSTRUCTIONS (run next session)
+1. Set `EnableDiagnostics = true` in `com.askamods.treerespawn.cfg` (before launch or at main menu). Confirm
+   `TreeRespawnMod 1.2.6` loads in `LogOutput.log` (SAC — if blocked, bump version again).
+2. Load Session 3 and **play one continuous session** at the base. **Do NOT save/reload mid-session** — a
+   reload refreshes every pointer and masks M2.
+3. Play normally **with movement** — there must be **streaming churn** (chunks unloading while entries are
+   pending) or M2 can't show. The diagnostic fires on **every** gather type, so **reeds are not required**:
+   the 0.5-day **veggies** (Beetroot/Carrot/Cabbage/Onion — an Onion is already pending) are the best probe
+   (long pending window = more chance to catch an unload), and the **far plots** (x≈200–280) are prime
+   candidates. Optional reed amplifier: set `Thatch = 0.1` for the session (revert after) so reed entries
+   live long enough to catch an unload. Optional M1 freebie: set up a *distant* reed marker and watch
+   whether it appears in `[diag] init` (does it stream in at all?) and whether `Thatch exhausted` ever fires.
+4. Quit, hand over the log.
+
+### Decision tree from the log
+- **Any `<-- FAKE RESPAWN` lines** → **M2 confirmed.** Fix = small surgical **liveness guard** in the gather
+  loop: don't drop an entry unless `Replenish` hit a confirmed-live instance (and prune/validate
+  `ActiveInstances`). Reuses the existing pipeline, no new semantics; correct hardening regardless of cause.
+- **No FAKE RESPAWN tags but reeds still empty** → **M1.** Pivot to the root-cause routes below.
+
+### Candidate fixes (do NOT build until the test forks M1/M2)
+- **M2 → liveness guard** (smallest, in-architecture). Also fixes the latent `ActiveInstances` stale-pointer
+  defect + slow per-session leak.
+- **M1 → option A: keep the marker's chunk streamed-in** while a villager works it (force-load / add a
+  streaming source via `WorldStreamingManager` — WarpTour already captures its `Awake`; read-only API recon
+  first). Most root-cause, deepest unknown, perf/stability risk — scope narrowly.
+- **M1 → option B: hook a persistent data object** that changes when a reed is consumed while unloaded
+  (forage-marker record / village resource ledger) — the `DataSyncPatch`-analogous catch. Note villagers are
+  **host-authoritative** (not a co-op replication gap), so the only gap is the unloaded state; this only
+  works if *some* persistent host-side data still changes while unloaded.
+- **Last resort: proactive refill-on-load** for instant resources. Biggest blast radius — parallel mechanism,
+  breaks timer semantics for non-instant resources unless carved out, can't tell "depleted" from
+  "intentionally cleared," and only tops up when *you* arrive (doesn't supply villagers while you're away).
+
+### v1.2.6 RESULT (2026-06-29) — `FAKE RESPAWN` fires heavily, but the *interpretation* is now in doubt
+Test run under v1.2.6 (`EnableDiagnostics=true`, Session 3, continuous with movement). Confirmed in the log:
+- **46 of 62** gather-respawn attempts tagged `<-- FAKE RESPAWN`. **All 46 were the `!preActive` branch**
+  (`Active=False`); **zero** were the "live-but-didn't-refill" variety. So the tag is driven *entirely* by
+  `Active=False`, not by stock failing to move.
+- **34 of those 46** had `qty` actually move on the `Active=False` instance (`0->1`, `0->6`, …) — i.e.
+  `Replenish()` *did* write to the object; it just wasn't (we assumed) the live one.
+- **0** `overdue-but-not-loaded` lines — entries were NOT rotting unserviced; they were being actively
+  serviced (falsely) and dropped. That distinguishes this from the old Issue-D "rot" framing.
+- Shoreline reed marker (neg-x, z≈613–648, item `Thatch`): **32 fake / 10 real** — directly matches the
+  "shoreline empty again" symptom.
+
+**But two findings block calling this a clean M2 win:**
+1. **All 60 gather registrations were direct `GatherItemsCharge` (zero `(data sync)`).** So depletions are
+   NOT an abstract-ledger deduction — every harvest ran a real, instantiated `GatherInteraction`
+   MonoBehaviour. If villagers are draining far markers, they do it through **live work-GameObjects**, not a
+   spreadsheet.
+2. **The type dump (2026-06-29) shows `WorldItemInstance.Active` is backed by an instance-activation-CONTEXT
+   system** (`ActivateContext(InstanceActivationContext)`/`DeactivateContext`, `HasActiveContext`,
+   `c_flagInstanceActive`), **not confirmed to mean "tile streamed in near the player."** The whole
+   "`Active=False` ⇒ streamed-out ⇒ fake" reading is an *assumption baked into the code comment*, not a
+   verified fact. Also note the **harvest object ≠ respawn object**: registration fires on
+   `GatherInteraction` (MonoBehaviour); respawn calls `Replenish()` on `BiomeItemInstance` (a pure data
+   object that *holds* a `gameObject` and exposes `ForceRefreshGameObject()`, `IsAvailable()`,
+   `IsExhausted()`, `GetQuantity()`).
+
+**Net:** the *symptom* (registered reeds never refill) is reproduced and traceable, but the **premise that a
+villager can't harvest an unloaded tile is UNCONFIRMED**, and so is the meaning of `Active`. Do **not** build
+the liveness guard yet — gating "is this instance live?" on a wrong reading of `Active` could keep entries
+pending forever (never serviced → worse than today).
+
+**Lead worth testing:** `BiomeItemInstance.ForceRefreshGameObject()`. If `Replenish()` fails on a
+non-active instance only because the GameObject isn't refreshed, forcing that may make the respawn *stick*
+without needing the tile to stream in — sidestepping the streaming problem entirely. Speculative.
+
+### v1.2.7 probe — instrument the REGISTRATION path (built 2026-06-29, awaiting test)
+Purely additive, `EnableDiagnostics`-gated, behavior-unchanged. New capture `Patches/Captures.cs` grabs
+`BiomesManager` (Awake/OnDisable) so `Plugin.TryGetPlayerPos` can read the local player's position
+(`BiomesManager._localPlayerTransform` — same source WarpTour trusts). In `GatherPatch`, right after a node
+registers as exhausted, it logs **at harvest time**:
+```
+[diag] gather-reg "Thatch" at -150.0:33.0:620.0: playerDist=212m inActiveInst=True instActive=False destroyed=False interactGO=active
+```
+- `playerDist` — horizontal (x,z) distance from the host player to the node. **The headline measure**,
+  immune to the `Active` ambiguity.
+- `inActiveInst` — was the node ever in `ActiveInstances` (did `BiomeInstancePatch.Initialize` fire for it).
+  `False` here = harvested a node the host never streamed in → strong M1 evidence.
+- `instActive` / `destroyed` — the `BiomeItemInstance`'s own state at harvest (compare against the
+  `gather-respawn` snapshot's `Active` for the same posKey to learn what `Active` tracks across the two paths).
+- `interactGO` — the `GatherInteraction` MonoBehaviour's own `activeInHierarchy`.
+
+### TEST INSTRUCTIONS (v1.2.7 — run next session)
+1. Confirm `TreeRespawnMod 1.2.7` loads in `LogOutput.log` (SAC — bump again if blocked). `EnableDiagnostics=true`.
+2. **Place a fresh reed (or veggie) marker FAR from base**, then immediately run back to base and **stay there.**
+   The goal is to have villagers walk out and harvest a node while you remain at base (the exact scenario the
+   user described). Optionally bump `Thatch=0.1` so reed entries live long enough to also catch the respawn side.
+3. Let villagers work the far marker. Quit, hand over the log.
+
+### Decision tree (v1.2.7)
+- **Registrations show large `playerDist` (and/or `inActiveInst=False` / `instActive=False`)** → villagers
+  DO exhaust nodes far from / not streamed near the host. The premise is wrong; a liveness guard alone can't
+  give hands-off respawn — you'd need force-load (`RequestLoadWorldTile`, confirmed working — see
+  architecture.md → Worldgen/Streaming) for active far markers, or the `ForceRefreshGameObject` trick.
+- **Registrations only ever show small `playerDist` with `instActive=True`** → harvests happen near the host;
+  the premise holds, and the liveness guard (now safely gateable on a validated `Active`) is sufficient for
+  the home case. Calibrate the guard's "live" condition from the harvest-vs-respawn `Active` comparison.
+
+---
+
+## RESOLVED 2026-06-30 — the `GetInstance(onlyIfActive:false)` breakthrough
+
+### v1.2.8 probe — is a deactivated node's persistent buffer still addressable? (2026-06-29/30)
+Read-only, `EnableDiagnostics`-gated (`Plugin.ProbeBuffer`, captured before `Replenish()`). Answers what
+the v1.2.7 decision tree left open: for a node whose `BiomeItemInstance` reports `Active=false`, is its
+**persistent** `InstancesDataArrays` buffer (`_buffer.instances`) still a valid native array — i.e. is
+"deactivated" just an activation-CONTEXT flag (data intact, not streamed), or is the slot itself gone while
+unloaded (which would force a force-load approach)?
+
+**Confirmed in-game:** `buf=set len=<N> active=<M>` on deactivated instances — the persistent buffer is
+alive and the slot is still there. **Force-loading the tile is NOT required.**
+
+### v1.2.9 — "Schrödinger's reeds": handler-based replenish for deactivated nodes (built+tested 2026-06-29/30)
+Instead of calling `Replenish()` on the stale cached pointer (`ActiveInstances[posKey]` — deregistered once
+the chunk unloads, `RegisteredInstanceIdx` negative, `UniqueId` reset to 0), re-resolve a **fresh, valid**
+instance handle through the data handler itself, without streaming the tile in:
+```
+SSSGame.BiomeProceduralDataHandler.GetInstance(WorldTileId tileId, WorldItemInstanceId widId,
+    onlyIfActive:false, noPooling:true) : WorldItemInstance
+```
+`onlyIfActive:false` is the load-bearing part — it returns a usable handle for a deactivated node instead of
+`null`. Cast to `BiomeItemInstance`, call the game's own `.Replenish()` on it, then `handler.SetDirty(cell)`
++ `handler.OnInstanceDataChanged(instance)` to flush/notify so the AI/streaming system picks it up.
+
+**Confirmed in-game (v1.2.9 single-session test):** watched the woodcutters cycle to the distant shoreline
+reed marker and back to base **twice** while staying at base; walked out afterward and the reeds were
+genuinely there. Log: **37/37** `[diag] exp-replenish ... OK (stock written)`, zero errors, zero
+`NO-CHANGE`. First time the distant-shoreline-reed symptom — the original motivation for this whole
+investigation — was watched succeeding end-to-end with the player never near the node.
+
+### v1.2.10 — productionized: persistence across reload + retry/liveness guard (built+tested 2026-06-29/30)
+- **Config renamed** `ExperimentalDeactivatedReplenish` → `RefillUnloadedGatherNodes`, **default `true`**
+  (shipped default-on once written, per explicit instruction — not gated behind a second approval round).
+- **`WorldItemInstanceId` persistence across save/reload.** v1.2.9's `GatherWid` cache was session-only —
+  it would NOT have survived a reload, which is exactly the original "shoreline empty after loading a
+  save" symptom. v1.2.10 persists each pending gather entry's `WorldItemInstanceId.Raw` (`ulong`) to the
+  per-world `.save` file (`posKey,gameTime,widRaw,itemName`) and reconstructs it via
+  `new WorldItemInstanceId(widRaw)` on load. Old 2-/3-field lines still parse (disambiguated by attempting
+  `ulong.TryParse` on the field after `gameTime` — a real item name is never purely numeric).
+- **Retry/liveness-guard cooldown.** If `DeactivatedReplenish` can't resolve a node yet (handler null, no
+  cached wid, `GetInstance` null, etc.) the entry is **kept pending** and retried after a 30s cooldown
+  (`DayTracker._lastDeactAttempt`) instead of being silently dropped.
+- `[diag] exp-replenish` lines gated behind `EnableDiagnostics`; a real `Replenish()` exception always
+  logs via `LogError` regardless.
+
+**Confirmed in-game (multi-session test spanning `save.txt`→`load.txt`→`load2.txt`):**
+1. Played, watched the distant marker refill successfully, saved (`save.txt`).
+2. Reloaded that save (`load.txt`) — log shows `Loaded 16 tree + 1 gather pending`, i.e. the
+   `WorldItemInstanceId` round-tripped through the save file correctly. The game crashed partway through
+   this session — see "Open item" below; ruled non-mod-related.
+3. Reloaded the SAME save again (`load2.txt`) — woodcutters went back out to the shore and successfully
+   re-gathered reeds. **This is the original bug, fixed**: a gather node whose deactivated-refill state was
+   persisted across a save/reload continued to work correctly post-reload. Every `[diag] exp-replenish`
+   line in both `load.txt` and `load2.txt` read `OK (stock written)` — zero `NULL`, zero `no cached wid`,
+   zero `NO-CHANGE`, zero `Replenish threw`.
+
+**Open item: `load.txt` crash (2026-06-29, unresolved but considered low-priority/non-mod).** During the
+`load.txt` session the game crashed with no exception attributable to any mod in the visible log excerpt —
+it ends cleanly mid-diagnostic-output, no stack trace, no error from any patch. TreeRespawnMod's one
+unconditional error path (`LogError` on a `Replenish()` throw) never fired in any of the three session
+logs. The identical save + identical DLL reloaded cleanly in the very next session (`load2.txt`) and ran
+the same deactivated-write path extensively without recurrence, and the user reported continued play
+afterward with no further crashes. Treated as a transient engine/streaming hiccup, not a TreeRespawnMod
+defect — revisit only if it recurs with a specific repro.
+
+**Status: Issues C & D — RESOLVED 2026-06-30, confirmed in-game across both a single session (v1.2.9) and
+a save/reload boundary (v1.2.10).** The mechanism directly fixes the original "distant villager-gathered
+resources never come back" symptom that motivated this entire investigation.
 
 ---
 
@@ -43,7 +294,7 @@ NOT globally unique):
    - `Patches/DataSyncPatch.cs` — Postfix `WorldItemInstance._OnDataChanged`; the **host-side network catch** (see Issue A). Re-evaluates the same stump/exhaustion conditions when data syncs.
    - All gated on `WeatherSystem.Instance.Runner.IsServer` (host only writes).
 2. **Live-instance registry** — `Patches/BiomeInstancePatch.cs` Postfix `BiomeItemInstance.Initialize` populates `Plugin.ActiveInstances[posKey] = instance` as the world streams in.
-3. **Servicing** — `DayTracker.cs` `Update()` polls the pending dicts each frame. For each entry it looks up the live instance in `ActiveInstances`; if found and `elapsedDays >= threshold`, it calls `inst.Replenish()` and drops the entry. Trees also cancel if `inst.Destroyed` (stump cleared).
+3. **Servicing** — `DayTracker.cs` `Update()` polls the pending dicts each frame. For each entry it looks up the live instance in `ActiveInstances`; if found and `elapsedDays >= threshold`, it calls `inst.Replenish()` and drops the entry. Trees also cancel if `inst.Destroyed` (stump cleared). **Gather entries whose node isn't live** (chunk deactivated) go through `DeactivatedReplenish` instead (v1.2.10, `RefillUnloadedGatherNodes`) — re-resolves a fresh instance via `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` using the node's persisted `WorldItemInstanceId`, and `Replenish()`s that — see "RESOLVED 2026-06-30" above.
 
 **Per-world isolation (v1.2.1):** the pending dicts persist to a **per-world** file keyed by
 `SandSailorStudio.Storage.StorageManager.ActiveSessionID`. `DayTracker.PollWorldId()` resolves it
@@ -356,23 +607,19 @@ surface symptom ("the village is short on X").
 
 ## Recommended next-session order
 
-**Issues C and D are closed (2026-06-28) — see above.** The full arc, for context: re-baseline (clean
-per-world files) → round 1 (distance alone didn't explain the general "village short on stuff" symptom)
-→ round 2 (the "stuck worker" complaint turned out to be Issue F's fiber lockout, not C) → the marker
-test (deliberately provoked the exact race Issue D theorized, at a realistic 0.1-day threshold; nothing
-rotted, distance didn't block anything). What's actually left to do:
+**Issues C/D are RESOLVED as of v1.2.10 (2026-06-30)** — see "RESOLVED 2026-06-30" above for the full
+mechanism and in-game confirmation. What's left, in order:
 
-1. (Optional, low priority) **Verify Issue F's cause in-game** — check the stuck villager's job and look
+1. **Confirm co-op (Issue A)** in a live session (watch for `(data sync)` log lines from a client's
+   harvest). Still genuinely open, independent of C/D.
+2. (Optional, low priority) **Verify Issue F's cause in-game** — check the stuck villager's job and look
    for a workstation with a recipe needing exactly 15 fiber. Not a TreeRespawnMod fix either way.
-2. **Confirm co-op (Issue A)** in a live session (watch for `(data sync)` log lines from a client's
-   harvest). This is the only originally-tracked issue still genuinely open.
-3. If a "harvested but never respawns" symptom shows up again under current code (v1.2.1+), treat it as
-   a **new, fresh incident** — re-open with its own evidence rather than assuming it's a continuation of
-   the closed C/D investigation.
+3. (Optional, low priority) Watch for any recurrence of the `load.txt` crash (see "Open item" under
+   "RESOLVED 2026-06-30") — no action needed unless it reproduces with a specific repro.
 
 ## Diagnostic playbook (concrete)
 
-- **Logging implemented (v1.2.3-v1.2.5, all gated on `EnableDiagnostics` except where noted):**
+- **Logging implemented (v1.2.3-v1.2.6, all gated on `EnableDiagnostics` except where noted):**
   - `GatherPatch` / `DataSyncPatch.CheckGather`: registration logged **unconditionally** (predates
     v1.2.3) — `Gather resource "X" exhausted [(data sync)] at <posKey>...`.
   - `HarvestPatch` / `DataSyncPatch.CheckHarvest`: same, unconditional — `Tree felled [(data sync)] at
@@ -384,6 +631,18 @@ rotted, distance didn't block anything). What's actually left to do:
     (capped to first 5 in the line; check the count if more are stuck). This does NOT yet implement
     the "confirmed live before Replenish" liveness guard from Issue D's proposed fix #2 below — that's
     still open, separate from the logging.
+  - `DayTracker` gather-respawn snapshot (**v1.2.6**, the M2 probe): right before each gather `Replenish()`,
+    `[diag] gather-respawn "X" at <posKey>: Destroyed=.. Active=.. avail A->B qty A->B`, tagging
+    `<-- FAKE RESPAWN (instance not live / did not refill)` when the instance is dead/streamed-out
+    (`Destroyed`/`Active=false`) or the stock didn't move. Behavior-unchanged; reads are wrapped so a
+    throw on a dead instance can't disturb the `Replenish`/removal path. **This is the liveness *probe*,
+    not the *guard*** — it still removes the entry exactly as before; the guard (keep the entry when the
+    instance isn't live) is the fix to write IF the test confirms M2.
+  - `GatherPatch` gather-registration snapshot (**v1.2.7**, the M1/premise probe): right after a node
+    registers as exhausted, `[diag] gather-reg "X" at <posKey>: playerDist=Nm inActiveInst=.. instActive=..
+    destroyed=.. interactGO=..`. Reads the host player position via the captured `BiomesManager`
+    (`Patches/Captures.cs` → `Plugin.TryGetPlayerPos`). Tells whether the harvest happened far from / not
+    streamed near the host. Behavior-unchanged; all reads wrapped so a throw can't disturb registration.
   - `ComplainNoResourcesDiag` (v1.2.5): `DIAG worker idle complaint: NoResourcesFound: '<villager>' wants
     <ItemxQty, ItemxQty, ...> (searched...)`. Reads `GatherAndHarvestData.GetVillager().GetName()` and
     the `finderManifest` parameter the game passes into `ComplainNoResourcesFound` (`ItemManifest.GetItems()`
@@ -407,8 +666,8 @@ rotted, distance didn't block anything). What's actually left to do:
 
 ## Reference
 
-- **Source:** `TreeRespawnMod/Plugin.cs` (state, per-world save, config), `DayTracker.cs` (servicing + world-id poll), `Patches/{HarvestPatch,GatherPatch,DataSyncPatch,BiomeInstancePatch,StumpProtectionPatch,WorkerIdleDiagPatch}.cs`.
-- **Save format:** sections `# tree` (`posKey,gameTime`) and `# gather` (`posKey,gameTime,itemName`); legacy `# mining` skipped; headerless old files load as tree entries.
+- **Source:** `TreeRespawnMod/Plugin.cs` (state, per-world save, config, `TryGetPlayerPos`), `DayTracker.cs` (servicing + world-id poll), `Patches/{HarvestPatch,GatherPatch,DataSyncPatch,BiomeInstancePatch,StumpProtectionPatch,WorkerIdleDiagPatch,Captures}.cs`.
+- **Save format:** sections `# tree` (`posKey,gameTime`) and `# gather` (`posKey,gameTime,widRaw,itemName` as of v1.2.10; older `posKey,gameTime,itemName` and `posKey,gameTime` still parse); legacy `# mining` skipped; headerless old files load as tree entries.
 - **Reed config:** `Thatch` (reeds yield item name). All gather keys are substring, case-insensitive (`Fiber` matches `Fibers`). See `docs/mods/tree-respawn.md`.
 - **Type inspector:** `_explore/typedump.ps1 -Types @("Name")` dumps a game type's members (Cecil over the interop DLLs) — how `StorageManager.ActiveSessionID` was found.
 - **Method signature inspector:** `_explore/methoddump.ps1 -Type "TypeName" -Method "MethodName"` resolves a specific method's exact return type, including generic arguments (`typedump.ps1` collapses generics to e.g. `List`1`) — how `ItemManifest.GetItems() : List<ItemInfoQuantity>` was confirmed for the v1.2.5 diagnostic.
