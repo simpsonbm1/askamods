@@ -209,6 +209,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 |---|---|---|
 | **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
 | **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
+| **TerrainLevelerMod** (15) | PARKED — .dll.off | "SimCity Bulldozer" goal is impossible due to native `TryLevelTile` lumpiness, 512 Fusion network array limit, and mesh normal calc crashes on steep cliffs. |
 | **SeedHarvesterMod** (14) | PARKED — patch disabled; installed .dll renamed to .dll.off 2026-06-28 | "Fast Harvest" coroutine regenerates seeds in-memory in seconds, but every seed scores `-9999`: cave `AreaInstance` GameObjects are never instantiated by `UpdateDataAsync` (a 1-frame `yield` doesn't force it — dead-end 2026-06-28), so cave positions can't be read. Would need a `GameAssembly.dll` dump to parse raw data buffers. `SEED_HARVESTER_HANDOFF.md`. |
 
 ---
@@ -255,6 +256,7 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | [`docs/mods/villager-fight-back.md`](file:///d:/Claude%20Projects/askamods/docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
 | [`docs/mods/mine-refresh.md`](file:///d:/Claude%20Projects/askamods/docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/mods/jotun-blood-yield.md`](file:///d:/Claude%20Projects/askamods/docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
+| [`docs/mods/terrain-leveler.md`](file:///d:/Claude%20Projects/askamods/docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod |
 | [`docs/nexus-upload.md`](file:///d:/Claude%20Projects/askamods/docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`DYNAMIC_HAULING_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — warehouse hauling filter |
 | [`WAREHOUSE_CAPACITY_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |

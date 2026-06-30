@@ -1,4 +1,4 @@
-# AskaMods — Project Context
+﻿# AskaMods — Project Context
 
 This file is the always-loaded orientation. Deep detail lives in `docs/` and is pulled in on demand —
 see [Documentation map](#documentation-map) below. **Before working on any game subsystem, read its
