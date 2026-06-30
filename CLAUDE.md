@@ -19,6 +19,9 @@ Date in-game findings (`confirmed in-game (YYYY-MM-DD)`). Update an existing ent
 and always capture the **dead-ends**, not just what worked — the whole point is to stop a future session
 re-treading a ruled-out path. These doc updates ride along with the related work when it's committed.
 
+## Never Consider an Issue Resolved Until Confirmed In-Game (standing instruction)
+Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
+
 ## Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to (standing instruction)
 The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)** across
 two machines, switching tools when a token budget runs out. These two files are the same orientation
@@ -138,7 +141,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.13 — co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op client respawn authority) RESOLVED 2026-06-30 — LocalPlayer.NetworkObject.Runner.IsServer is now used for host checks instead of WeatherSystem.Runner — see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.13 — co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op client respawn authority) FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION) — LocalPlayer.NetworkObject.Runner.IsServer is now used for host checks instead of WeatherSystem.Runner — see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)

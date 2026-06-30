@@ -82,8 +82,8 @@ internal static class FleeCombatShouldFightPatch
                 {
                     try
                     {
-                        if (Plugin.DebugLogging.Value)
-                            Plugin.Logger.LogInfo($"[VillagerFightBack][timer] wl={wl} decisionTarget={Plugin.SafeName(decisionTarget)} isAlive={isAlive} ct={__instance._combatTimeRemaining}");
+                        // if (Plugin.DebugLogging.Value)
+                        //     Plugin.Logger.LogInfo($"[VillagerFightBack][timer] wl={wl} decisionTarget={Plugin.SafeName(decisionTarget)} isAlive={isAlive} ct={__instance._combatTimeRemaining}");
 
                         if (wl)
                         {

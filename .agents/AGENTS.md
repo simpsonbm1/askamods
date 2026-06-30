@@ -16,6 +16,9 @@ especially **in-game-verified** facts and **dead-ends** — record it before tre
 findings (`confirmed in-game (YYYY-MM-DD)`). Always capture dead-ends — the whole point is to
 stop future sessions re-treading a ruled-out path.
 
+### Never Consider an Issue Resolved Until Confirmed In-Game
+Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
+
 ### Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to
 The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)** across
 two machines, switching tools when a token budget runs out. These two files are the same orientation
@@ -143,7 +146,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.13 — Issues C/D RESOLVED 2026-06-30: BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated gather node's persistent data without force-loading its tile; WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across a single session and a save/reload boundary; Issue A (co-op host detection) RESOLVED 2026-06-30: LocalPlayer.NetworkObject.Runner.IsServer now used to reliably verify host, see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.13 — Issues C/D RESOLVED 2026-06-30: BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated gather node's persistent data without force-loading its tile; WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across a single session and a save/reload boundary; Issue A (co-op host detection) FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION): LocalPlayer.NetworkObject.Runner.IsServer now used to reliably verify host, see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
@@ -179,7 +182,7 @@ askamods/
 > save/reload and a 30s retry/liveness-guard cooldown for an unresolved node. Confirmed in-game across a
 > save→reload→reload test sequence: the deactivated-refill path kept working correctly after a reload —
 > fixing the original "shoreline reeds never refill" symptom. **Issues C and D are RESOLVED.** Issue A
-> (co-op host detection) **RESOLVED 2026-06-30**: `LocalPlayer.NetworkObject.Runner.IsServer` is now used for host checks instead of `WeatherSystem.Runner`. Full mechanism + test evidence: `TREERESPAWN_HANDOFF.md`.
+> (co-op host detection) **FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION)**: `LocalPlayer.NetworkObject.Runner.IsServer` is now used for host checks instead of `WeatherSystem.Runner`. Full mechanism + test evidence: `TREERESPAWN_HANDOFF.md`.
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
 The `CopyToPlugins` MSBuild target handles deployment automatically on build.
