@@ -51,3 +51,19 @@ internal static class PlayerDespawnedPatch
         catch { }
     }
 }
+
+[HarmonyPatch(typeof(HarvestInteraction), nameof(HarvestInteraction.SetWorldInstance))]
+internal static class HarvestInteractionSetWorldInstancePatch
+{
+    static void Postfix(HarvestInteraction __instance)
+    {
+        try
+        {
+            if (__instance != null)
+            {
+                Plugin.LiveHarvestInteractions.Add(__instance);
+            }
+        }
+        catch { }
+    }
+}

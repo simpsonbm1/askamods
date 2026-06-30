@@ -146,7 +146,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.14 — Issues C/D RESOLVED 2026-06-30: BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated gather node's persistent data without force-loading its tile; WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across a single session and a save/reload boundary; Issue A (co-op host detection) FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION): LocalPlayer.NetworkObject.Runner.IsServer now used to reliably verify host; manual respawn hotkey added to instantly refill nearby stumps/nodes, see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.20 — moved noisy init diagnostics to their own toggle; v1.2.19 fixed stale pointer false-positives for gather nodes; instances that falsely report Active=True while unloaded now correctly fail WID validation and route to the unloaded-node handler, preventing them from being dropped from the queue without refilling. Issues C/D resolved; Issue A pending confirmation. See TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
@@ -160,7 +160,7 @@ askamods/
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
 ```
 
-> **TreeRespawnMod (2)** is at **v1.2.14** — manual respawn hotkey ('t') to refill nearby stumps/nodes bypassing the pending list; co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
+> **TreeRespawnMod (2)** is at **v1.2.20** — moved noisy init diagnostics to their own toggle; v1.2.19 added manual respawn hotkey ('t') to refill nearby stumps/nodes bypassing the pending list; co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
 > **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files, on
 > both machines): the pending-respawn file is keyed by `StorageManager.ActiveSessionID`
 > (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer share/cross-contaminate respawn
@@ -195,7 +195,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | Mod | Key Technique | Nexus |
 |---|---|---|
 | **BowDamageMod** (1) | Prefix on `Creature.TakeDamage`, match arrow name in `DamageData.weapon` | Not on Nexus |
-| **TreeRespawnMod** (2, v1.2.14) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 on both machines; for a gather node whose chunk has deactivated, `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()` refills it without force-loading the tile, with `WorldItemInstanceId` persisted across save/reload (`RefillUnloadedGatherNodes`, default on) — **Issues C/D RESOLVED v1.2.10**, confirmed in-game 2026-06-30; manual respawn hotkey directly scans scene for `HarvestInteraction` stumps and `ActiveInstances` gather nodes | Group 7551668 |
+| **TreeRespawnMod** (2, v1.2.20) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID`; `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()` for unloaded chunks, verified with WID to prevent stale pointer drops | Group 7551668 |
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |

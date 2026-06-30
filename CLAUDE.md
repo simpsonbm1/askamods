@@ -141,7 +141,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.14 — manual respawn hotkey ('t') to refill nearby stumps/nodes bypassing the pending list; co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op client respawn authority) FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION) — LocalPlayer.NetworkObject.Runner.IsServer is now used for host checks instead of WeatherSystem.Runner — see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.20 — moved noisy init diagnostics to their own config toggle; v1.2.19 fixed stale pointer false-positives for gather nodes (Issues C/D resolved); Issue A pending confirmation. See TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)

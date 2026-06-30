@@ -30,7 +30,7 @@ internal static class BiomeInstancePatch
             // re-stream) to keep EnableDiagnostics usable for a real play session instead of
             // flooding the log (a single run-through logged the same handful of positions 90+
             // times each — confirmed in-game 2026-06-28).
-            if (firstSeenThisWorld && Plugin.EnableDiagnostics.Value)
+            if (firstSeenThisWorld && Plugin.EnableInitDiagnostics.Value)
                 Plugin.Logger.LogInfo($"[TreeRespawnMod] [diag] init {posKey}");
         }
         catch { }

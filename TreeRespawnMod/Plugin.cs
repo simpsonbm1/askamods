@@ -18,8 +18,9 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<float> RespawnDays = null!;
     internal static ConfigEntry<bool> ProtectStumps = null!;
-    internal static ConfigEntry<bool> EnableDiagnostics = null!;
-    internal static ConfigEntry<bool> RefillUnloadedNodes = null!;
+    public static ConfigEntry<bool> EnableDiagnostics { get; private set; } = null!;
+    public static ConfigEntry<bool> EnableInitDiagnostics { get; private set; } = null!;
+    public static ConfigEntry<bool> RefillUnloadedNodes { get; private set; } = null!;
     internal static ConfigEntry<string> ManualRespawnHotkey = null!;
     internal static ConfigEntry<float> ManualRespawnRadius = null!;
     internal static ConfigEntry<bool> ManualRespawnIncludeGather = null!;
@@ -39,6 +40,9 @@ public class Plugin : BasePlugin
 
     // Position → live instance, populated by BiomeInstancePatch as the world loads.
     internal static readonly Dictionary<string, SSSGame.BiomeItemInstance> ActiveInstances = new();
+
+    // HarvestInteractions captured when their WorldInstance is set. Used by manual respawn to find stumps without FindObjectsOfType.
+    internal static readonly HashSet<SSSGame.HarvestInteraction> LiveHarvestInteractions = new();
 
     // BiomesManager captured at world load (Patches/Captures.cs). Only used by the v1.2.7 gather-reg
     // diagnostic to read the local player's position; null until a world is loading.
@@ -79,7 +83,13 @@ public class Plugin : BasePlugin
             section: "TreeRespawn",
             key: "EnableDiagnostics",
             defaultValue: false,
-            description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug), every biome-instance Initialize (to see whether a distant area streams in on the host), and a throttled summary of pending respawns stuck because their node isn't currently loaded. Off by default; very chatty (especially the Initialize log) — turn on only for a short troubleshooting session, not for normal play.");
+            description: "Verbose diagnostic logging. Logs when the mod hides a stump from a woodcutter, when a gather/harvest worker goes idle for lack of an allowed target (NoResourcesFound / NoGatherTask — usually a work-priority issue, not a bug), and a throttled summary of pending respawns stuck because their node isn't currently loaded. Off by default; very chatty — turn on only for a short troubleshooting session, not for normal play.");
+
+        EnableInitDiagnostics = Config.Bind(
+            section: "TreeRespawn",
+            key: "EnableInitDiagnostics",
+            defaultValue: false,
+            description: "Extremely verbose diagnostic logging for every biome-instance Initialize. Tells us whether a distant/villager-only area streams in on the host at all. Separate from EnableDiagnostics because a single run-through can log the same handful of positions 90+ times each.");
 
         RefillUnloadedNodes = Config.Bind(
             section: "TreeRespawn",

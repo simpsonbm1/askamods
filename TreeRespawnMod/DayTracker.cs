@@ -46,7 +46,7 @@ public class DayTracker : MonoBehaviour
 
         if (isHotkeyDown)
         {
-            if (Plugin.LocalPlayer != null && Plugin.LocalPlayer.NetworkObject != null && Plugin.LocalPlayer.NetworkObject.Runner != null && Plugin.LocalPlayer.NetworkObject.Runner.IsServer)
+            if (Plugin.LocalPlayer != null && Plugin.LocalPlayer.NetworkObject != null && Plugin.LocalPlayer.NetworkObject.Runner != null && (Plugin.LocalPlayer.NetworkObject.Runner.IsServer || Plugin.LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient))
             {
                 ProcessManualRespawn();
             }
@@ -160,7 +160,15 @@ public class DayTracker : MonoBehaviour
                 // a usable instance through the data handler and replenish THAT (RefillUnloadedGatherNodes).
                 // Only the not-live case is diverted; live nodes use the normal path below.
                 bool live;
-                try { live = inst.Active && !inst.Destroyed; } catch { live = false; }
+                try 
+                { 
+                    live = inst.Active && !inst.Destroyed; 
+                    if (live && Plugin.GatherWid.TryGetValue(posKey, out var expectedWid))
+                    {
+                        if (inst.GetWorldItemInstanceId().Raw != expectedWid.Raw) live = false;
+                    }
+                } 
+                catch { live = false; }
                 if (!live && Plugin.RefillUnloadedNodes.Value)
                 {
                     // Throttle retries for a node we can't resolve yet (e.g. no wid, or GetInstance returns
@@ -179,45 +187,65 @@ public class DayTracker : MonoBehaviour
                     continue;
                 }
 
-                toRemoveGather.Add(posKey);
-
-                // Snapshot liveness + stock BEFORE replenishing so the log can tell a real respawn
-                // from a "fake" one fired against a stale/streamed-out instance (the M2 mechanism in
-                // TREERESPAWN_HANDOFF.md Issue C/D). ActiveInstances is never pruned on a per-node
-                // unload, so a dead pointer can linger here; a streamed-out node reports Active=false
-                // (and/or Destroyed) even though it's still in the registry. Reads are wrapped so a
-                // throw on a dead instance can't disturb the Replenish path below — purely additive.
+                // Snapshot liveness + stock BEFORE replenishing
                 bool preDestroyed = false, preActive = false, preAvail = false; int preQty = -1;
                 string bufInfo = "";
                 if (diag)
                 {
                     try { preDestroyed = inst.Destroyed; preActive = inst.Active; preAvail = inst.IsAvailable(); preQty = inst.GetQuantity(); }
                     catch { }
-                    bufInfo = Plugin.ProbeBuffer(inst); // captured BEFORE Replenish so we see the deactivated state untouched
+                    bufInfo = Plugin.ProbeBuffer(inst); // captured BEFORE Replenish
                 }
 
+                bool replenishSucceeded = false;
                 try
                 {
                     inst.Replenish();
 
+                    bool postAvail = false; int postQty = -1;
+                    try { postAvail = inst.IsAvailable(); postQty = inst.GetQuantity(); } catch { }
+                    
+                    // A real respawn must increase stock or make it available with qty > 0. 
+                    // If qty is still 0, it failed (stale pointer with garbage 'Available=True' bit).
+                    bool fake = preDestroyed || !preActive || postQty <= 0;
+                    
                     if (diag)
                     {
-                        bool postAvail = false; int postQty = -1;
-                        try { postAvail = inst.IsAvailable(); postQty = inst.GetQuantity(); } catch { }
-                        bool fake = preDestroyed || !preActive || (!postAvail && postQty <= 0);
                         Plugin.Logger.LogInfo(
                             $"[TreeRespawnMod] [diag] gather-respawn \"{itemName}\" at {posKey}: " +
                             $"Destroyed={preDestroyed} Active={preActive} avail {preAvail}->{postAvail} qty {preQty}->{postQty} | {bufInfo}"
                             + (fake ? "  <-- FAKE RESPAWN (instance not live / did not refill)" : ""));
                     }
 
-                    Plugin.Logger.LogInfo(
-                        $"[TreeRespawnMod] Gather resource \"{itemName}\" at {posKey} respawned ({elapsedDays:F2} days elapsed).");
+                    if (!fake)
+                    {
+                        replenishSucceeded = true;
+                        Plugin.Logger.LogInfo(
+                            $"[TreeRespawnMod] Gather resource \"{itemName}\" at {posKey} respawned ({elapsedDays:F2} days elapsed).");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Logger.LogError(
-                        $"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
+                    Plugin.Logger.LogError($"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
+                }
+
+                if (replenishSucceeded)
+                {
+                    toRemoveGather.Add(posKey);
+                }
+                else if (Plugin.RefillUnloadedNodes.Value)
+                {
+                    // The pointer was stale but appeared Active, so the normal path failed. 
+                    // Fallback to deactivated path.
+                    if (_lastDeactAttempt.TryGetValue(posKey, out var last)
+                        && (DateTime.UtcNow - last).TotalSeconds < 30) continue;
+                    _lastDeactAttempt[posKey] = DateTime.UtcNow;
+
+                    if (DeactivatedReplenish(posKey, itemName))
+                    {
+                        toRemoveGather.Add(posKey);
+                        _lastDeactAttempt.Remove(posKey);
+                    }
                 }
             }
         }
@@ -369,10 +397,11 @@ public class DayTracker : MonoBehaviour
         // 2. Tree stumps (via HarvestInteraction in the scene)
         try
         {
-            var allHi = Resources.FindObjectsOfTypeAll<SSSGame.HarvestInteraction>();
-            if (allHi != null)
+            var allHiObjs = Plugin.LiveHarvestInteractions;
+            if (allHiObjs != null)
             {
-                foreach (var hi in allHi)
+                allHiObjs.RemoveWhere(hi => hi == null || hi.gameObject == null);
+                foreach (var hi in allHiObjs)
                 {
                     try
                     {
