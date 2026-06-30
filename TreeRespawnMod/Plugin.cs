@@ -20,6 +20,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ProtectStumps = null!;
     internal static ConfigEntry<bool> EnableDiagnostics = null!;
     internal static ConfigEntry<bool> RefillUnloadedNodes = null!;
+    internal static ConfigEntry<string> ManualRespawnHotkey = null!;
+    internal static ConfigEntry<float> ManualRespawnRadius = null!;
+    internal static ConfigEntry<bool> ManualRespawnIncludeGather = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
@@ -89,6 +92,31 @@ public class Plugin : BasePlugin
                 "while you're elsewhere. Host-only. Turn OFF to revert to the old near-node-only behavior. The " +
                 "[diag] exp-replenish log lines require EnableDiagnostics.");
 
+        ManualRespawnHotkey = Config.Bind(
+            section: "TreeRespawn",
+            key: "ManualRespawnHotkey",
+            defaultValue: "t",
+            description: "Hotkey (letter or Unity KeyCode name) that instantly respawns every tracked stump " +
+                "— and, if ManualRespawnIncludeGather is on, every tracked exhausted gather node — within " +
+                "ManualRespawnRadius meters of the player. Host-only. Bypasses RespawnDays and the per-resource " +
+                "gather timers entirely (it's a deliberate manual override, not a faster timer). Useful for " +
+                "catching up a backlog of stumps/depleted patches by hand instead of waiting for the automatic " +
+                "tick-based respawn, which only services a node while you happen to be standing near it.");
+
+        ManualRespawnRadius = Config.Bind(
+            section: "TreeRespawn",
+            key: "ManualRespawnRadius",
+            defaultValue: 12.0f,
+            description: "Radius in meters (horizontal ground distance from the player) that ManualRespawnHotkey " +
+                "scans for tracked stumps/gather nodes to instantly respawn.");
+
+        ManualRespawnIncludeGather = Config.Bind(
+            section: "TreeRespawn",
+            key: "ManualRespawnIncludeGather",
+            defaultValue: true,
+            description: "When true, ManualRespawnHotkey also instantly respawns tracked exhausted gather nodes " +
+                "(reeds, berries, etc.) within range, not just tree stumps.");
+
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,
             "Respawn days for any gather resource NOT explicitly listed below (fallback only). " +
@@ -139,11 +167,15 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"TreeRespawnMod loaded. RespawnDays={RespawnDays.Value}, GatherDefault={_gatherDefaultDays.Value}");
+        Logger.LogInfo($"TreeRespawnMod loaded. RespawnDays={RespawnDays.Value}, GatherDefault={_gatherDefaultDays.Value}, " +
+            $"ManualRespawnHotkey={ManualRespawnHotkey.Value}, ManualRespawnRadius={ManualRespawnRadius.Value}m");
     }
 
     internal static string PosKey(Vector3 pos) =>
         $"{pos.x:F1}:{pos.y:F1}:{pos.z:F1}";
+
+    // Local player character (captured via PlayerCharacter.Spawned/Despawned)
+    internal static SSSGame.PlayerCharacter? LocalPlayer;
 
     // Local player's position via the captured BiomesManager (same source WarpTour trusts).
     // Diagnostic-only — used to log player→node distance at harvest time. Returns false if the
@@ -196,6 +228,37 @@ public class Plugin : BasePlugin
             if (itemName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
                 return kvp.Value;
         return _gatherDefaultDays.Value;
+    }
+
+    // Every call site that needs the host-authoritative weather/time singleton used to repeat
+    // `weather == null || weather.Runner == null || !weather.Runner.IsServer` with no way to tell
+    // which of those three failed — that ambiguity is what blocked diagnosing the 2026-06-29 co-op
+    // report ("WeatherSystem not available" on the HOST for an entire session, paired with the world
+    // id resolving to a stale/wrong session). `reason` distinguishes the three so the log can say which.
+    internal static bool TryGetServerWeather(out SSSGame.Weather.WeatherSystem? weather, out string reason)
+    {
+        weather = SSSGame.Weather.WeatherSystem.Instance;
+        if (weather == null) { reason = "Instance=null"; return false; }
+        
+        // Co-op authority check: fallback to WeatherSystem.Runner if LocalPlayer isn't spawned yet,
+        // but prefer LocalPlayer.NetworkObject.Runner.IsServer since WeatherSystem's Runner.IsServer
+        // can be unreliable/false for the host in some co-op setups.
+        if (LocalPlayer != null && LocalPlayer.NetworkObject != null && LocalPlayer.NetworkObject.Runner != null)
+        {
+            var runner = LocalPlayer.NetworkObject.Runner;
+            if (!runner.IsServer && !runner.IsSharedModeMasterClient)
+            {
+                reason = "LocalPlayer.IsServer=false";
+                return false;
+            }
+            reason = "";
+            return true;
+        }
+
+        if (weather.Runner == null) { reason = "Runner=null"; return false; }
+        if (!weather.Runner.IsServer && !weather.Runner.IsSharedModeMasterClient) { reason = "IsServer=false"; return false; }
+        reason = "";
+        return true;
     }
 
     // ── Per-world save selection ────────────────────────────────────────────────────────────

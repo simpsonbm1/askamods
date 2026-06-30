@@ -138,7 +138,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.10 — co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op) still open — see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.13 — co-op respawn fix + per-world save isolation confirmed in-game 2026-06-28; Issues C/D (distant villager-gathered nodes never respawn) RESOLVED 2026-06-30 — BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated node's persistent data without force-loading its tile, with WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across both a single session and a save/reload boundary; Issue A (co-op client respawn authority) RESOLVED 2026-06-30 — LocalPlayer.NetworkObject.Runner.IsServer is now used for host checks instead of WeatherSystem.Runner — see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
@@ -146,7 +146,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
 ```

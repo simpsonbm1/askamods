@@ -6,11 +6,16 @@ using SSSGame.Weather;
 namespace TreeRespawnMod.Patches;
 
 // By patching WorldItemInstance._OnDataChanged rather than HarvestInteraction._OnWorldInstanceDataChanged,
-// we avoid the Unity "Handle is not initialized" crash caused by patching a MonoBehaviour lifecycle method 
+// we avoid the Unity "Handle is not initialized" crash caused by patching a MonoBehaviour lifecycle method
 // during its native initialization. WorldItemInstance is a pure Il2Cpp object, so patching it is safe.
 [HarmonyPatch(typeof(WorldItemInstance), nameof(WorldItemInstance._OnDataChanged))]
 internal static class DataSyncPatch
 {
+    // _OnDataChanged fires for every networked data change on every world item, so a weather-unavailable
+    // warning here is throttled — unlike GatherPatch/HarvestPatch's local checks (one warning per actual
+    // harvest/exhaustion), this would otherwise spam once per tick across the whole loaded world.
+    private static DateTime _lastWeatherWarn = DateTime.MinValue;
+
     static void Postfix(WorldItemInstance __instance)
     {
         try
@@ -18,22 +23,26 @@ internal static class DataSyncPatch
             var biomeInst = __instance.TryCast<BiomeItemInstance>();
             if (biomeInst == null || biomeInst.gameObject == null) return;
 
-            var weather = WeatherSystem.Instance;
-            if (weather == null || weather.Runner == null || !weather.Runner.IsServer) return;
-
             var harvest = biomeInst.gameObject.GetComponent<HarvestInteraction>();
-            if (harvest != null)
+            var gather = harvest == null ? biomeInst.gameObject.GetComponent<GatherInteraction>() : null;
+            if (harvest == null && gather == null) return; // not a tree/gather node — nothing to check
+
+            if (!Plugin.TryGetServerWeather(out var weather, out var reason))
             {
-                CheckHarvest(biomeInst, harvest, weather);
-            }
-            else
-            {
-                var gather = biomeInst.gameObject.GetComponent<GatherInteraction>();
-                if (gather != null)
+                if ((DateTime.UtcNow - _lastWeatherWarn).TotalSeconds >= 5)
                 {
-                    CheckGather(biomeInst, gather, weather);
+                    _lastWeatherWarn = DateTime.UtcNow;
+                    Plugin.Logger.LogWarning(
+                        $"[TreeRespawnMod] WeatherSystem not available ({reason}), skipping data-sync " +
+                        $"respawn check. world={Plugin.CurrentWorldId ?? "?"}");
                 }
+                return;
             }
+
+            if (harvest != null)
+                CheckHarvest(biomeInst, harvest, weather!);
+            else
+                CheckGather(biomeInst, gather!, weather!);
         }
         catch (Exception ex)
         {

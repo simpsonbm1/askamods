@@ -1,7 +1,6 @@
 using System;
 using HarmonyLib;
 using SSSGame;
-using SSSGame.Weather;
 using UnityEngine;
 
 namespace TreeRespawnMod.Patches;
@@ -24,17 +23,18 @@ internal static class GatherPatch
             string posKey = Plugin.PosKey(biomeInst.GetPosition());
             if (Plugin.PendingGatherRespawns.ContainsKey(posKey)) return;
 
-            var weather = WeatherSystem.Instance;
-            if (weather == null || weather.Runner == null || !weather.Runner.IsServer)
+            if (!Plugin.TryGetServerWeather(out var weather, out var reason))
             {
-                Plugin.Logger.LogWarning("[TreeRespawnMod] WeatherSystem not available, skipping gather respawn registration.");
+                Plugin.Logger.LogWarning(
+                    $"[TreeRespawnMod] WeatherSystem not available ({reason}), skipping gather respawn " +
+                    $"registration at {posKey}. world={Plugin.CurrentWorldId ?? "?"}");
                 return;
             }
 
             string itemName = __instance.GetGatherableItemInfo()?.Name ?? "";
             float threshold = Plugin.GetGatherThreshold(itemName);
 
-            Plugin.PendingGatherRespawns[posKey] = (weather.NetworkedCurrentGameTime, itemName);
+            Plugin.PendingGatherRespawns[posKey] = (weather!.NetworkedCurrentGameTime, itemName);
             Plugin.SavePending();
 
             // Cache the node's WorldItemInstanceId NOW, while the instance is valid — the experimental

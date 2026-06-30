@@ -214,7 +214,8 @@ public class MineRefreshTracker : MonoBehaviour
         }
 
         Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Proximity check passed. Checking host/server authority.");
-        if (Plugin.LocalPlayer.NetworkObject == null || Plugin.LocalPlayer.NetworkObject.Runner == null || !Plugin.LocalPlayer.NetworkObject.Runner.IsServer)
+        if (Plugin.LocalPlayer.NetworkObject == null || Plugin.LocalPlayer.NetworkObject.Runner == null || 
+            (!Plugin.LocalPlayer.NetworkObject.Runner.IsServer && !Plugin.LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient))
         {
             Plugin.Logger.LogWarning("[MineRefreshMod] Refresh blocked: Client requested, but only the host can execute the refresh.");
             ShowMessage("Only the host/server can refresh the mine!");

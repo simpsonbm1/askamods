@@ -281,6 +281,11 @@ defect — revisit only if it recurs with a specific repro.
 a save/reload boundary (v1.2.10).** The mechanism directly fixes the original "distant villager-gathered
 resources never come back" symptom that motivated this entire investigation.
 
+### Issue A: Co-op Host Detection Failure (RESOLVED 2026-06-30, v1.2.13)
+**Symptom:** In co-op, the mod's log did not realize the user was the host, stopping the entire respawn process.
+**Root Cause:** `WeatherSystem.Instance.Runner.IsServer` evaluated to `false` in co-op.
+**Fix:** Mirrored `HealthRegenMod` and `MineRefreshMod`'s pattern by tracking `Plugin.LocalPlayer` via `PlayerCharacter.Spawned`/`Despawned`. Updated `TryGetServerWeather` to verify authority using `LocalPlayer.NetworkObject.Runner.IsServer` and importantly `LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient` (as `IsServer` alone returns false in Fusion Shared Mode).
+
 ---
 
 ## How respawn works (mental model — read first)

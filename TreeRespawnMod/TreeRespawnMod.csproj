@@ -2,11 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TreeRespawnMod</AssemblyName>
-    <RootNamespace>TreeRespawnMod</RootNamespace>
-    <Version>1.2.10</Version>
+    <Description>Restores felled trees and exhausted gather nodes after a configurable number of days.</Description>
+    <Version>1.2.13</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup>

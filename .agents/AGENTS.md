@@ -143,7 +143,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.10 — Issues C/D RESOLVED 2026-06-30: BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated gather node's persistent data without force-loading its tile; WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across a single session and a save/reload boundary; Issue A (co-op) still open, see TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.13 — Issues C/D RESOLVED 2026-06-30: BiomeProceduralDataHandler.GetInstance(onlyIfActive:false) + Replenish() refills a deactivated gather node's persistent data without force-loading its tile; WorldItemInstanceId persisted across save/reload (RefillUnloadedGatherNodes, default on) — confirmed in-game across a single session and a save/reload boundary; Issue A (co-op host detection) RESOLVED 2026-06-30: LocalPlayer.NetworkObject.Runner.IsServer now used to reliably verify host, see TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
   TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
@@ -152,12 +152,12 @@ askamods/
   CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.0]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
 ```
 
-> **TreeRespawnMod (2)** is at **v1.2.10** — co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
+> **TreeRespawnMod (2)** is at **v1.2.13** — co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
 > **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files, on
 > both machines): the pending-respawn file is keyed by `StorageManager.ActiveSessionID`
 > (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer share/cross-contaminate respawn
@@ -179,7 +179,7 @@ askamods/
 > save/reload and a 30s retry/liveness-guard cooldown for an unresolved node. Confirmed in-game across a
 > save→reload→reload test sequence: the deactivated-refill path kept working correctly after a reload —
 > fixing the original "shoreline reeds never refill" symptom. **Issues C and D are RESOLVED.** Issue A
-> (co-op) still open. Full mechanism + test evidence: `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30".
+> (co-op host detection) **RESOLVED 2026-06-30**: `LocalPlayer.NetworkObject.Runner.IsServer` is now used for host checks instead of `WeatherSystem.Runner`. Full mechanism + test evidence: `TREERESPAWN_HANDOFF.md`.
 
 Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
 The `CopyToPlugins` MSBuild target handles deployment automatically on build.
@@ -192,7 +192,7 @@ The `CopyToPlugins` MSBuild target handles deployment automatically on build.
 | Mod | Key Technique | Nexus |
 |---|---|---|
 | **BowDamageMod** (1) | Prefix on `Creature.TakeDamage`, match arrow name in `DamageData.weapon` | Not on Nexus |
-| **TreeRespawnMod** (2, v1.2.10) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 on both machines; for a gather node whose chunk has deactivated, `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()` refills it without force-loading the tile, with `WorldItemInstanceId` persisted across save/reload (`RefillUnloadedGatherNodes`, default on) — **Issues C/D RESOLVED v1.2.10**, confirmed in-game 2026-06-30 | Group 7551668 |
+| **TreeRespawnMod** (2, v1.2.13) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID` (DayTracker poll; seed was a dead-end) confirmed in-game 2026-06-28 on both machines; for a gather node whose chunk has deactivated, `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()` refills it without force-loading the tile, with `WorldItemInstanceId` persisted across save/reload (`RefillUnloadedGatherNodes`, default on) — **Issues C/D RESOLVED v1.2.10**, confirmed in-game 2026-06-30 | Group 7551668 |
 | **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
 | **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
 | **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |

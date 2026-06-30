@@ -23,3 +23,31 @@ internal static class BiomesOnDisablePatch
         if (ReferenceEquals(Plugin.Biomes, __instance)) Plugin.Biomes = null;
     }
 }
+
+[HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Spawned))]
+internal static class PlayerSpawnedPatch
+{
+    static void Postfix(PlayerCharacter __instance)
+    {
+        try
+        {
+            if (!__instance.HasAuthority) return;
+            Plugin.LocalPlayer = __instance;
+        }
+        catch { }
+    }
+}
+
+[HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Despawned))]
+internal static class PlayerDespawnedPatch
+{
+    static void Postfix(PlayerCharacter __instance)
+    {
+        try
+        {
+            if (Plugin.LocalPlayer == __instance)
+                Plugin.LocalPlayer = null;
+        }
+        catch { }
+    }
+}

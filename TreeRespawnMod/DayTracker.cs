@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using SSSGame;
-using SSSGame.Weather;
 using SandSailorStudio.WorldGen;
 using SandSailorStudio.Streaming;
 
@@ -13,6 +12,7 @@ public class DayTracker : MonoBehaviour
 {
     private int _worldCheck;
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
+    private static DateTime _lastWeatherWarn = DateTime.MinValue;
 
     // Per-node cooldown so an unresolved deactivated node doesn't re-attempt the handler refill every frame.
     private static readonly Dictionary<string, DateTime> _lastDeactAttempt = new();
@@ -35,10 +35,20 @@ public class DayTracker : MonoBehaviour
 
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
-        var ws = WeatherSystem.Instance;
-        if (ws == null || ws.Runner == null || !ws.Runner.IsServer) return;
+        if (!Plugin.TryGetServerWeather(out var ws, out var reason))
+        {
+            if ((DateTime.UtcNow - _lastWeatherWarn).TotalSeconds >= 5)
+            {
+                _lastWeatherWarn = DateTime.UtcNow;
+                Plugin.Logger.LogWarning(
+                    $"[TreeRespawnMod] WeatherSystem not available ({reason}), skipping respawn servicing " +
+                    $"({Plugin.PendingRespawns.Count} tree + {Plugin.PendingGatherRespawns.Count} gather pending). " +
+                    $"world={Plugin.CurrentWorldId ?? "?"}");
+            }
+            return;
+        }
 
-        float dayLength = ws.dayLength;
+        float dayLength = ws!.dayLength;
         float threshold = Plugin.RespawnDays.Value;
 
         bool diag = Plugin.EnableDiagnostics.Value;
