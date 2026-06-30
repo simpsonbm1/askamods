@@ -33,6 +33,29 @@ public class DayTracker : MonoBehaviour
             Plugin.PollWorldId();
         }
 
+        bool isHotkeyDown = false;
+        try
+        {
+            string keyStr = Plugin.ManualRespawnHotkey.Value;
+            if (Enum.TryParse<KeyCode>(keyStr, true, out var kc))
+                isHotkeyDown = Input.GetKeyDown(kc);
+            else
+                isHotkeyDown = Input.GetKeyDown(keyStr);
+        }
+        catch { }
+
+        if (isHotkeyDown)
+        {
+            if (Plugin.LocalPlayer != null && Plugin.LocalPlayer.NetworkObject != null && Plugin.LocalPlayer.NetworkObject.Runner != null && Plugin.LocalPlayer.NetworkObject.Runner.IsServer)
+            {
+                ProcessManualRespawn();
+            }
+            else
+            {
+                Plugin.Logger.LogWarning("[TreeRespawnMod] Manual respawn hotkey ignored — must be host.");
+            }
+        }
+
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
         if (!Plugin.TryGetServerWeather(out var ws, out var reason))
@@ -294,5 +317,107 @@ public class DayTracker : MonoBehaviour
         try { var cfg = WorldConfiguration.GetActive(); if (cfg != null && cfg.tileSize > 0) return cfg.tileSize; }
         catch { }
         return 128f;
+    }
+
+    private void ProcessManualRespawn()
+    {
+        if (Plugin.LocalPlayer == null) return;
+        Vector3 playerPos = Plugin.LocalPlayer.transform.position;
+        float radiusSq = Plugin.ManualRespawnRadius.Value * Plugin.ManualRespawnRadius.Value;
+        bool includeGather = Plugin.ManualRespawnIncludeGather.Value;
+        bool diag = Plugin.EnableDiagnostics.Value;
+
+        int respawnedCount = 0;
+        var toRemoveTree = new List<string>();
+        var toRemoveGather = new List<string>();
+
+        // 1. Gather nodes (via ActiveInstances)
+        if (includeGather)
+        {
+            foreach (var kvp in Plugin.ActiveInstances)
+            {
+                string posKey = kvp.Key;
+                var inst = kvp.Value;
+                if (inst == null || inst.Destroyed) continue;
+
+                Vector3 nodePos;
+                try { nodePos = inst.GetPosition(); } catch { continue; }
+                float distSq = Vector3.SqrMagnitude(playerPos - nodePos);
+
+                if (distSq <= radiusSq)
+                {
+                    try
+                    {
+                        bool avail = inst.IsAvailable();
+                        int qty = inst.GetQuantity();
+                        if (!avail && qty <= 0)
+                        {
+                            inst.Replenish();
+                            respawnedCount++;
+                            toRemoveGather.Add(posKey);
+                            if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Manual respawn triggered for gather node at {posKey}");
+                        }
+                    }
+                    catch (Exception e) 
+                    { 
+                        if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Gather check err at {posKey}: {e.Message}"); 
+                    }
+                }
+            }
+        }
+
+        // 2. Tree stumps (via HarvestInteraction in the scene)
+        try
+        {
+            var allHi = Resources.FindObjectsOfTypeAll<SSSGame.HarvestInteraction>();
+            if (allHi != null)
+            {
+                foreach (var hi in allHi)
+                {
+                    try
+                    {
+                        if (hi == null || hi.gameObject == null || !hi.gameObject.scene.isLoaded) continue;
+                        if (hi.harvestPieces == null || hi.harvestPieces.Count < 2) continue;
+                        
+                        if (hi.GetCurrentPieceIndex() == hi.harvestPieces.Count - 1)
+                        {
+                            float distSq = Vector3.SqrMagnitude(playerPos - hi.transform.position);
+                            if (distSq <= radiusSq)
+                            {
+                                var biomeInst = hi._worldInstance?.TryCast<BiomeItemInstance>();
+                                if (biomeInst != null && !biomeInst.Destroyed)
+                                {
+                                    biomeInst.Replenish();
+                                    respawnedCount++;
+                                    string posKey = Plugin.PosKey(biomeInst.GetPosition());
+                                    toRemoveTree.Add(posKey);
+                                    if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Manual respawn triggered for tree stump at {posKey}");
+                                }
+                            }
+                        }
+                    }
+                    catch { } // skip problematic instances
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[TreeRespawnMod] Error scanning for tree stumps: {ex.Message}");
+        }
+
+        bool anyRemoved = false;
+        foreach (var k in toRemoveTree)
+        {
+            if (Plugin.PendingRespawns.Remove(k)) anyRemoved = true;
+            Plugin.RegisteredStumps.Remove(k);
+        }
+        foreach (var k in toRemoveGather)
+        {
+            if (Plugin.PendingGatherRespawns.Remove(k)) anyRemoved = true;
+        }
+
+        if (anyRemoved) Plugin.SavePending();
+
+        Plugin.Logger.LogInfo($"[TreeRespawnMod] Manual respawn complete: respawned {respawnedCount} nearby nodes.");
     }
 }

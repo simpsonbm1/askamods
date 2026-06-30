@@ -6,7 +6,7 @@ General handoff for **Mod 2 (TreeRespawnMod)**. Supersedes the old `COOP_RESPAWN
 `docs/mods/tree-respawn.md` (shipped recipe/config) and `docs/architecture.md`
 (Resource/Tree, Gather, Worldgen/Streaming subsystems).
 
-Current version: **v1.2.10**. v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
+Current version: **v1.2.14**. v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
 the v1.2.1 DLL hash on the second machine with `FileLoadException ... 0x800711C7`; bumping the version
 changes the hash so SAC re-evaluates it and lets it load (no logic changed). v1.2.3 implements the
 diagnostic logging for Issues C/D described below (was previously just a plan) — see "Diagnostic
@@ -23,8 +23,8 @@ buffer stays addressable without force-loading the tile**, which unlocked **v1.2
 replenish (`BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()`) — confirmed
 in-game refilling a distant shoreline marker while the player stayed at base. **v1.2.10 (2026-06-30)
 productionizes that mechanism** (`RefillUnloadedGatherNodes`, default ON) with `WorldItemInstanceId`
-persistence across save/reload and a retry/liveness-guard cooldown. **Issues C and D are RESOLVED** —
-see "RESOLVED 2026-06-30 — the GetInstance(onlyIfActive:false) breakthrough" below.
+persistence across save/reload and a retry/liveness-guard cooldown. **v1.2.14 (2026-06-30)** adds a **manual respawn hotkey** (`'t'`) to instantly refill stumps and exhausted nodes near the player.
+**Issues C and D are RESOLVED** — see "RESOLVED 2026-06-30" below.
 
 ---
 
@@ -285,6 +285,14 @@ resources never come back" symptom that motivated this entire investigation.
 **Symptom:** In co-op, the mod's log did not realize the user was the host, stopping the entire respawn process.
 **Root Cause:** `WeatherSystem.Instance.Runner.IsServer` evaluated to `false` in co-op.
 **Fix:** Mirrored `HealthRegenMod` and `MineRefreshMod`'s pattern by tracking `Plugin.LocalPlayer` via `PlayerCharacter.Spawned`/`Despawned`. Updated `TryGetServerWeather` to verify authority using `LocalPlayer.NetworkObject.Runner.IsServer` and importantly `LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient` (as `IsServer` alone returns false in Fusion Shared Mode).
+
+### Next Steps: Manual Respawn Hotkey (v1.2.14, PENDING IN-GAME CONFIRMATION)
+**Goal:** Provide a hotkey (`t` by default) to manually trigger `Replenish()` on any exhausted node (stump or gather) within a configurable radius (default `10m`) of the player. Intended to fix deforested areas where bugs previously prevented timers from triggering.
+**Implementation details:**
+- Scans `Plugin.ActiveInstances` to find depleted gather nodes (`!inst.IsAvailable() && inst.GetQuantity() <= 0`) and replenishes them.
+- Scans `Resources.FindObjectsOfTypeAll<HarvestInteraction>()` to find physical stumps (`pieces >= 2 && GetCurrentPieceIndex() == pieces.Count - 1`), then works backward to its `_worldInstance.TryCast<BiomeItemInstance>()` and triggers `Replenish()`.
+**Why this split approach?** The diagnostic log showed that for trees, `BiomeItemInstance.gameObject.GetComponent<HarvestInteraction>()` was returning `null`. The physical `HarvestInteraction` object is disconnected hierarchically from the abstract `BiomeItemInstance` data layer (or they don't sit on the same GameObject). Doing a global scene search for `HarvestInteraction` completely bypasses the need to traverse the complex prefab hierarchy.
+**Verification pending:** The user will test this on their second machine. Press `t` while standing near a deforested area to see if physical stumps properly regrow into trees.
 
 ---
 
