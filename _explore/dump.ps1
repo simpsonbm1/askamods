@@ -1,50 +1,18 @@
-param([string[]]$Types)
+Add-Type -Path 'D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop\SandSailorStudio.dll'
+$t1 = [SSSGame.WorldObjectiveMarker]
+Write-Host "WorldObjectiveMarker Fields:"
+$t1.GetFields() | Select-Object Name
+Write-Host "WorldObjectiveMarker Props:"
+$t1.GetProperties() | Select-Object Name
+Write-Host "WorldObjectiveMarker Methods:"
+$t1.GetMethods() | Select-Object Name
 
-$base = "D:\SteamLibrary\steamapps\common\ASKA\BepInEx"
-$dirs = @("$base\interop", "$base\core", "$base\unity-libs")
-[void][System.Reflection.Assembly]::LoadFrom("d:\Claude Projects\askamods\_explore\bin\Debug\net10.0\Mono.Cecil.dll")
-
-$resolver = New-Object Mono.Cecil.DefaultAssemblyResolver
-foreach ($d in $dirs) { $resolver.AddSearchDirectory($d) }
-$rp = New-Object Mono.Cecil.ReaderParameters
-$rp.AssemblyResolver = $resolver
-
-$asms = @()
-foreach ($f in Get-ChildItem "$base\interop\*.dll") {
-    try { $asms += [Mono.Cecil.AssemblyDefinition]::ReadAssembly($f.FullName, $rp) } catch {}
+$t2 = [SSSGame.CompassObjectiveMarker]
+if ($null -ne $t2) {
+    Write-Host "CompassObjectiveMarker Fields:"
+    $t2.GetFields() | Select-Object Name
+    Write-Host "CompassObjectiveMarker Props:"
+    $t2.GetProperties() | Select-Object Name
+    Write-Host "CompassObjectiveMarker Methods:"
+    $t2.GetMethods() | Select-Object Name
 }
-
-$allTypes = New-Object System.Collections.Generic.List[object]
-foreach ($a in $asms) {
-    foreach ($t in $a.MainModule.Types) {
-        $allTypes.Add($t)
-        foreach ($n in $t.NestedTypes) { $allTypes.Add($n) }
-    }
-}
-
-function BaseChain($t) {
-    $bc = @(); $bt = $t.BaseType; $g = 0
-    while ($bt -ne $null -and $g -lt 20) { $bc += $bt.Name; try { $bt = $bt.Resolve().BaseType } catch { $bt = $null }; $g++ }
-    return ($bc -join " -> ")
-}
-
-function Dump($fullName) {
-    $t = $allTypes | Where-Object { $_.FullName -eq $fullName } | Select-Object -First 1
-    if ($t -eq $null) { Write-Output "`n##### [NOT FOUND] $fullName"; return }
-    Write-Output "`n##### $($t.FullName)"
-    Write-Output "  : $(BaseChain $t)"
-    foreach ($i in $t.Interfaces) { Write-Output "  IFACE $($i.InterfaceType.Name)" }
-    foreach ($f in $t.Fields) {
-        Write-Output ("  F {0} {1}" -f $f.FieldType.Name, $f.Name)
-    }
-    foreach ($p in $t.Properties) {
-        Write-Output ("  P {0} {1}" -f $p.PropertyType.Name, $p.Name)
-    }
-    foreach ($m in ($t.Methods | Where-Object { -not $_.IsConstructor -and -not $_.IsGetter -and -not $_.IsSetter } | Sort-Object Name)) {
-        $st = ""; if ($m.IsStatic) { $st = "static " }
-        $ps = ($m.Parameters | ForEach-Object { "$($_.ParameterType.Name) $($_.Name)" }) -join ", "
-        Write-Output "  M $st$($m.ReturnType.Name) $($m.Name)($ps)"
-    }
-}
-
-foreach ($n in $Types) { Dump $n }

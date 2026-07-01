@@ -1,25 +1,29 @@
-# AskaMods — Project Context (Antigravity)
+# AskaMods — Project Context
 
-This file is the always-loaded orientation for the AskaMods project. It was ported from the
-Claude Code `CLAUDE.md` and the chain of documentation in `docs/`. Deep detail lives in `docs/`
-and the per-mod handoff files — read those on demand before working on any specific subsystem.
+This file is the always-loaded orientation. Deep detail lives in `docs/` and is pulled in on demand —
+see [Documentation map](#documentation-map) below. **Before working on any game subsystem, read its
+section in `docs/architecture.md` first** — it carries the confirmed facts *and* the dead-ends, so a
+new mod touching a familiar subsystem won't re-tread a path we've already ruled out.
 
-## Standing Instructions
-
-### Proactive Documentation Maintenance
-Whenever you **confirm** a new fact about the game, the IL2CPP interop, or a mod's behavior —
-especially **in-game-verified** facts and **dead-ends** — record it before treating the task as done:
-- Game / interop / subsystem facts → matching subsection of [`docs/architecture.md`](file:///d:/Claude%20Projects/askamods/docs/architecture.md)
-- Mod-specific recipe/config → that mod's file under `docs/mods/`
+## Keeping this knowledge base current (standing instruction)
+**Proactively maintain the docs as you work — you don't need to be asked.** Whenever you *confirm* a new
+fact about the game, the IL2CPP interop, or a mod's behavior — especially **in-game-verified** facts and
+**dead-ends** — record it before treating the task as done:
+- game / interop / subsystem facts → the matching subsection of [`docs/architecture.md`](docs/architecture.md)
+  (add a new subsection if that subsystem isn't there yet);
+- mod-specific recipe/config → that mod's file under `docs/mods/`.
 
 **Only record CONFIRMED learnings.** Flag anything not yet verified as ⚠️ pending. Date in-game
 findings (`confirmed in-game (YYYY-MM-DD)`). Always capture dead-ends — the whole point is to
 stop future sessions re-treading a ruled-out path.
 
-### Never Consider an Issue Resolved Until Confirmed In-Game
+### Diagnostics Default Behavior
+Whenever you add a configuration option for a diagnostic or debug logger, **always default it to `true` initially.** This saves the user from having to boot the game just to generate the config file, close it, edit it, and launch again. Once a mod is verified and ready to ship, update the code to flip the default to `false` so it doesn't spam normal users' logs. These doc updates ride along with the related work when it's committed.
+
+## Never Consider an Issue Resolved Until Confirmed In-Game (standing instruction)
 Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
 
-### Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to
+## Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to (standing instruction)
 The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)** across
 two machines, switching tools when a token budget runs out. These two files are the same orientation
 for different tools and **WILL silently drift unless every session actively runs the checks below.**
@@ -61,23 +65,31 @@ other machine until a push, so nothing is lost. A full doc pass on every build i
 If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
 does — both stay parallel in scope and structure.
 
-### Git — ask before committing; never auto-push
+## Git (commit/push policy + false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
-Session-startup may falsely report "not a git repo" due to the space in `D:\Claude Projects\...`.
-Verify with `git rev-parse --is-inside-work-tree` if unsure. Git works normally.
+The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
+negative** (a Windows detection bug, likely the space in the `D:\Claude Projects\...` path). Git works
+normally here. Do not refuse or skip git operations because of that line; if unsure, verify with
+`git rev-parse --is-inside-work-tree` (returns `true`).
 
-**Ask before you commit or push — never do it automatically.** Commit/push only **after a verified
-success** (a change actually tested and confirmed working in-game — not just "code changed/compiled")
-**or** at a **general end-of-session** checkpoint, and **confirm with the user first** each time. Do
-NOT push work-in-progress or unverified edits just because files changed. **This is the single most
-important habit to break vs. the previous workflow** — do not push after every code update.
+**Ask before you commit or push — do NOT do it automatically.** The user decides when history is
+written. Commit/push only:
+- **after a verified success** — a change actually tested and confirmed working in-game (*not* merely
+  because code compiled or a file was edited), **or**
+- at a **general end-of-session** checkpoint,
 
-**Two machines — sync at those gated moments only.** The user syncs desktop ↔ laptop solely through
-`origin`, so when you *do* commit (with the user's go-ahead), **push** it — source, built DLLs, docs,
-configs — so the other machine pulls it. Only `bin/`, `obj/`, and `*.save` are gitignored. Don't
-strand files locally, but don't pre-empt the user's go-ahead to push, either.
+and in **both** cases **confirm with the user first.** Never commit or push work-in-progress or
+unverified changes just because files changed. (Pushing after every edit — Antigravity's habit — is
+exactly what to avoid.)
 
-### Syncing live plugins from git (helper script)
+**Two machines — but sync at those gated moments, not continuously.** The user works across a desktop
+and a laptop and syncs only through `origin`. So when you *do* commit at a verified-success or
+end-of-session checkpoint (with the user's go-ahead), **push** it too — source, the built `<Mod>.dll`,
+docs, configs — so the other machine has it on next pull. The repo already tracks each mod's built DLL;
+only `bin/`, `obj/`, and `*.save` stay gitignored. Don't strand files or knowledge on the current
+machine — but don't pre-empt the user's go-ahead to push, either.
+
+## Syncing live plugins from git (helper script)
 `sync-plugins.ps1` (repo root) copies each committed `<Mod>\<Mod>.dll` into the live
 `ASKA\BepInEx\plugins\<Mod>\`. A `git pull` refreshes the repo's DLLs but never the live game folder,
 so after pulling on a machine the live mods lag until this runs.
@@ -93,148 +105,106 @@ replaced DLLs under `%TEMP%\askamods-sync-backups\`, and reminds you to confirm 
 `$ParkedByDefault` list (CookingStationFixMod, SeedHarvesterMod) makes parked spikes install disabled
 on a fresh machine — keep that list in step with mod parked-status changes (see Ritual 2).
 
----
+## Game
+**ASKA** — co-op Viking survival/city-builder on Steam.
+Install path: `D:\SteamLibrary\steamapps\common\ASKA`
 
-## Game & Mod Loader Stack
+## Mod Loader Stack
+- **BepInEx 6.0.0** (IL2CPP build) — installed at `ASKA\BepInEx\`
+- **HarmonyX** (0Harmony.dll) — bundled with BepInEx 6, used for runtime method patching
+- **Il2CppInterop** — also bundled; generates C# wrapper assemblies from the native IL2CPP binary
+- **.NET 10 SDK** — used to compile mods, targeting `net6.0`
 
-| Item | Detail |
-|---|---|
-| **Game** | **ASKA** — co-op Viking survival/city-builder on Steam |
-| **Install path** | `D:\SteamLibrary\steamapps\common\ASKA` |
-| **BepInEx** | 6.0.0 (IL2CPP build) at `ASKA\BepInEx\` |
-| **HarmonyX** | Bundled with BepInEx 6 — runtime method patching |
-| **Il2CppInterop** | Bundled — generates C# wrappers from IL2CPP binary |
-| **.NET SDK** | 10 — targeting `net6.0` |
+## Build gotcha: Smart App Control blocks fresh DLLs (this machine)
+Windows **Smart App Control is ENFORCED** here (`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1`).
+It intermittently **blocks a freshly-built, unsigned mod DLL** at load:
+`System.IO.FileLoadException … An Application Control policy has blocked this file. (0x800711C7)`.
+Because **.NET builds are deterministic**, rebuilding identical source yields the **same hash** → the
+**same block**; relaunching won't help. **Fix: bump the mod version** (`PLUGIN_VERSION` + csproj `<Version>`)
+so the DLL hash changes — SAC re-evaluates the new (unknown) hash and lets it load. Always confirm the
+**loaded version** in `LogOutput.log` before trusting a test. Turning SAC off is permanent/irreversible — don't.
 
-### Build Gotcha: Smart App Control (SAC)
-Windows SAC is **ENFORCED** on this machine. It intermittently blocks freshly-built unsigned DLLs.
-**.NET builds are deterministic** → same source = same hash = same block. **Fix: bump the mod version**
-(`PLUGIN_VERSION` + csproj `<Version>`) so the DLL hash changes. Always confirm the loaded version
-in `LogOutput.log` before trusting a test.
-
----
-
-## IL2CPP Interop Gotchas (Apply to ALL Mods)
-
-These are the recurring traps. Full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/askamods/docs/architecture.md).
-
-1. **Don't subscribe to game `Action` events** — `Il2CppSystem.Action(methodRef)` only takes `IntPtr`.
-   Use registered `MonoBehaviour` + `Update()` polling (DayTracker/RegenTracker/TorchFuelTracker pattern).
-2. **`FindObjectsByType<T>()` throws** `MissingMethodException` — get instances from Harmony `__instance`.
-3. **NEVER patch IL2CPP methods with by-ref primitive params** (`Single&`, `Int32&`, `Boolean&`) —
-   trampoline NREs, outside try/catch. Patch a sibling method with safe signature instead.
-4. **No `.TryCast<T>()` on `UnityEngine.Object`** — only on `Il2CppObjectBase`-derived types.
-5. **Don't patch `Initialize`/lifecycle on `Interaction` MonoBehaviours** (KilnInteraction, etc.) —
-   fires during prefab init before GC handle setup → `Handle is not initialized` crash.
-6. **`UniqueId` is NOT globally unique** — per-buffer index restarting per chunk. Key by **world position**.
-7. **Gate all state writes on authority** (`HasAuthority` / `_hasAuthority`).
-8. **Prefer game's own RPCs** over direct networked-state writes for co-op safety.
-9. **Query persistent managers over ephemeral components** — some interactive components (like `CaveWallInteraction` walls) are destroyed and removed from the scene once depleted. To restore them, query their persistent parent managers (like `DigVolume`) which remain in the scene hierarchy, and invoke their native regeneration methods (e.g., `ResetWalls(true)`) to let the game rebuild the visual and physical objects correctly.
-
----
+## Why IL2CPP Matters
+ASKA ships as IL2CPP (not Mono). The game's C# code is compiled to native machine code in
+`GameAssembly.dll`. BepInEx 6 generates interop wrapper assemblies on first launch at
+`ASKA\BepInEx\interop\` (158 DLLs, including `Assembly-CSharp.dll`). Mods reference these interop
+DLLs, not the original game DLLs. The interop layer has sharp edges — see
+[IL2CPP interop gotchas](#il2cpp-interop-gotchas-apply-to-every-mod).
 
 ## Project Structure
-
 ```
 askamods/
-  CLAUDE.md                  ← Claude Code orientation (canonical source)
-  .agents/AGENTS.md          ← THIS FILE (Antigravity context)
+  CLAUDE.md                  ← this file (orientation + pointers)
   sync-plugins.ps1           ← push committed mod DLLs → live BepInEx\plugins (see "Syncing live plugins from git")
-  docs/
-    architecture.md          ← master knowledge base: game internals + dead-ends by subsystem
-    nexus-upload.md          ← Nexus Mods CI/publishing workflow
+  docs/                      ← detailed knowledge base (read on demand)
+    architecture.md          ← how the game works + what doesn't (by subsystem)
+    nexus-upload.md          ← publishing/CI workflow
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
-  BowDamageMod/              ← Mod 1: buff early-game bow damage         [COMPLETE]
-  TreeRespawnMod/            ← Mod 2: respawn trees + gather resources    [v1.2.20 — moved noisy init diagnostics to their own toggle; v1.2.19 fixed stale pointer false-positives for gather nodes; instances that falsely report Active=True while unloaded now correctly fail WID validation and route to the unloaded-node handler, preventing them from being dropped from the queue without refilling. Issues C/D resolved; Issue A pending confirmation. See TREERESPAWN_HANDOFF.md]
-  HealthRegenMod/            ← Mod 3: player HP regen after combat        [COMPLETE]
-  TorchFuelMod/              ← Mod 4: perpetual torch fuel                [COMPLETE]
-  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior       [COMPLETE]
-  (WarehouseFilterMod)       ← Mod 6: hauling filter (DESIGN READY, NO CODE)
+  BowDamageMod/              ← Mod 1: buff early-game bow damage
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.20 — moved noisy init diagnostics to their own config toggle; v1.2.19 fixed stale pointer false-positives for gather nodes (Issues C/D resolved); Issue A pending confirmation. See TREERESPAWN_HANDOFF.md]
+  HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
+  TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
   VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.25]
-  CookingStationFixMod/      ← Mod 8: diagnostic only (parked .dll.off)
+  CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
   SeedScoutMod/              ← Mod 9: seed scorer + map overlay           [WIP v0.15.0]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
+  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius + gather range work; map/compass hover ring still vanilla size. See MAP_RADIUS_HANDOFF.md]
 ```
 
-> **TreeRespawnMod (2)** is at **v1.2.20** — moved noisy init diagnostics to their own toggle; v1.2.19 added manual respawn hotkey ('t') to refill nearby stumps/nodes bypassing the pending list; co-op client respawn fix (see `TREERESPAWN_HANDOFF.md`) plus
-> **per-world save isolation** (confirmed in-game 2026-06-28 — SP and co-op produced two separate files, on
-> both machines): the pending-respawn file is keyed by `StorageManager.ActiveSessionID`
-> (`DayTracker.PollWorldId`) so singleplayer and co-op worlds no longer share/cross-contaminate respawn
-> state. **The world SEED was a dead-end** (empty on loaded saves — v1.2.0 silently did nothing); see
-> `docs/mods/tree-respawn.md` + architecture.md "Identifying the loaded world". **v1.2.2 was a
-> version-only bump** — Smart App Control blocked the v1.2.1 DLL hash on the second machine
-> (`FileLoadException ... 0x800711C7`); bumping the version changes the hash so SAC re-evaluates it.
-> **v1.2.3-v1.2.7** built up diagnostics for Issues C (distant villager gather doesn't respawn) and D
-> (overdue respawns stuck while their node is unloaded) and forked two candidate mechanisms — **M1**
-> (harvested while unloaded, never registered) vs **M2** (fake respawn against a stale `ActiveInstances`
-> pointer never pruned on per-node unload). Along the way, found Issue F (a vanilla villager-AI fiber
-> lockout, unrelated, tracked separately). **v1.2.8 (2026-06-29/30) confirmed a deactivated node's
-> persistent data buffer stays addressable without force-loading its tile** — the finding that unlocked
-> the fix: **v1.2.9** resolves a fresh, writable instance via
-> `SSSGame.BiomeProceduralDataHandler.GetInstance(tileId, widId, onlyIfActive:false, noPooling:true)` and
-> calls the game's own `Replenish()` on it, confirmed in-game refilling a distant shoreline reed marker
-> while the player stayed at base. **v1.2.10 (2026-06-30) productionizes that mechanism**
-> (`RefillUnloadedGatherNodes`, default ON) with the node's `WorldItemInstanceId` persisted across
-> save/reload and a 30s retry/liveness-guard cooldown for an unresolved node. Confirmed in-game across a
-> save→reload→reload test sequence: the deactivated-refill path kept working correctly after a reload —
-> fixing the original "shoreline reeds never refill" symptom. **Issues C and D are RESOLVED.** Issue A
-> (co-op host detection) **FIX ATTEMPTED 2026-06-30 (PENDING CONFIRMATION)**: `LocalPlayer.NetworkObject.Runner.IsServer` is now used for host checks instead of `WeatherSystem.Runner`. Full mechanism + test evidence: `TREERESPAWN_HANDOFF.md`.
+> **SeedHarvesterMod (Mod 14)** is a parked spike: its "Fast Harvest" coroutine regenerates seeds
+> in-memory in seconds, but every seed scores `-9999` because cave `AreaInstance` GameObjects are
+> never instantiated by `UpdateDataAsync`, so cave positions can't be read (a 1-frame `yield` does
+> not force instantiation — dead-end confirmed 2026-06-28). The Harmony patch is commented out, and
+> as of 2026-06-28 the installed plugin DLL is also renamed to `SeedHarvesterMod.dll.off` (same
+> convention as CookingStationFixMod) so BepInEx doesn't load it at all. Reading positions would
+> require dumping `GameAssembly.dll` to parse the raw data buffers. See `SEED_HARVESTER_HANDOFF.md`.
 
-Each mod is a separate `.csproj` outputting its `.dll` to `BepInEx\plugins\<ModName>\`.
-The `CopyToPlugins` MSBuild target handles deployment automatically on build.
+Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
+The build target `CopyToPlugins` handles this automatically on build.
 
----
+## IL2CPP interop gotchas (apply to every mod)
+The recurring traps in the BepInEx 6 / Il2CppInterop layer — keep these in mind on *any* mod.
+Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architecture.md#il2cpp-interop-gotchas-universal).
+- **Don't subscribe to game `Action` events** (`_onNewDay`, `OnFullyHarvested`, etc.) — `Il2CppSystem.Action(methodRef)` only takes an `IntPtr` here. **Use a registered `MonoBehaviour` + `Update()` polling** (the `DayTracker`/`RegenTracker`/`TorchFuelTracker`/`NeedsController` pattern).
+- **`FindObjectsByType<T>()` throws** `MissingMethodException` through the trampoline — get instances from a Harmony patch's `__instance`, not from a search.
+- **Don't patch IL2CPP methods with by-ref primitive params** (`Single&`, `Int32&`, `Boolean&`) — trampoline NREs outside try/catch. Patch a sibling method with a safe signature instead.
+- **Don't patch `Initialize`/lifecycle methods on `Interaction` MonoBehaviours** — they fire during prefab init before the GC handle is set up → `Handle is not initialized` crash. (This is the cause of the old TreeRespawn co-op crash.)
+- **No `.TryCast<T>()` on `UnityEngine.Object`** (its base chain is just `System.Object`) — obtain an already-typed instance from a patch parameter instead.
+- **Key dictionaries by world position, not `UniqueId`** — `UniqueId`-style indices restart per spatial chunk and aren't globally unique.
+- **Gate all state writes on authority** (`HasAuthority` / `_hasAuthority`) and **prefer the game's own RPCs** (`Rpc_AddFuel`, `Rpc_ChangeSchedule`) over direct networked-state writes — both for co-op safety.
+- **Query persistent managers over ephemeral components** — some interactive components (like `CaveWallInteraction` walls) are destroyed and removed from the scene once depleted. To restore them, query their persistent parent managers (like `DigVolume`) which remain in the scene hierarchy, and invoke their native regeneration methods (e.g., `ResetWalls(true)`) to let the game rebuild the visual and physical objects correctly.
 
-## Mod Status Summary
-
-### Complete & Shipped
-| Mod | Key Technique | Nexus |
-|---|---|---|
-| **BowDamageMod** (1) | Prefix on `Creature.TakeDamage`, match arrow name in `DamageData.weapon` | Not on Nexus |
-| **TreeRespawnMod** (2, v1.2.20) | Postfix `HarvestInteraction.TakeDamage` + `GatherInteraction.GatherItemsCharge`; `Replenish()` after days; stump protection via `CanProvideItem`; **per-world save** keyed by `StorageManager.ActiveSessionID`; `BiomeProceduralDataHandler.GetInstance(onlyIfActive:false)` + `Replenish()` for unloaded chunks, verified with WID to prevent stale pointer drops | Group 7551668 |
-| **HealthRegenMod** (3) | `RegenTracker` MonoBehaviour; polls `LastDamageTime`; discrete tick regen | Group 7551800 |
-| **TorchFuelMod** (4) | Postfix `FireStructure.Initialize`; `TorchFuelTracker` tops off via `Rpc_AddFuel()`; DON'T fuel Bloomery | Not on Nexus |
-| **DynamicVillagerNeedsMod** (5) | `NeedsController` MonoBehaviour; drives `Rpc_ChangeSchedule`; hysteresis-based need decisions | Group 7567346 |
-| **VillagerFightBackMod** (7) | FSM redirection to `naturalCombatBehaviour` + work quest suspension during fight + instant exit on target death | Group 7587134 |
-| **WarpTourMod** (10) | Teleport-tour POIs for native map pins; DwellSeconds min 0.5, DrainSeconds=8; Enabled=false by default | Group 7617637 |
-| **MineRefreshMod** (11) | Traverses cave tree, resets DigData (ResetCrackData/wallIndex), clears collapses, proximity safety scan, native DigVolume wall refresh | Group 7586480 |
-| **JotunBloodYieldMod** (13, v1.1.0) | Postfix `HarvestSpawner.Awake` duplicates "Blood"/"Jotun" entries in `pieceLoot`/`bitLoot` (1 entry→3 rolls, 2→6; guard skips lists already ≥3); postfix `LootSpawner.GetLootStack` remaps quantity 1→3, 2→5, 3+→6. (Replaced the old `_GetAwardedLootCount` hook, which didn't reliably fire.) **Confirmed in-game 2026-06-28.** | Not on Nexus |
-
-### In Progress / Blocked
-| Mod | Status | Key Issue |
-|---|---|---|
-| **WarehouseFilterMod** (6) | Design ready, no code | Prefix on `ResourceStorage.CanCreateStorageTaskForItemInfo` to block crafting-station input hauling |
-| **SeedScoutMod** (9) | WIP v0.15.0 | Seed scorer + map overlay working. Native pins failed (→ WarpTour). Seed read returns `<rng-null>`. Den classification needs `affectedSpawners`. |
-| **TerrainLevelerMod** (15) | PARKED — .dll.off | "SimCity Bulldozer" goal is impossible due to native `TryLevelTile` lumpiness, 512 Fusion network array limit, and mesh normal calc crashes on steep cliffs. |
-| **SeedHarvesterMod** (14) | PARKED — patch disabled; installed .dll renamed to .dll.off 2026-06-28 | "Fast Harvest" coroutine regenerates seeds in-memory in seconds, but every seed scores `-9999`: cave `AreaInstance` GameObjects are never instantiated by `UpdateDataAsync` (a 1-frame `yield` doesn't force it — dead-end 2026-06-28), so cave positions can't be read. Would need a `GameAssembly.dll` dump to parse raw data buffers. `SEED_HARVESTER_HANDOFF.md`. |
-
----
-
-## Key Subsystem Quick Reference
-
-Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/askamods/docs/architecture.md) before working on any subsystem.
-
-| Subsystem | Key Entry Points |
+## Documentation map
+| Read this | When you're working on |
 |---|---|
-| **Damage** | `Creature.TakeDamage(DamageData)` — `DamageData.weapon` = arrow for ranged |
-| **Player** | `PlayerCharacter : Character` (separate from `Creature`); `PlayerCharacter.Spawned()` for init |
-| **Trees/Resources** | `HarvestInteraction.TakeDamage`; `BiomeItemInstance.Replenish()`; stumps = same object at last harvestPiece |
-| **Gather** | `GatherInteraction.GatherItemsCharge` postfix; `.GetGatherableItemInfo().Name` = yielded item name |
-| **Fire/Torch** | `FireStructure.Initialize`; `Rpc_AddFuel(float)`; cave sconces = `CaveTorchOutlet` (different system) |
-| **Villager Needs** | `VillagerSurvival._foodVAttr/_waterVAttr/_warmthVAttr/_energyVAttr`; `Villager.Rpc_ChangeSchedule(long)` |
-| **Villager Combat** | `FleeCombatQuest` vs `WarriorCombatQuest`; FSMs on `VillagerSurvival`: `fleeCombatBehaviour` / `naturalCombatBehaviour` |
-| **Settlement/Inventory** | `Settlement.QuerySettlementResources() → ItemManifest`; `ResourceStorage` + `StorageSupply` |
-| **Worldgen** | `BiomesManager._worldGenerator.GetDataMap()._areaInstances` for caves; `WorldStreamingManager.RequestLoadWorldTile()` |
-| **Weather/Time** | `WeatherSystem.Instance.GetDaysPassed()`, `NetworkedCurrentGameTime`, `IsNight`, `DayNightValue` |
-
----
+| [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee |
+| [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
+| [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod |
+| [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
+| [`docs/mods/torch-fuel.md`](docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
+| [`docs/mods/dynamic-villager-needs.md`](docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
+| [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
+| [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
+| [`docs/mods/jotun-blood-yield.md`](docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
+| [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
+| [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
+| [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
+| [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |
+| [`WAREHOUSE_CAPACITY_HANDOFF.md`](WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |
+| [`DYNAMIC_NEEDS_HANDOFF.md`](DYNAMIC_NEEDS_HANDOFF.md) | DynamicVillagerNeedsMod handoff |
+| [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — VillagerFightBackMod test run + fallback |
+| [`SEED_SCOUT_HANDOFF.md`](SEED_SCOUT_HANDOFF.md) | Mod 9 — SeedScoutMod: worldgen findings, seed scorer + map overlay (WIP) |
+| [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md) | Mod 10 — WarpTourMod: teleport-tour POIs for native map pins (why cheap pins fail, tour design, tuning) |
+| [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, issues C/D RESOLVED v1.2.10, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
+| [`SEED_HARVESTER_HANDOFF.md`](SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
+| [`ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md`](ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md) | Mod 16 — ResourceMarkerRadiusMod map marker radius debugging handoff |
 
 ## Reference Paths
-
 | Purpose | Path |
 |---|---|
 | BepInEx core DLLs | `ASKA\BepInEx\core\` |
@@ -242,40 +212,3 @@ Read the full detail in [`docs/architecture.md`](file:///d:/Claude%20Projects/as
 | Unity engine modules | `ASKA\BepInEx\unity-libs\` |
 | Plugin output folder | `ASKA\BepInEx\plugins\` |
 | BepInEx log | `ASKA\BepInEx\LogOutput.log` |
-
-## Documentation Map
-
-| Read this | When working on |
-|---|---|
-| [`docs/architecture.md`](file:///d:/Claude%20Projects/askamods/docs/architecture.md) | **Any** game subsystem |
-| [`docs/mods/bow-damage.md`](file:///d:/Claude%20Projects/askamods/docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
-| [`docs/mods/tree-respawn.md`](file:///d:/Claude%20Projects/askamods/docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod |
-| [`docs/mods/health-regen.md`](file:///d:/Claude%20Projects/askamods/docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
-| [`docs/mods/torch-fuel.md`](file:///d:/Claude%20Projects/askamods/docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
-| [`docs/mods/dynamic-villager-needs.md`](file:///d:/Claude%20Projects/askamods/docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
-| [`docs/mods/villager-fight-back.md`](file:///d:/Claude%20Projects/askamods/docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
-| [`docs/mods/mine-refresh.md`](file:///d:/Claude%20Projects/askamods/docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
-| [`docs/mods/jotun-blood-yield.md`](file:///d:/Claude%20Projects/askamods/docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
-| [`docs/mods/terrain-leveler.md`](file:///d:/Claude%20Projects/askamods/docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod |
-| [`docs/nexus-upload.md`](file:///d:/Claude%20Projects/askamods/docs/nexus-upload.md) | Publishing to Nexus Mods |
-| [`DYNAMIC_HAULING_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — warehouse hauling filter |
-| [`WAREHOUSE_CAPACITY_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |
-| [`VILLAGER_FIGHTBACK_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — crash debug + behavior-swap approach |
-| [`SEED_SCOUT_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_SCOUT_HANDOFF.md) | Mod 9 — worldgen findings, scorer + overlay |
-| [`WARP_TOUR_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/WARP_TOUR_HANDOFF.md) | Mod 10 — teleport-tour design + tuning |
-| [`TREERESPAWN_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, issues C/D RESOLVED v1.2.10, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
-| [`SEED_HARVESTER_HANDOFF.md`](file:///d:/Claude%20Projects/askamods/SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
-
----
-
-## Namespaces (Game Code)
-
-- `SSSGame.*` — ASKA code (Sand Sailor Studio)
-- `Invector.*` — third-party character controller framework
-- `SandSailorStudio.Inventory.*` — custom inventory system
-
-## Nexus Mods Publishing
-
-Automated via GitHub Actions (`.github/workflows/nexus-upload.yml`, manual `workflow_dispatch`).
-Uses committed DLLs (CI can't build — interop DLLs aren't redistributable).
-API can only UPDATE existing file groups, not create pages. Description edits are manual.

@@ -1,4 +1,4 @@
-﻿# AskaMods — Project Context
+# AskaMods — Project Context
 
 This file is the always-loaded orientation. Deep detail lives in `docs/` and is pulled in on demand —
 see [Documentation map](#documentation-map) below. **Before working on any game subsystem, read its
@@ -13,11 +13,12 @@ fact about the game, the IL2CPP interop, or a mod's behavior — especially **in
   (add a new subsection if that subsystem isn't there yet);
 - mod-specific recipe/config → that mod's file under `docs/mods/`.
 
-**Only record CONFIRMED learnings.** In-game-verified facts and definitively-established structure are fair
-game; flag anything not yet verified as ⚠️ pending (the existing convention) and keep pure speculation out.
-Date in-game findings (`confirmed in-game (YYYY-MM-DD)`). Update an existing entry rather than duplicating,
-and always capture the **dead-ends**, not just what worked — the whole point is to stop a future session
-re-treading a ruled-out path. These doc updates ride along with the related work when it's committed.
+**Only record CONFIRMED learnings.** Flag anything not yet verified as ⚠️ pending. Date in-game
+findings (`confirmed in-game (YYYY-MM-DD)`). Always capture dead-ends — the whole point is to
+stop future sessions re-treading a ruled-out path.
+
+### Diagnostics Default Behavior
+Whenever you add a configuration option for a diagnostic or debug logger, **always default it to `true` initially.** This saves the user from having to boot the game just to generate the config file, close it, edit it, and launch again. Once a mod is verified and ready to ship, update the code to flip the default to `false` so it doesn't spam normal users' logs. These doc updates ride along with the related work when it's committed.
 
 ## Never Consider an Issue Resolved Until Confirmed In-Game (standing instruction)
 Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
@@ -152,6 +153,7 @@ askamods/
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
+  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius + gather range work; map/compass hover ring still vanilla size. See MAP_RADIUS_HANDOFF.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike: its "Fast Harvest" coroutine regenerates seeds
@@ -189,6 +191,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
 | [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/mods/jotun-blood-yield.md`](docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
+| [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
 | [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |
@@ -199,6 +202,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md) | Mod 10 — WarpTourMod: teleport-tour POIs for native map pins (why cheap pins fail, tour design, tuning) |
 | [`TREERESPAWN_HANDOFF.md`](TREERESPAWN_HANDOFF.md) | Mod 2 — TreeRespawn bug tracker & handoff (co-op respawn, cross-world save fix, issues C/D RESOLVED v1.2.10, parked issue E, plus tracked-but-out-of-scope Issue F — a vanilla villager-AI fiber lockout) |
 | [`SEED_HARVESTER_HANDOFF.md`](SEED_HARVESTER_HANDOFF.md) | Mod 14 — SeedHarvesterMod: fast in-memory seed scan (blocked — see dead-ends) |
+| [`ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md`](ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md) | Mod 16 — ResourceMarkerRadiusMod map marker radius debugging handoff |
 
 ## Reference Paths
 | Purpose | Path |
