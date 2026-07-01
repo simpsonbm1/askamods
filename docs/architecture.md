@@ -61,6 +61,11 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
 - **Prefer the game's own RPCs over direct networked-state writes.** Whether a direct field/inventory
   write on a networked object replicates in co-op is unverified; the game's RPCs (e.g.
   `Rpc_AddFuel`, `Rpc_ChangeSchedule`) are the network-safe path used by the game itself.
+- **Never Harmony-patch a `NetworkBehaviour`'s `CopyBackingFieldsToState`/`CopyStateToBackingFields`**
+  (Fusion's state-sync methods, run every network tick in the simulation path) — this **hangs the game
+  at load**, no exception, just a stuck boot (confirmed the hard way on `SpellsManager`, but the rule is
+  general to any `NetworkBehaviour`). If you need to capture/observe an instance of a networked type,
+  hook its plain Unity lifecycle instead (`Awake`/`Spawned` are safe) and register it into a static list.
 
 ---
 
@@ -810,9 +815,120 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   - **IReadOnlyList Metadata**: `Il2CppSystem.Collections.Generic.IReadOnlyList<T>` lacks metadata showing it inherits from `IReadOnlyCollection<T>` in the interop assembly, making `.Count` and `GetEnumerator` unavailable directly. **Workaround**: Cast the list to `Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>` using `.TryCast<T>()` to safely retrieve `.Count`, and access elements by index `list[i]`.
 
 
-## Terrain / Terraforming Dead Ends
+## Terrain / Terraforming System
 
-*   **Fusion NetworkArray size limits grid size:** DynamicDimensionTemplate max tiles is natively 100. It can be bumped, but NetworkArray<DynamicDimensionCell> natively caps at 512 elements. If you create a grid larger than 512 tiles, it overflows the network array bounds and errors out. (confirmed in-game 2026-06-30)
-*   **Mesh generation NaN normal crash:** The native TerraformingGrid generates a dynamic mesh for the placement hologram and the terrain leveling. If the height difference between the start and end bounds is extreme (e.g. stretching across a vertical cliff face), the mesh generator mathematically fails to compute the normals and crashes the game with CreateVertexDeclaration and NaN errors. (confirmed in-game 2026-06-30)
-*   **Physics overlap array crash:** Natively, _ValidateFootprint uses OverlapBoxNonAlloc with a fixed-size C++ array to check for trees/rocks inside the placement grid. On very large grids (e.g., >100 tiles) placed over dense forests, the number of colliders exceeds the array bounds and causes a hard crash to desktop. (confirmed in-game 2026-06-30)
-*   **Instant flattening is impossible with TryLevelTile:** The native TryLevelTile function does *not* snap the tile to the target height instantly. It merely increments/decrements the height toward the target by a small, hardcoded amount per hit. Calling it once in a loop across a huge grid will lower a hill uniformly but leave it completely lumpy. Flattening a hill still requires hitting the ground over and over until every tile reaches the bottom. (confirmed in-game 2026-06-30)
+Backing mod: TerrainLevelerMod (Mod 15) — see [`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md)
+for the full recipe. Key types: `DynamicDimensionsPlacementTool` (drag/placement), `TerraformingGrid` +
+`TerraformingFieldInteraction` (the placed field and its E-press leveling), `HeightmapTool` (the actual
+heightmap writer), `SSSGame.Network.NetworkDynamicDimensionBuildingState[_256|_512]` (Fusion network
+state for the drag preview).
+
+### Confirmed facts
+*   **`TerraformingFieldInteraction.Use(IInteractionAgent)` is the real E-press leveling hook.**
+    `TryLevelTile`/`MarkCellInteracted` are **inlined by the IL2CPP AOT compiler** — Harmony patches on
+    them never fire. Patch `Use`'s postfix instead, and get the grid from
+    `interaction.terraformingGrid`. (confirmed in-game 2026-07-01)
+*   **`HeightmapTool.RunOnArea(TerraformingToolOperation.LEVEL, width, depth, 0, center, 0)` is a true
+    instant flatten** — it sets the whole footprint to `SetReferenceHeight`'s target in one pass and can
+    clear vegetation (`clearVegetation`/`setVegetationMask`), unlike `TryLevelTile` (below). Get the tool
+    from `TerraformingFieldInteraction.heightmapTool`. (confirmed in-game 2026-07-01)
+*   **`TerraformingGridState.Rpc_DebugCompleteField()` finalizes the field (dismisses the marker/UI) but
+    does NOT itself deform terrain** — safe to call *after* a `HeightmapTool` flatten as a tidy-up, does
+    nothing destructive on its own. (confirmed in-game 2026-07-01)
+*   **`GetCellAverageHeight`/`IsCellLeveled` are unreliable convergence signals** — `GetCellAverageHeight`
+    reads a fixed baseline (doesn't reflect a `HeightmapTool` deform), and `IsCellLeveled` can report
+    `true` while still ~1.5m off the real target. Don't use either to decide whether a flatten worked.
+*   **Obstacle clearing needs a separate pass**: `RunOnArea` doesn't remove trees/fixed rocks. Build a
+    `SSSGame.Combat.AOESpell` (Box shape sized to the grid footprint) and cast it via the player's
+    `SpellsManager.CastSpellOnPos(aoe, ref pos)` — the proper entry point (calling `OnDetonated` directly
+    NREs because spell setup is skipped). `clearItemInstances = true` clears fixed `WorldItemInstance`
+    rocks via the data layer; `dealDamageToHarvestables = true` + high `baseDamage` kills trees/harvestable
+    rocks. **`skipAllCollisionChecks` must be `false`** — `true` skips `CollisionCheck()`, which is the
+    overlap that gathers harvestable targets, so trees survive while only data-layer rocks clear.
+    (confirmed in-game 2026-07-01)
+*   **`SpellsManager` is a standalone Fusion network object**, not under the player hierarchy —
+    `GetComponent` searches from the player fail. Register every instance from a Harmony **postfix on
+    `SpellsManager.Awake`** (a plain Unity lifecycle method, safe to patch), then at cast time pick
+    `IsPlayer && HasAuthority` from the registry. **Do NOT patch its Fusion state-sync methods**
+    (`CopyBackingFieldsToState`/`CopyStateToBackingFields`) — this **hangs the game at load** (confirmed
+    the hard way). Same rule applies to any `NetworkBehaviour`'s Copy*State methods, not just SpellsManager.
+*   **The real drag/resize pipeline** (relevant any time a mod needs to intercept a `DynamicDimensions`-
+    style drag): `DynamicDimensionsPlacement.gridSize` (`Vector3Int`) →
+    `DynamicDimensionBuilding.SetDimensions(float tileSize, Vector3Int GridSize, bool forceSet)` →
+    `NetworkDynamicDimensionBuildingState.ChangeGridSize(Vector3Int gridSize)` (non-virtual, by-value —
+    directly Harmony-patchable) → `NetworkDynamicDimensionBuildingState_256/_512.UpdateGridValidityOnNetwork()`.
+    `DynamicDimensionsPlacementTool._OnBuildRayChanged(Ray)` is the per-frame driver that moves the
+    marker and feeds this pipeline every frame during a drag. (confirmed in-game 2026-07-01)
+*   **The drag preview's per-tile validity is a FIXED-SIZE Fusion struct, not a dynamic array**:
+    `BitSet256` on `NetworkDynamicDimensionBuildingState_256` (used by this structure),
+    `BitSet512` on the `_512` variant (used by other building types). Read the true cap at runtime via
+    `NetworkedGridSize` — don't hardcode 256 or 512, since which variant is in play depends on the
+    building. Past that many tiles, `UpdateGridValidityOnNetwork` writes validity bits past the struct →
+    network-state corruption → a hard, silent native crash (confirmed by mapping WER crash offsets to
+    this exact method via Cpp2IL — see [Native Crash Diagnosis](#native-crash-diagnosis-wer--cpp2il)
+    below). **This supersedes the old "512-tile NetworkArray" belief below** — 512 is real, but it's the
+    *`_512` variant's* cap, not this structure's; the terraforming preview uses the 256 variant.
+    (confirmed in-game 2026-07-01)
+*   **`DynamicDimensionTemplate.maxNumberOfTiles`, `DynamicDimensionsPlacementTool.maxRange`, and
+    `_ValidateFootprint`'s `OverlapBoxNonAlloc` are all real but secondary limits** — they cap the
+    *placed* footprint size and validate for obstacle overlap, but none of them are the drag-preview
+    crash (that's the BitSet struct above, which corrupts during the drag, before placement).
+
+### Dead ends (don't retry)
+*   **`DynamicDimensionsPlacementTool.firstMarker` is NOT a reliable drag anchor.** In practice it can sit
+    hundreds of meters from the live `_marker` throughout an entire drag (observed ~580m offset, static,
+    confirmed via diagnostic logs). Any tether/clamp built by measuring `firstMarker`-to-`_marker`
+    distance measures a stale, unrelated value and does not bound real grid growth — this was tried
+    across several sessions (a hardcoded 20m clamp, then a parameterized 22.5m clamp) and never actually
+    prevented the crash; it just happened to coincide with default configs that stayed under the real
+    (unrelated) BitSet256 cap most of the time. (dead end confirmed 2026-07-01)
+*   **Skipping `_OnBuildRayChanged` (returning false from a Harmony prefix) to suppress an oversized
+    preview breaks the UX**: the original method both moves the marker AND rebuilds the visible preview
+    mesh, so skipping it freezes/hides the preview instead of just capping its size — the marker can
+    disappear entirely or jump in large increments on frames where a substitute raycast misses. Clamp the
+    **tile count** at `ChangeGridSize` instead (see confirmed facts above), not the per-frame ray/marker.
+    (dead end confirmed 2026-07-01)
+*   **The "steep terrain" crash theory was a red herring.** The BitSet256 overflow crash reproduces on
+    flat/gently-curved terrain at the same *tile count* as on steep terrain — steeper terrain just makes
+    it easier to drag farther (more apparent distance covered) before noticing the grid is already past
+    256 tiles. Don't chase terrain steepness/mesh-NaN theories for a drag crash before first ruling out
+    tile count via diagnostic logging.
+*   **Mesh generation NaN normal crash:** The native TerraformingGrid mesh generator can crash with NaN
+    normals if the height difference between the grid's start and end bounds is extreme (e.g. stretching
+    across a vertical cliff face). Still a real, separate risk from the BitSet256 crash — clamp vertical
+    stretch (e.g. ~15m) independently. (confirmed in-game 2026-06-30)
+*   **Physics overlap array crash:** Natively, `_ValidateFootprint` uses `OverlapBoxNonAlloc` with a
+    fixed-size C++ array to check for trees/rocks inside the placement grid. On very large grids placed
+    over dense forests, the number of colliders can exceed the array bounds and hard-crash. Bypass by
+    prefixing `_ValidateFootprint` to unconditionally return `true` (skip native validation) — this is
+    crash-prevention, not a cheat, so don't gate it behind a config toggle. (confirmed in-game 2026-06-30)
+*   **Instant flattening is impossible with `TryLevelTile` driven directly in a loop:** it does not snap
+    a tile to the target height; it increments/decrements by a small hardcoded amount per call, and
+    driving it directly (bypassing the `Use`/`HeightmapTool` path) corrupts the mesh into spikes rather
+    than producing a lumpy-but-safe result. Use `HeightmapTool.RunOnArea` instead (confirmed fact above).
+    (confirmed in-game 2026-06-30, corrected 2026-07-01 re: mesh corruption)
+
+### Native Crash Diagnosis (WER + Cpp2IL)
+A reusable technique for when a mod causes a hard native crash (no managed exception in
+`LogOutput.log`) and the cause isn't obvious from reading the patched C# alone — first used to find the
+BitSet256 root cause above, but applies to any future native ASKA crash:
+1.  **Get the crash offset.** Windows Error Reporting logs every native crash even with no managed
+    stack trace. `Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='Application
+    Error'}`, filter the message for `Aska`, and read `Faulting module` + `Fault offset` (the offset is
+    an RVA into that module, usually `GameAssembly.dll`). Recurring identical offsets across multiple
+    crashes are your most reliable lead — one-off `unknown module, offset 0x0` crashes are usually
+    delayed corruption fallout from an earlier bad write, not the true site. Crash dumps also land in
+    `%LOCALAPPDATA%\CrashDumps\Aska.exe.*.dmp` (~100MB each).
+2.  **Il2CppDumper does NOT work on this game** (metadata version 39 / Unity 6000.3 unsupported —
+    confirmed 2026-07-01). Use **Cpp2IL** instead (a standalone exe from its GitHub releases;
+    `2022.1.0-pre-release.21` confirmed working):
+    `cpp2il.exe --game-path <ASKA install dir> --use-processor attributeinjector --output-as dummydll`
+    — the `attributeinjector` processor is **required**, or the dummy DLLs carry no `AddressAttribute`
+    RVAs to map against (whole dump takes ~7s). `--output-as diffable-cs` additionally produces
+    per-type C# skeletons, including Fusion `[Networked]` fields and codegen constants — useful for
+    understanding a type's real shape beyond what the BepInEx interop assembly exposes.
+3.  **Map offset → method name**: binary-search the crash RVA against every dumped method's
+    `AddressAttribute.RVA` (sorted). `_explore/map_crash_offsets.ps1` in this repo does this with
+    Mono.Cecil — edit its `$targets` array with your crash offsets and re-run.
+4.  Unity's own `Player.log` (`%USERPROFILE%\AppData\LocalLow\Sand Sailor Studio\ASKA\`) does **not**
+    contain a native stack trace for these crashes — WER events are the reliable source, not this file.

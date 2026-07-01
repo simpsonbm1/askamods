@@ -153,7 +153,7 @@ askamods/
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
-  TerrainLevelerMod/         ← Mod 15: town-sized instant terrain flattening [PARKED / ABANDONED v1.1.21 — engine limits (512-tile Fusion NetworkArray cap, mesh-normal NaN crash on steep grids, TryLevelTile only increments height per hit) make a true instant-flatten bulldozer impossible; installed .dll.off, disabled by default]
+  TerrainLevelerMod/         ← Mod 15: instant terrain flattening + obstacle clearing on a single E-press [COMPLETE v1.3.22 — confirmed in-game (2026-07-01): HeightmapTool.RunOnArea LEVEL flatten + AOESpell obstacle-clear via SpellsManager.CastSpellOnPos; drag-to-grow crash fixed by capping tile count at ChangeGridSize (the real cap is the BitSet256 network-state struct, not the previously-believed 512-tile array). 256 tiles/placement is an engine-hard ceiling — town-sized areas need multiple adjacent placements. See docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius, gather range, AND map/compass hover ring all scale correctly, confirmed in-game (2026-06-30) at 2x and 4x multipliers (each verified after a game relaunch to pick up the config change) via the AddMarker position-fallback resolver; some markers still fall back to vanilla ring size when resolve fails (structure=null). See MAP_RADIUS_HANDOFF.md]
 ```
 
@@ -179,11 +179,13 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 - **Key dictionaries by world position, not `UniqueId`** — `UniqueId`-style indices restart per spatial chunk and aren't globally unique.
 - **Gate all state writes on authority** (`HasAuthority` / `_hasAuthority`) and **prefer the game's own RPCs** (`Rpc_AddFuel`, `Rpc_ChangeSchedule`) over direct networked-state writes — both for co-op safety.
 - **Query persistent managers over ephemeral components** — some interactive components (like `CaveWallInteraction` walls) are destroyed and removed from the scene once depleted. To restore them, query their persistent parent managers (like `DigVolume`) which remain in the scene hierarchy, and invoke their native regeneration methods (e.g., `ResetWalls(true)`) to let the game rebuild the visual and physical objects correctly.
+- **Never patch a `NetworkBehaviour`'s `CopyBackingFieldsToState`/`CopyStateToBackingFields`** (Fusion state-sync) — hangs the game at load, no exception. Capture instances from a plain lifecycle method (`Awake`/`Spawned`) into a static list instead.
+- **If a mod hard-crashes the game natively with no managed exception in the log, don't guess** — map the Windows Error Reporting crash offset to a method with Cpp2IL. See [Native Crash Diagnosis](docs/architecture.md#native-crash-diagnosis-wer--cpp2il).
 
 ## Documentation map
 | Read this | When you're working on |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee |
+| [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, terrain/terraforming, native crash diagnosis (WER+Cpp2IL) |
 | [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
 | [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod |
 | [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
@@ -192,8 +194,9 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
 | [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/mods/jotun-blood-yield.md`](docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
-| [`docs/mods/terrain-leveler.md`](docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod (parked/abandoned) |
-| [`TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md`](TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md) | Mod 15 — TerrainLevelerMod drag crash handoff (2026-07-01) |
+| [`docs/mods/terrain-leveler.md`](docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod (working recipe: HeightmapTool flatten + AOESpell clear + BitSet256 tile-cap fix) |
+| [`TerrainLevelerMod/DRAG_CRASH_PLAN.md`](TerrainLevelerMod/DRAG_CRASH_PLAN.md) | Mod 15 — TerrainLevelerMod drag-crash root cause (BitSet256 network-state overflow) + fix, confirmed in-game 2026-07-01 |
+| [`TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md`](TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md) | Mod 15 — TerrainLevelerMod drag crash handoff (2026-07-01) — SUPERSEDED, see DRAG_CRASH_PLAN.md |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |

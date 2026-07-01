@@ -45,7 +45,7 @@ $repo = $PSScriptRoot
 # Mods intentionally parked (blocked spikes, not meant to load). On a machine that
 # doesn't have them yet, install them DISABLED (.dll.off) so a known-blocked mod
 # never loads. If a live enabled/disabled state already exists, that wins (below).
-$ParkedByDefault = @('CookingStationFixMod', 'SeedHarvesterMod', 'TerrainLevelerMod')
+$ParkedByDefault = @('CookingStationFixMod', 'SeedHarvesterMod')
 
 if (-not (Test-Path $PluginsDir)) {
   Write-Host "ERROR: plugins folder not found:" -ForegroundColor Red

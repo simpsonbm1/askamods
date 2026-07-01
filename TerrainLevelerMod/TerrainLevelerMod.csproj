@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TerrainLevelerMod</AssemblyName>
     <RootNamespace>TerrainLevelerMod</RootNamespace>
-    <Version>1.3.15</Version>
+    <Version>1.3.22</Version>
   </PropertyGroup>
 
   <PropertyGroup>

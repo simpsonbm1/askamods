@@ -13,20 +13,20 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.3.15";
+        public const string PLUGIN_VERSION = "1.3.22";
 
         public static ConfigEntry<float> MaxDragRange;
         public static ConfigEntry<bool> OneHitClear;
-        public static ConfigEntry<int> MaxPassesPerTile;
-        public static ConfigEntry<bool> UseDebugComplete;
         public static ConfigEntry<bool> ClearObstructions;
         public static ConfigEntry<int> BombShots;
-        public static ConfigEntry<bool> BruteForceFallback;
-        public static ConfigEntry<string> BruteForceNameFilter;
         public static ConfigEntry<float> ClearVerticalRange;
         public static ConfigEntry<bool> ClearDiagnostics;
         public static ConfigEntry<float> MaxHeightDifference;
+        public static ConfigEntry<bool> PlacementDiagnostics;
         public static ManualLogSource ModLogger;
+
+        // Throttle for the ChangeGridSize diag log so a multi-second drag doesn't flood the log.
+        private static long _lastLoggedGridTiles = -1;
 
         // Grids whose obstructions have already been cleared, so we only sweep once per grid
         // (keyed by Unity instance id). Cleared-per-grid; the flatten loop still runs every hit.
@@ -37,16 +37,13 @@ namespace TerrainLevelerMod
             ModLogger = Log;
             MaxDragRange = Config.Bind("General", "MaxDragRange", 20f, "Maximum drag distance for the terraforming tool (vanilla is 10)");
             OneHitClear = Config.Bind("General", "OneHitClear", true, "If true, a single hit fully flattens every tile in the grid (loops each tile to completion instead of one increment per hit)");
-            MaxPassesPerTile = Config.Bind("General", "MaxPassesPerTile", 256, "Safety cap on how many level increments to apply per tile before giving up (prevents an infinite loop if a tile can never reach the target). Raise if tall/deep terrain isn't fully flattening in one hit.");
-            UseDebugComplete = Config.Bind("General", "UseDebugComplete", false, "Experimental: also call the game's 'complete field' RPC. In testing this only finalises the field and does NOT deform terrain, so leave false unless investigating.");
 
             ClearObstructions = Config.Bind("Obstructions", "ClearObstructions", true, "If true, the first hit on a grid detonates a bomb-style area blast over it to destroy trees/rocks/props before flattening.");
             BombShots = Config.Bind("Obstructions", "BombShots", 2, "How many blasts to detonate over the grid. 2 mirrors 'two bombs': the first knocks trees to stumps, the second clears the stumps and rocks.");
-            BruteForceFallback = Config.Bind("Obstructions", "BruteForceFallback", true, "If true, objects that aren't cleanly harvestable (e.g. baked Fusion stone clumps) are disabled outright (SetActive(false)) when their name matches BruteForceNameFilter. Single-player cheat-grade: no loot, and networked objects may reappear on chunk reload.");
-            BruteForceNameFilter = Config.Bind("Obstructions", "BruteForceNameFilter", "Harvest_,Stone,Rock,Boulder,Ore,Cliff,Deposit,Bush,Log,Trunk", "Comma-separated name tokens (case-insensitive). A non-harvestable object is only brute-force disabled if its name (or a parent's) contains one of these. Keeps buildings/terrain/NPCs safe.");
             ClearVerticalRange = Config.Bind("Obstructions", "ClearVerticalRange", 30f, "Half-height (m) of the box searched for obstructions above/below the grid. Raise if tall trees/rocks near the grid aren't detected.");
             ClearDiagnostics = Config.Bind("Obstructions", "ClearDiagnostics", false, "Log details of the flatten + obstacle-clearing blast ([Flatten]/[Bomb] lines). Off by default; enable to debug.");
             MaxHeightDifference = Config.Bind("General", "MaxHeightDifference", 15f, "Maximum height difference before the grid turns red and is unplaceable. Native is ~2m, 15m is a safe limit before mesh NaN crashes.");
+            PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", false, "Log which placement guards fire during a drag (Begin/ChangeGridSize/snap/dynamic) and the grid size they see. Confirmed fixed in-game 2026-07-01; flip true only to re-diagnose.");
 
             Harmony.CreateAndPatchAll(typeof(Plugin));
             Log.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
@@ -56,13 +53,17 @@ namespace TerrainLevelerMod
         [HarmonyPrefix]
         public static void DynamicDimensionsPlacementTool_Begin_Prefix(DynamicDimensionsPlacementTool __instance)
         {
-            // A 22.5m drag radius yields exactly 506 tiles natively (under the 512 crash limit).
-            // Any larger and the native Fusion NetworkArray violently overflows.
-            __instance.maxRange = System.Math.Min(MaxDragRange.Value, 22.5f);
-            
+            // Soft UX cap on how far the marker follows the player during the drag. This is NOT the
+            // crash fix -- that's the tile-count clamp on ChangeGridSize below. The real cap is the
+            // BitSet256 network-state struct capacity (confirmed via Cpp2IL decompile + WER crash-offset
+            // mapping; see DRAG_CRASH_PLAN.md), which is independent of how far the marker can travel.
+            __instance.maxRange = MaxDragRange.Value;
+
             // Always raise the height-difference limit so the native physics don't block placement.
-            // We handle the Y-Clamp safely below.
             __instance.maxHeightDifference = 10000f;
+
+            _lastLoggedGridTiles = -1; // reset diag throttle for a fresh placement
+            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] Begin fired; maxRange set to {__instance.maxRange}");
         }
 
         [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool._ValidateFootprint))]
@@ -86,6 +87,15 @@ namespace TerrainLevelerMod
             return false;
         }
 
+        // Raises the native height-difference limit every frame so vanilla physics don't block placement
+        // on undulating terrain. The old firstMarker/_marker raycast-skip and tether logic that used to
+        // live here (and in a since-deleted _OnBuildingDimensionsChanged patch) was a dead end: firstMarker
+        // sits ~580m from the live marker throughout the whole drag (confirmed via diag logs), so every
+        // clamp built on it measured a stale, unrelated distance and never bounded grid growth -- and the
+        // raycast-skip approach hid the preview entirely (skipped the original too eagerly, every frame).
+        // The real crash cause is a fixed-size Fusion network struct (BitSet256/512) that the drag
+        // overflows past 256 tiles; the actual fix is the tile-count clamp below, at the source
+        // (ChangeGridSize) -- see DRAG_CRASH_PLAN.md for the full evidence chain.
         [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool._OnBuildRayChanged))]
         [HarmonyPrefix]
         public static void DynamicDimensionsPlacementTool_OnBuildRayChanged_Prefix(DynamicDimensionsPlacementTool __instance)
@@ -93,81 +103,133 @@ namespace TerrainLevelerMod
             __instance.maxHeightDifference = 10000f;
         }
 
-        [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool._OnBuildingDimensionsChanged))]
+        // Guards ChangeGridSize against recursive re-entry from our own clamped re-call below.
+        private static bool _inChangeGridSize;
+
+        // THE ACTUAL FIX. The drag preview's per-tile validity is stored in a FIXED-SIZE Fusion network
+        // struct: BitSet256 on NetworkDynamicDimensionBuildingState_256 (the variant this structure uses),
+        // BitSet512 on the _512 variant used by other building types. Past that many tiles,
+        // UpdateGridValidityOnNetwork writes validity bits past the struct and corrupts the network state,
+        // which hard-crashes the game (confirmed by mapping WER crash offsets to these exact methods via
+        // Cpp2IL -- see DRAG_CRASH_PLAN.md). ChangeGridSize(Vector3Int) is the single non-virtual,
+        // by-value entry point every drag frame funnels through before that struct is touched, so we clamp
+        // the tile count here, at the source, instead of guessing at marker/distance math further up the
+        // call chain (every attempt at that was a dead end -- see comment above).
+        [HarmonyPatch(typeof(SSSGame.Network.NetworkDynamicDimensionBuildingState), nameof(SSSGame.Network.NetworkDynamicDimensionBuildingState.ChangeGridSize))]
         [HarmonyPrefix]
-        public static void DynamicDimensionsPlacementTool_OnBuildingDimensionsChanged_Prefix(DynamicDimensionsPlacementTool __instance)
+        public static bool NetworkDynamicDimensionBuildingState_ChangeGridSize_Prefix(SSSGame.Network.NetworkDynamicDimensionBuildingState __instance, Vector3Int gridSize)
         {
-            if (__instance.firstMarker != null && __instance._marker != null)
+            if (_inChangeGridSize) return true;
+
+            int cap = 256;
+            try { cap = __instance.NetworkedGridSize; } catch { }
+            if (cap <= 0) cap = 256;
+
+            long tiles = (long)gridSize.x * gridSize.z;
+            bool diag = PlacementDiagnostics.Value;
+
+            if (tiles <= cap)
             {
-                var start = __instance.firstMarker.transform.position;
-                var end = __instance._marker.transform.position;
-                
-                // We only care about horizontal (X/Z) bounds to calculate the grid array size
-                var start2D = new UnityEngine.Vector2(start.x, start.z);
-                var end2D = new UnityEngine.Vector2(end.x, end.z);
-                
-                // Cap the actual physical marker tether at 22.5m so it never physically exceeds 512 tiles
-                float maxDist = System.Math.Min(MaxDragRange.Value, 22.5f);
-                float currentDist = UnityEngine.Vector2.Distance(start2D, end2D);
-                
-                if (currentDist > maxDist)
+                if (diag && tiles != _lastLoggedGridTiles)
                 {
-                    // Clamp it!
-                    UnityEngine.Vector2 direction = (end2D - start2D).normalized;
-                    UnityEngine.Vector2 clamped2D = start2D + (direction * maxDist);
-                    
-                    // We need to find the REAL ground height at the clamped position
-                    // Fire a ray straight down from the sky at that X/Z coordinate
-                    UnityEngine.Vector3 rayStart = new UnityEngine.Vector3(clamped2D.x, 1000f, clamped2D.y);
-                    if (Physics.Raycast(rayStart, UnityEngine.Vector3.down, out UnityEngine.RaycastHit hit, 2000f, __instance.hitMask))
-                    {
-                        end = hit.point;
-                    }
-                    else
-                    {
-                        // Fallback
-                        end = new UnityEngine.Vector3(clamped2D.x, end.y, clamped2D.y);
-                    }
+                    _lastLoggedGridTiles = tiles;
+                    ModLogger.LogInfo($"[Diag:ChangeGridSize] size={gridSize.x}x{gridSize.z} tiles={tiles} cap={cap} OK");
                 }
-                
-                // ANTI-CRASH Y-CLAMP:
-                // If the user crests a hill, the raycast drops into the valley, creating a massive vertical height difference (e.g. 50m).
-                // The native TerraformingGrid mesh generator will violently crash with NaN normals if it tries to render a grid spanning a near-vertical cliff.
-                // We strictly clamp the maximum vertical stretch to guarantee a safe slope gradient.
-                // 15m is the absolute highest safe limit before the engine starts dividing by zero on slopes.
-                float maxYDiff = System.Math.Min(MaxHeightDifference.Value, 15f);
-                if (System.Math.Abs(end.y - start.y) > maxYDiff)
-                {
-                    end.y = start.y + (System.Math.Sign(end.y - start.y) * maxYDiff);
-                }
-                
-                // Apply the final heavily-sanitized coordinate
-                __instance._marker.transform.position = end;
+                return true;
             }
+
+            // Over cap: shrink the dominant axis one tile at a time until it fits, preserving the drag's
+            // aspect/direction rather than snapping to a fixed shape.
+            var c = gridSize;
+            while ((long)c.x * c.z > cap)
+            {
+                if (c.x >= c.z) c.x--; else c.z--;
+                if (c.x < 1) c.x = 1;
+                if (c.z < 1) c.z = 1;
+                if ((long)c.x * c.z <= 1) break; // safety valve; should never trigger
+            }
+
+            long clampedTiles = (long)c.x * c.z;
+            if (diag && clampedTiles != _lastLoggedGridTiles)
+            {
+                _lastLoggedGridTiles = clampedTiles;
+                ModLogger.LogWarning($"[Diag:ChangeGridSize] size={gridSize.x}x{gridSize.z} tiles={tiles} EXCEEDS cap={cap}; clamped to {c.x}x{c.z} ({clampedTiles} tiles)");
+            }
+
+            _inChangeGridSize = true;
+            try { __instance.ChangeGridSize(c); }
+            finally { _inChangeGridSize = false; }
+            return false; // skip the oversized original call
+        }
+
+        // Safety net for the clamp above: if the backing grid somehow still exceeds this variant's fixed
+        // BitSet capacity when the game is about to write per-tile validity bits into it, skip the write
+        // instead of corrupting past the struct. DO NOT patch CopyBackingFieldsToState/
+        // CopyStateToBackingFields on these types -- that hangs the game at load (learned the hard way,
+        // same rule as SpellsManager).
+        [HarmonyPatch(typeof(SSSGame.Network.NetworkDynamicDimensionBuildingState_256), nameof(SSSGame.Network.NetworkDynamicDimensionBuildingState_256.UpdateGridValidityOnNetwork))]
+        [HarmonyPrefix]
+        public static bool NetworkDynamicDimensionBuildingState_256_UpdateGridValidityOnNetwork_Prefix(SSSGame.Network.NetworkDynamicDimensionBuildingState_256 __instance)
+        {
+            return SafeToUpdateGridValidity(__instance, 256);
+        }
+
+        [HarmonyPatch(typeof(SSSGame.Network.NetworkDynamicDimensionBuildingState_512), nameof(SSSGame.Network.NetworkDynamicDimensionBuildingState_512.UpdateGridValidityOnNetwork))]
+        [HarmonyPrefix]
+        public static bool NetworkDynamicDimensionBuildingState_512_UpdateGridValidityOnNetwork_Prefix(SSSGame.Network.NetworkDynamicDimensionBuildingState_512 __instance)
+        {
+            return SafeToUpdateGridValidity(__instance, 512);
+        }
+
+        private static bool SafeToUpdateGridValidity(SSSGame.Network.NetworkDynamicDimensionBuildingState state, int cap)
+        {
+            try
+            {
+                var building = state._building;
+                if (building == null) return true;
+                var size = building.GridSize;
+                long tiles = (long)size.x * size.z;
+                if (tiles > cap)
+                {
+                    if (PlacementDiagnostics.Value)
+                        ModLogger.LogWarning($"[Diag:UpdateGridValidity] blocked OOB write: {size.x}x{size.z}={tiles} tiles > cap={cap}");
+                    return false;
+                }
+            }
+            catch { }
+            return true;
         }
 
         [HarmonyPatch(typeof(DynamicDimensionTemplate), nameof(DynamicDimensionTemplate.CreatePreview))]
         [HarmonyPrefix]
         public static void DynamicDimensionTemplate_CreatePreview_Prefix(DynamicDimensionTemplate __instance)
         {
-            // Capped at 512 to match the native Fusion NetworkArray limit
-            __instance.maxNumberOfTiles = 512;
+            // Capped at 256 to match the REAL Fusion network-state capacity for this structure (BitSet256
+            // on NetworkDynamicDimensionBuildingState_256, confirmed via Cpp2IL decompile + WER crash-offset
+            // mapping). The old 512 matched a DIFFERENT variant (BitSet512) used by other building types.
+            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] CreatePreview vanilla maxNumberOfTiles={__instance.maxNumberOfTiles}");
+            __instance.maxNumberOfTiles = 256;
         }
 
         [HarmonyPatch(typeof(DynamicDimensionTemplate), nameof(DynamicDimensionTemplate.Create))]
         [HarmonyPrefix]
         public static void DynamicDimensionTemplate_Create_Prefix(DynamicDimensionTemplate __instance)
         {
-            __instance.maxNumberOfTiles = 512;
+            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] Create vanilla maxNumberOfTiles={__instance.maxNumberOfTiles}");
+            __instance.maxNumberOfTiles = 256;
         }
 
         [HarmonyPatch(typeof(TerraformingGrid), nameof(TerraformingGrid.OnDynamicBuildingDimensionsChanged))]
         [HarmonyPrefix]
         public static bool TerraformingGrid_OnDynamicBuildingDimensionsChanged_Prefix(TerraformingGrid __instance)
         {
-            // If the grid exceeds 512 tiles, freeze the visual update by aborting this method.
-            // This mathematically guarantees we never overflow the native 512 arrays.
-            if (__instance.GetCellsCount() > 512)
+            // Belt-and-suspenders backstop at the placed-structure layer. The real fix + cap is at the
+            // BitSet256 network-state layer via ChangeGridSize (above); this just freezes the visual
+            // update if a grid somehow still exceeds 256 tiles by the time it reaches this layer.
+            int cells = __instance.GetCellsCount();
+            if (PlacementDiagnostics.Value && cells >= 150 && cells % 25 == 0)
+                ModLogger.LogInfo($"[Diag] OnDynamicBuildingDimensionsChanged: cells={cells} frozen={cells > 256}");
+            if (cells > 256)
             {
                 return false;
             }
@@ -180,9 +242,11 @@ namespace TerrainLevelerMod
         {
             if (__instance._dynamicPlacement == null) return true;
             var gridSize = __instance._dynamicPlacement.gridSize;
-            if ((gridSize.x * gridSize.z) > 512)
+            if (PlacementDiagnostics.Value)
+                ModLogger.LogInfo($"[Diag] OnSnap: gridSize={gridSize.x}x{gridSize.z} product={gridSize.x * gridSize.z} blocked={(gridSize.x * gridSize.z) > 256}");
+            if ((gridSize.x * gridSize.z) > 256)
             {
-                ModLogger.LogWarning("Grid exceeds maximum networked capacity (512 tiles). Placement blocked.");
+                ModLogger.LogWarning("Grid exceeds maximum networked capacity (256 tiles). Placement blocked.");
                 return false;
             }
             return true;
@@ -316,38 +380,6 @@ namespace TerrainLevelerMod
         private static void TrySet(System.Action action)
         {
             try { action(); } catch { }
-        }
-
-        // Diagnostic: sample the reference level and a few cell heights so we can see whether the
-        // flatten actually converged to a single plane (vs. leaving cells at varied heights = lumpy).
-        private static void LogFlattenState(TerraformingGrid grid, int cellsCount, string phase)
-        {
-            try
-            {
-                float refLvl = 0f;
-                try { refLvl = grid.ReferenceLevel; } catch { }
-                int mid = cellsCount / 2;
-                int last = cellsCount - 1;
-                string s0 = SampleCell(grid, 0);
-                string sMid = SampleCell(grid, mid);
-                string sLast = SampleCell(grid, last);
-                ModLogger.LogInfo($"[Flatten:{phase}] cells={cellsCount} ref={refLvl:F2} | cell0={s0} cellMid={sMid} cellLast={sLast}");
-            }
-            catch (System.Exception e) { ModLogger.LogError($"[Flatten:{phase}] diag failed: {e}"); }
-        }
-
-        private static string SampleCell(TerraformingGrid grid, int i)
-        {
-            if (i < 0) return "n/a";
-            float h = float.NaN; bool lvl = false;
-            try { h = grid.GetCellAverageHeight(i); } catch { }
-            try { lvl = grid.IsCellLeveled(i); } catch { }
-            return $"h={h:F2},lvl={lvl}";
-        }
-
-        private static float SafeCellHeight(TerraformingGrid grid, int i)
-        {
-            try { return grid.GetCellAverageHeight(i); } catch { return float.NaN; }
         }
 
         // ---- Obstruction clearing (bomb-style area blast) -------------------------------------
@@ -601,145 +633,6 @@ namespace TerrainLevelerMod
             if (sm != null) { _cachedSpellsManager = sm; if (diag) ModLogger.LogInfo($"[Bomb] resolved & cached SpellsManager '{sm.name}'"); }
             else if (diag) ModLogger.LogInfo("[Bomb] PlayerCharacter found but no SpellsManager under it");
             return sm;
-        }
-
-        // ---- Obstruction clearing (legacy physics sweep, retained for reference) --------------
-
-        // Sweep the grid's world-space box for trees/rocks/props and remove them.
-        // Harvestable resources go through the game's own TERRAFORMING destruction level (clean,
-        // networked); anything left over is disabled outright if brute-force fallback is enabled.
-        private static void ClearObstructionsInGrid(TerraformingGrid grid)
-        {
-            int cells = grid.GetCellsCount();
-            if (cells <= 0) return;
-
-            // Build a horizontal AABB from the cell world positions.
-            float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
-            float sumY = 0f; int yCount = 0;
-            for (int i = 0; i < cells; i++)
-            {
-                UnityEngine.Vector3 p;
-                try { p = grid.GetCellPosition(i); } catch { continue; }
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.z < minZ) minZ = p.z;
-                if (p.z > maxZ) maxZ = p.z;
-                sumY += p.y; yCount++;
-            }
-            if (yCount == 0) return;
-
-            const float pad = 1.0f; // half a tile of horizontal margin
-            var center = new UnityEngine.Vector3((minX + maxX) * 0.5f, sumY / yCount, (minZ + maxZ) * 0.5f);
-            var half = new UnityEngine.Vector3((maxX - minX) * 0.5f + pad, ClearVerticalRange.Value, (maxZ - minZ) * 0.5f + pad);
-
-            bool diag = ClearDiagnostics.Value;
-            if (diag) ModLogger.LogInfo($"[Clear] Sweeping grid {grid.GetInstanceID()} center={center} half={half} cells={cells}");
-
-            Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<UnityEngine.Collider> hits;
-            try { hits = UnityEngine.Physics.OverlapBox(center, half, UnityEngine.Quaternion.identity, ~0, UnityEngine.QueryTriggerInteraction.Collide); }
-            catch (System.Exception e) { ModLogger.LogError($"[Clear] OverlapBox failed: {e}"); return; }
-            if (hits == null) return;
-
-            string[] tokens = ParseFilterTokens(BruteForceNameFilter.Value);
-            var processedNodes = new System.Collections.Generic.HashSet<int>();
-            int harvested = 0, bruteForced = 0, skipped = 0;
-
-            for (int h = 0; h < hits.Length; h++)
-            {
-                var col = hits[h];
-                if (col == null) continue;
-                var go = col.gameObject;
-                if (go == null) continue;
-
-                // 1) Harvestable resource (trees, bushes, most veg): clean removal via the game's
-                //    own terraforming destruction path.
-                HarvestInteraction hi = null;
-                try { hi = col.GetComponentInParent<HarvestInteraction>(); } catch { }
-                if (hi != null)
-                {
-                    if (!processedNodes.Add(hi.GetInstanceID())) continue; // multiple colliders, one node
-                    if (TryHarvestDestroy(hi, diag)) { harvested++; continue; }
-                    // Clean removal declined (e.g. not TERRAFORMING-removable) → fall through to brute force.
-                }
-
-                // 2) Protect characters (player/villagers/creatures) and structures (buildings, the
-                //    terraforming grid itself). Never disable these.
-                try { if (col.GetComponentInParent<Character>() != null) { skipped++; continue; } } catch { }
-                try { if (col.GetComponentInParent<Structure>() != null) { skipped++; continue; } } catch { }
-
-                // 3) Brute-force fallback: disable the nearest ancestor whose name matches the filter.
-                if (!BruteForceFallback.Value) { skipped++; continue; }
-                var target = FindNamedTarget(col.transform, tokens, 4);
-                if (target == null) { skipped++; continue; }
-                try
-                {
-                    if (diag) ModLogger.LogInfo($"[Clear] Brute-force disabling '{target.name}'");
-                    target.gameObject.SetActive(false);
-                    bruteForced++;
-                }
-                catch (System.Exception e) { ModLogger.LogError($"[Clear] disable '{target.name}' failed: {e}"); }
-            }
-
-            ModLogger.LogInfo($"[Clear] Grid {grid.GetInstanceID()}: {harvested} harvested, {bruteForced} brute-forced, {skipped} skipped ({hits.Length} colliders).");
-        }
-
-        // Removes a harvestable node via the game's TERRAFORMING destruction level. Returns true if gone.
-        private static bool TryHarvestDestroy(HarvestInteraction hi, bool diag)
-        {
-            WorldItemInstance wi = null;
-            try { wi = hi._worldInstance; } catch { }
-            if (wi == null) return false;
-            try
-            {
-                bool removed = false;
-                var level = InstanceDestructionLevel.TERRAFORMING;
-                wi.Destroy(ref removed, ref level);
-                bool gone = removed || wi.Destroyed;
-                if (diag) ModLogger.LogInfo($"[Clear] Harvest-destroy '{hi.name}' removed={removed} destroyed={wi.Destroyed}");
-                return gone;
-            }
-            catch (System.Exception e)
-            {
-                ModLogger.LogError($"[Clear] Harvest-destroy '{hi.name}' failed: {e}");
-                return false;
-            }
-        }
-
-        // Walk up (self + up to maxDepth ancestors) and return the HIGHEST transform whose name
-        // contains one of the filter tokens (case-insensitive). Returning the topmost match means we
-        // disable the whole resource object (e.g. the tree root) rather than just a collider child
-        // like 'Collision_Trunk', which left the visible mesh standing. Null if nothing matches.
-        private static UnityEngine.Transform FindNamedTarget(UnityEngine.Transform start, string[] tokens, int maxDepth)
-        {
-            UnityEngine.Transform bestMatch = null;
-            var t = start;
-            for (int d = 0; d <= maxDepth && t != null; d++)
-            {
-                string name = t.name;
-                if (!string.IsNullOrEmpty(name))
-                {
-                    string lower = name.ToLowerInvariant();
-                    for (int i = 0; i < tokens.Length; i++)
-                    {
-                        if (lower.Contains(tokens[i])) { bestMatch = t; break; }
-                    }
-                }
-                t = t.parent;
-            }
-            return bestMatch;
-        }
-
-        private static string[] ParseFilterTokens(string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return System.Array.Empty<string>();
-            var parts = raw.Split(',');
-            var list = new System.Collections.Generic.List<string>(parts.Length);
-            foreach (var p in parts)
-            {
-                var tok = p.Trim().ToLowerInvariant();
-                if (tok.Length > 0) list.Add(tok);
-            }
-            return list.ToArray();
         }
     }
 }

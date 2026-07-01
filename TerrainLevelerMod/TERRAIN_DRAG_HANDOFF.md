@@ -1,5 +1,13 @@
 # Terrain Leveler Mod - Drag Crash Handoff (2026-07-01)
 
+> **SUPERSEDED — RESOLVED, confirmed in-game 2026-07-01.** Every theory below (the `firstMarker` tether,
+> the 512-tile array, `maxRange`/distance clamps) turned out to be the wrong layer. The real cause was a
+> fixed-size `BitSet256` Fusion network struct overflowing past 256 tiles, found by mapping Windows Error
+> Reporting crash offsets to methods with Cpp2IL. See `TerrainLevelerMod/DRAG_CRASH_PLAN.md` for the
+> confirmed root cause and fix, and `docs/mods/terrain-leveler.md` for the current working recipe. Kept
+> here only as a historical record of the (unsuccessful) investigation path — do not re-attempt anything
+> below.
+
 Claude, the user is handing this back to you. The goal is to restore the stable drag behavior where dragging the terraforming grid too far turns it RED (unplaceable) instead of crashing, while keeping the new obstacle-clearing `HeightmapTool` logic intact.
 
 ## The Context
