@@ -193,6 +193,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/mods/jotun-blood-yield.md`](docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
 | [`docs/mods/terrain-leveler.md`](docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod (parked/abandoned) |
+| [`TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md`](TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md) | Mod 15 — TerrainLevelerMod drag crash handoff (2026-07-01) |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
