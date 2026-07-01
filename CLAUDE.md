@@ -153,7 +153,8 @@ askamods/
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
-  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius + gather range work; map/compass hover ring still vanilla size. See MAP_RADIUS_HANDOFF.md]
+  TerrainLevelerMod/         ← Mod 15: town-sized instant terrain flattening [PARKED / ABANDONED v1.1.21 — engine limits (512-tile Fusion NetworkArray cap, mesh-normal NaN crash on steep grids, TryLevelTile only increments height per hit) make a true instant-flatten bulldozer impossible; installed .dll.off, disabled by default]
+  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius, gather range, AND map/compass hover ring all scale correctly, confirmed in-game (2026-06-30) at 2x and 4x multipliers (each verified after a game relaunch to pick up the config change) via the AddMarker position-fallback resolver; some markers still fall back to vanilla ring size when resolve fails (structure=null). See MAP_RADIUS_HANDOFF.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike: its "Fast Harvest" coroutine regenerates seeds
@@ -191,6 +192,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/villager-fight-back.md`](docs/mods/villager-fight-back.md) | Mod 7 — VillagerFightBackMod |
 | [`docs/mods/mine-refresh.md`](docs/mods/mine-refresh.md) | Mod 11 — MineRefreshMod |
 | [`docs/mods/jotun-blood-yield.md`](docs/mods/jotun-blood-yield.md) | Mod 13 — JotunBloodYieldMod |
+| [`docs/mods/terrain-leveler.md`](docs/mods/terrain-leveler.md) | Mod 15 — TerrainLevelerMod (parked/abandoned) |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |

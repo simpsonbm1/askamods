@@ -1,8 +1,12 @@
 # Map Radius Handoff (ResourceMarkerRadiusMod)
 
-**Status:** WIP — in-world radius works; **map/compass hover ring still shows vanilla size.**
+**Status:** WIP (map ring now scales, but not for every marker) — in-world radius, gather range, and
+**map/compass hover ring all scale correctly** for markers the `AddMarker` resolver can reach.
 **Deployed version:** v1.1.2 (diagnostics ON via config; see bottom).
-**Last verified in-game (2026-06-30):** map ring unchanged. In-world ring + villager gather radius work.
+**Last verified in-game (2026-06-30):** map ring confirmed scaling at 2× (`radius=120` → `sizeDelta=240`)
+and again at 4× (`radius=240` → `sizeDelta=480`) after editing the config and **relaunching the game**
+(config changes were not tested for live pickup without a relaunch — assume a relaunch is required).
+Some markers still fall back to vanilla ring size (`resolve FAIL (structure=null)`).
 
 > This handoff supersedes the earlier speculative version. The facts in **"Confirmed at runtime"**
 > come from live `[MapDiag]` / `[MapFix]` logging in v1.1.0–v1.1.2 — trust them over the older guesses.
@@ -53,19 +57,31 @@ WorldObjectiveMarker.range  ← drives map/compass ring via AddMarker (sizeDelta
   self/parent/child **and** a nearest-tracked-`HarvestMarker`-by-position fallback (5 m), and logs
   *why* a lookup fails (`[MapFix] AddMarker resolve FAIL (...)`).
 
-## NEXT STEP (do this first, on the other machine)
-1. Launch, confirm `v1.1.2 is loaded`, open map, hover a couple of gathering markers.
-2. Read the log: `Select-String LogOutput.log -Pattern 'MapFix'`.
-   - **`resolve OK via=structure ... radius=X oldRange=Y`** → resolver now works. Check the POSTFIX
-     `built ring` line: if `sizeDelta` grew to `2*X`, and the ring is visibly bigger → **SOLVED**
-     (then just delete the dead OutpostStructure tracker and flip diagnostics off for release).
-   - **`resolve OK via=posN.Nm ...`** → structure link still broken but position fallback caught it;
-     same success check on the ring.
-   - **`resolve FAIL (structure=null)`** → the map marker has no `.structure`; rely on the position
-     fallback (widen threshold, or verify `marker.transform.position` is really co-located with the
-     HarvestMarker — if not, match via `ObjectiveIcon.trackTransform`/`_wMarker` instead).
-   - **`resolve FAIL (struct='X' but no OutpostStructure ...)`** → log/inspect what `X` is; the
-     gather-area structure type may not be `OutpostStructure` at all.
+## Confirmed in-game (2026-06-30) — SOLVED for the majority path
+The `AddMarker` prefix's **position fallback** (`resolve OK via=posN.Nm ...`) is what's actually firing for
+gathering markers in practice — not the `structure`/self/parent/child path, which still resolves `null` for
+every marker observed so far. Log evidence, same session, multiplier changed live from 2× → 4×:
+```
+resolve OK via=pos0.0m area=WOOD radius=120.0 oldRange=120.0
+built ring range=120.0 sizeDelta=(240.00, 240.00) ...        (2x: 60 vanilla -> 120)
+...
+resolve OK via=pos0.0m area=FORAGING, SETTLEMENT radius=240.0 oldRange=240.0
+built ring range=240.0 sizeDelta=(480.00, 480.00) ...        (4x: 60 vanilla -> 240, after relaunch)
+```
+User confirmed visibly larger rings in-game at 4× vs. 2×, testing each value with a game relaunch after
+the config edit. `sizeDelta == 2*range` held in both cases. Whether the config can be picked up live
+without a relaunch is untested.
+
+## Remaining gap — `resolve FAIL (structure=null)` markers stay vanilla size
+Some markers (observed at vanilla ring sizes 32/48) never get a `.structure` reference at all, so neither
+the `OutpostStructure` path nor the position fallback catches them, and their map ring stays unscaled.
+**Next step if revisiting:** widen the position-fallback threshold (currently 5 m), or resolve via
+`ObjectiveIcon.trackTransform`/`_wMarker` instead of `.structure`. Not urgent — majority of gathering
+markers (Wood/Stone/Foraging/Hunting/Forestry) already resolve correctly via position fallback.
+
+## Release cleanup (once the structure=null gap is accepted or fixed)
+Delete the dead `OutpostStructurePatch`/`ResourceMarkerRadiusTracker` polling sync (confirmed no-op —
+0 hits) and flip `EnableDiagnostics` to `false` in the live cfg.
 
 ## If the ring STILL won't grow even after `range` is provably raised
 Then this specific hover circle is drawn by a **different pipeline** than `CompassObjectiveMarker`, and
