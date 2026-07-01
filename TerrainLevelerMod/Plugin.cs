@@ -13,7 +13,12 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.3.22";
+        public const string PLUGIN_VERSION = "1.4.5";
+
+        // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
+        // structures by this id, so it must NEVER change once shipped.
+        public const int BulldozerTemplateId = 919191001;
+        public const string BulldozerAssetName = "TerrainLevelField_Bulldozer";
 
         public static ConfigEntry<float> MaxDragRange;
         public static ConfigEntry<bool> OneHitClear;
@@ -43,7 +48,9 @@ namespace TerrainLevelerMod
             ClearVerticalRange = Config.Bind("Obstructions", "ClearVerticalRange", 30f, "Half-height (m) of the box searched for obstructions above/below the grid. Raise if tall trees/rocks near the grid aren't detected.");
             ClearDiagnostics = Config.Bind("Obstructions", "ClearDiagnostics", false, "Log details of the flatten + obstacle-clearing blast ([Flatten]/[Bomb] lines). Off by default; enable to debug.");
             MaxHeightDifference = Config.Bind("General", "MaxHeightDifference", 15f, "Maximum height difference before the grid turns red and is unplaceable. Native is ~2m, 15m is a safe limit before mesh NaN crashes.");
-            PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", false, "Log which placement guards fire during a drag (Begin/ChangeGridSize/snap/dynamic) and the grid size they see. Confirmed fixed in-game 2026-07-01; flip true only to re-diagnose.");
+            // Default true while the bulldozer menu-entry feature is under in-game verification
+            // (diagnostics rule: new diagnostic phases ship enabled, flipped off once confirmed).
+            PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", true, "Log placement guards (Begin/ChangeGridSize/snap/dynamic), template identities at Use, and bulldozer menu-entry injection/grant steps. Flip false once the feature is confirmed.");
 
             Harmony.CreateAndPatchAll(typeof(Plugin));
             Log.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
@@ -252,6 +259,366 @@ namespace TerrainLevelerMod
             return true;
         }
 
+        // ---- Bulldozer build-menu entry (see BULLDOZER_UI_PLAN.md) ----------------------------
+        //
+        // The "Terrain Level Field" build-menu square is a DynamicDimensionTemplate ScriptableObject,
+        // which is an ItemInfo (NodeTemplate -> StructureTemplate -> BlueprintInfo -> ItemInfo).
+        // ItemInfoDatabase.Initialize() builds its id->info and category->infos maps from the plain
+        // list in CompleteItemInfoList, so a clone appended in a PREFIX gets registered everywhere by
+        // the game's own code. The clone keeps the vanilla category (-> TERRAFORMING tab), icon and
+        // result structure; only its asset name, id, databaseIndex and display name differ.
+
+        // Session references, re-resolved on every Initialize (world reloads recreate the database).
+        private static DynamicDimensionTemplate _bulldozerTemplate;
+        private static DynamicDimensionTemplate _vanillaFieldTemplate;
+        private static SandSailorStudio.Inventory.ItemInfoDatabase _itemDb;
+        private static bool _dbAudited;
+
+        [HarmonyPatch(typeof(SandSailorStudio.Inventory.ItemInfoDatabase), nameof(SandSailorStudio.Inventory.ItemInfoDatabase.Initialize))]
+        [HarmonyPrefix]
+        public static void ItemInfoDatabase_Initialize_Prefix(SandSailorStudio.Inventory.ItemInfoDatabase __instance)
+        {
+            bool diag = PlacementDiagnostics.Value;
+            _itemDb = __instance;
+            _dbAudited = false; // re-audit after every database (re)build
+            try
+            {
+                var infoList = __instance.CompleteItemInfoList;
+                var items = infoList != null ? infoList.itemInfoList : null;
+                if (items == null) { ModLogger.LogWarning("[Bulldozer] CompleteItemInfoList empty; cannot inject."); return; }
+
+                // Identify by ASSET NAME, not managed casts: interop materializes list entries as
+                // plain ItemInfo wrappers, so `info as DynamicDimensionTemplate` is ALWAYS null here
+                // (confirmed in-game 2026-07-01 — the v1.4.0 scan found nothing while the template
+                // demonstrably existed). Once matched by name, build the typed wrapper from the
+                // native pointer — the underlying il2cpp object really is a DynamicDimensionTemplate.
+                const string vanillaAssetName = "Item_Structures_TerrainLevelField";
+                DynamicDimensionTemplate original = null;
+                bool idCollision = false, alreadyInjected = false;
+                int count = items.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    var info = items[i];
+                    if (info == null) continue;
+                    if (info.id == BulldozerTemplateId)
+                    {
+                        if (info.name == BulldozerAssetName) { alreadyInjected = true; _bulldozerTemplate = new DynamicDimensionTemplate(info.Pointer); }
+                        else idCollision = true;
+                        continue;
+                    }
+                    string assetName = info.name;
+                    if (assetName != vanillaAssetName) continue;
+                    original = new DynamicDimensionTemplate(info.Pointer);
+                    if (diag) ModLogger.LogInfo($"[Bulldozer] found vanilla template: name='{assetName}' id={original.id} dbIndex={original.databaseIndex} maxTiles={original.maxNumberOfTiles} (list count={count})");
+                }
+
+                if (idCollision) { ModLogger.LogError($"[Bulldozer] id {BulldozerTemplateId} already used by a vanilla item; injection aborted."); return; }
+                if (alreadyInjected)
+                {
+                    _vanillaFieldTemplate = original;
+                    if (diag) ModLogger.LogInfo("[Bulldozer] clone already present in list; skipping re-inject.");
+                    return;
+                }
+                if (original == null) { ModLogger.LogWarning($"[Bulldozer] '{vanillaAssetName}' not found in item list (count={count}); cannot inject."); return; }
+
+                var cloneObj = UnityEngine.Object.Instantiate(original);
+                if (cloneObj == null) { ModLogger.LogError("[Bulldozer] Instantiate returned null; injection aborted."); return; }
+                var clone = new DynamicDimensionTemplate(cloneObj.Pointer);
+
+                clone.name = BulldozerAssetName;
+                clone.id = BulldozerTemplateId;
+                clone.databaseIndex = (ushort)count; // its position after append
+                // Raw (non-localized) display strings; if these render blank in-game, fall back to
+                // leaving Localized=true (clone then displays the vanilla name).
+                clone.Localized = false;
+                clone.localizedName = "Bulldozer Field";
+                clone.localizedDescription = "Marks an area to be instantly flattened and cleared of obstacles in a single strike.";
+                clone.showUnlockNotification = false;
+                // icon/previewImage/category/result structure: inherited from vanilla on purpose.
+
+                items.Add(clone);
+                _bulldozerTemplate = clone;
+                _vanillaFieldTemplate = original;
+                ModLogger.LogInfo($"[Bulldozer] injected '{BulldozerAssetName}' id={BulldozerTemplateId} dbIndex={count} (cloned from '{original.name}' id={original.id}).");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] injection failed: {e}"); }
+        }
+
+        // The build-menu squares are ITEMS: BuildItemsTabPage.ShowPage lists
+        // ItemCollection.GetAllItems(categoryFilter) from an InventoryComponent's collection
+        // (call-graph verified). Rather than guess which component owns the buildables catalog, we
+        // self-locate it: while the menu page is opening (window below), any collection the menu
+        // queries that contains the VANILLA field's item (i.e. terraforming is unlocked there) gets
+        // our clone's item added once (idempotent via GetFirstItem). Grant rides the same unlock
+        // gate as vanilla for free.
+        private static float _menuGrantWindowUntil = -1f;
+        private static readonly System.Collections.Generic.HashSet<int> _diagLoggedInventories = new System.Collections.Generic.HashSet<int>();
+
+        // ShowPage is private with a single caller and gets INLINED by the IL2CPP AOT compiler — a
+        // postfix on it never fires (confirmed in-game 2026-07-01, v1.4.0). Init and Show are
+        // virtual (vtable-dispatched, can't be inlined away). Init is what (re)builds the squares
+        // (ShowPage's body is inlined into it), and it runs once per tab per menu open — so the
+        // grant must land BEFORE Init's original body: a PREFIX via the page's own _pi. The v1.4.1
+        // window-grant fired mid-Init-storm, after the TERRAFORMING tab had already built its
+        // buttons, which is why the item was granted yet no 4th square appeared.
+        [HarmonyPatch(typeof(SSSGame.UI.BuildItemsTabPage), nameof(SSSGame.UI.BuildItemsTabPage.Init))]
+        [HarmonyPrefix]
+        public static void BuildItemsTabPage_Init_Prefix(SSSGame.UI.BuildItemsTabPage __instance)
+        {
+            _menuGrantWindowUntil = UnityEngine.Time.realtimeSinceStartup + 5f; // fallback path stays armed
+            try
+            {
+                var pi = __instance._pi;
+                var col = pi != null ? pi.GetItemCollection() : null;
+                if (col != null) TryGrantBulldozer(col, "Init prefix (page._pi)");
+                else if (PlacementDiagnostics.Value) ModLogger.LogInfo("[Bulldozer] Init prefix: page._pi/collection null; relying on window fallback.");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] Init-prefix grant failed: {e}"); }
+        }
+
+        // One-shot page rebuild guard (we re-call Init after a late grant; don't recurse).
+        private static bool _reinitInProgress;
+
+        // Show fires when the page becomes visible — by then ShowPage's inlined body has resolved
+        // _pi, so this is the reliable place to reach the menu's OWN collection (the inlined
+        // GetItemCollection/GetAllItems calls inside ShowPage are invisible to Harmony, so the
+        // window-grant may have been feeding a different collection all along). If we grant here,
+        // the squares were already built without our item, so re-run Init once to rebuild them.
+        [HarmonyPatch(typeof(SSSGame.UI.BuildItemsTabPage), nameof(SSSGame.UI.BuildItemsTabPage.Show))]
+        [HarmonyPostfix]
+        public static void BuildItemsTabPage_Show_Postfix(SSSGame.UI.BuildItemsTabPage __instance, bool value, SandSailorStudio.UI.TabButton button)
+        {
+            if (!value || _reinitInProgress) return;
+            _menuGrantWindowUntil = UnityEngine.Time.realtimeSinceStartup + 5f;
+            bool diag = PlacementDiagnostics.Value;
+            try
+            {
+                bool changedSomething = false;
+
+                // 1) Item possession in the page's own collection.
+                var pi = __instance._pi;
+                var col = pi != null ? pi.GetItemCollection() : null;
+                if (col != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null
+                    && col.GetFirstItem(_vanillaFieldTemplate) != null
+                    && col.GetFirstItem(_bulldozerTemplate) == null)
+                {
+                    int added = col.AddItems(_bulldozerTemplate, 1);
+                    ModLogger.LogInfo($"[Bulldozer] granted blueprint item via Show (page._pi) (added={added}).");
+                    changedSomething = true;
+                }
+
+                // 2) Database-side audit + self-repair (once per database build). The menu's
+                // template enumeration calls are inlined and unobservable, so verify the maps the
+                // menu could be reading and fix them directly if Initialize skipped our late-added
+                // clone: _itemsMap (id -> info) and _categoryMap (category -> infos).
+                if (!_dbAudited && _itemDb != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null)
+                {
+                    _dbAudited = true;
+                    try
+                    {
+                        var byId = _itemDb.GetItemInfoFromID(BulldozerTemplateId);
+                        ModLogger.LogInfo($"[Bulldozer] DB audit: GetItemInfoFromID({BulldozerTemplateId}) -> {(byId != null ? byId.name : "NULL")}");
+                        var itemsMap = _itemDb._itemsMap;
+                        if (byId == null && itemsMap != null && !itemsMap.ContainsKey(BulldozerTemplateId))
+                        {
+                            itemsMap.Add(BulldozerTemplateId, _bulldozerTemplate);
+                            ModLogger.LogWarning("[Bulldozer] DB audit: clone was missing from _itemsMap; added.");
+                            changedSomething = true;
+                        }
+
+                        var cat = _vanillaFieldTemplate.category;
+                        var catMap = _itemDb._categoryMap;
+                        if (cat != null && catMap != null && catMap.ContainsKey(cat))
+                        {
+                            var catList = catMap[cat];
+                            bool hasClone = false, hasVanilla = false;
+                            int n = catList != null ? catList.Count : 0;
+                            for (int i = 0; i < n; i++)
+                            {
+                                var info = catList[i];
+                                if (info == null) continue;
+                                if (info.id == BulldozerTemplateId) hasClone = true;
+                                else if (info.id == _vanillaFieldTemplate.id) hasVanilla = true;
+                            }
+                            ModLogger.LogInfo($"[Bulldozer] DB audit: categoryMap['{cat.name}'] count={n} hasVanilla={hasVanilla} hasClone={hasClone}");
+                            if (!hasClone && catList != null)
+                            {
+                                catList.Add(_bulldozerTemplate);
+                                ModLogger.LogWarning("[Bulldozer] DB audit: clone was missing from _categoryMap; added.");
+                                changedSomething = true;
+                            }
+                        }
+                        else ModLogger.LogWarning($"[Bulldozer] DB audit: category '{(cat != null ? cat.name : "null")}' not in _categoryMap.");
+                    }
+                    catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] DB audit failed: {e}"); }
+                }
+
+                // 3) The tab button itself: TabButtonCategory is an IItemFilter whose Check combines
+                // category ids with EXPLICIT additionalInfos/excludedInfos lists. The hoe tab shows
+                // exactly 3 squares out of a 75-item category, so it must select via additionalInfos
+                // — which our clone can never pass until it's added there. (This also explains why
+                // the DB/category-map audit found everything "correct" yet no square appeared.)
+                if (button != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null)
+                {
+                    string nativeCls = GetNativeClassName(button);
+                    if (nativeCls == "TabButtonCategory")
+                    {
+                        var tab = new SSSGame.UI.TabButtonCategory(button.Pointer);
+                        var extra = tab.additionalInfos;
+                        var cats = tab.categoryInfos;
+                        bool hasVanilla = false, hasClone = false;
+                        int n = extra != null ? extra.Count : 0;
+                        var names = new System.Text.StringBuilder();
+                        for (int i = 0; i < n; i++)
+                        {
+                            var info = extra[i];
+                            if (info == null) continue;
+                            if (names.Length > 0) names.Append(", ");
+                            names.Append(info.name);
+                            if (info.id == BulldozerTemplateId) hasClone = true;
+                            else if (info.id == _vanillaFieldTemplate.id) hasVanilla = true;
+                        }
+                        if (diag) ModLogger.LogInfo($"[Bulldozer] tab '{tab.name}': categoryInfos={(cats != null ? cats.Count : -1)} additionalInfos={n} [{names}] hasVanilla={hasVanilla} hasClone={hasClone}");
+                        if (hasVanilla && !hasClone && extra != null)
+                        {
+                            extra.Add(_bulldozerTemplate);
+                            ModLogger.LogInfo("[Bulldozer] appended clone to the hoe tab's additionalInfos.");
+                            changedSomething = true;
+                        }
+                    }
+                    else if (diag) ModLogger.LogInfo($"[Bulldozer] Show button native class = '{nativeCls}' (not TabButtonCategory).");
+                }
+
+                // 4) If anything changed, the squares were built from stale data — rebuild once.
+                if (changedSomething)
+                {
+                    ModLogger.LogInfo("[Bulldozer] rebuilding build-menu page after repair.");
+                    _reinitInProgress = true;
+                    try { __instance.Init(button); }
+                    finally { _reinitInProgress = false; }
+                }
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] Show grant/rebuild failed: {e}"); }
+        }
+
+        // Reads the native il2cpp class name of a wrapped object — managed-side casts (`as`) check
+        // the WRAPPER type and lie for objects materialized under a base declared type, so this is
+        // the only reliable runtime type test before constructing a derived wrapper via IntPtr.
+        private static string GetNativeClassName(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase obj)
+        {
+            try
+            {
+                var cls = Il2CppInterop.Runtime.IL2CPP.il2cpp_object_get_class(obj.Pointer);
+                var namePtr = Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_name(cls);
+                return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(namePtr);
+            }
+            catch { return "<unknown>"; }
+        }
+
+        // Diagnostic: every thumbnail square the UI builds while the menu window is armed — the
+        // definitive list of what actually rendered (window-gated + capped to avoid log floods).
+        private static int _thumbDiagBudget;
+
+        [HarmonyPatch(typeof(SSSGame.UI.ItemThumbnailPanel), nameof(SSSGame.UI.ItemThumbnailPanel.ItemInfo), MethodType.Setter)]
+        [HarmonyPostfix]
+        public static void ItemThumbnailPanel_SetItemInfo_Postfix(SandSailorStudio.Inventory.ItemInfo value)
+        {
+            try
+            {
+                if (!PlacementDiagnostics.Value || value == null) return;
+                if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) { _thumbDiagBudget = 40; return; }
+                if (_thumbDiagBudget-- <= 0) return;
+                ModLogger.LogInfo($"[Bulldozer] thumbnail set: '{value.name}' id={value.id}");
+            }
+            catch { }
+        }
+
+        // Diagnostic + self-fix probe on the category tab itself: when a category tab is selected,
+        // log how it filters (category ids vs explicit info lists) and whether its filter accepts
+        // the vanilla template and our clone. _OnSelect is protected VIRTUAL (vtable-dispatched, not
+        // inlined away, unlike the page's private helpers).
+        [HarmonyPatch(typeof(SSSGame.UI.TabButtonCategory), "_OnSelect")]
+        [HarmonyPostfix]
+        public static void TabButtonCategory_OnSelect_Postfix(SSSGame.UI.TabButtonCategory __instance)
+        {
+            try
+            {
+                if (!PlacementDiagnostics.Value) return;
+                if (_bulldozerTemplate == null || _vanillaFieldTemplate == null) return;
+                var filter = __instance.GetCategoryItemFilter();
+                bool okVanilla = false, okClone = false;
+                try { if (filter != null) { okVanilla = filter.Check(_vanillaFieldTemplate); okClone = filter.Check(_bulldozerTemplate); } } catch { }
+                if (!okVanilla) return; // not the terraforming tab; stay quiet
+                var cats = __instance.categoryInfos;
+                var extra = __instance.additionalInfos;
+                var excl = __instance.excludedInfos;
+                ModLogger.LogInfo($"[Bulldozer] TERRAFORMING tab selected: filterOKvanilla={okVanilla} filterOKclone={okClone} categoryInfos={(cats != null ? cats.Count : -1)} additionalInfos={(extra != null ? extra.Count : -1)} excludedInfos={(excl != null ? excl.Count : -1)}");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] tab diag failed: {e}"); }
+        }
+
+        // Adds one clone-blueprint item if this collection is the buildables catalog (holds the
+        // vanilla field's item = unlocked) and doesn't have ours yet. Idempotent.
+        private static void TryGrantBulldozer(SandSailorStudio.Inventory.ItemCollection col, string source)
+        {
+            if (col == null || _bulldozerTemplate == null || _vanillaFieldTemplate == null) return;
+            if (col.GetFirstItem(_vanillaFieldTemplate) == null) return;
+            if (col.GetFirstItem(_bulldozerTemplate) != null) return;
+            int added = col.AddItems(_bulldozerTemplate, 1);
+            ModLogger.LogInfo($"[Bulldozer] granted blueprint item via {source} (added={added}).");
+        }
+
+        [HarmonyPatch(typeof(SandSailorStudio.Inventory.InventoryComponent), nameof(SandSailorStudio.Inventory.InventoryComponent.GetItemCollection))]
+        [HarmonyPostfix]
+        public static void InventoryComponent_GetItemCollection_Postfix(SandSailorStudio.Inventory.InventoryComponent __instance, SandSailorStudio.Inventory.ItemCollection __result)
+        {
+            try
+            {
+                if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) return;
+                if (PlacementDiagnostics.Value && _diagLoggedInventories.Add(__instance.GetInstanceID()))
+                {
+                    var si = __instance.startItems;
+                    ModLogger.LogInfo($"[Bulldozer] menu-window collection query: component='{__instance.gameObject.name}' startItems='{(si != null ? si.name : "null")}' col=0x{(__result != null ? __result.Pointer.ToInt64() : 0):x}");
+                }
+                TryGrantBulldozer(__result, $"window ('{__instance.gameObject.name}')");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] window grant failed: {e}"); }
+        }
+
+        // Diagnostic: what does the menu's item query actually return, and does the category filter
+        // accept our clone? Runs only inside the menu window with diagnostics on. If the square is
+        // missing while the item IS in the collection, this pinpoints filter-vs-build-order causes.
+        private static float _lastGetAllItemsDiag = -999f;
+
+        [HarmonyPatch(typeof(SandSailorStudio.Inventory.ItemCollection), nameof(SandSailorStudio.Inventory.ItemCollection.GetAllItems), new[] { typeof(SandSailorStudio.Inventory.IItemFilter) })]
+        [HarmonyPostfix]
+        public static void ItemCollection_GetAllItems_Postfix(SandSailorStudio.Inventory.IItemFilter itemFilter, Il2CppSystem.Collections.Generic.List<SandSailorStudio.Inventory.Item> __result)
+        {
+            try
+            {
+                if (!PlacementDiagnostics.Value) return;
+                if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) return;
+                if (UnityEngine.Time.realtimeSinceStartup - _lastGetAllItemsDiag < 0.5f) return; // throttle
+                _lastGetAllItemsDiag = UnityEngine.Time.realtimeSinceStartup;
+                if (__result == null || _bulldozerTemplate == null) return;
+
+                bool containsClone = false, containsVanilla = false;
+                int n = __result.Count;
+                for (int i = 0; i < n; i++)
+                {
+                    var it = __result[i];
+                    if (it == null || it.info == null) continue;
+                    if (it.info.id == BulldozerTemplateId) containsClone = true;
+                    else if (_vanillaFieldTemplate != null && it.info.id == _vanillaFieldTemplate.id) containsVanilla = true;
+                }
+                bool filterAcceptsClone = false, filterAcceptsVanilla = false;
+                try { if (itemFilter != null) { filterAcceptsClone = itemFilter.Check(_bulldozerTemplate); filterAcceptsVanilla = _vanillaFieldTemplate != null && itemFilter.Check(_vanillaFieldTemplate); } } catch { }
+                if (containsVanilla || containsClone || filterAcceptsVanilla)
+                    ModLogger.LogInfo($"[Bulldozer] menu GetAllItems: count={n} hasVanilla={containsVanilla} hasClone={containsClone} filterOKvanilla={filterAcceptsVanilla} filterOKclone={filterAcceptsClone}");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] GetAllItems diag failed: {e}"); }
+        }
+
         // Guards against our own re-entry: the flatten loop below calls grid.TryLevelTile, and the
         // native Use may re-fire while we work. We only want to run the full sweep+flatten once per hit.
         private static bool _handlingUse = false;
@@ -270,6 +637,19 @@ namespace TerrainLevelerMod
             TerraformingGrid grid = null;
             try { grid = __instance.terraformingGrid; } catch { }
             if (grid == null) return;
+
+            // Diagnostic for the upcoming per-template gating: which template does the used field
+            // belong to? (Bulldozer clone id vs vanilla id — see BULLDOZER_UI_PLAN.md Phase 2.)
+            if (PlacementDiagnostics.Value)
+            {
+                try
+                {
+                    var st = __instance.GetComponentInParent<Structure>();
+                    var tpl = st != null ? st.Template : null;
+                    ModLogger.LogInfo($"[Diag:Use] structure templateId={(st != null ? st.TemplateID : -1)} template='{(tpl != null ? tpl.name : "null")}'");
+                }
+                catch (System.Exception e) { ModLogger.LogError($"[Diag:Use] template probe failed: {e}"); }
+            }
 
             _handlingUse = true;
             try
