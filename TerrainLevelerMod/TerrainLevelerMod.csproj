@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TerrainLevelerMod</AssemblyName>
     <RootNamespace>TerrainLevelerMod</RootNamespace>
-    <Version>1.4.5</Version>
+    <Version>1.4.8</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -48,6 +48,10 @@
     </Reference>
     <Reference Include="Il2Cppmscorlib">
       <HintPath>$(BepInExPath)\interop\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem.Core">
+      <HintPath>$(BepInExPath)\interop\Il2CppSystem.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="SandSailorStudio">

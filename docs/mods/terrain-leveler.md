@@ -1,10 +1,12 @@
 # TerrainLevelerMod
 
 **Goal:** Let a player place a large terraforming grid and level it — including clearing trees/rocks —
-with a single hit (E), without the native drag crash.
-**Status:** WORKING, **confirmed in-game (2026-07-01)** at v1.3.21/1.3.22. Un-parked after being
-PARKED/ABANDONED through v1.1.21 — see [History](#history) for why the original approach was dropped
-and what changed.
+with a single hit (E), without the native drag crash — **as its own "Bulldozer Field" build-menu
+square**, leaving the vanilla Terrain Level Field 100% vanilla.
+**Status:** COMPLETE, **confirmed in-game (2026-07-01)** at v1.4.7 (shipped v1.4.8 = diagnostics off +
+dead-diag cleanup). The flatten/clear core was confirmed at v1.3.21/1.3.22; v1.4.x added the separate
+menu entry + per-template gating + localized text. Un-parked after being PARKED/ABANDONED through
+v1.1.21 — see [History](#history).
 
 ## The working recipe
 
@@ -74,11 +76,43 @@ these exact methods via Cpp2IL).
 weaved network-state type; it cannot be raised by a mod. Town-sized areas mean several adjacent
 256-tile placements; each E-press still flattens its whole grid instantly, so this is fast in practice.
 
+### The "Bulldozer Field" build-menu square (v1.4.5–v1.4.8, confirmed in-game 2026-07-01)
+The mod behavior lives on its OWN 4th square in the hoe/terraforming tab; the vanilla square is fully
+vanilla again. Subsystem facts + full recipe: `docs/architecture.md` → "Build Menu / Structure
+Templates & Localization"; design/evidence chain: `TerrainLevelerMod/BULLDOZER_UI_PLAN.md`. Summary:
+- **Template clone-inject** (prefix `ItemInfoDatabase.Initialize`): clone the vanilla
+  `DynamicDimensionTemplate` (asset `Item_Structures_TerrainLevelField`, id 12664862), re-skin as
+  `TerrainLevelField_Bulldozer` with stable id **919191001** (NEVER change — saves reference it),
+  `maxNumberOfTiles = 256` **on the clone only** (vanilla keeps its native 25), append to
+  `CompleteItemInfoList` before the original builds its maps. Idempotent across re-Initializes.
+- **Menu visibility** = item grant into the player's inventory collection (Init-prefix +
+  menu-window fallback + Show self-repair, gated on the vanilla item = rides vanilla unlock) **plus**
+  appending the clone to the hoe tab's `additionalInfos` (the real gate) in a prefix on
+  `BuildItemsTabPage.Init` so the square is there on the first open.
+- **Display text** ("Bulldozer Field" + desc + lore) injected into
+  `LocalizationManager._localizedStrings`/`_localizedFallbackStrings`/static `_allKeys` at template
+  injection, after `SetLanguage`, and on menu Show; `Loc(string,bool)` postfix as safety net. Keys:
+  `item.Blueprints_TerrainLevelField_Bulldozer_{name,desc,lore}`.
+- **Per-template gating:** `Begin(StructurePreviewData)` prefix identifies the drag via the preview's
+  `DynamicTemplate.id` (native-class check + IntPtr wrap — managed casts lie) and sets a
+  `_bulldozerDrag` flag (cleared in `End`). Only bulldozer drags get the 20 m `maxRange`, raised
+  height limit, `_ValidateFootprint` bypass, and `CheckLevelDifference` bypass — the tool's vanilla
+  `maxRange`/`maxHeightDifference` are captured before first mutation and **restored on vanilla drags**
+  (the tool instance persists across drags). At E-press, the `Use` postfix runs flatten+bomb only when
+  the owning `Structure.TemplateID == 919191001`; grids resolve their structure via
+  `GetComponentInParent<Structure>()` (falling back to `_bulldozerDrag` during preview).
+- **Kept unconditional (crash prevention, any template):** `ChangeGridSize` tile clamp, both
+  `UpdateGridValidityOnNetwork` safety nets, `_OnSnap` + `OnDynamicBuildingDimensionsChanged` >256
+  backstops.
+- **Save-format exposure:** a *placed, unfinished* bulldozer field serializes `templateID=919191001`;
+  loading without the mod likely silently drops that one structure. Completed/flattened plots use the
+  vanilla result template — zero exposure.
+
 ## Config (current, `Plugin.cs`)
-`General`: `MaxDragRange` (20, soft UX cap on marker follow distance — NOT the crash fix),
-`OneHitClear` (true), `MaxHeightDifference` (15, vertical stretch clamp before native mesh-NaN crash),
-`PlacementDiagnostics` (false by default — flip true to log which placement guards fire and the grid
-size/tile-count they see, if the crash or a variant of it ever needs re-diagnosing).
+`General`: `MaxDragRange` (20, soft UX cap on marker follow distance — bulldozer drags only, NOT the
+crash fix), `OneHitClear` (true), `MaxHeightDifference` (15, vertical stretch clamp before native
+mesh-NaN crash), `PlacementDiagnostics` (false by default — flip true to log placement guards, template
+identities at Use, and the bulldozer menu-entry injection/grant steps).
 `Obstructions`: `ClearObstructions` (true), `BombShots` (2), `ClearVerticalRange` (30),
 `ClearDiagnostics` (false — flip true for `[Bomb]`/`[Flatten]` logs).
 

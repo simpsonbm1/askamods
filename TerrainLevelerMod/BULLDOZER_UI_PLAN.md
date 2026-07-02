@@ -7,14 +7,14 @@ TERRAFORMING build category (bulldozer icon) that places a **separate, mod-behav
 - New "Bulldozer" square → the mod's behavior (20 m drag, place over obstacles, 256-tile cap,
   one-hit flatten + obstacle-clearing blast on E).
 
-**Status: 4TH SQUARE WORKING — confirmed in-game (2026-07-01) at v1.4.5.** The bulldozer entry
-appears in the hoe menu (vanilla icon, per user decision), is placeable, and its field flattens on
-E. It took v1.4.0→v1.4.5 to get there; the failure/fix chain is recorded below because it produced
-several NEW project-wide IL2CPP gotchas. **Remaining work (next session): see "NEXT SESSION
-RUNBOOK" at the bottom** — display-name localization (currently shows raw keys like
-`ITEM.BLUEPRINTS_TERRAINLEVELFIELD_BULLDOZER_NAME`), first-open UX (square appears only after
-close/reopen), and Phase 2 behavior gating (BOTH squares currently carry mod behavior — user
-verified both "blow up a large area"; the whole point is to make square 1 vanilla again).
+**Status: FEATURE COMPLETE — confirmed in-game (2026-07-01) at v1.4.7; shipped v1.4.8.** All runbook
+steps landed: v1.4.5 = 4th square appears/places/flattens; v1.4.6 = Phase 2 per-template gating
+(vanilla square fully vanilla again: native range, 25-tile cap, red-when-obstructed, incremental
+leveling — mod behavior only on the bulldozer square) + first-open fix (additionalInfos append moved
+to the Init prefix); v1.4.7 = localized name/desc/lore via LocalizationManager dictionary injection;
+v1.4.8 = diagnostics default off + dead-diag cleanup. Every step user-verified in-game 2026-07-01.
+The failure/fix chain below is kept because it produced several project-wide IL2CPP gotchas (now in
+`docs/architecture.md`, including the new "Build Menu / Structure Templates & Localization" section).
 
 ---
 
@@ -229,11 +229,11 @@ to keying off `_currentPreviewData.DynamicTemplate` inside each tool prefix.
 
 ---
 
-## NEXT SESSION RUNBOOK (state as of v1.4.5, 2026-07-01)
+## NEXT SESSION RUNBOOK — ✅ ALL STEPS DONE (v1.4.6–v1.4.8, confirmed in-game 2026-07-01)
 
-**Working:** 4th square in the hoe menu (vanilla icon), placeable, flattens on E. **Broken/pending:**
-(a) name/desc/lore show raw localization keys; (b) square only appears after closing/reopening the
-menu once; (c) BOTH squares still carry mod behavior — Phase 2 gating not started.
+Kept for the record; see the status block at the top for what shipped in which version. One extra
+build-time gotcha from Step 1: `LocalizationManager._allKeys` is a **static** member and its
+`HashSet<string>` type needs a project reference to `Il2CppSystem.Core.dll`.
 
 ### Step 1 — Localized display strings for the 4th square
 The UI displays `item.Blueprints_TerrainLevelField_Bulldozer_{name,desc,lore}` keys (screenshot

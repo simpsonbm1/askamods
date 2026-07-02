@@ -66,6 +66,21 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   at load**, no exception, just a stuck boot (confirmed the hard way on `SpellsManager`, but the rule is
   general to any `NetworkBehaviour`). If you need to capture/observe an instance of a networked type,
   hook its plain Unity lifecycle instead (`Awake`/`Spawned` are safe) and register it into a static list.
+- **Managed `as`/`is` casts LIE for interop objects materialized under a base declared type**
+  (list elements, base-typed patch parameters, etc.): the wrapper's managed class IS the declared type,
+  so `info as DynamicDimensionTemplate` returns `null` even when the native object really is one
+  (confirmed in-game 2026-07-01 — a scan over `List<ItemInfo>` found zero templates that demonstrably
+  existed). Identify by asset `name`/`id`, or read the native class via
+  `IL2CPP.il2cpp_object_get_class(obj.Pointer)` + `il2cpp_class_get_name`, then construct the derived
+  wrapper with the generated `new T(IntPtr)` ctor. This **supersedes** the old belief that plain C#
+  casts work on interop types.
+- **The IL2CPP AOT compiler inlines small/single-caller methods constantly — a Harmony patch on an
+  inlined method silently never fires.** Confirmed victims: `TerraformingGrid.TryLevelTile`/
+  `MarkCellInteracted`, `BuildItemsTabPage.ShowPage` (private, 1 caller), `InventoryComponent.
+  GetItemCollection` + `ItemCollection.GetAllItems` at specific callsites, `TabButtonCategory._OnSelect`
+  (despite being declared virtual). Prefer patching **virtual/vtable-dispatched methods** (`Init`,
+  `Show`, `Use`) or multi-caller publics, and **ALWAYS fire-verify a new patch with a log line** before
+  trusting it.
 
 ---
 
@@ -815,6 +830,60 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   - **IReadOnlyList Metadata**: `Il2CppSystem.Collections.Generic.IReadOnlyList<T>` lacks metadata showing it inherits from `IReadOnlyCollection<T>` in the interop assembly, making `.Count` and `GetEnumerator` unavailable directly. **Workaround**: Cast the list to `Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>` using `.TryCast<T>()` to safely retrieve `.Count`, and access elements by index `list[i]`.
 
 
+## Build Menu / Structure Templates & Localization (confirmed in-game 2026-07-01)
+
+Backing feature: TerrainLevelerMod's "Bulldozer Field" square (Mod 15, v1.4.5–v1.4.8) — the first mod
+to inject a **new buildable entry** into the build menu. Full recipe in
+[`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md); design/evidence chain in
+`TerrainLevelerMod/BULLDOZER_UI_PLAN.md`.
+
+*   **Templates are ItemInfos.** Inheritance: `DynamicDimensionTemplate : NodeTemplate :
+    StructureTemplate : BlueprintInfo (SSSGame) : SandSailorStudio.Inventory.BlueprintInfo : ItemInfo :
+    AssetNode : ScriptableObject`. A build-menu square's identity/skin lives on `ItemInfo`: `int id`,
+    `ushort databaseIndex`, `ItemCategoryInfo category`, `Sprite icon`/`previewImage`, plus
+    localization plumbing (below). Vanilla terrain-field template: asset
+    `Item_Structures_TerrainLevelField`, **id 12664862**, `maxNumberOfTiles` **25**, category
+    `Categ_Blueprints_Structures`.
+*   **Registry:** `ItemInfoDatabase` holds `ItemInfoList CompleteItemInfoList` (plain
+    `List<ItemInfo> itemInfoList`) and builds `_itemsMap` (id→info) + `_categoryMap` (category→infos)
+    in `Initialize()`. **`Initialize` re-sorts/re-indexes the list and runs multiple times per
+    session** (a `databaseIndex` moved 0→483 between calls) — any injection must be idempotent
+    (re-find by id + asset name each call).
+*   **Clone-inject recipe for a new buildable:** prefix `ItemInfoDatabase.Initialize()`; find the
+    vanilla template in `itemInfoList` **by asset name** (managed casts lie — see universal gotchas),
+    wrap via `new DynamicDimensionTemplate(info.Pointer)`, `UnityEngine.Object.Instantiate` it,
+    re-skin (`name`, stable custom `id`, `databaseIndex = list position`,
+    `showUnlockNotification=false`), append to the list *before* the original builds its maps.
+*   **Being in the database/category map is NOT sufficient for a square to appear.** The menu lists
+    ITEMS: `BuildItemsTabPage` (its `ShowPage` body is inlined into `Init`) reads
+    `ItemCollection.GetAllItems(filter)` from the **player's inventory collection** (component on
+    `CharacterRagnar(Clone)`, `startItems='StartItems_Aska_Vanilla'`) — the clone needs an `Item`
+    granted there (`AddItems(clone, 1)`, idempotent via `GetFirstItem`). Gate the grant on the vanilla
+    item being present so it rides the vanilla unlock for free.
+*   **The per-tab square list is an EXPLICIT `additionalInfos` list** on the tab's
+    `TabButtonCategory` (an `IItemFilter`; its `Check` combines category ids with
+    `additionalInfos`/`excludedInfos`). The hoe tab shows 3 squares out of a 75-item category — the
+    clone only appears once appended to the tab's `additionalInfos`. Do it in a **prefix on
+    `BuildItemsTabPage.Init(TabButton)`** (before the squares are built → present on first open);
+    `Init`/`Show` are virtual and safe from inlining.
+*   **Unlocks are computed live, not possessed**: `NodeTemplate.IsUnlocked()` runs
+    `BlueprintConditionsRule.CheckWithData()` per call; `OnUnlock` only shows a notification.
+    `ItemDatabaseManager.Seed()`/`Save()` are empty stubs.
+*   **Items with an unknown `ItemInfo.id` are silently dropped from serialized collections** on load —
+    so removing a mod that granted a custom-id blueprint item is save-safe (the item just vanishes).
+    A *placed structure* serializing a custom `templateID` fails to resolve without the mod (likely
+    silently dropped) — keep custom-template structures short-lived or document the exposure.
+*   **Display strings resolve through `LocalizationManager`, NEVER through the raw
+    `localizedName`/`localizedDescription` fields** — `Localized = false` does not help; the UI still
+    shows the derived KEY. Key derivation (`ItemInfo.GetKey(token)`):
+    `item.Blueprints_<assetName-minus-Item_-prefix>_<token>` (e.g.
+    `item.Blueprints_TerrainLevelField_Bulldozer_name`). Fix: inject entries into
+    `LocalizationManager._localizedStrings` / `_localizedFallbackStrings`
+    (`Dictionary<string,string>`) and add the keys to the **static** `LocalizationManager._allKeys`
+    (`HashSet<string>`, needs an `Il2CppSystem.Core.dll` reference). Re-inject after `SetLanguage`
+    (language switches rebuild the dictionaries); a postfix on `Loc(string, bool)` works as a
+    safety net for lookup paths that bypass the dictionaries. (confirmed in-game 2026-07-01, v1.4.7)
+
 ## Terrain / Terraforming System
 
 Backing mod: TerrainLevelerMod (Mod 15) — see [`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md)
@@ -900,8 +969,10 @@ state for the drag preview).
 *   **Physics overlap array crash:** Natively, `_ValidateFootprint` uses `OverlapBoxNonAlloc` with a
     fixed-size C++ array to check for trees/rocks inside the placement grid. On very large grids placed
     over dense forests, the number of colliders can exceed the array bounds and hard-crash. Bypass by
-    prefixing `_ValidateFootprint` to unconditionally return `true` (skip native validation) — this is
-    crash-prevention, not a cheat, so don't gate it behind a config toggle. (confirmed in-game 2026-06-30)
+    prefixing `_ValidateFootprint` to return `true` (skip native validation) — this is crash-prevention,
+    not a cheat, so don't gate it behind a *config* toggle. (Since v1.4.6 it IS gated **per template** —
+    only bulldozer drags bypass; vanilla grids cap at 25 tiles, far below the overflow point, and keep
+    native red-when-obstructed validation. confirmed in-game 2026-06-30/2026-07-01)
 *   **Instant flattening is impossible with `TryLevelTile` driven directly in a loop:** it does not snap
     a tile to the target height; it increments/decrements by a small hardcoded amount per call, and
     driving it directly (bypassing the `Use`/`HeightmapTool` path) corrupts the mesh into spikes rather

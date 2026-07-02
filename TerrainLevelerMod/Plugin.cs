@@ -13,12 +13,20 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.4.5";
+        public const string PLUGIN_VERSION = "1.4.8";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
         public const int BulldozerTemplateId = 919191001;
         public const string BulldozerAssetName = "TerrainLevelField_Bulldozer";
+
+        // Display strings for the bulldozer square, injected into the game's localization store
+        // (the raw localizedName/localizedDescription fields are ignored by the UI — it always
+        // resolves through LocalizationManager, key format confirmed in-game 2026-07-01:
+        // 'item.Blueprints_TerrainLevelField_Bulldozer_name').
+        private const string BulldozerDisplayName = "Bulldozer Field";
+        private const string BulldozerDisplayDesc = "Marks an area to be instantly flattened and cleared of trees and rocks in a single strike.";
+        private const string BulldozerDisplayLore = "Why swing a hoe a hundred times when the ground can simply be told to obey?";
 
         public static ConfigEntry<float> MaxDragRange;
         public static ConfigEntry<bool> OneHitClear;
@@ -48,48 +56,120 @@ namespace TerrainLevelerMod
             ClearVerticalRange = Config.Bind("Obstructions", "ClearVerticalRange", 30f, "Half-height (m) of the box searched for obstructions above/below the grid. Raise if tall trees/rocks near the grid aren't detected.");
             ClearDiagnostics = Config.Bind("Obstructions", "ClearDiagnostics", false, "Log details of the flatten + obstacle-clearing blast ([Flatten]/[Bomb] lines). Off by default; enable to debug.");
             MaxHeightDifference = Config.Bind("General", "MaxHeightDifference", 15f, "Maximum height difference before the grid turns red and is unplaceable. Native is ~2m, 15m is a safe limit before mesh NaN crashes.");
-            // Default true while the bulldozer menu-entry feature is under in-game verification
-            // (diagnostics rule: new diagnostic phases ship enabled, flipped off once confirmed).
-            PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", true, "Log placement guards (Begin/ChangeGridSize/snap/dynamic), template identities at Use, and bulldozer menu-entry injection/grant steps. Flip false once the feature is confirmed.");
+            // Feature confirmed in-game 2026-07-01 (v1.4.7) — diagnostics ship disabled per the rule.
+            PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", false, "Log placement guards (Begin/ChangeGridSize/snap/dynamic), template identities at Use, and bulldozer menu-entry injection/grant steps. Enable to debug placement or the bulldozer menu entry.");
 
             Harmony.CreateAndPatchAll(typeof(Plugin));
             Log.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
+        // ---- Per-template behavior gating (BULLDOZER_UI_PLAN.md Phase 2) ----------------------
+        // True while the current drag is placing OUR bulldozer field — set in Begin from the
+        // preview's template id, cleared in End. Placement-time patches that can't reach a template
+        // (the preview has no placed Structure yet) key off this flag.
+        private static bool _bulldozerDrag;
+
+        // The placement tool instance persists across drags, so after a bulldozer drag mutates
+        // maxRange/maxHeightDifference the next VANILLA drag must get the native values back.
+        // Captured on the first Begin, before anything is mutated.
+        private static float _vanillaMaxRange = -1f;
+        private static float _vanillaMaxHeightDifference = -1f;
+
+        // Identify a drag's template from Begin's preview param. The param is declared as the base
+        // StructurePreviewData, and managed `as` casts LIE for interop objects materialized under a
+        // base declared type — check the native class name, then wrap via the IntPtr ctor.
+        private static bool IsBulldozerPreview(StructurePreviewData previewData)
+        {
+            try
+            {
+                if (previewData == null) return false;
+                if (GetNativeClassName(previewData) != "DynamicDimensionStructurePreviewData") return false;
+                var dd = new DynamicDimensionTemplate.DynamicDimensionStructurePreviewData(previewData.Pointer);
+                var tpl = dd.DynamicTemplate;
+                return tpl != null && tpl.id == BulldozerTemplateId;
+            }
+            catch (System.Exception e)
+            {
+                ModLogger.LogError($"[Diag] IsBulldozerPreview failed: {e}");
+                return false;
+            }
+        }
+
+        // Template-id test for a live grid: the owning Structure (in the grid's parents) carries
+        // TemplateID once placed; during a drag preview there is no structure yet, so fall back to
+        // the drag flag.
+        private static bool IsBulldozerGrid(TerraformingGrid grid)
+        {
+            try
+            {
+                var st = grid != null ? grid.GetComponentInParent<Structure>() : null;
+                if (st != null) return st.TemplateID == BulldozerTemplateId;
+            }
+            catch { }
+            return _bulldozerDrag;
+        }
+
         [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool.Begin))]
         [HarmonyPrefix]
-        public static void DynamicDimensionsPlacementTool_Begin_Prefix(DynamicDimensionsPlacementTool __instance)
+        public static void DynamicDimensionsPlacementTool_Begin_Prefix(DynamicDimensionsPlacementTool __instance, StructurePreviewData previewData)
         {
-            // Soft UX cap on how far the marker follows the player during the drag. This is NOT the
-            // crash fix -- that's the tile-count clamp on ChangeGridSize below. The real cap is the
-            // BitSet256 network-state struct capacity (confirmed via Cpp2IL decompile + WER crash-offset
-            // mapping; see DRAG_CRASH_PLAN.md), which is independent of how far the marker can travel.
-            __instance.maxRange = MaxDragRange.Value;
+            if (_vanillaMaxRange < 0f)
+            {
+                try { _vanillaMaxRange = __instance.maxRange; _vanillaMaxHeightDifference = __instance.maxHeightDifference; } catch { }
+            }
 
-            // Always raise the height-difference limit so the native physics don't block placement.
-            __instance.maxHeightDifference = 10000f;
+            _bulldozerDrag = IsBulldozerPreview(previewData);
+            if (_bulldozerDrag)
+            {
+                // Soft UX cap on how far the marker follows the player during the drag. This is NOT the
+                // crash fix -- that's the tile-count clamp on ChangeGridSize below. The real cap is the
+                // BitSet256 network-state struct capacity (confirmed via Cpp2IL decompile + WER crash-offset
+                // mapping; see DRAG_CRASH_PLAN.md), which is independent of how far the marker can travel.
+                __instance.maxRange = MaxDragRange.Value;
+
+                // Raise the height-difference limit so the native physics don't block placement.
+                __instance.maxHeightDifference = 10000f;
+            }
+            else if (_vanillaMaxRange > 0f)
+            {
+                __instance.maxRange = _vanillaMaxRange;
+                __instance.maxHeightDifference = _vanillaMaxHeightDifference;
+            }
 
             _lastLoggedGridTiles = -1; // reset diag throttle for a fresh placement
-            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] Begin fired; maxRange set to {__instance.maxRange}");
+            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] Begin fired; bulldozer={_bulldozerDrag} maxRange={__instance.maxRange} maxHeightDiff={__instance.maxHeightDifference}");
+        }
+
+        [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool.End))]
+        [HarmonyPostfix]
+        public static void DynamicDimensionsPlacementTool_End_Postfix()
+        {
+            // Belt-and-suspenders: Begin re-evaluates the flag per drag anyway, but clear it so
+            // grid-side fallbacks (IsBulldozerGrid) don't see a stale true between drags.
+            _bulldozerDrag = false;
         }
 
         [HarmonyPatch(typeof(DynamicDimensionsPlacementTool), nameof(DynamicDimensionsPlacementTool._ValidateFootprint))]
         [HarmonyPrefix]
         public static bool DynamicDimensionsPlacementTool_ValidateFootprint_Prefix(ref bool __result)
         {
-            // ALWAYS bypass native footprint validation — this is CRASH-PREVENTION, not a cheat, so it
-            // must never be gated behind a config toggle. Native _ValidateFootprint uses a fixed-size
-            // OverlapBoxNonAlloc buffer that overflows and hard-crashes the game on a large grid placed
-            // over dense obstacles. Returning true also lets us place over trees/rocks, which the bomb pass then clears.
+            // Vanilla drags keep native footprint validation (red-when-obstructed). Bulldozer drags
+            // bypass it: native _ValidateFootprint uses a fixed-size OverlapBoxNonAlloc buffer that
+            // overflows and hard-crashes on a large grid placed over dense obstacles — and returning
+            // true is also what lets the bulldozer place over trees/rocks for the bomb pass to clear.
+            // Vanilla grids cap at 25 tiles, far below the overflow point, so they're safe natively.
+            if (!_bulldozerDrag) return true;
             __result = true;
             return false;
         }
 
         [HarmonyPatch(typeof(TerraformingGrid), nameof(TerraformingGrid.CheckLevelDifference))]
         [HarmonyPrefix]
-        public static bool TerraformingGrid_CheckLevelDifference_Prefix(ref bool __result)
+        public static bool TerraformingGrid_CheckLevelDifference_Prefix(TerraformingGrid __instance, ref bool __result)
         {
-            // Always report the level difference as acceptable to avoid native rejection.
+            // Only bulldozer grids skip the native level-difference rejection; vanilla fields keep
+            // their native slope limits.
+            if (!IsBulldozerGrid(__instance)) return true;
             __result = true;
             return false;
         }
@@ -107,7 +187,7 @@ namespace TerrainLevelerMod
         [HarmonyPrefix]
         public static void DynamicDimensionsPlacementTool_OnBuildRayChanged_Prefix(DynamicDimensionsPlacementTool __instance)
         {
-            __instance.maxHeightDifference = 10000f;
+            if (_bulldozerDrag) __instance.maxHeightDifference = 10000f;
         }
 
         // Guards ChangeGridSize against recursive re-entry from our own clamped re-call below.
@@ -207,24 +287,10 @@ namespace TerrainLevelerMod
             return true;
         }
 
-        [HarmonyPatch(typeof(DynamicDimensionTemplate), nameof(DynamicDimensionTemplate.CreatePreview))]
-        [HarmonyPrefix]
-        public static void DynamicDimensionTemplate_CreatePreview_Prefix(DynamicDimensionTemplate __instance)
-        {
-            // Capped at 256 to match the REAL Fusion network-state capacity for this structure (BitSet256
-            // on NetworkDynamicDimensionBuildingState_256, confirmed via Cpp2IL decompile + WER crash-offset
-            // mapping). The old 512 matched a DIFFERENT variant (BitSet512) used by other building types.
-            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] CreatePreview vanilla maxNumberOfTiles={__instance.maxNumberOfTiles}");
-            __instance.maxNumberOfTiles = 256;
-        }
-
-        [HarmonyPatch(typeof(DynamicDimensionTemplate), nameof(DynamicDimensionTemplate.Create))]
-        [HarmonyPrefix]
-        public static void DynamicDimensionTemplate_Create_Prefix(DynamicDimensionTemplate __instance)
-        {
-            if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Diag] Create vanilla maxNumberOfTiles={__instance.maxNumberOfTiles}");
-            __instance.maxNumberOfTiles = 256;
-        }
+        // NOTE: the old CreatePreview/Create prefixes that forced maxNumberOfTiles=256 are GONE on
+        // purpose — they mutated the SHARED vanilla asset for the whole session, which is why the
+        // vanilla square could also drag past its native 25-tile cap. The 256 cap now lives on the
+        // clone only, set once at injection (see ItemInfoDatabase_Initialize_Prefix).
 
         [HarmonyPatch(typeof(TerraformingGrid), nameof(TerraformingGrid.OnDynamicBuildingDimensionsChanged))]
         [HarmonyPrefix]
@@ -316,6 +382,8 @@ namespace TerrainLevelerMod
                 if (alreadyInjected)
                 {
                     _vanillaFieldTemplate = original;
+                    try { _bulldozerTemplate.maxNumberOfTiles = 256; } catch { }
+                    InjectLocalizedStrings(SandSailorStudio.Localization.LocalizationManager.Instance, "re-Initialize");
                     if (diag) ModLogger.LogInfo("[Bulldozer] clone already present in list; skipping re-inject.");
                     return;
                 }
@@ -334,14 +402,101 @@ namespace TerrainLevelerMod
                 clone.localizedName = "Bulldozer Field";
                 clone.localizedDescription = "Marks an area to be instantly flattened and cleared of obstacles in a single strike.";
                 clone.showUnlockNotification = false;
+                // 256 = the real Fusion BitSet256 network capacity for this structure (see the
+                // ChangeGridSize clamp). Set on the CLONE only; the vanilla asset keeps its native 25.
+                clone.maxNumberOfTiles = 256;
                 // icon/previewImage/category/result structure: inherited from vanilla on purpose.
 
                 items.Add(clone);
                 _bulldozerTemplate = clone;
                 _vanillaFieldTemplate = original;
                 ModLogger.LogInfo($"[Bulldozer] injected '{BulldozerAssetName}' id={BulldozerTemplateId} dbIndex={count} (cloned from '{original.name}' id={original.id}).");
+                InjectLocalizedStrings(SandSailorStudio.Localization.LocalizationManager.Instance, "template injection");
             }
             catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] injection failed: {e}"); }
+        }
+
+        // ---- Localized display strings for the bulldozer square ------------------------------
+        // The build menu resolves item.<key>_name/_desc/_lore through LocalizationManager's
+        // per-language Dictionary<string,string>; our injected template has no entries there, so
+        // the UI showed raw keys (confirmed in-game 2026-07-01). Inject our strings into
+        // _localizedStrings + _localizedFallbackStrings (and _allKeys, so KeyExists agrees)
+        // whenever both the manager and the clone exist. Idempotent; re-runs after SetLanguage
+        // (language switches rebuild the dictionaries).
+        private static void InjectLocalizedStrings(SandSailorStudio.Localization.LocalizationManager lm, string source)
+        {
+            try
+            {
+                if (lm == null || _bulldozerTemplate == null) return;
+                int added = 0;
+                // Tokens: "name" is confirmed; the desc token spelling is unverified, so cover both
+                // "desc" and "description" — unused extra dictionary entries are harmless.
+                added += SetLocEntry(lm, _bulldozerTemplate.GetKey("name"), BulldozerDisplayName) ? 1 : 0;
+                added += SetLocEntry(lm, _bulldozerTemplate.GetKey("desc"), BulldozerDisplayDesc) ? 1 : 0;
+                added += SetLocEntry(lm, _bulldozerTemplate.GetKey("description"), BulldozerDisplayDesc) ? 1 : 0;
+                added += SetLocEntry(lm, _bulldozerTemplate.GetKey("lore"), BulldozerDisplayLore) ? 1 : 0;
+                if (added > 0) ModLogger.LogInfo($"[Bulldozer] injected {added} localized strings via {source}.");
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] loc injection ({source}) failed: {e}"); }
+        }
+
+        private static bool SetLocEntry(SandSailorStudio.Localization.LocalizationManager lm, string key, string value)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            bool changed = false;
+            try
+            {
+                var main = lm._localizedStrings;
+                if (main != null && !main.ContainsKey(key)) { main[key] = value; changed = true; }
+            }
+            catch { }
+            try
+            {
+                var fb = lm._localizedFallbackStrings;
+                if (fb != null && !fb.ContainsKey(key)) fb[key] = value;
+            }
+            catch { }
+            try
+            {
+                // _allKeys is a STATIC member on the manager type.
+                var all = SandSailorStudio.Localization.LocalizationManager._allKeys;
+                if (all != null) all.Add(key);
+            }
+            catch { }
+            return changed;
+        }
+
+        [HarmonyPatch(typeof(SandSailorStudio.Localization.LocalizationManager), nameof(SandSailorStudio.Localization.LocalizationManager.SetLanguage))]
+        [HarmonyPostfix]
+        public static void LocalizationManager_SetLanguage_Postfix(SandSailorStudio.Localization.LocalizationManager __instance)
+        {
+            InjectLocalizedStrings(__instance, "SetLanguage");
+        }
+
+        [HarmonyPatch(typeof(SandSailorStudio.Localization.LocalizationManager), "Awake")]
+        [HarmonyPostfix]
+        public static void LocalizationManager_Awake_Postfix(SandSailorStudio.Localization.LocalizationManager __instance)
+        {
+            // The clone usually doesn't exist yet this early — then this is a no-op and the
+            // template-injection call (or SetLanguage) picks it up later.
+            InjectLocalizedStrings(__instance, "Awake");
+        }
+
+        // Safety net in case a lookup path bypasses the injected dictionaries (index/cache based):
+        // resolve our keys directly on the main string API. Cheap early-out for every other key.
+        [HarmonyPatch(typeof(SandSailorStudio.Localization.LocalizationManager), nameof(SandSailorStudio.Localization.LocalizationManager.Loc), new[] { typeof(string), typeof(bool) })]
+        [HarmonyPostfix]
+        public static void LocalizationManager_Loc_Postfix(string key, ref string __result)
+        {
+            try
+            {
+                if (key == null || !key.Contains(BulldozerAssetName)) return;
+                if (!string.IsNullOrEmpty(__result) && !string.Equals(__result, key, System.StringComparison.OrdinalIgnoreCase)) return; // already resolved to a real string
+                if (key.EndsWith("_name")) __result = BulldozerDisplayName;
+                else if (key.EndsWith("_desc") || key.EndsWith("_description")) __result = BulldozerDisplayDesc;
+                else if (key.EndsWith("_lore")) __result = BulldozerDisplayLore;
+            }
+            catch { }
         }
 
         // The build-menu squares are ITEMS: BuildItemsTabPage.ShowPage lists
@@ -352,7 +507,6 @@ namespace TerrainLevelerMod
         // our clone's item added once (idempotent via GetFirstItem). Grant rides the same unlock
         // gate as vanilla for free.
         private static float _menuGrantWindowUntil = -1f;
-        private static readonly System.Collections.Generic.HashSet<int> _diagLoggedInventories = new System.Collections.Generic.HashSet<int>();
 
         // ShowPage is private with a single caller and gets INLINED by the IL2CPP AOT compiler — a
         // postfix on it never fires (confirmed in-game 2026-07-01, v1.4.0). Init and Show are
@@ -361,9 +515,40 @@ namespace TerrainLevelerMod
         // grant must land BEFORE Init's original body: a PREFIX via the page's own _pi. The v1.4.1
         // window-grant fired mid-Init-storm, after the TERRAFORMING tab had already built its
         // buttons, which is why the item was granted yet no 4th square appeared.
+        // TabButtonCategory selects the hoe squares via an EXPLICIT additionalInfos list — that's the
+        // real gate (BULLDOZER_UI_PLAN.md, confirmed v1.4.5); everything DB-side was necessary but not
+        // sufficient. Append the clone to a tab whose additionalInfos holds the vanilla field.
+        // Returns true if it changed the list.
+        private static bool TryAppendCloneToTab(SandSailorStudio.UI.TabButton button, string source)
+        {
+            if (button == null || _bulldozerTemplate == null || _vanillaFieldTemplate == null) return false;
+            try
+            {
+                // Managed casts lie for base-declared interop objects — check the native class name.
+                if (GetNativeClassName(button) != "TabButtonCategory") return false;
+                var tab = new SSSGame.UI.TabButtonCategory(button.Pointer);
+                var extra = tab.additionalInfos;
+                if (extra == null) return false;
+                bool hasVanilla = false, hasClone = false;
+                int n = extra.Count;
+                for (int i = 0; i < n; i++)
+                {
+                    var info = extra[i];
+                    if (info == null) continue;
+                    if (info.id == BulldozerTemplateId) hasClone = true;
+                    else if (info.id == _vanillaFieldTemplate.id) hasVanilla = true;
+                }
+                if (!hasVanilla || hasClone) return false;
+                extra.Add(_bulldozerTemplate);
+                ModLogger.LogInfo($"[Bulldozer] appended clone to the hoe tab's additionalInfos ({source}).");
+                return true;
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] tab append ({source}) failed: {e}"); return false; }
+        }
+
         [HarmonyPatch(typeof(SSSGame.UI.BuildItemsTabPage), nameof(SSSGame.UI.BuildItemsTabPage.Init))]
         [HarmonyPrefix]
-        public static void BuildItemsTabPage_Init_Prefix(SSSGame.UI.BuildItemsTabPage __instance)
+        public static void BuildItemsTabPage_Init_Prefix(SSSGame.UI.BuildItemsTabPage __instance, SandSailorStudio.UI.TabButton button)
         {
             _menuGrantWindowUntil = UnityEngine.Time.realtimeSinceStartup + 5f; // fallback path stays armed
             try
@@ -372,6 +557,11 @@ namespace TerrainLevelerMod
                 var col = pi != null ? pi.GetItemCollection() : null;
                 if (col != null) TryGrantBulldozer(col, "Init prefix (page._pi)");
                 else if (PlacementDiagnostics.Value) ModLogger.LogInfo("[Bulldozer] Init prefix: page._pi/collection null; relying on window fallback.");
+
+                // First-open fix: land the tab-filter append BEFORE Init's original body builds the
+                // squares, so the 4th square is there on the very first menu open (the Show postfix
+                // used to do this after the build, needing a close/reopen to show up).
+                TryAppendCloneToTab(button, "Init prefix");
             }
             catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] Init-prefix grant failed: {e}"); }
         }
@@ -394,6 +584,10 @@ namespace TerrainLevelerMod
             try
             {
                 bool changedSomething = false;
+
+                // 0) Loc-string self-repair right before the tooltip could be shown (idempotent,
+                // ContainsKey-cheap when already injected).
+                InjectLocalizedStrings(SandSailorStudio.Localization.LocalizationManager.Instance, "menu Show");
 
                 // 1) Item possession in the page's own collection.
                 var pi = __instance._pi;
@@ -418,6 +612,11 @@ namespace TerrainLevelerMod
                     {
                         var byId = _itemDb.GetItemInfoFromID(BulldozerTemplateId);
                         ModLogger.LogInfo($"[Bulldozer] DB audit: GetItemInfoFromID({BulldozerTemplateId}) -> {(byId != null ? byId.name : "NULL")}");
+
+                        // Localization prep (runbook Step 1): the exact key strings the UI derives
+                        // for our clone vs vanilla, so the loc-table injection targets the right keys.
+                        try { ModLogger.LogInfo($"[Bulldozer] loc keys: clone name-key='{_bulldozerTemplate.GetKey("name")}' vanilla name-key='{_vanillaFieldTemplate.GetKey("name")}'"); }
+                        catch (System.Exception e) { ModLogger.LogWarning($"[Bulldozer] GetKey probe failed: {e.Message}"); }
                         var itemsMap = _itemDb._itemsMap;
                         if (byId == null && itemsMap != null && !itemsMap.ContainsKey(BulldozerTemplateId))
                         {
@@ -453,41 +652,9 @@ namespace TerrainLevelerMod
                     catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] DB audit failed: {e}"); }
                 }
 
-                // 3) The tab button itself: TabButtonCategory is an IItemFilter whose Check combines
-                // category ids with EXPLICIT additionalInfos/excludedInfos lists. The hoe tab shows
-                // exactly 3 squares out of a 75-item category, so it must select via additionalInfos
-                // — which our clone can never pass until it's added there. (This also explains why
-                // the DB/category-map audit found everything "correct" yet no square appeared.)
-                if (button != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null)
-                {
-                    string nativeCls = GetNativeClassName(button);
-                    if (nativeCls == "TabButtonCategory")
-                    {
-                        var tab = new SSSGame.UI.TabButtonCategory(button.Pointer);
-                        var extra = tab.additionalInfos;
-                        var cats = tab.categoryInfos;
-                        bool hasVanilla = false, hasClone = false;
-                        int n = extra != null ? extra.Count : 0;
-                        var names = new System.Text.StringBuilder();
-                        for (int i = 0; i < n; i++)
-                        {
-                            var info = extra[i];
-                            if (info == null) continue;
-                            if (names.Length > 0) names.Append(", ");
-                            names.Append(info.name);
-                            if (info.id == BulldozerTemplateId) hasClone = true;
-                            else if (info.id == _vanillaFieldTemplate.id) hasVanilla = true;
-                        }
-                        if (diag) ModLogger.LogInfo($"[Bulldozer] tab '{tab.name}': categoryInfos={(cats != null ? cats.Count : -1)} additionalInfos={n} [{names}] hasVanilla={hasVanilla} hasClone={hasClone}");
-                        if (hasVanilla && !hasClone && extra != null)
-                        {
-                            extra.Add(_bulldozerTemplate);
-                            ModLogger.LogInfo("[Bulldozer] appended clone to the hoe tab's additionalInfos.");
-                            changedSomething = true;
-                        }
-                    }
-                    else if (diag) ModLogger.LogInfo($"[Bulldozer] Show button native class = '{nativeCls}' (not TabButtonCategory).");
-                }
+                // 3) The tab button itself — self-repair path; the primary append now happens in the
+                // Init prefix so the square is present on the first open.
+                if (TryAppendCloneToTab(button, "Show postfix (self-repair)")) changedSomething = true;
 
                 // 4) If anything changed, the squares were built from stale data — rebuild once.
                 if (changedSomething)
@@ -515,48 +682,6 @@ namespace TerrainLevelerMod
             catch { return "<unknown>"; }
         }
 
-        // Diagnostic: every thumbnail square the UI builds while the menu window is armed — the
-        // definitive list of what actually rendered (window-gated + capped to avoid log floods).
-        private static int _thumbDiagBudget;
-
-        [HarmonyPatch(typeof(SSSGame.UI.ItemThumbnailPanel), nameof(SSSGame.UI.ItemThumbnailPanel.ItemInfo), MethodType.Setter)]
-        [HarmonyPostfix]
-        public static void ItemThumbnailPanel_SetItemInfo_Postfix(SandSailorStudio.Inventory.ItemInfo value)
-        {
-            try
-            {
-                if (!PlacementDiagnostics.Value || value == null) return;
-                if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) { _thumbDiagBudget = 40; return; }
-                if (_thumbDiagBudget-- <= 0) return;
-                ModLogger.LogInfo($"[Bulldozer] thumbnail set: '{value.name}' id={value.id}");
-            }
-            catch { }
-        }
-
-        // Diagnostic + self-fix probe on the category tab itself: when a category tab is selected,
-        // log how it filters (category ids vs explicit info lists) and whether its filter accepts
-        // the vanilla template and our clone. _OnSelect is protected VIRTUAL (vtable-dispatched, not
-        // inlined away, unlike the page's private helpers).
-        [HarmonyPatch(typeof(SSSGame.UI.TabButtonCategory), "_OnSelect")]
-        [HarmonyPostfix]
-        public static void TabButtonCategory_OnSelect_Postfix(SSSGame.UI.TabButtonCategory __instance)
-        {
-            try
-            {
-                if (!PlacementDiagnostics.Value) return;
-                if (_bulldozerTemplate == null || _vanillaFieldTemplate == null) return;
-                var filter = __instance.GetCategoryItemFilter();
-                bool okVanilla = false, okClone = false;
-                try { if (filter != null) { okVanilla = filter.Check(_vanillaFieldTemplate); okClone = filter.Check(_bulldozerTemplate); } } catch { }
-                if (!okVanilla) return; // not the terraforming tab; stay quiet
-                var cats = __instance.categoryInfos;
-                var extra = __instance.additionalInfos;
-                var excl = __instance.excludedInfos;
-                ModLogger.LogInfo($"[Bulldozer] TERRAFORMING tab selected: filterOKvanilla={okVanilla} filterOKclone={okClone} categoryInfos={(cats != null ? cats.Count : -1)} additionalInfos={(extra != null ? extra.Count : -1)} excludedInfos={(excl != null ? excl.Count : -1)}");
-            }
-            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] tab diag failed: {e}"); }
-        }
-
         // Adds one clone-blueprint item if this collection is the buildables catalog (holds the
         // vanilla field's item = unlocked) and doesn't have ours yet. Idempotent.
         private static void TryGrantBulldozer(SandSailorStudio.Inventory.ItemCollection col, string source)
@@ -575,48 +700,9 @@ namespace TerrainLevelerMod
             try
             {
                 if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) return;
-                if (PlacementDiagnostics.Value && _diagLoggedInventories.Add(__instance.GetInstanceID()))
-                {
-                    var si = __instance.startItems;
-                    ModLogger.LogInfo($"[Bulldozer] menu-window collection query: component='{__instance.gameObject.name}' startItems='{(si != null ? si.name : "null")}' col=0x{(__result != null ? __result.Pointer.ToInt64() : 0):x}");
-                }
                 TryGrantBulldozer(__result, $"window ('{__instance.gameObject.name}')");
             }
             catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] window grant failed: {e}"); }
-        }
-
-        // Diagnostic: what does the menu's item query actually return, and does the category filter
-        // accept our clone? Runs only inside the menu window with diagnostics on. If the square is
-        // missing while the item IS in the collection, this pinpoints filter-vs-build-order causes.
-        private static float _lastGetAllItemsDiag = -999f;
-
-        [HarmonyPatch(typeof(SandSailorStudio.Inventory.ItemCollection), nameof(SandSailorStudio.Inventory.ItemCollection.GetAllItems), new[] { typeof(SandSailorStudio.Inventory.IItemFilter) })]
-        [HarmonyPostfix]
-        public static void ItemCollection_GetAllItems_Postfix(SandSailorStudio.Inventory.IItemFilter itemFilter, Il2CppSystem.Collections.Generic.List<SandSailorStudio.Inventory.Item> __result)
-        {
-            try
-            {
-                if (!PlacementDiagnostics.Value) return;
-                if (UnityEngine.Time.realtimeSinceStartup > _menuGrantWindowUntil) return;
-                if (UnityEngine.Time.realtimeSinceStartup - _lastGetAllItemsDiag < 0.5f) return; // throttle
-                _lastGetAllItemsDiag = UnityEngine.Time.realtimeSinceStartup;
-                if (__result == null || _bulldozerTemplate == null) return;
-
-                bool containsClone = false, containsVanilla = false;
-                int n = __result.Count;
-                for (int i = 0; i < n; i++)
-                {
-                    var it = __result[i];
-                    if (it == null || it.info == null) continue;
-                    if (it.info.id == BulldozerTemplateId) containsClone = true;
-                    else if (_vanillaFieldTemplate != null && it.info.id == _vanillaFieldTemplate.id) containsVanilla = true;
-                }
-                bool filterAcceptsClone = false, filterAcceptsVanilla = false;
-                try { if (itemFilter != null) { filterAcceptsClone = itemFilter.Check(_bulldozerTemplate); filterAcceptsVanilla = _vanillaFieldTemplate != null && itemFilter.Check(_vanillaFieldTemplate); } } catch { }
-                if (containsVanilla || containsClone || filterAcceptsVanilla)
-                    ModLogger.LogInfo($"[Bulldozer] menu GetAllItems: count={n} hasVanilla={containsVanilla} hasClone={containsClone} filterOKvanilla={filterAcceptsVanilla} filterOKclone={filterAcceptsClone}");
-            }
-            catch (System.Exception e) { ModLogger.LogError($"[Bulldozer] GetAllItems diag failed: {e}"); }
         }
 
         // Guards against our own re-entry: the flatten loop below calls grid.TryLevelTile, and the
@@ -638,18 +724,21 @@ namespace TerrainLevelerMod
             try { grid = __instance.terraformingGrid; } catch { }
             if (grid == null) return;
 
-            // Diagnostic for the upcoming per-template gating: which template does the used field
-            // belong to? (Bulldozer clone id vs vanilla id — see BULLDOZER_UI_PLAN.md Phase 2.)
-            if (PlacementDiagnostics.Value)
+            // Per-template gating: only OUR bulldozer field gets the flatten+bomb treatment; the
+            // vanilla field keeps its native incremental hoe leveling.
+            int templateId = -1;
+            string templateName = "null";
+            try
             {
-                try
-                {
-                    var st = __instance.GetComponentInParent<Structure>();
-                    var tpl = st != null ? st.Template : null;
-                    ModLogger.LogInfo($"[Diag:Use] structure templateId={(st != null ? st.TemplateID : -1)} template='{(tpl != null ? tpl.name : "null")}'");
-                }
-                catch (System.Exception e) { ModLogger.LogError($"[Diag:Use] template probe failed: {e}"); }
+                var st = __instance.GetComponentInParent<Structure>();
+                var tpl = st != null ? st.Template : null;
+                if (st != null) templateId = st.TemplateID;
+                if (tpl != null) templateName = tpl.name;
             }
+            catch (System.Exception e) { ModLogger.LogError($"[Diag:Use] template probe failed: {e}"); }
+            if (PlacementDiagnostics.Value)
+                ModLogger.LogInfo($"[Diag:Use] structure templateId={templateId} template='{templateName}' bulldozer={templateId == BulldozerTemplateId}");
+            if (templateId != BulldozerTemplateId) return;
 
             _handlingUse = true;
             try
