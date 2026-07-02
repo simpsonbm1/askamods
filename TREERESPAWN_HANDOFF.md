@@ -6,7 +6,154 @@ General handoff for **Mod 2 (TreeRespawnMod)**. Supersedes the old `COOP_RESPAWN
 `docs/mods/tree-respawn.md` (shipped recipe/config) and `docs/architecture.md`
 (Resource/Tree, Gather, Worldgen/Streaming subsystems).
 
-Current version: **v1.2.15**. v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
+**Current version: v1.3.1 (2026-07-02) — read "v1.3.0/v1.3.1 — tree hardening, co-op gather fix,
+self-healing catch-up" below first.** This is the active session; it supersedes the "Recommended
+next-session order" list further down (that list's item 1, confirming Issue A, is now folded into
+the co-op test this section describes as the next step — whichever machine picks it up).
+
+---
+
+## v1.3.0/v1.3.1 (2026-07-02) — tree hardening, co-op gather fix, self-healing catch-up
+
+Prompted by two things in the same conversation: (1) a request to review the mod for anything
+missed after the v1.2.20 stale-pointer fix, since the user still wasn't fully confident resources
+respawned 100% of the time regardless of distance; (2) the user separately reporting that in a
+co-op session, the host detected their brother **chopping trees** but never detected him
+**gathering** reeds/flax/berries — and that tree respawns "weren't 100%" either. Investigation
+found the v1.2.x hardening (WID validation, handler-based unloaded-node refill) had only ever been
+applied to gather nodes; trees still had every failure mode gather had before v1.2.19/20. It also
+found the root cause of the co-op gather gap: `DataSyncPatch` — the network catch meant to see a
+client's replicated harvests — required `biomeInst.gameObject.GetComponent<GatherInteraction>()` to
+classify a node, and per the v1.2.14 finding that lookup already failed even for **trees**
+(interaction components don't reliably live on the instance's own GameObject); it's a structural
+reason gather detection specifically would come up empty more often than tree detection.
+
+### What changed
+1. **Trees now carry a `WorldItemInstanceId` (`Plugin.TreeWid`)**, captured at registration
+   (`HarvestPatch`, `Registration.TryRegisterTree`) and persisted in the save file's `# tree`
+   section (new 3rd field `widRaw`; 2-field legacy lines still parse). Mirrors what gather nodes
+   already had since v1.2.10.
+2. **`DayTracker`'s tree loop now WID-validates the cached `ActiveInstances` pointer** before
+   trusting it, exactly like the v1.2.19 gather fix. Previously a pooled wrapper reused for a
+   *different* node (once the original chunk unloads) could read that unrelated node's `Destroyed`
+   state and **permanently cancel a live stump's respawn** — the single biggest silent-loss risk
+   for trees, now closed.
+3. **New tree variant of the handler-based unloaded-node refill** (`HandlerReplenishTree`,
+   `[diag] exp-replenish-tree` log tag) — resolves a fresh instance via
+   `BiomeProceduralDataHandler.GetInstance(tileId, wid, onlyIfActive:false, noPooling:true)` and
+   calls `Replenish()` on it, same mechanism proven for gather in v1.2.9. **Tree-specific rule per
+   explicit user instruction: gather nodes never cancel — they always renew on their configured
+   timer — but a tree stump CAN be legitimately, permanently cleared** (the player chops the stump
+   itself). So `HandlerReplenishTree` checks the fresh handle's `Destroyed` first and **cancels**
+   the pending entry if true, even while the chunk is unloaded (e.g. a co-op client cleared it away
+   from the host) — this is the one intentional-clear case, and it's structural, not a bug.
+4. **Entries no longer require a stale `ActiveInstances` pointer to reach the handler refill.**
+   Previously (both tree and gather) a posKey **absent** from `ActiveInstances` entirely — a node
+   whose chunk simply never streamed in this session — fell into `overdue-but-not-loaded` and just
+   waited. The handler path only ever needed `posKey` + the persisted wid, so v1.3.0 calls it in
+   that case too. This was flagged as the most likely explanation for any *remaining* post-v1.2.20
+   reed losses, since it was gather's own last un-hardened gap.
+5. **Reworked `DataSyncPatch`** (the co-op network catch) to classify nodes from data, not
+   GameObjects. New `Plugin.KnownNodes` (posKey → kind + item name) is populated authoritatively at
+   interaction-bind time by new `SetWorldInstance` postfixes on both `HarvestInteraction` and
+   `GatherInteraction` (`Patches/Captures.cs`); a GameObject/`GetComponent` walk (now searching
+   children too, `includeInactive: true`) is only a fallback for nodes not yet seen this session,
+   and its answer is cached so it doesn't repeat. Registration conditions read pure instance data
+   (`GetQuantity() <= 0` for gather, `IsExhausted() && !Destroyed` for trees — the same stump gate
+   the v1.1.1 diagnostic already proved) via new shared `Registration.cs`, so **no GameObject is
+   required at all** to register a depletion — closing the specific gap that (per hypothesis) made
+   client gathers invisible while client tree-chops still worked.
+6. **New catch-up registration**, same `SetWorldInstance` postfixes: any node found **already
+   depleted but not in the pending list** the moment the host binds it — a node lost to any
+   historical bug, an unsaved-quit edge case (Issue E), or an earlier session's now-fixed bugs — is
+   registered fresh right there. This is what self-healed the backlog described below.
+7. **Bug found in v1.2.20 itself, fixed:** the live-instance gather respawn path's pre-state reads
+   (`preActive`, `preDestroyed`) were gated behind `EnableDiagnostics`. With diagnostics off (normal
+   play), `preActive` always read its default `false`, which made the `fake` check always true — so
+   **the live respawn path could never succeed in normal play**; every gather respawn silently fell
+   through to the handler fallback. Reads are now unconditional; only the *logging* of them stays
+   diagnostics-gated.
+8. **v1.3.1: hot-path perf gate for `DataSyncPatch`.** The v1.3.0 solo test log showed
+   `WorldItemInstance._OnDataChanged` firing up to **105,495 times per 5-second window** during
+   heavy streaming — the patch was doing a position read, `PosKey` string formatting, and a
+   dictionary lookup on essentially all of them before determining most were healthy, uninteresting
+   instances. Added a single `IsExhausted()` native read as the very first check, ahead of
+   everything else; both registration conditions imply it anyway. **Not diagnostics-gated** — this
+   helps normal play too, not just troubleshooting sessions. The `[diag] datasync(5s)` summary line
+   gained a `healthy=N` counter so a future session can confirm the filter is doing its job.
+9. **World-switch hygiene:** `TreeWid`, `KnownNodes`, `LiveHarvestInteractions`, and the handler
+   retry-cooldown dict now all clear on `OnWorldChanged` (posKeys collide across worlds — a stale
+   cooldown or classification from world A must not leak into world B).
+10. **Handler refill self-heals a fully-stocked stale entry.** If `DeactivatedReplenish` resolves a
+    node that already has stock (`preQty > 0` — e.g. an Issue-E stale entry on an intact resource),
+    it now drops the entry immediately instead of retrying "NO-CHANGE" every 30s forever.
+
+### Confirmed in-game (2026-07-02, solo session, v1.3.0)
+- **The tree handler-refill path — the one genuinely new, previously-unverified mechanism — worked
+  first try.** User chopped a tree far from base, moved to the opposite side of the base, waited a
+  couple of minutes, returned: the tree had respawned. Log: `[diag] exp-replenish-tree at
+  157.9:43.7:516.3: freshActive=False exhausted True->False OK` → `Tree at 157.9:43.7:516.3
+  respawned via data handler`. Multiple trees serviced this way in the same session, all `OK`, zero
+  `NO-CHANGE`, zero errors.
+- **Catch-up registration flooded and healed a large historical backlog**: 125 `(catch-up)`
+  registrations logged (mostly `Fibers` and `Beetroot`) plus tree stumps re-registered via data-sync
+  at world load — user confirmed **zero orphaned/un-regrown stumps visible** anywhere near base
+  after the session, and reported "way, way more resources available near the base than there used
+  to be." This is exactly what closing the "missing-from-registry" and "unloaded-tree" gaps predicts
+  — a session's worth of resources that earlier bugs had silently and permanently lost.
+- 182 total `respawned` lines, zero `Replenish threw`, zero `NO-CHANGE`, zero
+  `left IsExhausted=true` verify warnings across the whole session.
+
+### PENDING CONFIRMATION
+- **Co-op gather detection fix (point 5 above) — not yet tested.** The user will test in a co-op
+  session (this one, or the other machine — see "Cross-machine" note below). Test plan: host runs
+  with `EnableDiagnostics=true`; the non-host player gathers reeds/flax/berries and chops trees,
+  both near the host and far away. Grep the host's log for `(data sync)` and `(catch-up)`
+  registration lines, and for the `[diag] datasync(5s): fired=... healthy=... classified
+  known=.../comp=... unknown=... registered tree=... gather=...` summary — `unknown` staying high
+  while `registered gather=0` during known client gathering would mean the classification fallback
+  itself is still missing something and needs another look.
+- **Issue A (co-op client tree respawn) — folds into the same test.** Was previously "fix in place,
+  not re-confirmed"; unaffected by this session's changes except that `DataSyncPatch` was rewritten,
+  so it needs re-confirming alongside the gather fix, not assumed to still work unchanged.
+- **v1.3.1's perf gate — not yet re-tested.** Built in response to analyzing the v1.3.0 solo log
+  (after that session already ended), so no session has run against it yet. The user noticed a
+  performance decrease during the v1.3.0 diagnostic session and initially attributed it to logging
+  volume; the real cost was likely `DataSyncPatch` doing full work on ~100k+ calls/5s regardless of
+  the diagnostics flag. v1.3.1's `IsExhausted()` gate should reduce that substantially, but it
+  hasn't been observed in a live session yet — worth noting whether the next session (solo or co-op)
+  still feels heavy, and if so, whether it's specifically tied to `EnableDiagnostics=true` (which
+  remains chatty on top of the gate) rather than the patch itself.
+- **Tree handler-refill's `Destroyed`-while-unloaded cancel path (point 3) — not yet exercised.**
+  The confirmed test above hit the "exhausted, not destroyed → replenish" branch. The "genuinely
+  cleared while unloaded → cancel" branch (e.g. a co-op client chopping down a stump far from the
+  host) shares the same resolve/read code but hasn't been independently observed taking that branch.
+- **Nests/eggs — clarified, not a bug.** The user asked whether ground bird's-nest gathering follows
+  the same respawn logic as other collectibles, having noticed repeated `Wild Egg x50` worker-idle
+  complaints in the log. Confirmed from existing architecture notes: a nest is an ordinary gather
+  node yielding item `"Feathers"` (already configured, `[GatherRespawn] Feathers = 2.0` days) — it
+  respawns exactly like flax/reeds/berries. **`Wild Egg` is not its own node**; it's a bonus drop
+  bundled with the `Feathers` gather (same shape as `Seeds` bundled with plant gathers, confirmed
+  2026-06-17), so there's no separate egg timer to tune — eggs only come back as a drop chance on a
+  respawned nest's next gather. The `Wild Egg x50` complaint is a **new instance of the Issue F
+  pattern** (see that section below) — a fixed, never-satisfiable stockpile-target manifest, same
+  shape as the earlier `Fibers x15` lockout but a different constant. ⚠️ Not independently verified
+  this session: no `"Feathers"` gather/respawn lines appeared in the v1.3.0 log at all (no nest was
+  actually gathered), so nest respawn specifically — as opposed to "the code path is identical to
+  flax's, which did work" — remains inferred, not directly observed.
+
+### Cross-machine note
+This work (source + rebuilt `TreeRespawnMod.dll`) is being committed and pushed from this machine.
+If the co-op session (or any further testing) happens on the **other** machine, `git pull` first,
+then run `.\sync-plugins.ps1` (see root `CLAUDE.md` → "Syncing live plugins from git") to get the
+new DLL into that machine's live `BepInEx\plugins\TreeRespawnMod\` — a pull alone does not touch the
+live folder. Confirm `TreeRespawnMod 1.3.1` in that machine's `LogOutput.log` before trusting a test
+(bump the version again if Smart App Control blocks the new hash there, same as any other machine).
+
+---
+
+### Version history through v1.2.15 (superseded by v1.3.0/v1.3.1 above — kept for context)
+v1.2.2 was a version-only bump from v1.2.1 — Smart App Control blocked
 the v1.2.1 DLL hash on the second machine with `FileLoadException ... 0x800711C7`; bumping the version
 changes the hash so SAC re-evaluates it and lets it load (no logic changed). v1.2.3 implements the
 diagnostic logging for Issues C/D described below (was previously just a plan) — see "Diagnostic
@@ -32,7 +179,7 @@ persistence across save/reload and a retry/liveness-guard cooldown. **v1.2.14 (2
 
 | # | Issue | Status |
 |---|---|---|
-| A | Co-op **client** respawn (client's harvests didn't start a timer on host) | **Fix in place** (DataSyncPatch) — ⚠️ NOT re-confirmed in a live co-op session |
+| A | Co-op **client** respawn (client's harvests didn't start a timer on host) | **Fix in place** (DataSyncPatch, reworked v1.3.0 — see "v1.3.0/v1.3.1" section above) — ⚠️ NOT re-confirmed in a live co-op session |
 | B | **Cross-world** save contamination (one global file shared by all worlds) | ✅ **FIXED v1.2.1**, confirmed in-game 2026-06-28 |
 | C | **Distant villager** gather harvests don't respawn (far foraging markers stay empty) | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — `GetInstance(onlyIfActive:false)` + `Replenish()` refills the node through the persistent data handler without streaming the tile in; see "RESOLVED 2026-06-30" below |
 | D | **Overdue** respawns not serviced until you stand near the node as the timer elapses | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — same fix as C (the overdue-but-unloaded case is exactly what the handler-based replenish services); retry/liveness-guard cooldown added so an unresolved node is retried, not dropped |
@@ -585,6 +732,14 @@ fires repeatedly, forever, even when flax (which yields `Fibers`) is visibly pre
   per-world/per-character *computed* deficit would be expected to vary with each save's specific
   storage levels; an exact match instead points to a fixed game constant (most likely a workstation or
   recipe's configured stockpile target, not a per-attempt harvest goal).
+- **New instance, 2026-07-02 (v1.3.0 solo session):** three villagers (`Ragnar`, `Aili`, `Magnus`) each
+  repeated `NoResourcesFound: '...' wants Wild Eggx50` throughout the session. Same shape as the
+  Fibers case — a fixed, round, suspiciously-large target number, unrelated to the TreeRespawnMod
+  changes under test that session — and reinforces the "fixed stockpile-target manifest" hypothesis
+  with a second, different constant (`50` vs `15`). Not independently investigated further (still not
+  a TreeRespawnMod fix either way); noted here because it came up while answering whether bird's-nest
+  gathering (yielding `Feathers`, with `Wild Egg` as its bonus drop) follows the same respawn logic as
+  other collectibles — it does, this complaint is unrelated to respawn timing.
 
 **Leading hypothesis (NOT fully confirmed — flagging clearly as inference, not fact):** the gather
 quest holds a fixed target `ItemManifest` (mirroring an already-confirmed pattern elsewhere in this
@@ -619,6 +774,10 @@ surface symptom ("the village is short on X").
 ---
 
 ## Recommended next-session order
+
+**⚠️ Superseded by "v1.3.0/v1.3.1" → "PENDING CONFIRMATION" at the top of this document** — that
+section's co-op test now covers item 1 below (Issue A) plus the new co-op gather-detection fix
+together. Kept here for history/context only.
 
 **Issues C/D are RESOLVED as of v1.2.10 (2026-06-30)** — see "RESOLVED 2026-06-30" above for the full
 mechanism and in-game confirmation. What's left, in order:

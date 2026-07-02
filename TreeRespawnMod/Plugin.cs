@@ -12,6 +12,15 @@ using UnityEngine;
 
 namespace TreeRespawnMod;
 
+// What kind of respawnable node a position holds. Recorded at interaction-bind time
+// (SetWorldInstance) so the data-sync path can classify a node WITHOUT its GameObject —
+// the interaction component often doesn't live on the BiomeItemInstance's own GameObject
+// (v1.2.14 finding), and for a node the host never instantiated there is no GameObject at all.
+// Other = confirmed not-respawnable (single-piece harvestable, decoration, etc.) — cached so the
+// per-data-change classifier doesn't re-walk its hierarchy forever; overwritten if a tree/gather
+// interaction ever binds at that position.
+internal enum NodeKind { Tree, Gather, Other }
+
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -54,8 +63,19 @@ public class Plugin : BasePlugin
 
     // posKey → the node's WorldItemInstanceId, captured at harvest (when the instance is valid). Needed to
     // re-resolve the instance via the handler later, because the cached ActiveInstances pointer goes stale
-    // (deregistered, UniqueId reset to 0) once the chunk deactivates. Per-session only (not persisted).
+    // (deregistered, UniqueId reset to 0) once the chunk deactivates. Persisted per pending entry.
     internal static readonly Dictionary<string, SSSGame.WorldItemInstanceId> GatherWid = new();
+
+    // Same for trees (v1.3.0). Trees previously had NO wid — so the tree loop couldn't tell a pooled
+    // wrapper reused for a different node from a live pointer (wrong-node Destroyed reads could cancel
+    // a live stump permanently), and an unloaded overdue tree had no handler-refill path at all.
+    internal static readonly Dictionary<string, SSSGame.WorldItemInstanceId> TreeWid = new();
+
+    // posKey → what kind of node lives there + the gather item it yields. Populated whenever an
+    // interaction binds to its world instance (SetWorldInstance, Patches/Captures.cs) and on direct
+    // harvests. This is the authoritative interaction↔instance mapping — it lets DataSyncPatch
+    // register depletions from pure data changes (co-op client harvests) with no GameObject involved.
+    internal static readonly Dictionary<string, (NodeKind kind, string itemName)> KnownNodes = new();
 
     // The current world's StorageManager.ActiveSessionID, set once a world loads (see PollWorldId).
     // Until it's known we don't know WHICH world we're in, so no pending-respawn file is read/written.
@@ -95,11 +115,12 @@ public class Plugin : BasePlugin
             section: "TreeRespawn",
             key: "RefillUnloadedGatherNodes",
             defaultValue: true,
-            description: "When ON (default), a gather node whose respawn timer elapses while its chunk is " +
+            description: "When ON (default), a node whose respawn timer elapses while its chunk is " +
                 "unloaded/deactivated is refilled through the data handler — GetInstance(onlyIfActive:false) + " +
                 "Replenish() + SetDirty — instead of being faked against the stale, deregistered pointer. This is " +
                 "what lets distant forage markers (e.g. the shoreline reeds) refill so villagers keep working them " +
-                "while you're elsewhere. Host-only. Turn OFF to revert to the old near-node-only behavior. The " +
+                "while you're elsewhere. As of v1.3.0 this covers TREES as well as gather nodes (key name kept " +
+                "for config compatibility). Host-only. Turn OFF to revert to the old near-node-only behavior. The " +
                 "[diag] exp-replenish log lines require EnableDiagnostics.");
 
         ManualRespawnHotkey = Config.Bind(
@@ -314,6 +335,10 @@ public class Plugin : BasePlugin
             RegisteredStumps.Clear();
             ActiveInstances.Clear();
             GatherWid.Clear();
+            TreeWid.Clear();
+            KnownNodes.Clear();
+            LiveHarvestInteractions.Clear();
+            DayTracker.ClearTransientState(); // handler-retry cooldowns — posKeys collide across worlds
         }
 
         CurrentWorldId = id;
@@ -355,7 +380,13 @@ public class Plugin : BasePlugin
             var lines = new List<string>();
             lines.Add("# tree");
             foreach (var kvp in PendingRespawns)
-                lines.Add($"{kvp.Key},{kvp.Value.ToString("R", CultureInfo.InvariantCulture)}");
+            {
+                // v1.3.0: persist the tree's WorldItemInstanceId too (same rationale as gather —
+                // without it, an unloaded stump can't be re-resolved/refilled after a reload).
+                ulong treeWidRaw = 0;
+                if (TreeWid.TryGetValue(kvp.Key, out var twid)) { try { treeWidRaw = twid.Raw; } catch { } }
+                lines.Add($"{kvp.Key},{kvp.Value.ToString("R", CultureInfo.InvariantCulture)},{treeWidRaw}");
+            }
             lines.Add("# gather");
             foreach (var kvp in PendingGatherRespawns)
             {
@@ -421,13 +452,21 @@ public class Plugin : BasePlugin
                 }
                 else
                 {
-                    // Tree format: posKey,gameTime — single comma, LastIndexOf is fine.
-                    var comma = line.LastIndexOf(',');
-                    if (comma < 0) continue;
-                    var posKey = line[..comma];
-                    if (!float.TryParse(line[(comma + 1)..], NumberStyles.Float,
+                    // Tree format (v1.3.0+): posKey,gameTime,widRaw
+                    //         older:         posKey,gameTime
+                    // posKey = "x:y:z" — no commas, so first comma ends posKey.
+                    var c1 = line.IndexOf(',');
+                    if (c1 < 0) continue;
+                    var posKey = line[..c1];
+                    var rest = line[(c1 + 1)..];
+                    var c2 = rest.IndexOf(',');
+                    string gameTimeStr = c2 >= 0 ? rest[..c2] : rest;
+                    if (!float.TryParse(gameTimeStr, NumberStyles.Float,
                             CultureInfo.InvariantCulture, out float gameTime)) continue;
                     PendingRespawns[posKey] = gameTime;
+                    if (c2 >= 0 && ulong.TryParse(rest[(c2 + 1)..], NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out ulong treeWidRaw) && treeWidRaw != 0)
+                        try { TreeWid[posKey] = new SSSGame.WorldItemInstanceId(treeWidRaw); } catch { }
                 }
             }
             int total = PendingRespawns.Count + PendingGatherRespawns.Count;

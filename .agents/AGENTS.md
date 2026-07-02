@@ -142,7 +142,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.2.20 — moved noisy init diagnostics to their own config toggle; v1.2.19 fixed stale pointer false-positives for gather nodes (Issues C/D resolved); Issue A pending confirmation. See TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.3.1 — trees hardened to gather-path parity (WID-validated pointers + handler-based refill for unloaded/stale stumps) and SetWorldInstance catch-up registration added (self-heals nodes lost to historical bugs the moment they next stream in); both confirmed in-game 2026-07-02 (distant felled tree respawned unattended, zero orphaned stumps after a full session). Also ships a co-op gather-detection rework (data-first depletion classification — no longer needs GameObject/GetComponent, which is why client gathers went undetected before) and a DataSyncPatch hot-path perf gate — BOTH PENDING CO-OP CONFIRMATION (includes Issue A). See TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)

@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.2.20)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.3.1)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days.
@@ -13,8 +13,10 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - Store `WeatherSystem.NetworkedCurrentGameTime` at fell time; compare elapsed via `GetTimeDifferenceFromCurrentGameTimeInSeconds() / dayLength` against threshold
 - Key everything by **world position** string (`GetPosition()` rounded to 0.1m, format `x:y:z`) — `UniqueId` is NOT globally unique
 - `BiomeInstancePatch` Postfix on `BiomeItemInstance.Initialize()` populates `ActiveInstances[posKey]` as world loads; `DayTracker` looks up the live instance at check time
-  - ⚠️ **`ActiveInstances` is only *added to* / *wiped on world-switch*** — it is never pruned when an individual node unloads, so a streamed-out node leaves a **stale** pointer (`Active=false`/`Destroyed`). For trees this just means a respawn waits until the node streams back in. For gather nodes, **resolved in v1.2.10** — see "Gather resource respawn" below for the deactivated-node refill path.
-- Stump-harvested detection: check `inst.Destroyed` at each tick (no event subscription needed)
+  - `ActiveInstances` is only *added to* / *wiped on world-switch* — never pruned when an individual node unloads, so a streamed-out node can leave a **stale** pointer. **Resolved for trees in v1.3.0** (previously only gather had this): the cached pointer is validated against the tree's persisted `WorldItemInstanceId` (`Plugin.TreeWid`) before being trusted — a pooled wrapper reused for a different node once its original chunk unloads can no longer be misread as "our stump got cleared" and permanently cancel a live respawn. An unloaded/stale/never-streamed stump is serviced through the same data-handler refill gather nodes use — see below.
+- Stump-harvested detection: check `inst.Destroyed` at each tick, but **only on a WID-confirmed-live pointer** (v1.3.0) — trusting `Destroyed` on an unvalidated pointer risks reading an unrelated node's state
+- **Unloaded/stale stump refill (v1.3.0, confirmed in-game 2026-07-02).** When a tree's timer elapses and its cached pointer isn't live (or the posKey was never in `ActiveInstances` at all this session), `DayTracker` resolves a fresh instance via `SSSGame.BiomeProceduralDataHandler.GetInstance(tileId, treeWid, onlyIfActive:false, noPooling:true)` — same mechanism as gather's v1.2.9 fix — and calls `Replenish()` on it. If that fresh read shows `Destroyed=true`, the stump was **genuinely** cleared (the one legitimate tree cancel — gather nodes never cancel) and the entry is dropped instead of replenished, even while unloaded. Confirmed in-game: a tree felled far from base respawned unattended while the player waited on the opposite side of the base. Shares the `RefillUnloadedGatherNodes` config flag (name kept for compatibility; now covers trees too).
+- An entry is only dropped from the pending list once the replenish **verifiably** took (`IsExhausted()` reads `false` afterward) — previously (pre-v1.3.0) the entry was dropped unconditionally, so a no-op `Replenish()` could silently lose a tree forever.
 - Config: `TreeRespawn/RespawnDays` (float, default 3.0)
 
 ## Gather resource respawn
@@ -26,7 +28,8 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - **Confirmed working in-game (2026-06-25):** flax bushes at sub-day thresholds (`0.01`) cycle exhausted→respawned→re-harvested repeatedly at the same position in the log — `Replenish()` genuinely restores gatherable harvestability, not just the visual. Triggered by villager *and* player gathering (patch is on `GatherInteraction.GatherItemsCharge`, the node's own collect method — source-agnostic, same as the tree patch).
 - **Respawn days is NOT a "more stock" lever.** It only sets how soon a node is harvestable *again*; it does not change yield-per-harvest or add gatherers. If a raw intermediate (e.g. fiber) still reads ~0 in storage with a `0.01` respawn, the bottleneck is downstream — consumption (weaving/tailoring eats fiber as fast as it's gathered) or gather labor/walk-time — not the mod. Lowering the threshold further can't help once the node is already almost always ready.
 - **Distant/villager-only nodes whose chunk has deactivated also respawn (v1.2.10, confirmed in-game 2026-06-30).** When a gather node's timer elapses while its `BiomeItemInstance` is no longer live (chunk streamed out — the stale-`ActiveInstances`-pointer case above), `DayTracker` re-resolves a fresh, writable instance through `SSSGame.BiomeProceduralDataHandler.GetInstance(tileId, widId, onlyIfActive:false, noPooling:true)` — this works *without* force-loading the tile — and calls the game's own `Replenish()` on that handle, then `handler.SetDirty(cell)` + `handler.OnInstanceDataChanged(instance)` to flush/notify. The node's `WorldItemInstanceId` is cached at harvest time and persisted across save/reload so this keeps working after a reload, not just within a session. Config: `TreeRespawn/RefillUnloadedGatherNodes` (bool, default `true`). This is what lets distant forage markers (e.g. shoreline reeds) keep refilling for villagers while you're elsewhere — see `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30" for the full investigation (Issues C/D).
-- **Host validation in Co-op (v1.2.13).** The mod previously validated host authority using `WeatherSystem.Instance.Runner.IsServer`, which evaluated to `false` in co-op. It now tracks `Plugin.LocalPlayer` via `PlayerCharacter.Spawned` and uses `LocalPlayer.NetworkObject.Runner.IsServer` as a primary check. (Issue A RESOLVED)
+- **Host validation in Co-op (v1.2.13).** The mod previously validated host authority using `WeatherSystem.Instance.Runner.IsServer`, which evaluated to `false` in co-op. It now tracks `Plugin.LocalPlayer` via `PlayerCharacter.Spawned` and uses `LocalPlayer.NetworkObject.Runner.IsServer` as a primary check. ⚠️ Fix in place, still not re-confirmed in a live co-op session as of v1.3.1 — see Issue A in `TREERESPAWN_HANDOFF.md`.
+- **Co-op gather detection reworked (v1.3.0, ⚠️ PENDING CO-OP CONFIRMATION).** The network data-sync catch (`DataSyncPatch`, fires for a co-op client's replicated harvests) previously required `GetComponent<GatherInteraction>()` on the instance's own GameObject to identify a node — which structurally misses most cases, since the interaction component often isn't on that GameObject at all (same finding as the v1.2.14 manual-hotkey stump issue below). It now classifies nodes from data: a `Plugin.KnownNodes` map is populated authoritatively when `GatherInteraction`/`HarvestInteraction.SetWorldInstance` binds (new postfixes, `Patches/Captures.cs`), with a component search (including children/inactive) only as a fallback for anything not yet seen. Registration itself reads pure instance data (`GetQuantity() <= 0`) — no GameObject required at all. The same bind-time hooks also run a **catch-up registration**: any node found already-depleted-but-untracked when the host streams it in gets a fresh timer immediately, self-healing losses from historical bugs (confirmed in-game 2026-07-02: 125 catch-up registrations healed a backlog with zero orphaned stumps left afterward).
 - **Manual Respawn Hotkey (v1.2.14/15).** Added a hotkey (`t` by default) to manually replenish any stump or exhausted gather node within a configurable radius (default `10m`). Bypasses the pending list entirely to help fix manually deforested areas. Scans `ActiveInstances` for depleted gather nodes and `Resources.FindObjectsOfTypeAll<HarvestInteraction>()` for physical stumps in the scene. Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host check fixed in v1.2.15.
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
@@ -172,6 +175,31 @@ chunk deactivates mid-session). The 2026-06-29 recurrence reopened the investiga
 node's persistent data stays addressable while deactivated, and v1.2.9/v1.2.10 turned that into a working,
 reload-safe fix (see above). The original "shoreline reeds never refill" symptom is now fixed and
 confirmed in-game. Full writeup: `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30".
+
+## v1.3.0/v1.3.1 — tree respawn hardened to gather-path parity + co-op gather detection fix (2026-07-02)
+Prompted by a mod review plus a co-op report: the host detected a client's tree chops but never their
+gathers, and tree respawn "wasn't 100%" either. Root causes and fixes:
+- Trees gained everything gather got in v1.2.9/v1.2.10/v1.2.19 — persisted `WorldItemInstanceId`,
+  WID-validated liveness, and handler-based refill for unloaded/stale stumps (see "Tree respawn" above)
+  — **confirmed in-game**: a tree felled far from base respawned unattended.
+- `DataSyncPatch` reworked to classify nodes from data instead of `GetComponent` on the instance's
+  GameObject, closing the likely reason client gathers went undetected (see "Gather resource respawn"
+  above) — **⚠️ not yet re-tested in co-op.**
+- New catch-up registration self-heals nodes lost to any historical bug the moment the host next
+  streams them in — **confirmed in-game**: 125 catch-up registrations, zero orphaned stumps left in a
+  full session.
+- Bug fix: v1.2.20's live-gather-respawn pre-state reads were accidentally gated behind
+  `EnableDiagnostics`, so with diagnostics off the live path always misjudged its own respawn as fake
+  and fell through to the handler fallback. Reads are now unconditional.
+- v1.3.1: `DataSyncPatch` gained an `IsExhausted()` gate ahead of all other work — the v1.3.0 log showed
+  up to ~105k calls/5s during streaming, nearly all healthy/uninteresting instances. Not
+  diagnostics-gated (helps normal play too). **⚠️ Not yet re-tested.**
+- Egg/nest question answered: a ground bird's-nest is an ordinary gather node yielding `"Feathers"` —
+  it follows the exact same respawn logic as flax/reeds/berries (already configured). `Wild Egg` is a
+  bonus drop bundled with that gather, not its own node (same shape as `Seeds` on plants) — no separate
+  timer exists to tune.
+- Full mechanism detail, in-game evidence, and the co-op test plan: `TREERESPAWN_HANDOFF.md` →
+  "v1.3.0/v1.3.1 — tree hardening, co-op gather fix, self-healing catch-up".
 
 ## Mining / stone-clump respawn — abandoned
 Investigated and abandoned; do not re-attempt. Full reasoning is in

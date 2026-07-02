@@ -37,10 +37,11 @@ internal static class GatherPatch
             Plugin.PendingGatherRespawns[posKey] = (weather!.NetworkedCurrentGameTime, itemName);
             Plugin.SavePending();
 
-            // Cache the node's WorldItemInstanceId NOW, while the instance is valid — the experimental
+            // Cache the node's WorldItemInstanceId NOW, while the instance is valid — the
             // deactivated-replenish path (v1.2.9) needs it to re-resolve the instance after the chunk
             // unloads (by then the cached ActiveInstances pointer is stale: deregistered, UniqueId=0).
             try { Plugin.GatherWid[posKey] = biomeInst.GetWorldItemInstanceId(); } catch { }
+            Plugin.KnownNodes[posKey] = (NodeKind.Gather, itemName);
 
             // v1.2.7 probe (EnableDiagnostics-gated, purely additive — wrapped so a throw here can't
             // disturb the registration above): capture, AT HARVEST TIME, how far the player was from

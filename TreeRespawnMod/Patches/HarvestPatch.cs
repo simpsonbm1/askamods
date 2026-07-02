@@ -41,6 +41,11 @@ internal static class HarvestPatch
 
             Plugin.RegisteredStumps.Add(posKey);
             Plugin.PendingRespawns[posKey] = weather!.NetworkedCurrentGameTime;
+            // Cache the tree's WorldItemInstanceId NOW, while the instance is valid — DayTracker uses
+            // it to validate the cached pointer (pooled wrappers get reused for other nodes once a
+            // chunk unloads) and to re-resolve/refill the stump via the data handler while unloaded.
+            try { Plugin.TreeWid[posKey] = biomeInst.GetWorldItemInstanceId(); } catch { }
+            Plugin.KnownNodes[posKey] = (NodeKind.Tree, "");
             Plugin.SavePending();
             Plugin.Logger.LogInfo(
                 $"[TreeRespawnMod] Tree felled at {posKey} (day={weather.GetDaysPassed()}). " +

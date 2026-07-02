@@ -14,8 +14,25 @@ public class DayTracker : MonoBehaviour
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
     private static DateTime _lastWeatherWarn = DateTime.MinValue;
 
-    // Per-node cooldown so an unresolved deactivated node doesn't re-attempt the handler refill every frame.
-    private static readonly Dictionary<string, DateTime> _lastDeactAttempt = new();
+    // Per-node cooldown so a node the handler can't service yet isn't re-attempted every frame.
+    // Shared by trees and gather (a tree and a gather node never share a 0.1m-rounded position).
+    private static readonly Dictionary<string, DateTime> _lastHandlerAttempt = new();
+
+    // Called on world switch (Plugin.OnWorldChanged) — posKeys collide across worlds, so a stale
+    // cooldown from world A must not delay (or leak into) world B.
+    internal static void ClearTransientState() => _lastHandlerAttempt.Clear();
+
+    // True while a recent failed attempt should suppress another try; otherwise stamps NOW and
+    // lets this attempt proceed.
+    private static bool HandlerOnCooldown(string posKey)
+    {
+        if (_lastHandlerAttempt.TryGetValue(posKey, out var last)
+            && (DateTime.UtcNow - last).TotalSeconds < 30) return true;
+        _lastHandlerAttempt[posKey] = DateTime.UtcNow;
+        return false;
+    }
+
+    private enum HandlerResult { Retry, Replenished, AlreadyDone, Cancelled }
 
     void Update()
     {
@@ -78,28 +95,39 @@ public class DayTracker : MonoBehaviour
         List<string>? overdueTreeNotLoaded = diag ? new List<string>() : null;
         List<string>? overdueGatherNotLoaded = diag ? new List<string>() : null;
 
+        // ── Trees ─────────────────────────────────────────────────────────────────────────────
+        // v1.3.0 hardening — mirrors the gather side: validate the cached pointer by WID before
+        // trusting it (pooled wrappers are reused for OTHER nodes once a chunk unloads — v1.2.19
+        // finding), never drop an entry unless the replenish verifiably took, and service unloaded
+        // stumps through the data handler instead of waiting for the player to walk back.
         var toRemove = new List<string>();
         foreach (var kvp in Plugin.PendingRespawns)
         {
             string posKey = kvp.Key;
             float gameTimeFelled = kvp.Value;
 
-            // Look up the live instance by position — safe after scene reloads and restarts.
-            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst))
+            bool haveWid = Plugin.TreeWid.TryGetValue(posKey, out var wid);
+            Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
+
+            // Only trust the cached pointer when it still addresses OUR node. Without a wid
+            // (legacy entries from pre-v1.3.0 saves) we keep the old trust-the-pointer behavior —
+            // best information available; those entries age out as they respawn.
+            bool pointerTrusted = false;
+            if (inst != null)
             {
-                if (overdueTreeNotLoaded != null)
-                {
-                    float elapsed = ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
-                    if (elapsed >= threshold) overdueTreeNotLoaded.Add($"{posKey}({elapsed:F1}d)");
-                }
-                continue;
+                if (!haveWid) pointerTrusted = true;
+                else { try { pointerTrusted = inst.GetWorldItemInstanceId().Raw == wid.Raw; } catch { } }
             }
 
-            if (inst.Destroyed)
+            // Stump cleared by hand is the ONE legitimate cancel (trees only — gather always renews).
+            // Only honored on a trusted pointer: a reused wrapper's Destroyed describes an unrelated
+            // node and must not cancel a live stump's respawn permanently.
+            bool destroyed = false;
+            if (pointerTrusted) { try { destroyed = inst!.Destroyed; } catch { } }
+            if (pointerTrusted && destroyed)
             {
-                // Stump was harvested — cancel the respawn
                 toRemove.Add(posKey);
-                Plugin.RegisteredStumps.Remove(posKey);
+                CleanupTree(posKey);
                 Plugin.Logger.LogInfo(
                     $"[TreeRespawnMod] Stump harvested — cancelled respawn at {posKey}");
                 continue;
@@ -107,26 +135,62 @@ public class DayTracker : MonoBehaviour
 
             float elapsedDays =
                 ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
+            if (elapsedDays < threshold) continue;
 
-            if (elapsedDays >= threshold)
+            bool live = false;
+            if (pointerTrusted && !destroyed) { try { live = inst!.Active; } catch { } }
+
+            if (live)
             {
-                toRemove.Add(posKey);
-                Plugin.RegisteredStumps.Remove(posKey);
+                bool success = false;
                 try
                 {
-                    inst.Replenish();
-                    Plugin.Logger.LogInfo(
-                        $"[TreeRespawnMod] Tree at {posKey} respawned ({elapsedDays:F2} days elapsed).");
+                    inst!.Replenish();
+                    // Verify the write took before consuming the entry — pre-v1.3.0 the entry was
+                    // dropped unconditionally, so a no-op Replenish silently lost the tree forever.
+                    // A replenished tree reads IsExhausted=false (a stump reads true — v1.1.1 gates).
+                    bool postExhausted = true;
+                    try { postExhausted = inst.IsExhausted(); } catch { }
+                    success = !postExhausted;
+                    if (success)
+                        Plugin.Logger.LogInfo(
+                            $"[TreeRespawnMod] Tree at {posKey} respawned ({elapsedDays:F2} days elapsed).");
+                    else
+                        Plugin.Logger.LogWarning(
+                            $"[TreeRespawnMod] Tree at {posKey}: Replenish on live instance left IsExhausted=true — keeping entry, will retry.");
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Logger.LogError(
-                        $"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
+                    Plugin.Logger.LogError($"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
                 }
+
+                if (success)
+                {
+                    toRemove.Add(posKey);
+                    CleanupTree(posKey);
+                }
+                else if (Plugin.RefillUnloadedNodes.Value && haveWid && !HandlerOnCooldown(posKey))
+                {
+                    ApplyTreeHandlerResult(HandlerReplenishTree(posKey, wid), posKey, elapsedDays, toRemove);
+                }
+            }
+            else if (Plugin.RefillUnloadedNodes.Value && haveWid)
+            {
+                // Not live: pointer stale/reused, or the posKey isn't in ActiveInstances at all
+                // (chunk never streamed this session). The handler path needs only posKey+wid, so
+                // both cases are serviceable without the tile being loaded.
+                if (HandlerOnCooldown(posKey)) continue;
+                ApplyTreeHandlerResult(HandlerReplenishTree(posKey, wid), posKey, elapsedDays, toRemove);
+            }
+            else if (overdueTreeNotLoaded != null)
+            {
+                overdueTreeNotLoaded.Add($"{posKey}({elapsedDays:F1}d)");
             }
         }
 
-        // Gather resources (reeds, etc.) — no stump-cancel condition, just time-based.
+        // ── Gather resources (reeds, etc.) ────────────────────────────────────────────────────
+        // No cancel condition of any kind — gather nodes ALWAYS renew on their timers (only trees
+        // have a legitimate "intentionally cleared" state, via stump clearing).
         var toRemoveGather = new List<string>();
         foreach (var kvp in Plugin.PendingGatherRespawns)
         {
@@ -141,74 +205,48 @@ public class DayTracker : MonoBehaviour
                 continue;
             }
 
-            if (!Plugin.ActiveInstances.TryGetValue(posKey, out var inst))
-            {
-                if (overdueGatherNotLoaded != null)
-                {
-                    float elapsed = ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
-                    if (elapsed >= gatherThreshold) overdueGatherNotLoaded.Add($"{posKey}({elapsed:F1}d,{itemName})");
-                }
-                continue;
-            }
-
             float elapsedDays =
                 ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
+            if (elapsedDays < gatherThreshold) continue;
 
-            if (elapsedDays >= gatherThreshold)
+            bool haveWid = Plugin.GatherWid.TryGetValue(posKey, out var wid);
+            Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
+
+            bool live = false;
+            if (inst != null)
             {
-                // When the cached pointer is stale/deactivated, don't fake the respawn against it — re-resolve
-                // a usable instance through the data handler and replenish THAT (RefillUnloadedGatherNodes).
-                // Only the not-live case is diverted; live nodes use the normal path below.
-                bool live;
-                try 
-                { 
-                    live = inst.Active && !inst.Destroyed; 
-                    if (live && Plugin.GatherWid.TryGetValue(posKey, out var expectedWid))
-                    {
-                        if (inst.GetWorldItemInstanceId().Raw != expectedWid.Raw) live = false;
-                    }
-                } 
-                catch { live = false; }
-                if (!live && Plugin.RefillUnloadedNodes.Value)
-                {
-                    // Throttle retries for a node we can't resolve yet (e.g. no wid, or GetInstance returns
-                    // null) so it can't spin every frame. A resolved+refilled node is dropped immediately; an
-                    // unresolved one is KEPT (liveness guard) and retried after the window — or serviced by the
-                    // normal path once it streams back in.
-                    if (_lastDeactAttempt.TryGetValue(posKey, out var last)
-                        && (DateTime.UtcNow - last).TotalSeconds < 30) continue;
-                    _lastDeactAttempt[posKey] = DateTime.UtcNow;
-
-                    if (DeactivatedReplenish(posKey, itemName))
-                    {
-                        toRemoveGather.Add(posKey);
-                        _lastDeactAttempt.Remove(posKey);
-                    }
-                    continue;
-                }
-
-                // Snapshot liveness + stock BEFORE replenishing
-                bool preDestroyed = false, preActive = false, preAvail = false; int preQty = -1;
-                string bufInfo = "";
-                if (diag)
-                {
-                    try { preDestroyed = inst.Destroyed; preActive = inst.Active; preAvail = inst.IsAvailable(); preQty = inst.GetQuantity(); }
-                    catch { }
-                    bufInfo = Plugin.ProbeBuffer(inst); // captured BEFORE Replenish
-                }
-
-                bool replenishSucceeded = false;
                 try
                 {
-                    inst.Replenish();
+                    live = inst.Active && !inst.Destroyed;
+                    // A stale unpooled wrapper can falsely claim Active (v1.2.19) — or genuinely be
+                    // Active because the pool reassigned it to a DIFFERENT node. The wid is the truth.
+                    if (live && haveWid && inst.GetWorldItemInstanceId().Raw != wid.Raw) live = false;
+                }
+                catch { live = false; }
+            }
+
+            if (live)
+            {
+                // Pre-state read UNCONDITIONALLY — v1.2.20 gated these reads behind EnableDiagnostics,
+                // which left preActive=false in normal play, so `fake` was ALWAYS true and the live
+                // path never succeeded (everything silently fell through to the handler fallback).
+                bool preDestroyed = true, preActive = false, preAvail = false; int preQty = -1;
+                try { preDestroyed = inst!.Destroyed; preActive = inst.Active; preAvail = inst.IsAvailable(); preQty = inst.GetQuantity(); }
+                catch { }
+                string bufInfo = diag ? Plugin.ProbeBuffer(inst!) : "";
+
+                bool success = false;
+                try
+                {
+                    inst!.Replenish();
 
                     bool postAvail = false; int postQty = -1;
                     try { postAvail = inst.IsAvailable(); postQty = inst.GetQuantity(); } catch { }
-                    
-                    // A real respawn must increase stock or make it available with qty > 0. 
-                    // If qty is still 0, it failed (stale pointer with garbage 'Available=True' bit).
+
+                    // A real respawn must leave actual stock. If qty is still 0, it failed
+                    // (stale pointer with a garbage 'Available=True' bit).
                     bool fake = preDestroyed || !preActive || postQty <= 0;
-                    
+
                     if (diag)
                     {
                         Plugin.Logger.LogInfo(
@@ -219,7 +257,7 @@ public class DayTracker : MonoBehaviour
 
                     if (!fake)
                     {
-                        replenishSucceeded = true;
+                        success = true;
                         Plugin.Logger.LogInfo(
                             $"[TreeRespawnMod] Gather resource \"{itemName}\" at {posKey} respawned ({elapsedDays:F2} days elapsed).");
                     }
@@ -229,40 +267,50 @@ public class DayTracker : MonoBehaviour
                     Plugin.Logger.LogError($"[TreeRespawnMod] Replenish failed at {posKey}: {ex}");
                 }
 
-                if (replenishSucceeded)
+                if (success)
                 {
                     toRemoveGather.Add(posKey);
+                    _lastHandlerAttempt.Remove(posKey);
                 }
-                else if (Plugin.RefillUnloadedNodes.Value)
+                else if (Plugin.RefillUnloadedNodes.Value && haveWid && !HandlerOnCooldown(posKey)
+                         && DeactivatedReplenish(posKey, itemName, wid))
                 {
-                    // The pointer was stale but appeared Active, so the normal path failed. 
-                    // Fallback to deactivated path.
-                    if (_lastDeactAttempt.TryGetValue(posKey, out var last)
-                        && (DateTime.UtcNow - last).TotalSeconds < 30) continue;
-                    _lastDeactAttempt[posKey] = DateTime.UtcNow;
-
-                    if (DeactivatedReplenish(posKey, itemName))
-                    {
-                        toRemoveGather.Add(posKey);
-                        _lastDeactAttempt.Remove(posKey);
-                    }
+                    toRemoveGather.Add(posKey);
+                    _lastHandlerAttempt.Remove(posKey);
                 }
+            }
+            else if (Plugin.RefillUnloadedNodes.Value && haveWid)
+            {
+                // Not live — stale/reused pointer OR posKey absent from ActiveInstances entirely
+                // (never streamed this session). Pre-v1.3.0 the absent case was skipped before the
+                // handler refill was ever considered, stranding the entry until a walk-by; the
+                // handler path only needs posKey+wid, so service both cases here.
+                if (HandlerOnCooldown(posKey)) continue;
+                if (DeactivatedReplenish(posKey, itemName, wid))
+                {
+                    toRemoveGather.Add(posKey);
+                    _lastHandlerAttempt.Remove(posKey);
+                }
+            }
+            else if (overdueGatherNotLoaded != null)
+            {
+                overdueGatherNotLoaded.Add($"{posKey}({elapsedDays:F1}d,{itemName})");
             }
         }
 
-        // Throttled summary (Issue D): entries past their threshold that can't respawn because their
-        // node isn't streamed in right now. Combined tree+gather under one throttle so a noisy one
-        // can't crowd out the other.
+        // Throttled summary: entries past their threshold that currently have NO servicing route
+        // (no wid + not streamed in, or RefillUnloadedGatherNodes off). Combined tree+gather under
+        // one throttle so a noisy one can't crowd out the other.
         if (diag && (overdueTreeNotLoaded!.Count > 0 || overdueGatherNotLoaded!.Count > 0)
             && (DateTime.UtcNow - _lastOverdueDiagLog).TotalSeconds >= 5)
         {
             _lastOverdueDiagLog = DateTime.UtcNow;
             if (overdueTreeNotLoaded.Count > 0)
                 Plugin.Logger.LogInfo(
-                    $"[TreeRespawnMod] [diag] overdue-but-not-loaded (tree): {overdueTreeNotLoaded.Count} — {string.Join(", ", overdueTreeNotLoaded.Take(5))}");
+                    $"[TreeRespawnMod] [diag] overdue-but-unserviceable (tree): {overdueTreeNotLoaded.Count} — {string.Join(", ", overdueTreeNotLoaded.Take(5))}");
             if (overdueGatherNotLoaded!.Count > 0)
                 Plugin.Logger.LogInfo(
-                    $"[TreeRespawnMod] [diag] overdue-but-not-loaded (gather): {overdueGatherNotLoaded.Count} — {string.Join(", ", overdueGatherNotLoaded.Take(5))}");
+                    $"[TreeRespawnMod] [diag] overdue-but-unserviceable (gather): {overdueGatherNotLoaded.Count} — {string.Join(", ", overdueGatherNotLoaded.Take(5))}");
         }
 
         bool anyChanges = toRemove.Count > 0 || toRemoveGather.Count > 0;
@@ -276,24 +324,48 @@ public class DayTracker : MonoBehaviour
             Plugin.SavePending();
     }
 
-    // Refill a node whose chunk is deactivated, WITHOUT streaming the tile in. The cached ActiveInstances
-    // pointer is stale by now (deregistered, UniqueId=0), so we re-resolve a usable instance through the data
-    // handler — handler.GetInstance(onlyIfActive:false) — using the WorldItemInstanceId cached at harvest (or
-    // reconstructed from the save), then call the game's own Replenish() on that valid handle and flag the cell
-    // dirty so the change persists and the villager AI re-reads it. Returns true only when the refill actually
-    // took (so the caller can drop the entry); false leaves it pending to retry. All game calls wrapped — this
-    // writes live state. [diag] lines are EnableDiagnostics-gated; a real Replenish throw always logs.
-    private bool DeactivatedReplenish(string posKey, string itemName)
+    // Shared bookkeeping when a tree entry leaves the pending list for any reason.
+    private static void CleanupTree(string posKey)
     {
-        const string p = "[TreeRespawnMod] [diag] exp-replenish";
+        Plugin.RegisteredStumps.Remove(posKey);
+        _lastHandlerAttempt.Remove(posKey);
+    }
+
+    private static void ApplyTreeHandlerResult(HandlerResult r, string posKey, float elapsedDays, List<string> toRemove)
+    {
+        switch (r)
+        {
+            case HandlerResult.Replenished:
+                toRemove.Add(posKey);
+                CleanupTree(posKey);
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] Tree at {posKey} respawned via data handler ({elapsedDays:F2} days elapsed).");
+                break;
+            case HandlerResult.AlreadyDone:
+                toRemove.Add(posKey);
+                CleanupTree(posKey);
+                break;
+            case HandlerResult.Cancelled:
+                toRemove.Add(posKey);
+                CleanupTree(posKey);
+                Plugin.Logger.LogInfo(
+                    $"[TreeRespawnMod] Stump gone (persistent data reads Destroyed) — cancelled respawn at {posKey}");
+                break;
+                // Retry: keep the entry pending; the cooldown gates the next attempt.
+        }
+    }
+
+    // Resolve a fresh, writable instance handle through the persistent data handler — works whether
+    // or not the node's chunk is streamed in (onlyIfActive:false is the load-bearing part, confirmed
+    // in-game for gather nodes 2026-06-30). Returns null when the node can't be resolved yet (caller
+    // keeps the entry pending and retries after the cooldown).
+    private static BiomeItemInstance? ResolveViaHandler(string posKey, string label, SSSGame.WorldItemInstanceId wid, string p)
+    {
         bool diag = Plugin.EnableDiagnostics.Value;
 
         var handler = Plugin.DataHandler;
-        if (handler == null) { try { handler = BiomeItemInstance.Handler; } catch { } }   // Handler is a static (shared) field
-        if (handler == null) { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: no handler"); return false; }
-
-        if (!Plugin.GatherWid.TryGetValue(posKey, out var wid))
-        { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: no cached wid"); return false; }
+        if (handler == null) { try { handler = BiomeItemInstance.Handler; } catch { } }   // static (shared) field
+        if (handler == null) { if (diag) Plugin.Logger.LogInfo($"{p} \"{label}\" at {posKey}: no handler"); return null; }
 
         WorldTileId tileId;
         try
@@ -301,24 +373,57 @@ public class DayTracker : MonoBehaviour
             ParsePosKey(posKey, out float px, out float pz);
             tileId = WorldTileId.GetLowest(px, pz, ReadTileSize());
         }
-        catch (Exception e) { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: tileId err {e.GetType().Name}"); return false; }
+        catch (Exception e) { if (diag) Plugin.Logger.LogInfo($"{p} \"{label}\" at {posKey}: tileId err {e.GetType().Name}"); return null; }
 
         WorldItemInstance? fresh = null;
         try { fresh = handler.GetInstance(tileId, wid, false, true); }   // onlyIfActive:false, noPooling:true
-        catch (Exception e) { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: GetInstance threw {e.GetType().Name}"); return false; }
-        if (fresh == null) { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: GetInstance(onlyIfActive:false) returned NULL"); return false; }
+        catch (Exception e) { if (diag) Plugin.Logger.LogInfo($"{p} \"{label}\" at {posKey}: GetInstance threw {e.GetType().Name}"); return null; }
+        if (fresh == null) { if (diag) Plugin.Logger.LogInfo($"{p} \"{label}\" at {posKey}: GetInstance(onlyIfActive:false) returned NULL"); return null; }
 
         BiomeItemInstance? bi = null;
         try { bi = fresh.TryCast<BiomeItemInstance>(); } catch { }
-        if (bi == null) { if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: resolved instance not a BiomeItemInstance"); return false; }
+        if (bi == null && diag) Plugin.Logger.LogInfo($"{p} \"{label}\" at {posKey}: resolved instance not a BiomeItemInstance");
+        return bi;
+    }
+
+    // Flag the cell dirty + notify so the change persists and the villager AI/streaming re-reads it.
+    private static void FlushHandler(BiomeItemInstance bi)
+    {
+        var handler = Plugin.DataHandler;
+        if (handler == null) { try { handler = BiomeItemInstance.Handler; } catch { } }
+        if (handler == null) return;
+        try { handler.SetDirty(bi.Cell); } catch { }
+        try { handler.OnInstanceDataChanged(bi); } catch { }
+    }
+
+    // Refill a gather node through the data handler, without needing its chunk streamed in. Returns
+    // true only when the entry should be dropped (stock verified written, or nothing needed doing);
+    // false leaves it pending to retry. All game calls wrapped — this writes live state. [diag]
+    // lines are EnableDiagnostics-gated; a real Replenish throw always logs.
+    private bool DeactivatedReplenish(string posKey, string itemName, SSSGame.WorldItemInstanceId wid)
+    {
+        const string p = "[TreeRespawnMod] [diag] exp-replenish";
+        bool diag = Plugin.EnableDiagnostics.Value;
+
+        var bi = ResolveViaHandler(posKey, itemName, wid, p);
+        if (bi == null) return false;
 
         int preQty = -1, postQty = -1; bool preAvail = false, postAvail = false, freshActive = false;
         try { freshActive = bi.Active; } catch { }
         try { preQty = bi.GetQuantity(); preAvail = bi.IsAvailable(); } catch { }
+
+        // Already stocked → nothing to refill; consume the entry. Also self-heals stale entries
+        // (e.g. registered, then the game was quit without saving — the world reverted but the mod's
+        // file kept the entry; pre-v1.3.0 such an entry retried NO-CHANGE every 30s forever).
+        if (preQty > 0)
+        {
+            if (diag) Plugin.Logger.LogInfo($"{p} \"{itemName}\" at {posKey}: already stocked (qty={preQty}) — dropping entry");
+            return true;
+        }
+
         try { bi.Replenish(); }
         catch (Exception e) { Plugin.Logger.LogError($"{p} \"{itemName}\" at {posKey}: Replenish threw {e}"); return false; }
-        try { handler.SetDirty(bi.Cell); } catch { }
-        try { handler.OnInstanceDataChanged(bi); } catch { }
+        FlushHandler(bi);
         try { postQty = bi.GetQuantity(); postAvail = bi.IsAvailable(); } catch { }
 
         bool stuck = postAvail || postQty > preQty;
@@ -327,6 +432,45 @@ public class DayTracker : MonoBehaviour
                 $"{p} \"{itemName}\" at {posKey}: freshActive={freshActive} " +
                 $"avail {preAvail}->{postAvail} qty {preQty}->{postQty} {(stuck ? "OK (stock written)" : "NO-CHANGE")}");
         return stuck;   // only drop the entry when the refill actually took
+    }
+
+    // Tree variant of the handler refill (v1.3.0, ⚠️ same mechanism as the gather path but not yet
+    // confirmed in-game for trees). Key semantic difference: the persistent data reading Destroyed
+    // means the stump was genuinely cleared (the one legitimate tree cancel) — honored even while
+    // the chunk is unloaded, e.g. a co-op client cleared it away from the host.
+    private static HandlerResult HandlerReplenishTree(string posKey, SSSGame.WorldItemInstanceId wid)
+    {
+        const string p = "[TreeRespawnMod] [diag] exp-replenish-tree";
+        bool diag = Plugin.EnableDiagnostics.Value;
+
+        var bi = ResolveViaHandler(posKey, "tree", wid, p);
+        if (bi == null) return HandlerResult.Retry;
+
+        bool destroyed = false;
+        try { destroyed = bi.Destroyed; } catch { }
+        if (destroyed) return HandlerResult.Cancelled;
+
+        bool preExhausted = true, postExhausted = true, freshActive = false;
+        try { freshActive = bi.Active; } catch { }
+        try { preExhausted = bi.IsExhausted(); } catch { }
+
+        if (!preExhausted)
+        {
+            // Already standing (stale entry, or respawned through some other path) — nothing to do.
+            if (diag) Plugin.Logger.LogInfo($"{p} at {posKey}: not exhausted (already standing) — dropping entry");
+            return HandlerResult.AlreadyDone;
+        }
+
+        try { bi.Replenish(); }
+        catch (Exception e) { Plugin.Logger.LogError($"{p} at {posKey}: Replenish threw {e}"); return HandlerResult.Retry; }
+        FlushHandler(bi);
+        try { postExhausted = bi.IsExhausted(); } catch { }
+
+        bool stuck = !postExhausted;
+        if (diag)
+            Plugin.Logger.LogInfo(
+                $"{p} at {posKey}: freshActive={freshActive} exhausted {preExhausted}->{postExhausted} {(stuck ? "OK" : "NO-CHANGE")}");
+        return stuck ? HandlerResult.Replenished : HandlerResult.Retry;
     }
 
     private static void ParsePosKey(string posKey, out float x, out float z)
@@ -364,7 +508,6 @@ public class DayTracker : MonoBehaviour
         {
             foreach (var kvp in Plugin.ActiveInstances)
             {
-                string posKey = kvp.Key;
                 var inst = kvp.Value;
                 if (inst == null || inst.Destroyed) continue;
 
@@ -382,13 +525,16 @@ public class DayTracker : MonoBehaviour
                         {
                             inst.Replenish();
                             respawnedCount++;
-                            toRemoveGather.Add(posKey);
-                            if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Manual respawn triggered for gather node at {posKey}");
+                            // Recompute the key from the instance's CURRENT position — a pooled
+                            // wrapper may be registered under an old posKey while now describing a
+                            // different node; the pending entry to consume is the current node's.
+                            toRemoveGather.Add(Plugin.PosKey(nodePos));
+                            if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Manual respawn triggered for gather node at {Plugin.PosKey(nodePos)}");
                         }
                     }
-                    catch (Exception e) 
-                    { 
-                        if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Gather check err at {posKey}: {e.Message}"); 
+                    catch (Exception e)
+                    {
+                        if (diag) Plugin.Logger.LogInfo($"[TreeRespawnMod] Gather check err at {kvp.Key}: {e.Message}");
                     }
                 }
             }
@@ -407,7 +553,7 @@ public class DayTracker : MonoBehaviour
                     {
                         if (hi == null || hi.gameObject == null || !hi.gameObject.scene.isLoaded) continue;
                         if (hi.harvestPieces == null || hi.harvestPieces.Count < 2) continue;
-                        
+
                         if (hi.GetCurrentPieceIndex() == hi.harvestPieces.Count - 1)
                         {
                             float distSq = Vector3.SqrMagnitude(playerPos - hi.transform.position);
@@ -438,11 +584,12 @@ public class DayTracker : MonoBehaviour
         foreach (var k in toRemoveTree)
         {
             if (Plugin.PendingRespawns.Remove(k)) anyRemoved = true;
-            Plugin.RegisteredStumps.Remove(k);
+            CleanupTree(k);
         }
         foreach (var k in toRemoveGather)
         {
             if (Plugin.PendingGatherRespawns.Remove(k)) anyRemoved = true;
+            _lastHandlerAttempt.Remove(k);
         }
 
         if (anyRemoved) Plugin.SavePending();
