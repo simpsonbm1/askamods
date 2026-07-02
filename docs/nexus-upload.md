@@ -20,6 +20,7 @@ gh run watch <run-id> --exit-status     # then: gh run view <run-id> --log  → 
 | TreeRespawnMod | Tree and Gatherable Respawner | `7551668` |
 | MineRefreshMod | Mine Refresh | `7586480` |
 | VillagerFightBackMod | Villager Fight Back | `7587134` |
+| TerrainLevelerMod | Bulldozer Field / Terrain Leveler | `7606994` |
 
 BowDamageMod and TorchFuelMod aren't on Nexus yet — to add one: create its page + first file, then add a line to the workflow's `case` block and an option to the `mod` input.
 
