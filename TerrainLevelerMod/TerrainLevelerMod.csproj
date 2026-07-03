@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TerrainLevelerMod</AssemblyName>
     <RootNamespace>TerrainLevelerMod</RootNamespace>
-    <Version>1.4.8</Version>
+    <Version>1.5.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

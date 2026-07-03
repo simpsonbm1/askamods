@@ -26,6 +26,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> FightBackFactions = null!;
     internal static ConfigEntry<float> CombatTopUpSeconds = null!;
     internal static ConfigEntry<bool> DebugLogging = null!;
+    internal static ConfigEntry<bool> TimerDiagnostics = null!;
 
     // Clean C# static properties replacing the experimental configuration settings
     internal static bool SuppressSpook => true;
@@ -83,6 +84,14 @@ public class Plugin : BasePlugin
             description: "Log the name + faction of each enemy that spooks a villager (so you can fill " +
                          "FightBackAgainst), and log when a villager is flipped to fight. Defaults ON while " +
                          "this mod is being verified in-game; turn off once your whitelist is dialed in.");
+
+        TimerDiagnostics = Config.Bind(
+            section: "VillagerFightBack",
+            key: "TimerDiagnostics",
+            defaultValue: true,
+            description: "Log combat-timer events: vanilla re-arm clamps, the end-of-combat zero-out, and " +
+                         "a short post-combat watch showing which quest the villager runs after a fight. " +
+                         "Defaults ON while the v1.0.27 timer fix is being verified in-game.");
 
         ParseTokens();
         Config.SettingChanged += (_, __) => ParseTokens();
@@ -362,7 +371,11 @@ public class Plugin : BasePlugin
     // lookup). Populated/refreshed from _GetSpooked and the polled ShouldFight getter, both of which carry
     // FleeCombatQuestData (→ .QuestRunner, .Quest). Short TTL so we only steer the arbiter during a live
     // engagement; outside the window the entry expires and the runner behaves vanilla.
-    private struct CombatRec { public Quest Quest; public IntPtr QuestDataPtr; public float Time; }
+    // Data holds the live CombatQuestData wrapper so the frame-driven combat-end check in
+    // QuestRunner.Update can reach _combatTimeRemaining without depending on the ShouldFight
+    // getter being polled again after the enemy dies (it often isn't — the cause of the
+    // pre-v1.0.27 "stays in combat ~a minute" lingering).
+    private struct CombatRec { public Quest Quest; public IntPtr QuestDataPtr; public CombatQuest.CombatQuestData Data; public float Time; }
     private static readonly Dictionary<IntPtr, CombatRec> _runnerCombat = new();
 
     // Native object pointer for any IL2CPP wrapper. QuestRunner sits on the UnityEngine.Object chain;
@@ -375,26 +388,79 @@ public class Plugin : BasePlugin
         return b == null ? IntPtr.Zero : Il2CppInterop.Runtime.IL2CPP.Il2CppObjectBaseToPtr(b);
     }
 
-    internal static void RememberVillagerCombat(QuestRunner runner, Quest combatQuest, IntPtr questDataPtr)
+    internal static void RememberVillagerCombat(QuestRunner runner, Quest combatQuest, IntPtr questDataPtr, CombatQuest.CombatQuestData? questData)
     {
         if (runner == null || combatQuest == null) return;
         IntPtr runnerKey = PtrOf(runner);
         if (runnerKey == IntPtr.Zero) return;
-        _runnerCombat[runnerKey] = new CombatRec { Quest = combatQuest, QuestDataPtr = questDataPtr, Time = Time.realtimeSinceStartup };
+        _runnerCombat[runnerKey] = new CombatRec { Quest = combatQuest, QuestDataPtr = questDataPtr, Data = questData!, Time = Time.realtimeSinceStartup };
     }
 
-    // This villager's flee-combat quest + its quest-data pointer, if a fresh engagement is on record.
-    internal static bool TryGetVillagerCombat(QuestRunner runner, out Quest combatQuest, out IntPtr questDataPtr)
+    // This villager's flee-combat quest + its quest-data pointer/wrapper, if a fresh engagement is on record.
+    internal static bool TryGetVillagerCombat(QuestRunner runner, out Quest combatQuest, out IntPtr questDataPtr, out CombatQuest.CombatQuestData? questData)
     {
-        combatQuest = null!; questDataPtr = IntPtr.Zero;
+        combatQuest = null!; questDataPtr = IntPtr.Zero; questData = null;
         IntPtr runnerKey = PtrOf(runner);
         if (runnerKey == IntPtr.Zero) return false;
         if (_runnerCombat.TryGetValue(runnerKey, out var rec))
         {
-            if (Time.realtimeSinceStartup - rec.Time <= SpookMemorySeconds) { combatQuest = rec.Quest; questDataPtr = rec.QuestDataPtr; return true; }
+            if (Time.realtimeSinceStartup - rec.Time <= SpookMemorySeconds) { combatQuest = rec.Quest; questDataPtr = rec.QuestDataPtr; questData = rec.Data; return true; }
             _runnerCombat.Remove(runnerKey); // stale
         }
         return false;
+    }
+
+    // Purge the engagement records for this villager the moment their whitelisted enemy dies, so
+    // the TriggerPriority boost and work-suspension window collapse immediately instead of coasting
+    // on the remaining spook TTL.
+    internal static void ForgetVillagerCombat(QuestRunner runner)
+    {
+        IntPtr runnerKey = PtrOf(runner);
+        if (runnerKey != IntPtr.Zero) _runnerCombat.Remove(runnerKey);
+    }
+
+    internal static void ForgetSpook(IntPtr key)
+    {
+        if (key != IntPtr.Zero) _recentSpooks.Remove(key);
+    }
+
+    // --- post-combat watch (diagnostic) ---
+    // For a few seconds after a fight ends we keep the quest-data wrapper around so QuestRunner.Update
+    // can log which quest actually runs and what the combat timer reads — if a villager still lingers
+    // in combat after the v1.0.27 fix, these lines name the quest that holds them.
+    private struct WatchRec { public float Until; public CombatQuest.CombatQuestData Data; }
+    private static readonly Dictionary<IntPtr, WatchRec> _postCombatWatch = new();
+    private const float PostCombatWatchSeconds = 8f;
+
+    internal static void StartPostCombatWatch(QuestRunner runner, CombatQuest.CombatQuestData? data)
+    {
+        IntPtr key = PtrOf(runner);
+        if (key == IntPtr.Zero) return;
+        _postCombatWatch[key] = new WatchRec { Until = Time.realtimeSinceStartup + PostCombatWatchSeconds, Data = data! };
+    }
+
+    internal static bool TryGetPostCombatWatch(QuestRunner runner, out CombatQuest.CombatQuestData? data)
+    {
+        data = null;
+        IntPtr key = PtrOf(runner);
+        if (key == IntPtr.Zero) return false;
+        if (_postCombatWatch.TryGetValue(key, out var rec))
+        {
+            if (Time.realtimeSinceStartup <= rec.Until) { data = rec.Data; return true; }
+            _postCombatWatch.Remove(key); // expired
+        }
+        return false;
+    }
+
+    private static float _lastTimerLogTime = -999f;
+
+    // Throttle for the combat-timer diagnostics (clamp + post-combat watch lines).
+    internal static bool ShouldLogTimer()
+    {
+        float t = Time.realtimeSinceStartup;
+        if (t - _lastTimerLogTime < 2f) return false;
+        _lastTimerLogTime = t;
+        return true;
     }
 
     // --- suspended work quests (removed while engaged, re-added when the enemy is gone) ---

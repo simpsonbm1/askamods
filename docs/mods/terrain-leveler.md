@@ -6,7 +6,8 @@ square**, leaving the vanilla Terrain Level Field 100% vanilla.
 **Status:** COMPLETE, **confirmed in-game (2026-07-01)** at v1.4.7 (shipped v1.4.8 = diagnostics off +
 dead-diag cleanup). The flatten/clear core was confirmed at v1.3.21/1.3.22; v1.4.x added the separate
 menu entry + per-template gating + localized text. Un-parked after being PARKED/ABANDONED through
-v1.1.21 — see [History](#history).
+v1.1.21 — see [History](#history). **v1.5.0 co-op fix confirmed in-game (2026-07-03)** — see
+[Co-op: host-side destruction](#co-op-host-side-destruction-v150-confirmed-in-game-2026-07-03) below.
 
 ## The working recipe
 
@@ -115,6 +116,64 @@ mesh-NaN crash), `PlacementDiagnostics` (false by default — flip true to log p
 identities at Use, and the bulldozer menu-entry injection/grant steps).
 `Obstructions`: `ClearObstructions` (true), `BombShots` (2), `ClearVerticalRange` (30),
 `ClearDiagnostics` (false — flip true for `[Bomb]`/`[Flatten]` logs).
+
+## Co-op: host-side destruction (v1.5.0, confirmed in-game 2026-07-03)
+
+**Symptom (reported on Nexus):** in co-op, "certain objects won't break; it seems only the host can
+break them." For this mod specifically: a client pressing E on a bulldozer field flattened the terrain
+(fine) but trees/rocks in the footprint survived — only a **host's own** press cleared them.
+
+**Root cause:** AOE destruction (the `DetonateAoEOverGrid` bomb pass) only replicates when applied by
+the **state authority** (the host). The flatten+bomb in `TerraformingFieldInteraction_Use_Postfix` run
+on whichever machine pressed E — for a client, that's a local no-op for destruction (the flatten via
+`HeightmapTool` is a Fusion-networked call and does propagate; the AOE damage does not).
+
+**Fix — mirrors TreeRespawnMod's `DataSyncPatch` trick, reversed.** TreeRespawnMod has the host *listen*
+for a client's action via replicated data (`WorldItemInstance._OnDataChanged`). Here it's the opposite
+direction: the **host must perform the action itself**, triggered by observing the client's press through
+the game's own replication. `TerraformingFieldInteraction.Use` already sends
+`Rpc_MarkCellInteracted`/eventually completes the field via the networked `TerraformingGridState` — no
+custom signalling needed, just patches on the receiving end:
+- **`TerraformingGridState._OnInteractionMapChanged()`** — fires when a cell's interacted bit replicates.
+  Confirmed **fires** in-game, but in every observed case the local interaction-map mirror hadn't been
+  updated yet at that instant (logged `map still clean — waiting for a press` every time) — so it never
+  ends up being the trigger that actually does the work in practice.
+- **`TerraformingGridState._RefreshCellsHeights()`** — same replication path, meant as a backup in case
+  `_OnInteractionMapChanged` turned out to be AOT-inlined. **Never observed firing** in-game (harmless;
+  the primary path below covers it).
+- **`TerraformingGridState.Rpc_DebugCompleteField`** (our own completion call) — Fusion's RPC weave runs
+  the body on the receiving authority, so a postfix here fires **host-side** when a client's copy of the
+  mod sends it. **This is the trigger that actually carries the fix** — confirmed in-game on all three
+  remote presses tested. It skips the "any cell interacted" gate the map-replication triggers use (by
+  the time the completion RPC arrives, the map has always already updated), so no proof-of-press check
+  is needed.
+
+All three funnel into one idempotent handler (`HandleHostSideBulldozer`), gated on:
+- `st.HasStateAuthority` (only the host acts — a client hitting these callbacks for someone else's press
+  defers, exactly like `_hasAuthority` gating elsewhere in this codebase);
+- per-grid dedup (`_hostClearProcessed`, a `HashSet<int>` of Unity instance ids) so the host's own local
+  `Use` postfix and this handler never double-clear the same grid, and so multiple trigger firings for
+  the same remote press are a no-op after the first;
+- the template-id check (`IsBulldozerGridCached` — vanilla fields are rejected, cheaply, after the first
+  resolve).
+
+**Config:** `[Coop] HostSideClear` (default `true` — disable to fall back to pre-v1.5.0 host-only-clears
+behavior), `[Coop] CoopDiagnostics` (default `true` — logs grid-state spawns, which trigger fired, and
+authority/template decisions as `[Coop]` lines).
+
+**Confirmed in-game (2026-07-03, two-machine co-op):** client presses at both close range (~35m from the
+host) and long range (~155m from the host) each fully cleared trees/rocks on the host and replicated to
+both players — bomb (2 shots) + flatten both logged `SUCCESS`/`ok`, and TreeRespawnMod's independent
+`_OnDataChanged` hook (a separate mod, watching only real networked state) corroborated with its own
+`Tree felled (data sync)`/`Stump harvested` lines for every tree in both fields. The host's own
+directly-pressed field deduped correctly (no redundant second pass through the co-op handler). No
+`[Coop]` errors in either session.
+
+**Not yet tested:** a client field placed far enough that the terrain/colliders around it may not be
+streamed in on the host at all (this mod's bomb pass needs live colliders to hit) — the two distances
+tested were both within the host's normal streaming radius. If a future report describes a *distant*
+client field's flatten succeeding but destruction still failing, that streaming-radius edge is the first
+thing to check.
 
 ## History
 The mod was originally PARKED/ABANDONED at v1.1.21 believing a true instant-flatten bulldozer was

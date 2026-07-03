@@ -1,4 +1,4 @@
-# Mod 7: VillagerFightBackMod — COMPLETE (Verified In-Game)
+# Mod 7: VillagerFightBackMod — COMPLETE (Verified In-Game, v1.0.27)
 
 **Goal:** Let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies** instead of fleeing — e.g., Wisps, which anything can kill — while still fleeing from genuinely dangerous attackers (draugar, wolves, ...). Villager-only; the player is never touched.
 
@@ -39,3 +39,48 @@ The solution requires two axes: redirecting the combat behavior FSM and resolvin
 2. **Attacking:** Standard villagers using `naturalCombatBehaviour` swing their weapons/fists and successfully kill Wisps.
 3. **Resuming Jobs:** Once the combat timer is reset upon Wisp death, the suspended work quest is restored and building/terraforming tasks are resumed within seconds.
 4. **Fleeing Threats:** Villagers still correctly flee from wolves and draugar since they are not on the whitelist.
+
+---
+
+## v1.0.27 — Inconsistent post-combat return-to-work, FIXED (confirmed in-game 2026-07-03)
+
+**Symptom:** after the v1.0.25 fix above, return-to-work was inconsistent rather than reliably fast —
+sometimes a villager resumed work within seconds of a fight, other times she stayed "in combat" for
+around a minute before dropping back to her job.
+
+**Root cause:** two compounding gaps in the original `KeepCombatAlive` timer logic
+(`FleeCombatShouldFightPatch`, postfix on `FleeCombatQuestData.ShouldFight`):
+1. **The top-up only ever RAISED `_combatTimeRemaining`** (below `CombatTopUpSeconds/2` → set to
+   `CombatTopUpSeconds`). But vanilla itself **re-arms the timer to ~60s mid-fight** (observed
+   `combatTime 63.8 -> ...` in-game — plausibly on the villager taking a hit). Nothing ever brought an
+   already-high value back down, so a re-arm meant riding out close to the full vanilla timer.
+2. **Death-detection lived only in the `ShouldFight` getter postfix**, which is polled by the FSM during
+   active engagement — but is frequently **not polled again** once the target is actually dead, so the
+   `!isAlive` → `_combatTimeRemaining = 0f` branch could simply never run for a given fight.
+
+Whichever fight hit case (2) — or hit case (1) after case (2) failed — rode out the vanilla ~60s. Fights
+where the death-poll happened to land inside the then-8s spook-memory window exited fast; the rest didn't.
+This is why the same whitelist/config produced both behaviors from one session to the next.
+
+**Fix (`FleeCombatPatch.cs`):**
+- **Down-clamp:** in the same `ShouldFight` postfix, if `_combatTimeRemaining` is ever found ABOVE
+  `CombatTopUpSeconds` (i.e. vanilla re-armed it), clamp it back down instead of leaving it. Bounds
+  lingering even if death-detection misses entirely.
+- **Frame-driven combat end:** `QuestRunner.Update` (already patched for work-suspension, runs every
+  tick regardless of whether any getter is being polled) now also holds the live
+  `CombatQuest.CombatQuestData` wrapper per villager. The moment the remembered whitelisted enemy reads
+  `!IsAlive()`, it zeroes `_combatTimeRemaining` directly, purges the engagement/spook records
+  (`ForgetVillagerCombat`/`ForgetSpook` — collapses the priority-boost window immediately rather than
+  coasting on the remaining spook TTL), and lets the existing restore-suspended-quests branch run the
+  same tick.
+- **New `TimerDiagnostics` config key** (default `true`): logs the re-arm clamp
+  (`[timer] clamped combatTime 63.8 -> 8.0 (vanilla re-arm)`), the frame-driven end
+  (`[timer] enemy 'Wisp' down — combat ended (combatTime X -> 0), restoring work`), and a short
+  post-combat watch (`[postcombat] activeQuest=... prio=... combatTime=...`) showing which quest the
+  villager runs for a few seconds after — useful if a future regression strands a villager again, since
+  the log will name the quest holding her.
+
+**Confirmed in-game (2026-07-03, solo):** villager killed two Wisps back-to-back; both times returned to
+work within seconds. Log showed the re-arm clamp firing (`63.8 -> 8.0`) on one fight — direct proof of
+root cause (1) above — and the frame-driven end firing on both (`enemy 'Wisp' down — combat ended`),
+with the post-combat watch confirming a clean priority handoff `FleeCombatQuest(41) → TerraformingQuest(15)`.

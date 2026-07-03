@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.4.8";
+        public const string PLUGIN_VERSION = "1.5.0";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -36,6 +36,8 @@ namespace TerrainLevelerMod
         public static ConfigEntry<bool> ClearDiagnostics;
         public static ConfigEntry<float> MaxHeightDifference;
         public static ConfigEntry<bool> PlacementDiagnostics;
+        public static ConfigEntry<bool> HostSideClear;
+        public static ConfigEntry<bool> CoopDiagnostics;
         public static ManualLogSource ModLogger;
 
         // Throttle for the ChangeGridSize diag log so a multi-second drag doesn't flood the log.
@@ -58,6 +60,9 @@ namespace TerrainLevelerMod
             MaxHeightDifference = Config.Bind("General", "MaxHeightDifference", 15f, "Maximum height difference before the grid turns red and is unplaceable. Native is ~2m, 15m is a safe limit before mesh NaN crashes.");
             // Feature confirmed in-game 2026-07-01 (v1.4.7) — diagnostics ship disabled per the rule.
             PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", false, "Log placement guards (Begin/ChangeGridSize/snap/dynamic), template identities at Use, and bulldozer menu-entry injection/grant steps. Enable to debug placement or the bulldozer menu entry.");
+
+            HostSideClear = Config.Bind("Coop", "HostSideClear", true, "In co-op, the HOST machine performs the bulldozer flatten+clear for fields hit by ANY player. Only the authority's (host's) destruction replicates to everyone — a client's E-press otherwise flattens locally but can't break trees/rocks. Both players need the mod. No effect in solo.");
+            CoopDiagnostics = Config.Bind("Coop", "CoopDiagnostics", true, "Log the host-side co-op clear path ([Coop] lines: grid-state spawns, which trigger fired, authority/template decisions). Defaults ON while the v1.5.0 co-op path is being verified in-game.");
 
             Harmony.CreateAndPatchAll(typeof(Plugin));
             Log.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
@@ -743,6 +748,10 @@ namespace TerrainLevelerMod
             _handlingUse = true;
             try
             {
+                // Mark this grid as locally handled so the host-side co-op handler (below) doesn't
+                // run a second, redundant pass when our own completion RPC echoes back to us.
+                try { _hostClearProcessed.Add(grid.GetInstanceID()); } catch { }
+
                 // Clear obstructions once per grid, before flattening (while trees/rocks still sit on
                 // the original ground). __0 is the interacting agent (the local player).
                 if (ClearObstructions.Value)
@@ -775,6 +784,165 @@ namespace TerrainLevelerMod
             {
                 _handlingUse = false;
             }
+        }
+
+        // ---- Co-op: host-side bulldozer execution (v1.5.0) -------------------------------------
+        // Root cause of the "only the host can break objects" reports: the flatten+bomb above run on
+        // the machine that pressed E, but tree/rock destruction only replicates when applied by the
+        // state authority (the host) — a client's AOE damage is a local no-op. Fix, DataSync-style
+        // (the TreeRespawnMod trick, reversed): the host observes the field's REPLICATED interaction
+        // state and performs the authoritative clear itself, regardless of who pressed E.
+        //   Trigger A "mapChanged":     TerraformingGridState._OnInteractionMapChanged() — runs when a
+        //     cell's interacted bit replicates (the vanilla Use body sends Rpc_MarkCellInteracted, so
+        //     the host hears about a client's E-press without any custom signalling).
+        //   Trigger B "refreshHeights": TerraformingGridState._RefreshCellsHeights() — same replication
+        //     path; belt-and-braces in case Trigger A is AOT-inlined.
+        //   Trigger C "rpcComplete":    Rpc_DebugCompleteField — our own completion call. Fusion's
+        //     weave executes the RPC body on the receiving authority (InvokeRpc pattern), so a postfix
+        //     fires host-side when a client's mod sends it.
+        // All triggers funnel into one idempotent handler; _256/_512 subclasses only re-declare Fusion
+        // state plumbing, so base-class patches cover both. (Never patch CopyBackingFieldsToState /
+        // CopyStateToBackingFields — load hang.)
+
+        // Grids the local machine has already fully handled (either via its own Use postfix or via
+        // this host-side handler), keyed by Unity instance id.
+        private static readonly System.Collections.Generic.HashSet<int> _hostClearProcessed = new System.Collections.Generic.HashSet<int>();
+
+        // gid -> is-bulldozer verdict cache, so repeated triggers on vanilla fields stay cheap. Only
+        // cached once the owning Structure resolves — a null structure (not linked yet) is retried.
+        private static readonly System.Collections.Generic.Dictionary<int, bool> _gridTemplateVerdict = new System.Collections.Generic.Dictionary<int, bool>();
+
+        // One-shot per source name: proves in the log which trigger paths actually fire in-game.
+        private static readonly System.Collections.Generic.HashSet<string> _coopTriggerSeen = new System.Collections.Generic.HashSet<string>();
+
+        private static bool IsBulldozerGridCached(TerraformingGrid grid, int gid)
+        {
+            if (_gridTemplateVerdict.TryGetValue(gid, out bool v)) return v;
+            try
+            {
+                var s = grid.GetComponentInParent<Structure>();
+                if (s == null) return false; // structure not linked yet — don't cache, retry on next trigger
+                bool isBulldozer = s.TemplateID == BulldozerTemplateId;
+                _gridTemplateVerdict[gid] = isBulldozer;
+                return isBulldozer;
+            }
+            catch { return false; }
+        }
+
+        // Any interacted cell in the grid's local mirror of the networked interaction map? Guards the
+        // map-replication triggers against firing on a freshly spawned, untouched field.
+        private static bool AnyCellInteracted(TerraformingGrid grid)
+        {
+            try
+            {
+                var map = grid.gridInteractMap;
+                if (map == null) return false;
+                for (int i = 0; i < map.Length; i++)
+                    if (map[i] != 0) return true;
+            }
+            catch { }
+            return false;
+        }
+
+        private static void HandleHostSideBulldozer(TerraformingGridState st, string source)
+        {
+            try
+            {
+                if (HostSideClear == null || !HostSideClear.Value) return;
+                if (st == null) return;
+
+                if (CoopDiagnostics.Value && _coopTriggerSeen.Add(source))
+                    ModLogger.LogInfo($"[Coop] trigger '{source}' fired for the first time this session.");
+
+                bool auth = false;
+                try { auth = st.HasStateAuthority; } catch { }
+                if (!auth) return; // only the authority's destruction replicates; clients defer to the host
+
+                TerraformingGrid grid = null;
+                try { grid = st._grid; } catch { }
+                if (grid == null) return;
+
+                int gid;
+                try { gid = grid.GetInstanceID(); } catch { return; }
+                if (_hostClearProcessed.Contains(gid)) return;
+
+                if (!IsBulldozerGridCached(grid, gid)) return;
+
+                // Map-replication triggers must see a real E-press (>=1 interacted cell); the explicit
+                // completion RPC needs no such proof.
+                if (source != "rpcComplete" && !AnyCellInteracted(grid))
+                {
+                    if (CoopDiagnostics.Value) ModLogger.LogInfo($"[Coop] {source}: bulldozer grid {gid} map still clean — waiting for a press.");
+                    return;
+                }
+
+                _hostClearProcessed.Add(gid);
+
+                TerraformingFieldInteraction interaction = null;
+                try { interaction = grid.terraformingInteraction; } catch { }
+                if (interaction == null) { try { interaction = grid.GetComponentInParent<TerraformingFieldInteraction>(); } catch { } }
+
+                if (CoopDiagnostics.Value)
+                    ModLogger.LogInfo($"[Coop] {source}: running authoritative clear for remotely-pressed bulldozer grid {gid} (interaction={(interaction != null)}).");
+
+                // Same order as the local Use path: bomb first (trees/rocks still on original ground),
+                // then flatten, then finalize the field for everyone.
+                if (ClearObstructions.Value && _clearedGrids.Add(gid))
+                {
+                    try { DetonateAoEOverGrid(interaction, null, grid); }
+                    catch (System.Exception e) { ModLogger.LogError($"[Coop] DetonateAoEOverGrid failed: {e}"); }
+                }
+
+                if (OneHitClear.Value)
+                {
+                    if (interaction != null)
+                    {
+                        try { FlattenViaHeightmapTool(interaction, grid); }
+                        catch (System.Exception e) { ModLogger.LogError($"[Coop] flatten failed: {e}"); }
+                    }
+                    else ModLogger.LogWarning($"[Coop] no TerraformingFieldInteraction for grid {gid}; skipped flatten.");
+
+                    try { st.Rpc_DebugCompleteField(); }
+                    catch (System.Exception e) { ModLogger.LogError($"[Coop] complete-field failed: {e}"); }
+                }
+            }
+            catch (System.Exception e)
+            {
+                ModLogger.LogError($"[Coop] handler failed ({source}): {e}");
+            }
+        }
+
+        [HarmonyPatch(typeof(TerraformingGridState), nameof(TerraformingGridState.Spawned))]
+        [HarmonyPostfix]
+        public static void TerraformingGridState_Spawned_Postfix(TerraformingGridState __instance)
+        {
+            // Observational only (proves the patch layer is alive and shows authority per machine);
+            // authority/network flags may not be final during Spawned, so no work happens here.
+            if (CoopDiagnostics == null || !CoopDiagnostics.Value) return;
+            bool auth = false;
+            try { auth = __instance != null && __instance.HasStateAuthority; } catch { }
+            ModLogger.LogInfo($"[Coop] TerraformingGridState spawned (auth={auth}).");
+        }
+
+        [HarmonyPatch(typeof(TerraformingGridState), nameof(TerraformingGridState._OnInteractionMapChanged), new System.Type[0])]
+        [HarmonyPostfix]
+        public static void TerraformingGridState_OnInteractionMapChanged_Postfix(TerraformingGridState __instance)
+        {
+            HandleHostSideBulldozer(__instance, "mapChanged");
+        }
+
+        [HarmonyPatch(typeof(TerraformingGridState), nameof(TerraformingGridState._RefreshCellsHeights))]
+        [HarmonyPostfix]
+        public static void TerraformingGridState_RefreshCellsHeights_Postfix(TerraformingGridState __instance)
+        {
+            HandleHostSideBulldozer(__instance, "refreshHeights");
+        }
+
+        [HarmonyPatch(typeof(TerraformingGridState), nameof(TerraformingGridState.Rpc_DebugCompleteField))]
+        [HarmonyPostfix]
+        public static void TerraformingGridState_RpcDebugCompleteField_Postfix(TerraformingGridState __instance)
+        {
+            HandleHostSideBulldozer(__instance, "rpcComplete");
         }
 
         // TRUE FLATTEN via the game's raw terrain engine. The TerraformingGrid/TryLevelTile path is a

@@ -766,6 +766,19 @@ for the full lever-by-lever log). **These are facts now, with dead-ends called o
   `object` to `Il2CppObjectBase` at runtime (Il2CppSystem.Object-derived types like `QuestData`/`Quest` are fine).
 - `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat), `AvoidImminentDanger`=46,
   `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0.
+- **Vanilla re-arms `CombatQuestData._combatTimeRemaining` to ~60s mid-fight** (observed
+  `combatTime 63.8 -> ...`, plausibly on the villager taking a hit) — a top-up that only ever RAISES the
+  timer toward a target (VillagerFightBackMod's original `KeepCombatAlive` logic) can get overridden by
+  this re-arm and ride out close to the full ~60s. **Fix: also down-clamp** — if the timer is ever found
+  ABOVE the intended cap, clamp it back down in the same patch. (confirmed in-game 2026-07-03, v1.0.27)
+- **Death-detection via a polled getter (`ShouldFight`) is not reliable enough alone** — the getter can
+  simply stop being polled once the target is actually dead, so a `!IsAlive()` → zero-the-timer branch
+  placed only there can silently never run for a given fight. **Fix: also check on a method that runs
+  unconditionally every tick** (this mod already patches `QuestRunner.Update` for work-suspension) —
+  store the live `CombatQuestData` wrapper per villager and zero the timer / purge engagement state from
+  there the instant the remembered enemy reads dead, independent of getter polling. Together with the
+  clamp above this closed VillagerFightBackMod's "inconsistent return-to-work (seconds vs. ~a minute)"
+  bug. (confirmed in-game 2026-07-03, v1.0.27 — see [`docs/mods/villager-fight-back.md`](mods/villager-fight-back.md))
 
 ## Worldgen / World Streaming
 How the world loads around the player, and how to make distant tiles stream **without moving the player**.
@@ -958,6 +971,27 @@ state for the drag preview).
     `_ValidateFootprint`'s `OverlapBoxNonAlloc` are all real but secondary limits** — they cap the
     *placed* footprint size and validate for obstacle overlap, but none of them are the drag-preview
     crash (that's the BitSet struct above, which corrupts during the drag, before placement).
+*   **AOE destruction only replicates when applied by the state authority (host) — a client's own AOE
+    damage is a local no-op.** This is the general form of the "only the host can break objects" class
+    of co-op bug (reported on Nexus for TerrainLevelerMod's bulldozer bomb pass). The `HeightmapTool`
+    flatten (a Fusion-networked call) DOES propagate regardless of who presses E; it's specifically the
+    `AOESpell`/damage-based destruction that needs authority. (confirmed in-game 2026-07-03)
+*   **Fix pattern: host-side execution triggered by observing the client's action through the game's own
+    replication** — the mirror image of TreeRespawnMod's `WorldItemInstance._OnDataChanged` trick (there,
+    the host *listens* for a client's data change; here, the host *performs* the action itself). For a
+    field structure like `TerraformingGridState` (a `NetworkBehaviour`), patch postfixes on its
+    replication-facing callbacks (`_OnInteractionMapChanged`, `_RefreshCellsHeights`) and/or an RPC it
+    receives (`Rpc_DebugCompleteField` — Fusion's weave runs an RPC body on the receiving authority, so a
+    postfix fires host-side even when a client's mod sent it), gate on `HasStateAuthority`, and dedup per
+    grid instance so the host's own local press and this handler never double-process the same grid. Of
+    the three trigger candidates tried, **the RPC postfix was the one that actually carried the fix in
+    every observed case** — the map-replication callback fired but consistently found the local
+    interaction-map mirror not yet updated at that instant, so it never got past its own "any cell
+    interacted" gate; the RPC needs no such gate (by the time it arrives the map has already updated).
+    Verified both near (~35m) and far (~155m) from the host. (confirmed in-game 2026-07-03, v1.5.0 — see
+    [`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md#co-op-host-side-destruction-v150-confirmed-in-game-2026-07-03))
+    This pattern generalizes to any other mod hitting the same "client action doesn't destroy/replicate"
+    symptom on a Fusion `NetworkBehaviour`-backed structure.
 
 ### Dead ends (don't retry)
 *   **`DynamicDimensionsPlacementTool.firstMarker` is NOT a reliable drag anchor.** In practice it can sit

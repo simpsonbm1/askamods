@@ -66,8 +66,8 @@ internal static class FleeCombatShouldFightPatch
                     var q = __instance.Quest;
                     if (q != null && Plugin.PtrOf(q) != IntPtr.Zero) Plugin.RememberSpook(q.Pointer, decisionTarget);
                     var qr = __instance.QuestRunner;
-                    if (qr != null && Plugin.PtrOf(qr) != IntPtr.Zero && q != null && Plugin.PtrOf(q) != IntPtr.Zero) 
-                        Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
+                    if (qr != null && Plugin.PtrOf(qr) != IntPtr.Zero && q != null && Plugin.PtrOf(q) != IntPtr.Zero)
+                        Plugin.RememberVillagerCombat(qr, q, __instance.Pointer, __instance);
                 }
                 catch { }
             }
@@ -89,7 +89,20 @@ internal static class FleeCombatShouldFightPatch
                         {
                             float limit = Plugin.CombatTopUpSeconds.Value;
                             float threshold = limit / 2f;
-                            if (__instance._combatTimeRemaining < threshold) __instance._combatTimeRemaining = limit;
+                            float ct = __instance._combatTimeRemaining;
+                            if (ct < threshold) __instance._combatTimeRemaining = limit;
+                            else if (ct > limit)
+                            {
+                                // Vanilla re-arms the combat timer (~60s) mid-fight — e.g. when the
+                                // villager takes a hit. The old top-up only ever RAISED the timer, so
+                                // whenever the death zero-out below didn't land (ShouldFight often stops
+                                // being polled once the target dies), the villager waited out the full
+                                // vanilla timer — the observed "stays in combat ~a minute". Clamp it
+                                // back down so lingering is always bounded by CombatTopUpSeconds.
+                                __instance._combatTimeRemaining = limit;
+                                if (Plugin.TimerDiagnostics.Value && Plugin.ShouldLogTimer())
+                                    Plugin.Logger.LogInfo($"[VillagerFightBack][timer] clamped combatTime {ct:0.0} -> {limit:0.0} (vanilla re-arm).");
+                            }
                         }
                         else if (decisionTarget != null && !isAlive)
                         {
@@ -156,7 +169,7 @@ internal static class FleeCombatGetSpookedPatch
                     // Register this villager's runner -> flee-combat-quest so the FindNextBestQuest
                     // arbiter patch can force her combat quest while this engagement is live.
                     var qr = __instance.QuestRunner;
-                    if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, __instance.Pointer);
+                    if (qr != null && q != null) Plugin.RememberVillagerCombat(qr, q, __instance.Pointer, __instance);
                 }
                 catch { }
             }
@@ -283,7 +296,7 @@ internal static class CombatBehaviourSwapPatch
                 if (q != null && Plugin.PtrOf(q) != IntPtr.Zero) Plugin.RememberSpook(q.Pointer, enemy);
                 var qr = cqd.QuestRunner;
                 if (qr != null && Plugin.PtrOf(qr) != IntPtr.Zero && q != null && Plugin.PtrOf(q) != IntPtr.Zero)
-                    Plugin.RememberVillagerCombat(qr, q, questData.Pointer);
+                    Plugin.RememberVillagerCombat(qr, q, questData.Pointer, cqd);
             }
             catch { }
 
@@ -389,10 +402,44 @@ internal static class QuestRunnerUpdatePatch
             // Is this villager currently engaged with a whitelisted enemy?
             bool engaged = false;
             Quest? combatQuest = null;
-            if (Plugin.TryGetVillagerCombat(__instance, out var cq, out var questDataPtr) && cq != null)
+            if (Plugin.TryGetVillagerCombat(__instance, out var cq, out var questDataPtr, out var questData) && cq != null)
             {
                 var remembered = Plugin.GetRememberedSpook(questDataPtr);
-                if (remembered != null && Plugin.IsWhitelisted(remembered)) { engaged = true; combatQuest = cq; }
+                if (remembered != null && Plugin.IsWhitelisted(remembered))
+                {
+                    if (Plugin.SafeIsAlive(remembered)) { engaged = true; combatQuest = cq; }
+                    else
+                    {
+                        // The whitelisted enemy just died/despawned. End combat NOW, frame-driven —
+                        // don't rely on the ShouldFight getter being polled again after death (it
+                        // often isn't, which left _combatTimeRemaining to run out vanilla-style and
+                        // held the villager in combat for up to a minute). Zero the timer, collapse
+                        // the boost/suspension window, and let the restore branch below run this tick.
+                        float ctWas = -1f;
+                        try
+                        {
+                            if (questData != null && Plugin.PtrOf(questData) != IntPtr.Zero)
+                            {
+                                var surv = questData._survival;
+                                if (surv == null || surv._hasAuthority)
+                                {
+                                    ctWas = questData._combatTimeRemaining;
+                                    questData._combatTimeRemaining = 0f;
+                                }
+                            }
+                        }
+                        catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] end-combat zero: {ex}"); }
+
+                        Plugin.ForgetSpook(questDataPtr);
+                        try { Plugin.ForgetSpook(cq.Pointer); } catch { }
+                        Plugin.ForgetVillagerCombat(__instance);
+                        Plugin.StartPostCombatWatch(__instance, questData);
+                        if (Plugin.TimerDiagnostics.Value)
+                            Plugin.Logger.LogInfo(
+                                $"[VillagerFightBack][timer] enemy '{Plugin.SafeName(remembered)}' down — combat ended " +
+                                $"(combatTime {ctWas:0.0} -> 0), restoring work.");
+                    }
+                }
             }
 
             if (engaged)
@@ -430,8 +477,19 @@ internal static class QuestRunnerUpdatePatch
                         try { __instance.AddQuest(q); n++; }
                         catch (Exception ex) { Plugin.Logger.LogError($"[VillagerFightBack] AddQuest restore: {ex}"); }
                     }
-                    if (Plugin.DebugLogging.Value && n > 0)
+                    if ((Plugin.DebugLogging.Value || Plugin.TimerDiagnostics.Value) && n > 0)
                         Plugin.Logger.LogInfo($"[VillagerFightBack] Restored {n} suspended work quest(s) — enemy gone.");
+                }
+
+                // Post-combat watch (diagnostic): for a few seconds after a fight ends, show which
+                // quest actually runs and what the combat timer reads. If lingering persists, these
+                // lines name the quest that holds the villager (e.g. a separate defensive task).
+                if (Plugin.TimerDiagnostics.Value && Plugin.TryGetPostCombatWatch(__instance, out var watchData) && Plugin.ShouldLogTimer())
+                {
+                    string aq = "?"; float ap = -1f; float ct = -1f;
+                    try { if (__instance.ActiveQuest != null) aq = __instance.ActiveQuest.Name; ap = __instance._activeQuestPriority; } catch { }
+                    try { if (watchData != null && Plugin.PtrOf(watchData) != IntPtr.Zero) ct = watchData._combatTimeRemaining; } catch { }
+                    Plugin.Logger.LogInfo($"[VillagerFightBack][postcombat] activeQuest={aq} prio={ap:0.0} combatTime={ct:0.0}");
                 }
             }
         }
