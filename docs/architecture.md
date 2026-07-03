@@ -311,6 +311,22 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
   whether the underlying object was destroyed/removed some other way — there's no observational test that
   distinguishes the two. Relevant if investigating "a gathered resource never came back": don't expect a
   stump-like visual cue the way tree respawn debugging can rely on.
+- **`IsExhausted()` does NOT flag an empty gather node (confirmed in-game 2026-07-03).** It's
+  stump/harvest semantics only (a stump reads `true` — see Resource/Tree, v1.1.1 gates); a gather node
+  picked to zero stock keeps reading `false` (`IsAvailable()` also stays `true` at qty 0 — it means
+  "instance active", not "has stock"). Gather depletion is a **quantity** condition: `GetQuantity() <= 0`
+  (pure data read, works even while the chunk is deactivated). **Dead-end (don't retry):** TreeRespawn
+  v1.3.1 gated its network data-sync catch on `IsExhausted()` alone, assuming an empty gather node reads
+  it true like a stump — result was `registered gather=0` in every diagnostic window for an entire co-op
+  session while every depleted gather node was silently binned as "healthy". Evidence it was the gate:
+  widening it to `IsExhausted() || GetQuantity() <= 0` (v1.3.2) made the same detection fire steadily
+  under identical conditions. Never gate a gather-depletion check on `IsExhausted()`.
+- **Co-op client gathers ARE catchable host-side from data alone (confirmed in-game 2026-07-03).** A
+  client's harvests replicate to the host as `WorldItemInstance` data changes (`_OnDataChanged` fires);
+  classify the node via a bind-time posKey→kind/item map (`SetWorldInstance` postfixes — the one moment
+  interaction and instance are both in hand) and register on pure data conditions (`GetQuantity() <= 0`
+  gather / `IsExhausted() && !Destroyed` tree). Detects client gathers and chops **both near and far
+  from the host**, no GameObject/GetComponent needed (TreeRespawn `DataSyncPatch` + `Registration.cs`).
 
 ---
 

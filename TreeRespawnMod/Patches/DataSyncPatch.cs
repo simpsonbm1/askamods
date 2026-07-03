@@ -25,7 +25,7 @@ internal static class DataSyncPatch
 {
     // Per-window counters, summarized every 5s when EnableDiagnostics is on. This is what tells a
     // co-op test session WHERE client harvests are dying (never fires? not classified? not exhausted?).
-    private static int _cFired, _cNotBiome, _cHealthy, _cErr, _cKnown, _cComp, _cUnknown, _cRegTree, _cRegGather;
+    private static int _cFired, _cNotBiome, _cHealthy, _cQty0, _cErr, _cKnown, _cComp, _cUnknown, _cRegTree, _cRegGather;
     private static DateTime _lastSummary = DateTime.MinValue;
 
     static void Postfix(WorldItemInstance __instance)
@@ -36,15 +36,29 @@ internal static class DataSyncPatch
             var biomeInst = __instance.TryCast<BiomeItemInstance>();
             if (biomeInst == null) { _cNotBiome++; DiagSummary(); return; }
 
-            // Hot-path gate (v1.3.1): _OnDataChanged fires tens of thousands of times per 5s window
-            // during streaming (measured ~105k/5s in-game 2026-07-02) and almost all of it is healthy
-            // instances we don't care about. One native IsExhausted() read filters those BEFORE any
-            // position read, PosKey string formatting, or dictionary work. Both registration
-            // conditions imply IsExhausted anyway (a stump reads true — v1.1.1 gates; an empty gather
-            // node likewise — it's the depleted flag the AI resource search keys on).
+            // Hot-path gate (v1.3.1, widened v1.3.2): _OnDataChanged fires tens of thousands of times
+            // per 5s window during streaming (measured ~105k/5s in-game 2026-07-02) and almost all of
+            // it is healthy instances we don't care about. Cheap native reads only, BEFORE any
+            // position read, PosKey string formatting, or dictionary work.
+            //
+            // v1.3.2: IsExhausted()==true is only CONFIRMED for stumps (v1.1.1 gates); v1.3.1 assumed
+            // an empty gather node reads true as well, but the first co-op session on v1.3.1
+            // (2026-07-02) logged registered gather=0 in every 5s window all session — consistent
+            // with empty gather nodes reading IsExhausted()=false and dying here in the healthy bin,
+            // which re-opens the exact client-gather blindness v1.3.0 was built to close. Gather
+            // depletion is a quantity condition (TryRegisterGather: GetQuantity() <= 0), so the gate
+            // now also passes qty<=0 instances, counted separately (qty0=) so the next session's log
+            // shows where gather depletions actually land — and whether this widening lets a flood of
+            // chronically-qty-0 healthy instance types back onto the slow path (perf watch).
             bool exhausted = false;
             try { exhausted = biomeInst.IsExhausted(); } catch { }
-            if (!exhausted) { _cHealthy++; DiagSummary(); return; }
+            if (!exhausted)
+            {
+                int qty = 1;
+                try { qty = biomeInst.GetQuantity(); } catch { }
+                if (qty > 0) { _cHealthy++; DiagSummary(); return; }
+                _cQty0++;
+            }
 
             string posKey;
             try { posKey = Plugin.PosKey(biomeInst.GetPosition()); }
@@ -141,9 +155,9 @@ internal static class DataSyncPatch
         if ((DateTime.UtcNow - _lastSummary).TotalSeconds < 5) return;
         _lastSummary = DateTime.UtcNow;
         Plugin.Logger.LogInfo(
-            $"[TreeRespawnMod] [diag] datasync(5s): fired={_cFired} notBiome={_cNotBiome} healthy={_cHealthy} " +
+            $"[TreeRespawnMod] [diag] datasync(5s): fired={_cFired} notBiome={_cNotBiome} healthy={_cHealthy} qty0={_cQty0} " +
             $"classified known={_cKnown}/comp={_cComp} unknown={_cUnknown} " +
             $"registered tree={_cRegTree} gather={_cRegGather} err={_cErr}");
-        _cFired = _cNotBiome = _cHealthy = _cErr = _cKnown = _cComp = _cUnknown = _cRegTree = _cRegGather = 0;
+        _cFired = _cNotBiome = _cHealthy = _cQty0 = _cErr = _cKnown = _cComp = _cUnknown = _cRegTree = _cRegGather = 0;
     }
 }

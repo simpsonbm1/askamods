@@ -6,10 +6,61 @@ General handoff for **Mod 2 (TreeRespawnMod)**. Supersedes the old `COOP_RESPAWN
 `docs/mods/tree-respawn.md` (shipped recipe/config) and `docs/architecture.md`
 (Resource/Tree, Gather, Worldgen/Streaming subsystems).
 
-**Current version: v1.3.1 (2026-07-02) — read "v1.3.0/v1.3.1 — tree hardening, co-op gather fix,
-self-healing catch-up" below first.** This is the active session; it supersedes the "Recommended
-next-session order" list further down (that list's item 1, confirming Issue A, is now folded into
-the co-op test this section describes as the next step — whichever machine picks it up).
+**Current version: v1.3.2 (2026-07-03) — read "v1.3.2 — co-op gather detection CONFIRMED" below
+first.** The v1.3.0 co-op gather rework is now confirmed in-game after v1.3.2 removed a v1.3.1
+perf-gate regression that was silently filtering every depleted gather node; **Issue A is confirmed
+fixed.** The "Recommended next-session order" list further down remains superseded.
+
+---
+
+## v1.3.2 (2026-07-03) — co-op gather detection CONFIRMED; v1.3.1's IsExhausted gate was eating gathers
+
+**The v1.3.0 co-op test finally ran (2026-07-02, host on v1.3.1) — and reproduced the gather gap one
+last time.** The client's tree chop registered (`Tree felled (data sync) at 158.6:43.9:460.8`), but his
+flax pick immediately after produced nothing, and the `datasync(5s)` summaries showed
+`registered gather=0` in **every window of the entire session** — including the world-load flood, where
+~50 depleted gather nodes streamed in and every one had to be rescued by the SetWorldInstance catch-up
+instead of data-sync. (Also noted: a single non-emptying pick is *correctly* silent — flax holds ~6
+charges (`qty 0->6` on refill) and only the pick that empties a node registers. That ambiguity is why
+the counters, not the single missing flax line, carried the diagnosis.)
+
+**Root cause: v1.3.1's hot-path perf gate.** It required `biomeInst.IsExhausted()==true` before any
+classification, assuming an empty gather node reads it true like a stump does ("both registration
+conditions imply IsExhausted anyway"). It doesn't — **`IsExhausted()` is stump/harvest semantics only;
+an empty gather node reads `false`** (v1.1.1 had only ever proved the stump side; nothing had verified
+the gather side, and the gate went in *after* the v1.3.0 solo session, so it had never stood between a
+real gather depletion and a registration until this test). Depleted gather nodes were binned into
+`healthy=` and never reached classification — structurally re-opening the exact client-gather blindness
+v1.3.0 was built to close, one version later. Now recorded in architecture.md → Gather as a dead-end.
+
+**Fix (v1.3.2):** the gate now passes `IsExhausted() || GetQuantity() <= 0` — gather depletion is a
+quantity condition, the same read `TryRegisterGather` uses — with a new `qty0=` counter in the summary
+line showing how many fires pass via the quantity branch.
+
+### CONFIRMED in-game (2026-07-03, co-op session, host on v1.3.2)
+- **Client gathers register via data sync**: `Gather resource "Fibers"/"Stick"/"Berries"/"Onion"/
+  "Garlic"/"Feathers"/... exhausted (data sync)` lines fire steadily all session (`registered
+  gather=1-2` per 5s window, ~40+ across the log), **both near the host and at a distance**, and client
+  tree chops still register (`Tree felled (data sync)`).
+- **Watched end-to-end:** the user observed the client's screen as he picked flax; the node respawned a
+  few seconds later (deliberately short test threshold). Full client-harvest → host-register → respawn
+  loop verified.
+- **Issue A CONFIRMED FIXED in a live co-op session** — a client's harvests (trees AND gathers) start
+  timers on the host.
+- **Perf canary:** `qty0=` runs ~85–650 in calm windows, up to ~12k in heavy-streaming windows (~6% of
+  `fired=`) — that population now does the PosKey/dict work v1.3.1's gate was added to avoid. No
+  perceived slowdown this session; if a future session feels heavy, this (and the `unknown=` bucket it
+  feeds, which can't be negative-cached without a GameObject) is the first place to look.
+
+### Watch items (not chased)
+- **Respawn→instant-refell pairs (2026-07-02 log):** three trees at z≈369–372 logged `respawned
+  (1.00–1.01 days)` then immediately `Tree felled (data sync)` at the same posKey. Either players
+  genuinely re-chopped the fresh trees on the spot, or a live-path tree respawn's write was overridden
+  by a re-synced still-exhausted network state (self-corrects via re-registration, but would mean
+  near-player respawns don't stick). Worth a glance next session: do freshly-respawned trees stay
+  standing?
+- Issue E (mod save not tied to the game's save event) remains parked; Issue F remains vanilla and out
+  of scope.
 
 ---
 
@@ -104,26 +155,18 @@ reason gather detection specifically would come up empty more often than tree de
 - 182 total `respawned` lines, zero `Replenish threw`, zero `NO-CHANGE`, zero
   `left IsExhausted=true` verify warnings across the whole session.
 
-### PENDING CONFIRMATION
-- **Co-op gather detection fix (point 5 above) — not yet tested.** The user will test in a co-op
-  session (this one, or the other machine — see "Cross-machine" note below). Test plan: host runs
-  with `EnableDiagnostics=true`; the non-host player gathers reeds/flax/berries and chops trees,
-  both near the host and far away. Grep the host's log for `(data sync)` and `(catch-up)`
-  registration lines, and for the `[diag] datasync(5s): fired=... healthy=... classified
-  known=.../comp=... unknown=... registered tree=... gather=...` summary — `unknown` staying high
-  while `registered gather=0` during known client gathering would mean the classification fallback
-  itself is still missing something and needs another look.
-- **Issue A (co-op client tree respawn) — folds into the same test.** Was previously "fix in place,
-  not re-confirmed"; unaffected by this session's changes except that `DataSyncPatch` was rewritten,
-  so it needs re-confirming alongside the gather fix, not assumed to still work unchanged.
-- **v1.3.1's perf gate — not yet re-tested.** Built in response to analyzing the v1.3.0 solo log
-  (after that session already ended), so no session has run against it yet. The user noticed a
-  performance decrease during the v1.3.0 diagnostic session and initially attributed it to logging
-  volume; the real cost was likely `DataSyncPatch` doing full work on ~100k+ calls/5s regardless of
-  the diagnostics flag. v1.3.1's `IsExhausted()` gate should reduce that substantially, but it
-  hasn't been observed in a live session yet — worth noting whether the next session (solo or co-op)
-  still feels heavy, and if so, whether it's specifically tied to `EnableDiagnostics=true` (which
-  remains chatty on top of the gate) rather than the patch itself.
+### PENDING CONFIRMATION (updated 2026-07-03 — first three items RESOLVED, see the v1.3.2 section)
+- ~~**Co-op gather detection fix (point 5 above) — not yet tested.**~~ ✅ **CONFIRMED 2026-07-03** —
+  but only after v1.3.2 fixed the v1.3.1 gate that was filtering depleted gather nodes before this
+  rework's classification could even see them. The test ran exactly as planned here and the
+  `registered gather=0`-while-client-gathers signature this bullet predicted is what cracked it.
+- ~~**Issue A (co-op client tree respawn) — folds into the same test.**~~ ✅ **CONFIRMED 2026-07-03**
+  (v1.3.2) — client tree chops and gathers both register on the host, near and far.
+- ~~**v1.3.1's perf gate — not yet re-tested.**~~ **Superseded by v1.3.2's widened gate** (`IsExhausted()
+  || GetQuantity() <= 0`): as shipped, v1.3.1's `IsExhausted()`-only gate was a functional regression
+  (see v1.3.2 section). The gate concept itself works — `healthy=` filters ~90%+ of the up-to-180k
+  fires/5s observed in the confirming session with no perceived slowdown; the `qty0=` counter tracks
+  the population the widening lets back onto the slow path.
 - **Tree handler-refill's `Destroyed`-while-unloaded cancel path (point 3) — not yet exercised.**
   The confirmed test above hit the "exhausted, not destroyed → replenish" branch. The "genuinely
   cleared while unloaded → cancel" branch (e.g. a co-op client chopping down a stump far from the
@@ -179,7 +222,7 @@ persistence across save/reload and a retry/liveness-guard cooldown. **v1.2.14 (2
 
 | # | Issue | Status |
 |---|---|---|
-| A | Co-op **client** respawn (client's harvests didn't start a timer on host) | **Fix in place** (DataSyncPatch, reworked v1.3.0 — see "v1.3.0/v1.3.1" section above) — ⚠️ NOT re-confirmed in a live co-op session |
+| A | Co-op **client** respawn (client's harvests didn't start a timer on host) | ✅ **FIXED, confirmed in-game 2026-07-03 (v1.3.2)** — client tree chops AND gathers register via DataSyncPatch near + far; watched flax pick → respawn end-to-end. (v1.3.1's IsExhausted gate briefly re-broke the gather half — see "v1.3.2" section above) |
 | B | **Cross-world** save contamination (one global file shared by all worlds) | ✅ **FIXED v1.2.1**, confirmed in-game 2026-06-28 |
 | C | **Distant villager** gather harvests don't respawn (far foraging markers stay empty) | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — `GetInstance(onlyIfActive:false)` + `Replenish()` refills the node through the persistent data handler without streaming the tile in; see "RESOLVED 2026-06-30" below |
 | D | **Overdue** respawns not serviced until you stand near the node as the timer elapses | ✅ **RESOLVED v1.2.10**, confirmed in-game 2026-06-30 — same fix as C (the overdue-but-unloaded case is exactly what the handler-based replenish services); retry/liveness-guard cooldown added so an unresolved node is retried, not dropped |
@@ -428,7 +471,7 @@ defect — revisit only if it recurs with a specific repro.
 a save/reload boundary (v1.2.10).** The mechanism directly fixes the original "distant villager-gathered
 resources never come back" symptom that motivated this entire investigation.
 
-### Issue A: Co-op Host Detection Failure (FIX ATTEMPTED 2026-06-30, v1.2.13, PENDING CONFIRMATION)
+### Issue A: Co-op Host Detection Failure (FIX ATTEMPTED 2026-06-30, v1.2.13 — ✅ CONFIRMED FIXED 2026-07-03 under v1.3.2, see "v1.3.2" section)
 **Symptom:** In co-op, the mod's log did not realize the user was the host, stopping the entire respawn process.
 **Root Cause:** `WeatherSystem.Instance.Runner.IsServer` evaluated to `false` in co-op.
 **Fix:** Mirrored `HealthRegenMod` and `MineRefreshMod`'s pattern by tracking `Plugin.LocalPlayer` via `PlayerCharacter.Spawned`/`Despawned`. Updated `TryGetServerWeather` to verify authority using `LocalPlayer.NetworkObject.Runner.IsServer` and importantly `LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient` (as `IsServer` alone returns false in Fusion Shared Mode).
@@ -465,7 +508,7 @@ switch). File: `BepInEx/config/com.askamods.treerespawn.<sanitizedSessionId>-<fn
 
 ## RESOLVED / IN-PLACE
 
-### A. Co-op client respawn — fix in place, ⚠️ not re-confirmed in co-op
+### A. Co-op client respawn — ✅ CONFIRMED in-game 2026-07-03 (v1.3.2)
 **Symptom:** in co-op, when a **client** (not host, not a villager) felled a tree or exhausted a node,
 no respawn timer started and nothing logged on the host.
 
@@ -483,9 +526,10 @@ native engine invokes before the GC handle is ready → fatal `System.InvalidOpe
 not initialized` on startup (IL2CPP gotcha #5). The fix was to move to the **pure C# object**
 `WorldItemInstance._OnDataChanged` (not a MonoBehaviour) — safe to patch.
 
-**Still pending:** confirm in a real co-op session that a *client's* harvest now starts a timer on the
-host (look for `... (data sync) ...` log lines). Note Issues C/D below would still undermine far-from-host
-nodes even once the catch fires.
+**Resolved:** confirmed in a real co-op session 2026-07-03 — a client's harvests (tree chops AND gathers)
+start timers on the host via `(data sync)` registrations, near and far. Getting there required the v1.3.0
+data-first classification rework *plus* the v1.3.2 gate fix (v1.3.1's `IsExhausted()`-only gate filtered
+depleted gather nodes — see the "v1.3.2" section at the top).
 
 ### B. Cross-world save contamination — FIXED v1.2.1 (confirmed in-game 2026-06-28 on both machines)
 **Symptom/cause:** before v1.2.1 there was ONE global save file (`com.askamods.treerespawn.save`) shared by

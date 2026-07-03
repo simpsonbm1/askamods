@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.3.1)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.3.2)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days.
@@ -28,8 +28,8 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - **Confirmed working in-game (2026-06-25):** flax bushes at sub-day thresholds (`0.01`) cycle exhausted→respawned→re-harvested repeatedly at the same position in the log — `Replenish()` genuinely restores gatherable harvestability, not just the visual. Triggered by villager *and* player gathering (patch is on `GatherInteraction.GatherItemsCharge`, the node's own collect method — source-agnostic, same as the tree patch).
 - **Respawn days is NOT a "more stock" lever.** It only sets how soon a node is harvestable *again*; it does not change yield-per-harvest or add gatherers. If a raw intermediate (e.g. fiber) still reads ~0 in storage with a `0.01` respawn, the bottleneck is downstream — consumption (weaving/tailoring eats fiber as fast as it's gathered) or gather labor/walk-time — not the mod. Lowering the threshold further can't help once the node is already almost always ready.
 - **Distant/villager-only nodes whose chunk has deactivated also respawn (v1.2.10, confirmed in-game 2026-06-30).** When a gather node's timer elapses while its `BiomeItemInstance` is no longer live (chunk streamed out — the stale-`ActiveInstances`-pointer case above), `DayTracker` re-resolves a fresh, writable instance through `SSSGame.BiomeProceduralDataHandler.GetInstance(tileId, widId, onlyIfActive:false, noPooling:true)` — this works *without* force-loading the tile — and calls the game's own `Replenish()` on that handle, then `handler.SetDirty(cell)` + `handler.OnInstanceDataChanged(instance)` to flush/notify. The node's `WorldItemInstanceId` is cached at harvest time and persisted across save/reload so this keeps working after a reload, not just within a session. Config: `TreeRespawn/RefillUnloadedGatherNodes` (bool, default `true`). This is what lets distant forage markers (e.g. shoreline reeds) keep refilling for villagers while you're elsewhere — see `TREERESPAWN_HANDOFF.md` → "RESOLVED 2026-06-30" for the full investigation (Issues C/D).
-- **Host validation in Co-op (v1.2.13).** The mod previously validated host authority using `WeatherSystem.Instance.Runner.IsServer`, which evaluated to `false` in co-op. It now tracks `Plugin.LocalPlayer` via `PlayerCharacter.Spawned` and uses `LocalPlayer.NetworkObject.Runner.IsServer` as a primary check. ⚠️ Fix in place, still not re-confirmed in a live co-op session as of v1.3.1 — see Issue A in `TREERESPAWN_HANDOFF.md`.
-- **Co-op gather detection reworked (v1.3.0, ⚠️ PENDING CO-OP CONFIRMATION).** The network data-sync catch (`DataSyncPatch`, fires for a co-op client's replicated harvests) previously required `GetComponent<GatherInteraction>()` on the instance's own GameObject to identify a node — which structurally misses most cases, since the interaction component often isn't on that GameObject at all (same finding as the v1.2.14 manual-hotkey stump issue below). It now classifies nodes from data: a `Plugin.KnownNodes` map is populated authoritatively when `GatherInteraction`/`HarvestInteraction.SetWorldInstance` binds (new postfixes, `Patches/Captures.cs`), with a component search (including children/inactive) only as a fallback for anything not yet seen. Registration itself reads pure instance data (`GetQuantity() <= 0`) — no GameObject required at all. The same bind-time hooks also run a **catch-up registration**: any node found already-depleted-but-untracked when the host streams it in gets a fresh timer immediately, self-healing losses from historical bugs (confirmed in-game 2026-07-02: 125 catch-up registrations healed a backlog with zero orphaned stumps left afterward).
+- **Host validation in Co-op (v1.2.13).** The mod previously validated host authority using `WeatherSystem.Instance.Runner.IsServer`, which evaluated to `false` in co-op. It now tracks `Plugin.LocalPlayer` via `PlayerCharacter.Spawned` and uses `LocalPlayer.NetworkObject.Runner.IsServer` as a primary check. ✅ Confirmed in a live co-op session 2026-07-03 (v1.3.2) — Issue A closed; see `TREERESPAWN_HANDOFF.md`.
+- **Co-op gather detection reworked (v1.3.0; ✅ CONFIRMED in co-op 2026-07-03 under v1.3.2 — but only after v1.3.2 removed the v1.3.1 gate regression, see the v1.3.2 section below).** The network data-sync catch (`DataSyncPatch`, fires for a co-op client's replicated harvests) previously required `GetComponent<GatherInteraction>()` on the instance's own GameObject to identify a node — which structurally misses most cases, since the interaction component often isn't on that GameObject at all (same finding as the v1.2.14 manual-hotkey stump issue below). It now classifies nodes from data: a `Plugin.KnownNodes` map is populated authoritatively when `GatherInteraction`/`HarvestInteraction.SetWorldInstance` binds (new postfixes, `Patches/Captures.cs`), with a component search (including children/inactive) only as a fallback for anything not yet seen. Registration itself reads pure instance data (`GetQuantity() <= 0`) — no GameObject required at all. The same bind-time hooks also run a **catch-up registration**: any node found already-depleted-but-untracked when the host streams it in gets a fresh timer immediately, self-healing losses from historical bugs (confirmed in-game 2026-07-02: 125 catch-up registrations healed a backlog with zero orphaned stumps left afterward).
 - **Manual Respawn Hotkey (v1.2.14/15).** Added a hotkey (`t` by default) to manually replenish any stump or exhausted gather node within a configurable radius (default `10m`). Bypasses the pending list entirely to help fix manually deforested areas. Scans `ActiveInstances` for depleted gather nodes and `Resources.FindObjectsOfTypeAll<HarvestInteraction>()` for physical stumps in the scene. Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host check fixed in v1.2.15.
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
@@ -184,7 +184,7 @@ gathers, and tree respawn "wasn't 100%" either. Root causes and fixes:
   — **confirmed in-game**: a tree felled far from base respawned unattended.
 - `DataSyncPatch` reworked to classify nodes from data instead of `GetComponent` on the instance's
   GameObject, closing the likely reason client gathers went undetected (see "Gather resource respawn"
-  above) — **⚠️ not yet re-tested in co-op.**
+  above) — **✅ confirmed in co-op 2026-07-03 (v1.3.2).**
 - New catch-up registration self-heals nodes lost to any historical bug the moment the host next
   streams them in — **confirmed in-game**: 125 catch-up registrations, zero orphaned stumps left in a
   full session.
@@ -193,13 +193,33 @@ gathers, and tree respawn "wasn't 100%" either. Root causes and fixes:
   and fell through to the handler fallback. Reads are now unconditional.
 - v1.3.1: `DataSyncPatch` gained an `IsExhausted()` gate ahead of all other work — the v1.3.0 log showed
   up to ~105k calls/5s during streaming, nearly all healthy/uninteresting instances. Not
-  diagnostics-gated (helps normal play too). **⚠️ Not yet re-tested.**
+  diagnostics-gated (helps normal play too). **Superseded — as shipped it silently filtered every
+  depleted gather node out of the data-sync path; widened in v1.3.2 (below).**
 - Egg/nest question answered: a ground bird's-nest is an ordinary gather node yielding `"Feathers"` —
   it follows the exact same respawn logic as flax/reeds/berries (already configured). `Wild Egg` is a
   bonus drop bundled with that gather, not its own node (same shape as `Seeds` on plants) — no separate
   timer exists to tune.
 - Full mechanism detail, in-game evidence, and the co-op test plan: `TREERESPAWN_HANDOFF.md` →
   "v1.3.0/v1.3.1 — tree hardening, co-op gather fix, self-healing catch-up".
+
+## v1.3.2 — co-op gather detection CONFIRMED; v1.3.1 gate regression fixed (2026-07-03, confirmed in-game)
+The first co-op session on v1.3.1 (2026-07-02) reproduced the gather gap one last time: the client's tree
+chop registered via `(data sync)`, his flax pick did not, and the `datasync(5s)` summaries showed
+`registered gather=0` in **every window of the whole session** — including the world-load flood, where
+~50 depleted gather nodes streamed in and all of them had to be rescued by the SetWorldInstance catch-up.
+**Root cause: v1.3.1's hot-path gate required `IsExhausted()==true` before classifying anything, but an
+empty gather node reads `false`** — that flag is stump/harvest semantics only (see architecture.md →
+Gather). Depleted gather nodes were binned "healthy", structurally re-opening the exact client-gather
+blindness v1.3.0 was built to close. v1.3.2 widens the gate to `IsExhausted() || GetQuantity() <= 0` and
+adds a `qty0=` counter to the summary line.
+
+**Confirmed in-game 2026-07-03 (co-op):** client gathers (flax, sticks) and tree chops register via
+`(data sync)` **both near and far from the host**, and the full loop was watched end-to-end — the client
+picked flax on his screen and the node respawned seconds later (short test threshold). Issue A closed.
+Perf note: `qty0` runs ~6% of `fired` (up to ~12k/5s under heavy streaming) — those fires now do the
+PosKey/dictionary work the gate was added to avoid; unnoticeable this session, but it's the first place
+to look if perf ever regresses (the `unknown=` bucket it feeds can't be negative-cached without a
+GameObject).
 
 ## Mining / stone-clump respawn — abandoned
 Investigated and abandoned; do not re-attempt. Full reasoning is in
