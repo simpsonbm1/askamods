@@ -20,7 +20,11 @@ public class DayTracker : MonoBehaviour
 
     // Called on world switch (Plugin.OnWorldChanged) — posKeys collide across worlds, so a stale
     // cooldown from world A must not delay (or leak into) world B.
-    internal static void ClearTransientState() => _lastHandlerAttempt.Clear();
+    internal static void ClearTransientState()
+    {
+        _lastHandlerAttempt.Clear();
+        WellRefill.ClearTransientState();
+    }
 
     // True while a recent failed attempt should suppress another try; otherwise stamps NOW and
     // lets this attempt proceed.
@@ -71,6 +75,15 @@ public class DayTracker : MonoBehaviour
             {
                 Plugin.Logger.LogWarning("[TreeRespawnMod] Manual respawn hotkey ignored — must be host.");
             }
+        }
+
+        // Well refill (v1.4.0) — independent of the pending-respawn queues, so it must run before
+        // the early-out below. Host-gated by the same server-weather check the queues use; a
+        // client (or the main menu) simply skips it.
+        if (Plugin.WellChargesPerDay.Value > 0f && Plugin.TryGetServerWeather(out var wellWs, out _))
+        {
+            try { WellRefill.Tick(wellWs!); }
+            catch (Exception e) { Plugin.Logger.LogError($"[TreeRespawnMod] [well] tick failed: {e}"); }
         }
 
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;

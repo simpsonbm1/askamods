@@ -12,3 +12,6 @@ obj/
 
 # BepInEx runtime save files (local only)
 *.save
+
+# Session handoff continuity doc (ephemeral, machine-local — see CLAUDE.md)
+SESSION_HANDOFF.md

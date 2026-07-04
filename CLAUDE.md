@@ -65,6 +65,17 @@ other machine until a push, so nothing is lost. A full doc pass on every build i
 If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
 does — both stay parallel in scope and structure.
 
+## Session Handoff Doc (standing instruction — see global convention)
+This project follows the global session-handoff practice (`~/.claude/CLAUDE.md`): maintain a
+`SESSION_HANDOFF.md` at repo root, kept continuously current during a session — updated right after
+each meaningful step, not saved up for one big write at the end — as a safety net against Claude
+Code's usage-limit hard-stops (which can cut a session off mid-action with no warning). Scoped to
+askamods only; never mix in another project's content. Gitignored, not auto-committed — normal
+commit policy still applies. If it exists at the start of a session, read it first, fold any durable
+learnings into this project's own docs (`docs/architecture.md`, `docs/mods/*.md`, or the relevant
+`*_HANDOFF.md`) per this project's own doc rules, then clear it once absorbed or the task is done.
+Don't create it speculatively — only once there's real in-progress work worth protecting.
+
 ## Git (commit/push policy + false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
@@ -142,7 +153,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) [v1.3.2 — CO-OP DETECTION CONFIRMED in-game 2026-07-03: a client's tree chops AND gathers (flax, sticks) register on the host via DataSyncPatch, near and far, and a watched flax pick respawned end-to-end (Issue A closed). v1.3.2 fixed a v1.3.1 regression: the hot-path gate assumed an empty gather node reads IsExhausted()=true — it doesn't (stump semantics only, see architecture.md → Gather dead-end), so every depleted gather was binned "healthy"; gate is now IsExhausted() || GetQuantity()<=0 with a qty0= diag counter. Tree hardening (WID-validated pointers + handler refill + catch-up registration) confirmed 2026-07-02. Watch item: 3 trees logged respawn→instant re-fell at the same posKey — players re-chopping, or near-player respawns not sticking? See TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) + constructed-well refill [v1.4.4 — WELL REFILL CONFIRMED in-game 2026-07-04: built wells ('Water Well' max 50, 'Rain Collector' max 10) are Structures with a charge-based GatherInteraction; WellRefill.cs enumerates them via SettlementManager getter methods (the .settlements list stays null — gotcha) + manual hierarchy walk (plural generic GetComponentsInChildren missing — gotcha) and grants ReplenishCharges(n) at config [WellRefill] ChargesPerDay (default 24; decisive test at 1440 = +1/sec visibly raced the well up). Host-side; co-op client view unverified. v1.3.2 co-op detection confirmed 2026-07-03: client tree chops AND gathers register on the host via DataSyncPatch (near+far), flax pick respawned end-to-end (Issue A closed); gate is IsExhausted() || GetQuantity()<=0 (empty gather reads IsExhausted()=false — stump semantics only, see architecture.md → Gather dead-end). Tree hardening (WID-validated pointers + handler refill + catch-up registration) confirmed 2026-07-02. Watch item: 3 trees logged respawn→instant re-fell at the same posKey — players re-chopping, or near-player respawns not sticking? See TREERESPAWN_HANDOFF.md + docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
@@ -172,7 +183,9 @@ The build target `CopyToPlugins` handles this automatically on build.
 The recurring traps in the BepInEx 6 / Il2CppInterop layer — keep these in mind on *any* mod.
 Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architecture.md#il2cpp-interop-gotchas-universal).
 - **Don't subscribe to game `Action` events** (`_onNewDay`, `OnFullyHarvested`, etc.) — `Il2CppSystem.Action(methodRef)` only takes an `IntPtr` here. **Use a registered `MonoBehaviour` + `Update()` polling** (the `DayTracker`/`RegenTracker`/`TorchFuelTracker`/`NeedsController` pattern).
-- **`FindObjectsByType<T>()` throws** `MissingMethodException` through the trampoline — get instances from a Harmony patch's `__instance`, not from a search.
+- **`FindObjectsByType<T>()` throws** `MissingMethodException` through the trampoline — get instances from a Harmony patch's `__instance`, not from a search. (`FindAnyObjectByType<T>()` — singular — works.)
+- **The plural generic `GetComponentsInChildren<T>(bool)` is missing too** (same `MissingMethodException` family); the singular `GetComponentInChildren<T>(bool)` works. To collect all matches, walk the hierarchy manually with per-object `GetComponent<T>()` (MineRefreshMod / TreeRespawn `WellRefill` pattern).
+- **`SettlementManager.settlements` stays null even in a loaded world** — resolve settlements via `GetPlayerSettlement()` / `GetCurrentSettlement()` / `worldSettlement` instead.
 - **Don't patch IL2CPP methods with by-ref primitive params** (`Single&`, `Int32&`, `Boolean&`) — trampoline NREs outside try/catch. Patch a sibling method with a safe signature instead.
 - **Don't patch `Initialize`/lifecycle methods on `Interaction` MonoBehaviours** — they fire during prefab init before the GC handle is set up → `Handle is not initialized` crash. (This is the cause of the old TreeRespawn co-op crash.)
 - **No `.TryCast<T>()` on `UnityEngine.Object`** (its base chain is just `System.Object`) — obtain an already-typed instance from a patch parameter instead.
@@ -189,7 +202,8 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, build menu/structure templates/localization, terrain/terraforming, native crash diagnosis (WER+Cpp2IL) |
 | [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
-| [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod |
+| [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod (incl. the v1.4.x constructed-well refill recipe) |
+| [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Five researched mod ideas (2026-07-03): well refill (✔ shipped, TreeRespawn v1.4.x), den respawn (Den.Revive + structure-blocking insight), crafting multiplier (BlueprintInfo.quantity data edit), ground-item vacuum (DynamicItemObjectManager), freezing hunters (warmth objective thresholds) — approaches + Cecil-confirmed API leads |
 | [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
 | [`docs/mods/torch-fuel.md`](docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
 | [`docs/mods/dynamic-villager-needs.md`](docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
@@ -200,6 +214,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`TerrainLevelerMod/BULLDOZER_UI_PLAN.md`](TerrainLevelerMod/BULLDOZER_UI_PLAN.md) | Mod 15 — the bulldozer build-menu square: design, v1.4.0→v1.4.8 evidence chain, build-menu/localization ground truth (COMPLETE 2026-07-01) |
 | [`TerrainLevelerMod/DRAG_CRASH_PLAN.md`](TerrainLevelerMod/DRAG_CRASH_PLAN.md) | Mod 15 — TerrainLevelerMod drag-crash root cause (BitSet256 network-state overflow) + fix, confirmed in-game 2026-07-01 |
 | [`TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md`](TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md) | Mod 15 — TerrainLevelerMod drag crash handoff (2026-07-01) — SUPERSEDED, see DRAG_CRASH_PLAN.md |
+| [`TERRAIN_LEVELER_HANDOFF.md`](TERRAIN_LEVELER_HANDOFF.md) | Mod 15 — early (v1.3.12) session handoff — SUPERSEDED by docs/mods/terrain-leveler.md + the TerrainLevelerMod/*.md plans |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |

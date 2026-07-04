@@ -1,11 +1,13 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.3.2)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.4.4)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
-after configurable in-game days.
+after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
+wells** (Water Well / Rain Collector buildings).
 
 **Game subsystems:** [Resource / Tree System](../architecture.md#resource--tree-system) and
 [Gather / Press-to-Collect System](../architecture.md#gather--press-to-collect-system) — both carry
 the confirmed facts and dead-ends (including why **mining/stone-clump respawn was abandoned**).
+Wells: see architecture.md → "Constructed water structures" under the Gather section.
 
 ## Tree respawn
 - Postfix patch on `HarvestInteraction.TakeDamage` — after each hit, check `GetCurrentPieceIndex() == harvestPieces.Count - 1` to detect stump stage
@@ -31,6 +33,45 @@ the confirmed facts and dead-ends (including why **mining/stone-clump respawn wa
 - **Host validation in Co-op (v1.2.13).** The mod previously validated host authority using `WeatherSystem.Instance.Runner.IsServer`, which evaluated to `false` in co-op. It now tracks `Plugin.LocalPlayer` via `PlayerCharacter.Spawned` and uses `LocalPlayer.NetworkObject.Runner.IsServer` as a primary check. ✅ Confirmed in a live co-op session 2026-07-03 (v1.3.2) — Issue A closed; see `TREERESPAWN_HANDOFF.md`.
 - **Co-op gather detection reworked (v1.3.0; ✅ CONFIRMED in co-op 2026-07-03 under v1.3.2 — but only after v1.3.2 removed the v1.3.1 gate regression, see the v1.3.2 section below).** The network data-sync catch (`DataSyncPatch`, fires for a co-op client's replicated harvests) previously required `GetComponent<GatherInteraction>()` on the instance's own GameObject to identify a node — which structurally misses most cases, since the interaction component often isn't on that GameObject at all (same finding as the v1.2.14 manual-hotkey stump issue below). It now classifies nodes from data: a `Plugin.KnownNodes` map is populated authoritatively when `GatherInteraction`/`HarvestInteraction.SetWorldInstance` binds (new postfixes, `Patches/Captures.cs`), with a component search (including children/inactive) only as a fallback for anything not yet seen. Registration itself reads pure instance data (`GetQuantity() <= 0`) — no GameObject required at all. The same bind-time hooks also run a **catch-up registration**: any node found already-depleted-but-untracked when the host streams it in gets a fresh timer immediately, self-healing losses from historical bugs (confirmed in-game 2026-07-02: 125 catch-up registrations healed a backlog with zero orphaned stumps left afterward).
 - **Manual Respawn Hotkey (v1.2.14/15).** Added a hotkey (`t` by default) to manually replenish any stump or exhausted gather node within a configurable radius (default `10m`). Bypasses the pending list entirely to help fix manually deforested areas. Scans `ActiveInstances` for depleted gather nodes and `Resources.FindObjectsOfTypeAll<HarvestInteraction>()` for physical stumps in the scene. Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host check fixed in v1.2.15.
+
+## Well water refill (v1.4.0–v1.4.4 — CONFIRMED in-game 2026-07-04)
+Configurable refill rate for **constructed** water structures — the `GatherRespawn` `Water` entry
+only covers the wild Natural Water Collector (a biome node); built wells are `Structure`s whose
+water is a charge-based `GatherInteraction` (`'Water Well'` max 50, `'Rain Collector'` max 10) and
+never touch the biome-instance machinery.
+
+- **Mechanism (`WellRefill.cs`, driven from `DayTracker.Update()` before the pending-respawn
+  early-out; host-gated via the existing `TryGetServerWeather`):** every ~30 s, resolve
+  `SettlementManager` (`FindAnyObjectByType`) → settlements via the **getter methods**
+  (`GetPlayerSettlement()`/`GetCurrentSettlement()`/`worldSettlement`) → `GetStructures()` →
+  manual hierarchy-walk for `GatherInteraction`s → keep those yielding item `"Water"`. Per well,
+  accumulate elapsed in-game time and grant `ReplenishCharges(n)` clamped to
+  `CheckMaximumItemCount() - CheckAvailableItemCount()`. Structures deduped by position; cache
+  cleared on world switch; stale wrappers dropped and re-found on the next scan.
+- **Time accounting is anchor+carry:** the anchor is only ever assigned from
+  `WeatherSystem.NetworkedCurrentGameTime` and only ever consumed through
+  `GetTimeDifferenceFromCurrentGameTimeInSeconds(anchor)`; the sub-charge remainder is banked in
+  seconds. (v1.4.2 advanced the anchor with `+= seconds` — an unverified-unit assumption on an
+  opaque value; don't reintroduce.) While a well is full the anchor re-arms so no burst banks up.
+- **Confirmed in-game 2026-07-04:** at `ChargesPerDay=24`, +1 water per 60 s (1440 s day) with
+  counts verifiably rising against live villager consumption; the decisive test set
+  `ChargesPerDay=1440` (= +1/sec at that day length) and the well **visibly raced up** — proof the
+  mod, not vanilla, controls the rate. Villagers drink the refilled stock (real game state).
+- **Config `[WellRefill]`:** `ChargesPerDay` (float, default 24 = 1/in-game-hour; 0 = off/vanilla;
+  scales with day length automatically), `WellDiagnostics` (bool, default `false` since v1.4.4 —
+  scan-state, per-minute progress, and `+N water` lines; NO-OP/error warnings always log).
+- **Version trail:** v1.4.0 shipped the feature but the settlement scan threw
+  (plural-generic `GetComponentsInChildren<T>(bool)` missing through the trampoline — now a
+  universal gotcha); v1.4.1 fixed that with the manual child-walk but discovery still found
+  nothing (`SettlementManager.settlements` list stays null — second new gotcha); v1.4.2 switched
+  to the settlement getter methods (discovery worked: 6 structures tracked) and added the
+  loud scan-state line; v1.4.3 made the time accounting unit-safe + added per-minute tick
+  diagnostics + NO-OP detection (refill then confirmed firing); v1.4.4 flipped diagnostics
+  default off and diag-gated the per-grant line (at high rates it's ~1 line/sec/well).
+- Known scope notes: **Rain Collector is included** (matches the same water-gather signature;
+  vanilla fills it only on rain — name-filter it out later if undesired). Co-op client-side
+  behavior unverified ⚠️ (host/solo confirmed; refill runs host-side only, and `ReplenishCharges`
+  writes the networked count, so replication is expected but untested).
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
 - **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a

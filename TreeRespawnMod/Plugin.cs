@@ -33,6 +33,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> ManualRespawnHotkey = null!;
     internal static ConfigEntry<float> ManualRespawnRadius = null!;
     internal static ConfigEntry<bool> ManualRespawnIncludeGather = null!;
+    internal static ConfigEntry<float> WellChargesPerDay = null!;
+    internal static ConfigEntry<bool> WellDiagnostics = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
@@ -147,6 +149,24 @@ public class Plugin : BasePlugin
             defaultValue: true,
             description: "When true, ManualRespawnHotkey also instantly respawns tracked exhausted gather nodes " +
                 "(reeds, berries, etc.) within range, not just tree stumps.");
+
+        WellChargesPerDay = Config.Bind(
+            section: "WellRefill",
+            key: "ChargesPerDay",
+            defaultValue: 24.0f,
+            description: "How many water charges a CONSTRUCTED well/water-collector building regains per " +
+                "in-game day, on top of whatever the vanilla refill does. 24 = one charge per in-game hour. " +
+                "Set to 0 to disable (pure vanilla refill). This is separate from the GatherRespawn 'Water' " +
+                "entry, which only covers the wild Natural Water Collector. Host-only in co-op.");
+
+        WellDiagnostics = Config.Bind(
+            section: "WellRefill",
+            key: "WellDiagnostics",
+            defaultValue: false,
+            description: "Verbose well-refill logging: the settlement scan state, per-minute per-well " +
+                "elapsed/needed progress lines, and stale-entry drops. (The +N water refill line and " +
+                "error/no-op warnings always log regardless.) Feature confirmed in-game 2026-07-04; " +
+                "turn on only to troubleshoot wells not being found or not refilling.");
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,

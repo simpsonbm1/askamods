@@ -30,7 +30,15 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
 - **`UnityEngine.Object.FindObjectsByType<T>()` (generic overload) throws `MissingMethodException`**
   through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported).
   Called from `Update()` it logs thousands of times/sec. Get instances from a Harmony patch's
-  `__instance` instead of searching.
+  `__instance` instead of searching. (`FindAnyObjectByType<T>()` — singular — works: shipped in
+  TreeRespawn's `PollWorldId` for `StorageManager` and its `WellRefill` for `SettlementManager`.)
+- **The generic PLURAL `GetComponentsInChildren<T>(bool)` is missing through the trampoline too** —
+  `MissingMethodException: '!!0[] UnityEngine.Component.GetComponentsInChildren(Boolean)'` on every
+  call (confirmed in-game 2026-07-03, TreeRespawn v1.4.0). The **singular**
+  `GetComponentInChildren<T>(bool)` works fine (shipped in DataSyncPatch / TerrainLeveler / WarpTour).
+  To collect ALL matching components under a root, walk the hierarchy manually: per-object
+  `GetComponent<T>()` + recurse over `transform.GetChild(i)` (MineRefreshMod's
+  `GetComponentsInChildrenRecursive` and TreeRespawn `WellRefill.CollectGatherInteractions`).
 - **Never Harmony-patch an IL2CPP method that takes a by-ref primitive parameter** (`Single&`, `Int32&`,
   a `bool`/`Boolean&` out-param, etc.). Marshaling the by-ref value type through the patch trampoline
   throws a `NullReferenceException` **on every call** — logged as `During invoking native->managed
@@ -328,6 +336,27 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
   gather / `IsExhausted() && !Destroyed` tree). Detects client gathers and chops **both near and far
   from the host**, no GameObject/GetComponent needed (TreeRespawn `DataSyncPatch` + `Registration.cs`).
 
+### Constructed water structures — Well / Rain Collector (confirmed in-game 2026-07-04)
+Built water buildings are **`Structure`s carrying a plain charge-based `GatherInteraction`**, NOT
+biome nodes — none of the BiomeItemInstance/Replenish machinery applies. Confirmed live:
+`'Water Well'` (max 50), `'Rain Collector'` (max 10); display names via `Structure.GetName()`.
+- **Find them:** `FindAnyObjectByType<SettlementManager>()` → settlement **getter methods** (the
+  `.settlements` list is a dead end — see Settlement Queries) → `Settlement.GetStructures()` →
+  hierarchy-walk each structure for `GatherInteraction`s (plural generic GetComponentsInChildren is
+  a dead end — see universal gotchas) → keep those whose `GetGatherableItemInfo().Name == "Water"`.
+  A structure-hosted water gather can only be a built well/collector — the wild Natural Water
+  Collector is a biome node and never appears in `GetStructures()`.
+- **Refill lever: `GatherInteraction.ReplenishCharges(int)`** host-side — the count verifiably
+  rises (`CheckAvailableItemCount()`), the in-game capacity readout follows, and villagers drink
+  the added stock (real game state, not cosmetic). Clamp with `CheckMaximumItemCount()`; the
+  `*Client` variants exist for the client side (untested). Co-op client-side behavior unverified ⚠️.
+- **Time base:** anchor `WeatherSystem.NetworkedCurrentGameTime` and measure ONLY via
+  `GetTimeDifferenceFromCurrentGameTimeInSeconds(anchor)` — the value's internal unit is opaque;
+  never do seconds-arithmetic directly on it (TreeRespawn WellRefill's anchor+carry pattern).
+- Vanilla's own refill wiring was NOT identified (no well-specific type exists; prefab-wired
+  `Timer`/`WeatherConditionsHelper` + `ReplenishOneChargeIfTrue(bool)` is the ⚠️ unverified
+  hypothesis) — irrelevant for modding: the mod's additive `ReplenishCharges` rides on top.
+
 ---
 
 ## Item Naming
@@ -396,6 +425,14 @@ mod-specific — reuse it for any storage / crafting / needs idea.
 SSSGame.SettlementManager (MonoBehaviour)
   .GetPlayerSettlement() / .GetCurrentSettlement() / .GetClosestSettlement(Vector3) → Settlement
   .settlements (List) / .worldSettlement / .OnSettlementLoaded (Action)  ← wait for load before querying
+  .IsLoading (bool)
+```
+⚠️ **`.settlements` stays `null` even in a fully-loaded, busy village** (confirmed in-game
+2026-07-03/04, TreeRespawn WellRefill: `list=null` on every scan of a whole session while
+`GetPlayerSettlement()`/`GetCurrentSettlement()`/`worldSettlement` all returned live settlements
+and `GetStructures()` walked 239 buildings). Resolve settlements via the **getter methods**, never
+the list. `FindAnyObjectByType<SettlementManager>()` works for getting the manager itself.
+```
 SSSGame.Settlement (MonoBehaviour)
   .QuerySettlementResources() → ItemManifest   ← ONE call = total item counts across the WHOLE village
                                                  (the clean "does the settlement have X, and how many?" query)
