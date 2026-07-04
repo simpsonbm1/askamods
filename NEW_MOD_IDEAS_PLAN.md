@@ -8,43 +8,18 @@ All type/member signatures below were confirmed from the interop binaries via Mo
 
 ---
 
-## 1. Well water regeneration rate → TreeRespawnMod v1.4.0 (IN PROGRESS)
+## 1. Well water regeneration rate → SHIPPED (TreeRespawnMod v1.4.4, confirmed in-game 2026-07-04)
 
-**Goal:** configurable refill speed for *constructed* water structures (Well / water collector
-buildings). TreeRespawnMod's existing `GatherRespawn.Water` entry only covers the wild
-**Natural Water Collector** (a biome gather node); built wells are `Structure`s and never touch
-the biome-instance machinery.
+Configurable refill rate for *constructed* water structures (Water Well / Rain Collector),
+separate from the pre-existing `GatherRespawn.Water` entry (which only covers the wild Natural
+Water Collector biome node). Decisive test (`ChargesPerDay=1440` → well visibly raced up ~1/sec)
+proved the mod controls the rate, not vanilla. Live on Nexus (v1.4.4, 2026-07-04) with an updated
+Description page.
 
-**Key API (confirmed from binary):**
-- The well's stock is a plain `SSSGame.GatherInteraction` (charge-based, `_networkedCount : NetworkItemCount`, `showCapacityBar`):
-  - `CheckAvailableItemCount()` / `CheckMaximumItemCount()` — current vs. max charges.
-  - `ReplenishCharges(int)` / `ReplenishOneChargeIfTrue(bool)` / `ReplenishFullQuantity()` — the game's own refill calls (+`*Client` variants → the non-Client ones are the host-authoritative path).
-  - `GetGatherableItemInfo()` → yielded `ItemInfo` (`.Name == "Water"`, same as the natural collector).
-- No `GatherInteraction` subclass and no well-specific type exists (checked). Vanilla refill is
-  most likely prefab-wired: a generic `Timer` MonoBehaviour (`timerMin/timerMax`, `timerEvent : UnityEvent`)
-  and/or `SSSGame.Weather.WeatherConditionsHelper` (retriggerable weather-conditional events —
-  i.e. rain fills it). We do NOT need to find/patch that wiring — we add our own refill on top.
-- Enumeration: `SSSGame.SettlementManager` (via `FindAnyObjectByType`, same pattern as
-  StorageManager in Plugin.PollWorldId) → `.settlements` / `GetPlayerSettlement()` →
-  `Settlement.GetStructures()`. Filter: structure has a `GatherInteraction` (GetComponentsInChildren)
-  whose gatherable item name is `"Water"`.
-- `VillagerSurvival.waterCollectorTemplate : StructureTemplate` confirms "water collector" is a
-  structure-template concept — villagers drink from it.
-
-**Approach (implemented, ⚠️ pending in-game):**
-- New `[WellRefill]` config section in TreeRespawnMod: `ChargesPerDay` (float, default 24 = 1/in-game-hour;
-  0 = off/vanilla), `WellDiagnostics` (default **true** until verified, then flip).
-- `WellRefill.Tick()` called from `DayTracker.Update()` (before the pending-respawn early-out).
-  Host-gated via the existing `TryGetServerWeather`. Rescans settlement structures every ~30 s
-  (no `Action` subscriptions — IL2CPP gotcha). Per-well elapsed-time accounting off
-  `WeatherSystem.NetworkedCurrentGameTime` + `GetTimeDifferenceFromCurrentGameTimeInSeconds`;
-  when full, the accumulator re-anchors so no refill burst builds up.
-- Refill via `ReplenishCharges(n)` clamped to `max - available` — game's own networked call, so
-  co-op replication should come free (same rationale as TorchFuelMod's `Rpc_AddFuel`).
-
-**Open questions for first in-game run:** does the built well actually carry a `GatherInteraction`
-(diagnostics log every structure scanned + what was found); actual max charges; whether
-`ReplenishCharges` replicates to clients (test in co-op like TreeRespawn v1.3.2 was).
+Full mechanism, config, and version history: [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md#well-water-refill-v140v144--confirmed-in-game-2026-07-04).
+Reusable API facts (structure → GatherInteraction → ReplenishCharges recipe, plus two new
+universal IL2CPP gotchas hit along the way — the missing plural `GetComponentsInChildren<T>`
+overload, and `SettlementManager.settlements` staying null): [`docs/architecture.md`](docs/architecture.md#gather--press-to-collect-system).
 
 ---
 
