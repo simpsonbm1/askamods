@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>SeedScoutMod</AssemblyName>
     <RootNamespace>SeedScoutMod</RootNamespace>
-    <Version>0.16.8</Version>
+    <Version>1.3.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -72,10 +72,13 @@
   </ItemGroup>
 
   <Target Name="CopyToPlugins" AfterTargets="Build">
-    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
-          DestinationFolder="$(BepInExPath)\plugins\$(AssemblyName)" />
+    <!-- Repo copy first and unconditional: a locked live DLL (game running) must not block
+         updating the git-tracked binary. -->
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
           DestinationFolder="$(MSBuildProjectDirectory)" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll"
+          DestinationFolder="$(BepInExPath)\plugins\$(AssemblyName)"
+          ContinueOnError="true" />
   </Target>
 
 </Project>

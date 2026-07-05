@@ -11,8 +11,11 @@ namespace SeedScoutMod;
 [HarmonyPatch(typeof(CavesManager), "RegisterCaves")]
 internal static class RegisterCavesPatch
 {
-    static void Postfix(AreaInstancelist caveInstances)
+    static void Postfix(CavesManager __instance, AreaInstancelist caveInstances)
     {
+        // Keep the manager itself — it carries caveMarkerInfo (the native cave-pin MarkerInfo
+        // template) needed to construct marker handlers for undiscovered caves.
+        if (__instance != null) Plugin.Caves = __instance;
         if (caveInstances == null) return;
         int added = 0;
         int n = caveInstances.Count;

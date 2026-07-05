@@ -52,6 +52,19 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   `System.Object`, not `Il2CppObjectBase` (unlike normal game types e.g.
   `WorldItemInstance : Il2CppSystem.Object : Il2CppObjectBase`). Avoid by obtaining an
   already-correctly-typed instance from a patch parameter rather than from a `UnityEngine.Object[]`.
+  **ROOT CAUSE + runtime escape hatch (confirmed in-game 2026-07-04, SeedScout):** this is a
+  *compile-time* artifact — our csprojs reference the `unity-libs\UnityEngine.CoreModule.dll` STUB
+  (where `UnityEngine.Object : System.Object`), but the RUNTIME loads the `interop\` CoreModule whose
+  chain is `UnityEngine.Object → Il2CppSystem.Object → Il2CppObjectBase`. So a conversion the compiler
+  rejects works at runtime via box-cast: `if ((object)unityObj is Il2CppObjectBase b)` → then
+  `b.Pointer` is usable for native class checks / `new T(IntPtr)` rewraps.
+- **BepInEx interpolated-string logging THROWS on Unity struct args** — passing a `Vector3`/`Vector4`
+  (etc.) directly into `Logger.LogInfo($"… {someVector3} …")` picks BepInEx's
+  `BepInExLogInterpolatedStringHandler` overload, whose `AppendFormatted<T>` constraint rejects the type
+  at IL-verification: `VerificationException`, thrown AT THE LOG SITE inside your try/catch's scope —
+  it silently killed SeedScout v1.2.0's home-island resolver. `.ToString()` struct args first, or route
+  through a `(string)`-typed wrapper method (a plain `LogInfo(string msg)` compiles to `string.Format`,
+  which is safe for anything).
 - **Don't Harmony-patch `Initialize`/lifecycle methods on `MonoBehaviour`-based `Interaction` types**
   (e.g. `KilnInteraction`/`BellowsInteraction`/`ForgeInteraction`). They fire during early-boot
   prefab/pool init on instances whose **managed GC handle isn't set up yet**, so the il2cpp→managed
@@ -854,15 +867,39 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   `RegisterWorldTile`, `CancelLoading`, `StopAllStreaming`, `SetTrackTransform(Transform)`.
 - **Alternative force-stream primitive:** `SSSGame.StreamingInstigator` (MonoBehaviour, `Request()`) — the game's
   own "stream at this point." Not needed once `RequestLoadWorldTile` was confirmed working.
-- **POI "discovery" / native map pins (confirmed to EXIST; reveal-without-walking NOT yet working):**
-  `AreaInstance.isExplored` (bool, settable) + `OnDiscovered` (Action) + `areaInstanceMarkerHandler`
-  (`IAreaInstanceMarkerHandler` → `RefreshExploration()`, holds `MarkerInfo`). `TerrainAreaMarkerHandler`/
-  `BiomeAreaMarkerHandler` poll player vs `GetDiscoveryRadius()` to flip the flag and show the pin.
-  **Gotcha:** `areaInstanceMarkerHandler` is **null on cave AreaInstances even after force-loading their
-  tiles** — the handler/marker object isn't created by tile streaming (likely tied to `CaveAreaInstance.Root`,
-  instantiated only at close range). Reveal-without-walking is unsolved; see SeedScout handoff for leads
-  (CaveData.SetExploredState, ExplorationDataHandler, ObjectiveMarkerContainer). Dens/lakes aren't
-  AreaInstances → separate marker path (`WorldObjectiveMarker`/`StructureObjectiveMarker`).
+- **POI "discovery" / native map pins — SOLVED, reveal-without-walking works (confirmed in-game
+  2026-07-04, SeedScout v1.x; supersedes the WarpTour teleport-tour for this purpose):**
+  - **A map pin is a persistent `MarkerItem` (an `Item`, `MarkerObject : ItemComponent` on its world
+    object)** spawned through the item pipeline — this is why real pins survive save/reload and render at
+    any distance. The display layer (`WorldObjectiveMarker`, `ObjectiveMarkerFlags`) is stateless; there
+    is no "discovered" flag anywhere — discovery IS the existence of the marker item.
+  - **Recipe per marker-bearing `AreaInstance`**: set `isExplored = true`, call
+    `areaInstanceMarkerHandler.RefreshExploration()` → pin materializes. ~450 handlers exist natively at
+    world load (NOT created by streaming). **Caves are the exception (handler null natively)** — construct
+    one: `new AreaInstanceMarkerHandler(caveArea, CavesManager.caveMarkerInfo)` (public ctor, also on the
+    `BiomeAreaMarkerHandler`/`TerrainAreaMarkerHandler` subclasses), assign via
+    `area.areaInstanceMarkerHandler = h.Cast<IAreaInstanceMarkerHandler>()`.
+  - **Non-cave pin templates:** `area.area.itemInfo` IS the `MarkerInfo : ItemInfo` for marker-bearing
+    areas — but check the NATIVE class name (ends "MarkerInfo") and rewrap `new MarkerInfo(ptr)`; the
+    declared type is base ItemInfo and managed casts lie. `MarkerInfo.CreateItem()` exists as a fallback
+    lever (never needed).
+  - **Tile residency is the coverage limiter:** the marker-object SPAWN (not the handler) needs the POI's
+    world tile resident. Residency-independent: caves, islands (Terrain areas). Everything else needs its
+    tile streamed → request exactly the unpinned POIs' tiles via `RequestLoadWorldTile` (position-derived,
+    FLOOR convention). Only refresh while `GetMarkerObject()` is null (duplicate-pin guard).
+  - **Dens/camps/lakes/fishing grounds ARE area pins** — the "den pins" are `BiomeAreaInstance` markers
+    (thematic names = area names: Habitat_Wolves→"Wulfar Den", Habitat_SkeletonsCemetaryLarge→"Large
+    Cemetery", …). No separate marker path needed. Full name-stem→POI-type table in
+    [`docs/mods/seed-scout.md`](mods/seed-scout.md).
+  - **Gotchas found on the way:** `AreaInstance.GetWorldTileCoordinates()` returns an EMPTY rect —
+    derive tiles from `area.position` (world meters). `WorldStreamingManager` has NO request-release API
+    (only `CancelLoading` for in-flight) — force-loaded tiles stay resident for the session.
+    **`AreaInstance.GetBounds()` Vector4 layout CONFIRMED (2026-07-05):
+    `(xMin, zMin, xMax, zMax)` directly** — e.g. `MainIsland-0` raw `(-975.00, -801.00, 835.00,
+    1009.00)` → bounds `(-975,-801)-(835,1009)`. (The earlier "failed under both interpretations"
+    note was a false alarm — v1.2.0's home-island resolver crashed on the logging gotcha above
+    *before* it could report which interpretation matched, not because the bounds genuinely didn't
+    contain spawn; A was correct all along.)
 - **Den type/tier:** a `Den : Creature`'s own sheet is empty (`faction=Ignore`, `baseThreatScore=0`); the
   type/tier is what its `alphaSpawner` (PopulationSpawner) spawns — `_populations[i].config`
   (CreaturePopulationConfiguration) `.name` + `.populationInfo.name` (e.g. `WightBoss`, `DraugarAlpha`).

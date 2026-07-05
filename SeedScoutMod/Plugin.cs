@@ -5,14 +5,13 @@ using BepInEx.Unity.IL2CPP;
 using BepInEx.Logging;
 using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
-using SandSailorStudio.Streaming;
 using SSSGame;
 using UnityEngine;
 
 namespace SeedScoutMod;
 
 // A cave (mine) placement captured at registration time (value copy — the instances
-// themselves may be released/streamed out).
+// themselves may be released/streamed out). Kept as a streamed cross-check diagnostic.
 internal struct CaveHit
 {
     public Vector2Int Pos;
@@ -20,84 +19,72 @@ internal struct CaveHit
     public CaveHit(Vector2Int pos, Vector4 bounds) { Pos = pos; Bounds = bounds; }
 }
 
-// A lake captured as it spawns (per-tile/streaming). Pos is world (x, z).
-internal struct LakeHit
-{
-    public Vector2 Pos;
-    public float Water;
-    public LakeHit(Vector2 pos, float water) { Pos = pos; Water = water; }
-}
-
-// A hostile spawner (den / enemy camp) captured as it spawns. Pos is world (x, z). Kind is the broad
-// category ("Den"/"EnemyCamp"); Name is the specific type (e.g. localized den name); Threat is the
-// CreatureDataSheet.baseThreatScore difficulty number (0 if unknown).
-internal struct HostileHit
-{
-    public Vector2 Pos;
-    public string Kind;
-    public string Name;
-    public float Threat;
-    public HostileHit(Vector2 pos, string kind, string name, float threat)
-    {
-        Pos = pos; Kind = kind; Name = name; Threat = threat;
-    }
-
-    public bool IsWulfar => !string.IsNullOrEmpty(Name) && 
-                            (Name.IndexOf("Wulfar", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                             Name.IndexOf("Wolf", System.StringComparison.OrdinalIgnoreCase) >= 0);
-}
-
-// PROBE v0.4 — introspection only.
-// The world streams; GetWorldAreaInstances() is empty post-load. Two angles:
-//  (a) recursively walk the live area tree (WorldDataMap._worldInstances -> children),
-//  (b) accumulate everything CavesManager.RegisterCaves() is handed.
+// SeedScout — reveal the game's OWN native map pins for every POI at world load, without moving
+// the player (see Scout.cs for the mechanism). The old seed scorer / base-placement recommender /
+// colored map-dot overlay were removed for the MVP (git history ≤ v0.18.0 has them).
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
 
     internal static BiomesManager? Biomes;
-    internal static WorldStreamingManager? Streaming;
-    internal static SandSailorStudio.RNG.RandomGeneratorManager? Rng;
-    internal static ConfigEntry<bool> EnableMarkers = null!;
-    internal static ConfigEntry<bool> ForceLoadTiles = null!;
-    internal static ConfigEntry<int> ForceLoadRadius = null!;
+    internal static CavesManager? Caves;
+    internal static SandSailorStudio.Streaming.WorldStreamingManager? Streaming;
     internal static ConfigEntry<bool> RevealNativePins = null!;
+    internal static ConfigEntry<bool> HomeIslandOnly = null!;
+    internal static ConfigEntry<bool> SweepStreamTiles = null!;
+    internal static BepInEx.Configuration.ConfigFile? Cfg;
+    internal static ConfigEntry<int> SweepMaxTiles = null!;
+    internal static ConfigEntry<bool> RevealCaves = null!;
+    internal static ConfigEntry<bool> RevealIslands = null!;
+    internal static ConfigEntry<bool> RevealLakes = null!;
+    internal static ConfigEntry<bool> RevealFishingGrounds = null!;
+    internal static ConfigEntry<bool> RevealEnemyCamps = null!;
+    internal static ConfigEntry<bool> RevealCreatureDens = null!;
+    internal static ConfigEntry<bool> RevealLandmarks = null!;
+    internal static ConfigEntry<bool> RevealUnknown = null!;
     internal static ConfigEntry<bool> EnableLogging = null!;
-    internal static ConfigEntry<bool> EnableSeedLogging = null!;
     internal static readonly List<CaveHit> RegisteredCaves = new();
-    internal static readonly List<Vector2> Seas = new();
-    internal static readonly List<LakeHit> Lakes = new();
-    internal static readonly List<HostileHit> Hostiles = new();
 
     public override void Load()
     {
         Logger = base.Log;
-
-        EnableMarkers = Config.Bind("SeedScout", "EnableMapMarkers", true,
-            "Draw cave (mine) dots on the in-game map. Pure UI overlay — no game objects touched.");
-
-        ForceLoadTiles = Config.Bind("SeedScout", "ForceLoadCaveTiles", true,
-            "After world load, force the streamer to load the tile at each cave (RequestLoadWorldTile) " +
-            "so lakes/hostiles near caves fill in without physically exploring. Experimental.");
-
-        ForceLoadRadius = Config.Bind("SeedScout", "ForceLoadRadius", 2,
-            "How many tile rings around each cave to force-load (0 = the cave's own tile only, " +
-            "1 = 3x3, 2 = 5x5, 3 = 7x7). Higher = more of the map fills in but more streaming/memory. " +
-            "Tile = ~128m. Clamped to 0-3. Editable live in this file (no rebuild needed).");
+        Cfg = Config; // Scout re-reads the file periodically so HomeIslandOnly can be flipped live
 
         RevealNativePins = Config.Bind("SeedScout", "RevealNativeCavePins", true,
-            "Experimental: after force-load, mark each cave's area explored and refresh its marker handler " +
-            "to reveal the game's OWN native map pin (correct icon + name) without walking there.");
+            "Master switch: at world load, reveal the game's OWN native map pins (correct icon + name) " +
+            "for every POI on the map — caves, dens, spires, cemeteries, lakes, islands — as if you had " +
+            "discovered them, without moving the player. Pins persist in the save like real discoveries.");
 
-        EnableLogging = Config.Bind("SeedScout", "EnableLogging", true,
-            "Master switch for SeedScout's informational log output (the 5s heartbeat, per-spawn lake/den/" +
-            "camp captures, area-tree dumps, etc.). Set false to silence the spam so other mods' log lines " +
-            "are easy to find. Genuine warnings/errors and the one-time load line still show regardless.");
+        HomeIslandOnly = Config.Bind("SeedScout", "HomeIslandOnly", true,
+            "Reveal only the POIs on (and just around) the initial island the player spawns on. " +
+            "Flip to false to reveal the greater world — this is picked up LIVE (the config file is " +
+            "re-read every few seconds in-game): save the file and the wider reveal starts within " +
+            "seconds, no relaunch. Already-revealed pins always persist in the save either way.");
 
-        EnableSeedLogging = Config.Bind("SeedScout", "EnableSeedLogging", true,
-            "When true, logs a succinct 'Seed = X, Score = Y' line as the map streams, independent of EnableLogging. " +
-            "Turn off EnableLogging and keep this on for a clean seed-hunting workflow.");
+        SweepStreamTiles = Config.Bind("SeedScout", "SweepStreamTiles", true,
+            "Stream in the world tile under each POI that needs it (the player never moves). Many pins " +
+            "only materialize once their tile is resident — without this, only residency-independent " +
+            "pins appear (caves, islands, some fishing grounds) and the map comes out sparse.");
+
+        SweepMaxTiles = Config.Bind("SeedScout", "SweepMaxTiles", 400,
+            "Safety cap on how many unique tiles the sweep may stream in per world (tiles stay resident " +
+            "for the session; each is ~128m and carries its spawned entities). If the cap is hit, the " +
+            "farthest POIs may stay unpinned — the log says so.");
+
+        RevealCaves = Config.Bind("RevealTypes", "Caves", true, "Reveal cave (mine) pins.");
+        RevealIslands = Config.Bind("RevealTypes", "Islands", true, "Reveal island pins (Desert/Marsh/Small/Tiny islands).");
+        RevealLakes = Config.Bind("RevealTypes", "Lakes", true, "Reveal lake pins.");
+        RevealFishingGrounds = Config.Bind("RevealTypes", "FishingGrounds", true, "Reveal fishing-ground pins (salmon/wolfish).");
+        RevealEnemyCamps = Config.Bind("RevealTypes", "EnemyCamps", true, "Reveal enemy viking settlement pins (desert/marsh camps + strongholds).");
+        RevealCreatureDens = Config.Bind("RevealTypes", "CreatureDens", true, "Reveal creature den/habitat pins (wulfars, skeletons, draugar, wights, bosses, wildlife).");
+        RevealLandmarks = Config.Bind("RevealTypes", "Landmarks", true, "Reveal landmark pins (exploration towers, shipwrecks, stone heads).");
+        RevealUnknown = Config.Bind("RevealTypes", "Unknown", true, "Reveal pins of any POI type not matched by the other toggles (safety net for game updates).");
+
+        EnableLogging = Config.Bind("SeedScout", "EnableLogging", false,
+            "Master switch for SeedScout's informational log output (the 5s heartbeat, the area dump, " +
+            "per-POI reveal lines). Set false to silence the spam so other mods' log lines are easy to " +
+            "find. Genuine warnings/errors and the one-time load line still show regardless.");
 
         ClassInjector.RegisterTypeInIl2Cpp<ScoutTracker>();
         var go = new GameObject("SeedScoutMod_Tracker");
@@ -106,13 +93,13 @@ public class Plugin : BasePlugin
 
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll();
 
-        Logger.LogInfo($"SeedScoutMod {MyPluginInfo.PLUGIN_VERSION} loaded (probe). " +
-                       $"EnableLogging={EnableLogging.Value}. " +
-                       "Load a world; the dump walks the area tree and reports registered caves.");
+        Logger.LogInfo($"SeedScoutMod {MyPluginInfo.PLUGIN_VERSION} loaded. " +
+                       $"RevealNativePins={RevealNativePins.Value} EnableLogging={EnableLogging.Value}. " +
+                       "Load a world; native POI pins appear on the map within ~10s.");
     }
 
     // Gated informational logging. Routed through here so EnableLogging=false silences the chatty
-    // heartbeat/per-spawn/dump output. Warnings/errors call Logger.LogWarning/LogError directly so
+    // heartbeat/per-POI/dump output. Warnings/errors call Logger.LogWarning/LogError directly so
     // they always surface regardless of this switch.
     internal static void LogInfo(string msg)
     {

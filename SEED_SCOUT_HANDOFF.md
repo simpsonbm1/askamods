@@ -1,6 +1,16 @@
-# SeedScoutMod — Handoff (Mod 9, WIP)
+# SeedScoutMod — Handoff (Mod 9) — SUPERSEDED (2026-07-04)
 
-**Last build: v0.16.5** (built, deployed).
+> **SUPERSEDED by [`docs/mods/seed-scout.md`](docs/mods/seed-scout.md).** SeedScout shipped as
+> **v1.3.0 — a native-pin revealer** (all POI pins at world load, no teleport, home-island scope):
+> the "native map pins" thread below was SOLVED (pins are persistent MarkerItems; construct
+> AreaInstanceMarkerHandler for caves, isExplored+RefreshExploration, stream unpinned POIs' tiles).
+> The **scorer / map overlay / base recommender described below were REMOVED** in v1.0.0
+> (git history ≤ v0.18.0 has the code). This file remains the reference for: the removed scorer's
+> design, the den type/tier classification data (alphaSpawner/affectedSpawners), force-load tile
+> addressing, worldgen findings, and the still-unresolved seed-read dead-end (needed only for a
+> future auto-finder).
+
+**Last build referenced below: v0.16.5** (historical).
 **Status**: [COMPLETE] — Seed reading resolved via NetworkSession, automated seed scoring implemented and tuned, map overlay colors differentiated (orange for Wulfars, blue for Seas, green for optimal village center), and automatic output to `SeedScout_Scores.txt` implemented.
 
 > **Native map pins were SOLVED in a separate mod — `WarpTour` (Mod 10), see [`WARP_TOUR_HANDOFF.md`](WARP_TOUR_HANDOFF.md).**

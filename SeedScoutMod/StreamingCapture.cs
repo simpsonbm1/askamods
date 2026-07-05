@@ -3,15 +3,14 @@ using SandSailorStudio.Streaming;
 
 namespace SeedScoutMod;
 
-// Capture the WorldStreamingManager so we can force-stream the tiles around each cave
-// (RequestLoadWorldTile) instead of physically walking there to wake them up. Same pattern as
-// BiomesCapture — grab the instance from its own Awake, never FindObjectsByType.
+// Capture the WorldStreamingManager from its own lifecycle (never FindObjectsByType — IL2CPP
+// trampoline crash). Feeds the force-load routine; refreshed by Awake on every world load.
 [HarmonyPatch(typeof(WorldStreamingManager), "Awake")]
-internal static class StreamingAwakePatch
+internal static class StreamingCapturePatch
 {
     static void Postfix(WorldStreamingManager __instance)
     {
         Plugin.Streaming = __instance;
-        Plugin.LogInfo("SeedScout: WorldStreamingManager.Awake — captured.");
+        Plugin.LogInfo("SeedScout: WorldStreamingManager captured.");
     }
 }
