@@ -1,8 +1,9 @@
-# Five New Mod Ideas — Approaches (research 2026-07-03)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
-(2026-07-03) — signatures are facts; *runtime behavior* claims are the ⚠️ part.
+(2026-07-03; ideas 7–8 re-dumped 2026-07-06) — signatures are facts; *runtime behavior* claims
+are the ⚠️ part. Ideas 7–8 come from Nexus user feedback on TaskUnlockerMod (rondi112, 2026-07-06).
 
 **Priority order (user):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
 (Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
@@ -135,6 +136,136 @@ vanilla behavior (no thrash — the raised trigger only binds when far away). Re
 on shutdown/despawn (snapshot originals). All writes gated on `_hasAuthority`.
 ⚠️ verify: whether `_targetValue` is normalized (0..1) or absolute (`_normalized` flag says which);
 winter warmth drain rate vs. travel time — tune default margin in-game.
+
+---
+
+## 7. Assign workers/tasks to a building while it's still under construction — new mod
+
+**Goal:** let the player set up a building's workflow (assigned workers, task list, priorities,
+limits) as soon as the plot is placed, instead of camping by the buildsite to configure it the
+moment it finishes (worst case: a fresh warehouse instantly crammed with random hauls).
+
+**How construction actually works (confirmed from binary):**
+- The full `Structure` (with all its `Workstation` structure-components) already EXISTS during
+  construction — `SSSGame.BuildSite : MonoBehaviour` carries `Structure` / `Buildstation` /
+  `supplyInventory` / `layers`, and `Structure.buildSite` points back. Finishing is
+  `BuildSite.FinishBuild(Int32)` → `_FinalizeBuild()` → `Structure.Activate()` (networked twin
+  `Rpc_Activate()`, event `Structure.OnActivate : Action`) → `_DestroyBuildSite()`. The
+  finished/unfinished flip is `Structure._isActive` / `IsActive` — nothing is instantiated at
+  finish; things are *enabled* (`activityComponents` / `activityObjects`).
+- **The T-menu is already buildsite-aware:** the unfinished and finished building open the SAME
+  `SSSGame.UI.WorkstationMenu` (matches the screenshots — "Open Fisherman's House Menu" appears in
+  both states). The menu has parallel tab-name fields (`structureTab*` vs `buildsiteStructureTab*`)
+  and gates its pages per state: `RefreshAssignPageVisibility()`, `_HandleInvalidOverlay()` +
+  `taskPageInvalidOverlay` / `goToAssignPageButton`, `SetupPages()`. So the "UI implications" are
+  mostly *un-hiding tabs in one menu*, not building new UI.
+- **One interaction component serves both states:** `SSSGame.WorkstationInteraction : Interaction`
+  holds `buildSite`, `workstation`, `structure`, plus a `hideAssignPage : Boolean` and
+  `TaskTabOrder : InteractionOrder` — the R/Q hotkey entries ("Manage workers" / "View Tasks") are
+  this component's pages into `WorkstationMenu`; on an unfinished building the R slot is instead the
+  BuildSite's supply interaction.
+- Assignment plumbing (shared with idea 8): `Villager.AssignToWorkstation(IWorkstation)` →
+  `Workstation.SetTaskAgent(ITaskAgent)` → `AddToTaskDatas(Villager)`; per-task assignees live in
+  `WorkstationTaskData.VillagersInCharge`, synced by the generic NetworkWorkstation's
+  `Rpc_ChangeTaskVillagersInCharge(Int32, Il2CppStructArray)`.
+- **The game already has task presets:** `WorkstationMenu.SaveCurrentTaskPreset(Structure)` /
+  `LoadTaskPreset(Structure, Boolean)` (UI buttons `saveTaskPresetButton`/`loadTaskPresetButton`),
+  backed by `Workstation.SerializeTasksPreset(Structure)` / `DeserializeTasksPresetData`.
+
+**Approach (phased — ship the cheap win first):**
+1. **Phase 0 (diagnostics, decides everything):** on aiming at a buildsite, log the underlying
+   `Structure`'s workstation state pre-activation: does `Spawned()` run, are `_taskDatas`
+   populated, does `CanCreateTasks()` return true, does `SetTaskAgent` succeed? This tells us
+   whether pre-assignment is a UI unlock or a simulation problem.
+2. **Phase 1 ("activate paused" — solves the warehouse pain with NO new UI):** config-listed
+   building types start idle when construction finishes: postfix `Structure.Activate()` → clear
+   every task's `VillagersInCharge` (via the game's own `Rpc_ChangeTaskVillagersInCharge` path)
+   and/or suppress warehouse haul-task creation (prefix
+   `ResourceStorage.CanCreateStorageTaskForItemInfo` → false, the documented Mod-6 gate) until the
+   player opens that structure's `WorkstationMenu` once. No camping: the building waits for you.
+   **Support-burden guardrails (user concern 2026-07-06: a silently-paused building reads as
+   "I built this and nobody works it" → Nexus bug reports):**
+   - the pause list ships **EMPTY** (feature fully opt-in per building name — never a default list);
+   - a paused building raises the game's OWN issue flag — `Structure.IssueMarker : GameObject` +
+     `ActivateIssueMarker(Boolean)` (confirmed from binary) — plus a log/HUD line at activation,
+     so the state is discoverable in-game, not only in the cfg;
+   - optional `AutoResumeAfterMinutes` timeout so a forgotten paused building reverts to vanilla
+     instead of sitting dead forever.
+   If the issue-marker visibility can't be made to work, demote Phase 1 to an internal mechanism
+   behind Phase 2 (pause only as the deferred-apply step for pre-configured assignments) rather
+   than shipping it as a standalone user-facing mode.
+3. **Phase 2 (pre-configure UI):** un-gate the existing menu on buildsites — patch
+   `RefreshAssignPageVisibility()` / `_HandleInvalidOverlay()` (and respect
+   `WorkstationInteraction.hideAssignPage`) so the Assign + Tasks tabs show for a structure whose
+   `buildSite != null`. Assignments made pre-completion are stored in the live
+   `WorkstationTaskData`s / task agents, which survive activation (same objects — nothing is
+   recreated at finish). If villager AI misbehaves on an inactive station (⚠️ below), defer the
+   *effect*: record the choices, replay them via the game's own calls in the `Activate()` postfix.
+4. **Phase 3 (optional):** per-template default task presets — auto-`LoadTaskPreset` a user-saved
+   preset when a structure of that template activates ("every new warehouse starts with MY config").
+
+**⚠️ verify / risks:**
+- Whether an assigned villager pathfinds to the unbuilt station and idles/complains (the FSM may
+  need `IsActive`) — if so, Phase 2 must defer effects to activation (the Phase 3 replay shape).
+- Whether task datas exist pre-activation for stations whose tasks come from discovery/recipes
+  (CraftingStation) vs. built-ins (Buildstation `AddBuiltinTaskDatas()`).
+- Upgrades (`Structure.Upgrade`/`Rebuild` + `SerializeTaskDataForRecreation`) already carry tasks
+  across — don't double-apply "activate paused" on an upgrade activation (`_isUpgrade` flag).
+- All writes host-authoritative; the villagers-in-charge RPC lives on the GENERIC
+  NetworkWorkstation base — patching generic NetworkBehaviour methods is untested territory here
+  (prefer calling the RPCs, never patching `CopyBackingFieldsToState` — load-hang gotcha).
+
+---
+
+## 8. New workers start with ZERO tasks (no task-list inheritance) — new mod
+
+**Goal:** on config-listed buildings, a newly assigned worker gets *no* tasks by default (today he's
+auto-activated for all 25 blacksmith tasks and you must hand-uncheck each). The user then opts him
+into exactly the tasks wanted (e.g. only Draugr weapon research).
+
+**Key API (confirmed from binary):**
+- Per-task assignees: `SSSGame.AI.WorkstationTaskData.VillagersInCharge : List` (+ `priority`,
+  `pinnedTask`, `onDataChanged : Action`).
+- The inheritance moment: `Workstation.AddToTaskDatas(Villager)` — called when a villager joins a
+  station (assignment chain: `Villager.AssignToWorkstation(IWorkstation)` →
+  `_AssignToWorkstationInternal` → `Workstation.SetTaskAgent(ITaskAgent)`); the reverse is
+  `RemoveFromTaskDatas(Villager)`.
+- **The clean per-(villager, task) gate:** `Workstation._CanAddVillagerToTaskData(Villager,
+  WorkstationTaskData) : Boolean` — and it's **overridden by `Buildstation`** ⇒ virtual/vtable-
+  dispatched ⇒ safe from the AOT-inlining trap that kills small-method patches.
+- Network sync is the game's own: the generic NetworkWorkstation's
+  `Rpc_ChangeTaskVillagersInCharge(Int32, Il2CppStructArray)` /
+  `OnTaskVillagersInChargeChanged(WorkstationTaskData)` (mask-based,
+  `_UpdateTaskVillagersInChargeFromMask`). The UI checkbox path goes through this — so removals done
+  via the same calls replicate correctly.
+- NOT the same system as station *whitelisting* (`IsWhitelisted` / `WhitelistNewVillagers` /
+  `Rpc_ChangeWhitelistedVillager`) — that's "which villagers may use this station", not per-task
+  in-charge lists. Don't conflate them.
+
+**Approach:** prefix `Workstation._CanAddVillagerToTaskData` → `__result = false` (skip original)
+when the station's `Structure.GetName()`/`DefaultName` matches the config list (TreeRespawnMod
+substring-map pattern; option for "all buildings"). Result: `AddToTaskDatas` adds the villager to
+nothing — zero tasks, exactly the ask. Fallback if that gate turns out to be consulted elsewhere
+(e.g. by the UI to decide which checkboxes to *show*): postfix `AddToTaskDatas(Villager)` and
+immediately strip the villager back out of every `WorkstationTaskData.VillagersInCharge` via the
+game's RPC path. Config: building-name list, `ApplyToAllBuildings`, and (stretch) `NewTasksStartUnassigned`
+— when a new task is added to a station, existing workers likely inherit it the same way
+(`WorkstationTaskData` ctors take a villager list) — same gate should cover it.
+
+**⚠️ verify / risks (the diagnostics phase decides the final hook):**
+- **When exactly `AddToTaskDatas` fires** — must be hire-time only. If it also runs on world load /
+  villager respawn / structure upgrade re-registration, a blanket prefix would strip SAVED
+  assignments every load. Vanilla preserves unchecked boxes across save/load, so load-path
+  restoration is probably `DeserializeTaskData` / network state — but confirm with a
+  diagnostics-first build (log every call with villager name + station + call timing), and if
+  needed gate on "world finished loading" (TaskUnlockerMod's `BlueprintConditionsDatabase` world
+  gate) before treating a call as a real hire.
+- Whether the UI task checkboxes read `_CanAddVillagerToTaskData` (would make unchecked boxes
+  un-checkable — then use the postfix-strip fallback instead).
+- Fire-verify the prefix actually intercepts calls from `AddToTaskDatas` (virtual dispatch should
+  guarantee it, but that's the standing rule).
+- Host-only (`NetworkLogic.HasStateAuthority`); client-side assignment presumably routes through
+  the host anyway — confirm in co-op.
 
 ---
 
