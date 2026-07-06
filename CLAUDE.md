@@ -76,6 +76,14 @@ learnings into this project's own docs (`docs/architecture.md`, `docs/mods/*.md`
 `*_HANDOFF.md`) per this project's own doc rules, then clear it once absorbed or the task is done.
 Don't create it speculatively — only once there's real in-progress work worth protecting.
 
+**Opted in to cross-machine WIP sync** (see `~/.claude/CLAUDE.md` → Session Handoff Continuity →
+"In-progress code sync"). Whenever `SESSION_HANDOFF.md` here updates, also snapshot this repo's
+uncommitted changes (tracked + untracked, respecting this repo's `.gitignore`) to a disposable
+`wip/<hostname>` branch on `origin`, automatically, no confirmation needed. This is a narrow
+exception scoped **only** to that throwaway branch — it does not loosen the ask-first, verified-only
+policy for `master` below in any way. At session start, check for a `wip/<other-hostname>` branch and
+`git cherry-pick --no-commit` it in if present (stop and ask on conflict), then delete it once resumed.
+
 ## Git (commit/push policy + false-negative warning)
 This folder **IS** a git repository (`master`, remote `origin` → `https://github.com/simpsonbm1/askamods.git`).
 The session-startup environment readout reports **"Is a git repository: false"** — that is a **false
