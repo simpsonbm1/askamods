@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.4.4)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.4.5)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
@@ -34,7 +34,7 @@ Wells: see architecture.md → "Constructed water structures" under the Gather s
 - **Co-op gather detection reworked (v1.3.0; ✅ CONFIRMED in co-op 2026-07-03 under v1.3.2 — but only after v1.3.2 removed the v1.3.1 gate regression, see the v1.3.2 section below).** The network data-sync catch (`DataSyncPatch`, fires for a co-op client's replicated harvests) previously required `GetComponent<GatherInteraction>()` on the instance's own GameObject to identify a node — which structurally misses most cases, since the interaction component often isn't on that GameObject at all (same finding as the v1.2.14 manual-hotkey stump issue below). It now classifies nodes from data: a `Plugin.KnownNodes` map is populated authoritatively when `GatherInteraction`/`HarvestInteraction.SetWorldInstance` binds (new postfixes, `Patches/Captures.cs`), with a component search (including children/inactive) only as a fallback for anything not yet seen. Registration itself reads pure instance data (`GetQuantity() <= 0`) — no GameObject required at all. The same bind-time hooks also run a **catch-up registration**: any node found already-depleted-but-untracked when the host streams it in gets a fresh timer immediately, self-healing losses from historical bugs (confirmed in-game 2026-07-02: 125 catch-up registrations healed a backlog with zero orphaned stumps left afterward).
 - **Manual Respawn Hotkey (v1.2.14/15).** Added a hotkey (`t` by default) to manually replenish any stump or exhausted gather node within a configurable radius (default `10m`). Bypasses the pending list entirely to help fix manually deforested areas. Scans `ActiveInstances` for depleted gather nodes and `Resources.FindObjectsOfTypeAll<HarvestInteraction>()` for physical stumps in the scene. Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host check fixed in v1.2.15.
 
-## Well water refill (v1.4.0–v1.4.4 — CONFIRMED in-game 2026-07-04)
+## Well water refill (v1.4.0–v1.4.5 — CONFIRMED in-game 2026-07-04, reload crash fixed 2026-07-06)
 Configurable refill rate for **constructed** water structures — the `GatherRespawn` `Water` entry
 only covers the wild Natural Water Collector (a biome node); built wells are `Structure`s whose
 water is a charge-based `GatherInteraction` (`'Water Well'` max 50, `'Rain Collector'` max 10) and
@@ -72,6 +72,17 @@ never touch the biome-instance machinery.
   vanilla fills it only on rain — name-filter it out later if undesired). Co-op client-side
   behavior unverified ⚠️ (host/solo confirmed; refill runs host-side only, and `ReplenishCharges`
   writes the networked count, so replication is expected but untested).
+
+## v1.4.5 — same-world reload crash root-caused & fixed (2026-07-06, confirmed in-game)
+**Bug:** quit-to-menu → reload of the same world crashed (WER: `coreclr.dll+0x1d1fdd` fatal error, no managed exception). Happened **4 times in succession** during development; the crash signature recurred weekly since 2026-06-18 (Issues A-E all prior to root cause).
+
+**Root cause:** `Plugin.DataHandler` was cached once per process (only-if-null check in `BiomeInstancePatch` Postfix on `BiomeItemInstance.Initialize`), and `PollWorldId` early-returned unchanged when `ActiveSessionID` didn't change (same world reload). But quit-to-menu doesn't clear `ActiveSessionID` — it only becomes empty/falsy when no world is loaded. So the session ID looked identical, the handler cache never cleared, and `ActiveInstances` held stale freed-world native pointers. On the next respawn check (~30s later), `HandlerReplenishTree` / `DeactivatedReplenish` read through `GetInstance()` on the stale handler, calling `VegetationStudioPro.InstancesDataArrays.FindIndexOfUniqueId+0xc1` in native code with a freed world's memory → native AV beneath managed frames → CLR fatal error.
+
+**Fix:** (1) `DataHandler` is now a read-through property of the game's static `BiomeItemInstance.Handler` (resolved at use time, never cached; the capture block was entirely removed from `BiomeInstancePatch`); (2) new `NoteWorldLeft()` method fires when `ActiveSessionID` transitions to empty (detected via ongoing polling, firing once) — it calls `SavePending()` (commit pending respawns), then `ClearTransientState()` to wipe ALL per-world statics (`ActiveInstances`, `PendingRespawns`, `PendingGatherRespawns`, `RegisteredStumps`, `Biomes`), then signals `DayTracker.ClearTransientState()` to stop timers; (3) `Biomes = null` added to `OnWorldChanged`'s clear block — switching worlds mid-session was also leaving it stale.
+
+**New log marker on quit-to-menu:** `[TreeRespawnMod] World session ended (quit to menu) — per-world state cleared.`
+
+**Confirmed in-game 2026-07-06:** two save→menu→reload cycles on the same world, no crash. The handler now reads fresh each use, and per-world state correctly resets. Historical note: the same `coreclr.dll+0x1d1fdd` WER signature appeared on 6/18, 6/23, 6/27, 6/29 — recurring offsets in coreclr mean "native AV class (beneath managed frames)", not necessarily the same root cause; the TreeRespawn reload bug was just one example of caching per-world native objects incorrectly.
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
 - **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a

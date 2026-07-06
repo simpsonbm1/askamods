@@ -18,13 +18,6 @@ internal static class BiomeInstancePatch
             bool firstSeenThisWorld = !Plugin.ActiveInstances.ContainsKey(posKey);
             Plugin.ActiveInstances[posKey] = __instance;
 
-            // Capture the persistent data handler once — the v1.2.9 experimental deactivated-replenish path
-            // uses it to resolve a usable instance for an unloaded node (handler.GetInstance(onlyIfActive:false)).
-            if (Plugin.DataHandler == null)
-            {
-                try { Plugin.DataHandler = BiomeItemInstance.Handler; } catch { }   // Handler is a static (shared) field
-            }
-
             // Tells us whether a distant/villager-only area streams in on the host at all —
             // see TREERESPAWN_HANDOFF.md Issue C. Logged once per position per world (not every
             // re-stream) to keep EnableDiagnostics usable for a real play session instead of

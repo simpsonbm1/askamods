@@ -59,9 +59,17 @@ public class Plugin : BasePlugin
     // diagnostic to read the local player's position; null until a world is loading.
     internal static SSSGame.BiomesManager? Biomes;
 
-    // Data handler captured from any live instance (BiomeInstancePatch). The v1.2.9 experimental path uses
-    // it to resolve a usable instance for a DEACTIVATED node — handler.GetInstance(onlyIfActive:false).
-    internal static SSSGame.BiomeProceduralDataHandler? DataHandler;
+    // Live read of the game's own static handler (BiomeItemInstance.Handler) — resolved at USE time,
+    // never cached. v1.4.4 and earlier cached a wrapper captured once per process; after a
+    // quit-to-menu → reload of the same world that wrapper pointed at the OLD world's freed native
+    // object, and the handler-refill path AV'd natively inside VegetationSystem
+    // InstancesDataArrays.FindIndexOfUniqueId (no managed exception — hard process death with a
+    // clean log). The v1.2.9 experimental deactivated-replenish path uses this to resolve a usable
+    // instance for a DEACTIVATED node — handler.GetInstance(onlyIfActive:false).
+    internal static SSSGame.BiomeProceduralDataHandler? DataHandler
+    {
+        get { try { return SSSGame.BiomeItemInstance.Handler; } catch { return null; } }
+    }
 
     // posKey → the node's WorldItemInstanceId, captured at harvest (when the instance is valid). Needed to
     // re-resolve the instance via the handler later, because the cached ActiveInstances pointer goes stale
@@ -331,7 +339,7 @@ public class Plugin : BasePlugin
             if (_storage == null) return;
 
             string id = _storage.ActiveSessionID;
-            if (string.IsNullOrEmpty(id)) return;   // at main menu / no session loaded yet
+            if (string.IsNullOrEmpty(id)) { NoteWorldLeft(); return; }   // at main menu / no session loaded
             if (id == CurrentWorldId) return;        // same world still active
 
             string name = "";
@@ -339,6 +347,33 @@ public class Plugin : BasePlugin
             OnWorldChanged(id, name);
         }
         catch { _storage = null; /* re-find next poll */ }
+    }
+
+    // Quit-to-menu: the (persistent) StorageManager reports an empty ActiveSessionID while we still
+    // think a world is active. Flush + drop ALL per-world state, exactly like switching worlds.
+    // Without this, reloading the SAME world in the same process kept every cached native pointer
+    // (ActiveInstances wrappers, handler-retry cooldowns, well cache) aimed at the old world's freed
+    // objects — the first handler-path retry after reload then crashed the whole game natively
+    // (AV in VegetationSystem FindIndexOfUniqueId; no managed exception). Clearing here means the
+    // reload re-registers everything fresh via OnWorldChanged, and pending respawns re-load from the
+    // per-world save file.
+    private static void NoteWorldLeft()
+    {
+        if (CurrentWorldId == null) return;
+        SavePending();
+        PendingRespawns.Clear();
+        PendingGatherRespawns.Clear();
+        RegisteredStumps.Clear();
+        ActiveInstances.Clear();
+        GatherWid.Clear();
+        TreeWid.Clear();
+        KnownNodes.Clear();
+        LiveHarvestInteractions.Clear();
+        Biomes = null;
+        DayTracker.ClearTransientState();
+        CurrentWorldId = null;
+        _saveFilePath = null;
+        Logger.LogInfo("[TreeRespawnMod] World session ended (quit to menu) — per-world state cleared.");
     }
 
     private static void OnWorldChanged(string id, string name)
@@ -358,6 +393,7 @@ public class Plugin : BasePlugin
             TreeWid.Clear();
             KnownNodes.Clear();
             LiveHarvestInteractions.Clear();
+            Biomes = null;
             DayTracker.ClearTransientState(); // handler-retry cooldowns — posKeys collide across worlds
         }
 
