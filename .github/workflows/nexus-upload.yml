@@ -31,6 +31,7 @@ on:
           - VillagerFightBackMod
           - TerrainLevelerMod
           - SeedScoutMod
+          - TaskUnlockerMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -72,6 +73,7 @@ jobs:
             VillagerFightBackMod)    file_id=7587134 ;;
             TerrainLevelerMod)       file_id=7606994 ;;
             SeedScoutMod)            file_id=7619375 ;;   # World Seed Scout
+            TaskUnlockerMod)         file_id=7623785 ;;   # Cooking and Fishing Task Unlocker
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
