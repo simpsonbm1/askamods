@@ -132,6 +132,19 @@ replaced DLLs under `%TEMP%\askamods-sync-backups\`, and reminds you to confirm 
 `$ParkedByDefault` list (CookingStationFixMod, SeedHarvesterMod) makes parked spikes install disabled
 on a fresh machine — keep that list in step with mod parked-status changes (see Ritual 2).
 
+## Model-tiered subagent delegation (Claude Code only)
+Three project subagents live in `.claude/agents/` so a main session on an expensive model (Opus)
+can delegate cheap, self-contained subtasks instead of doing everything inline — added 2026-07-06,
+confirmed in real workflow 2026-07-06 (mod-implementer ×4 incl. a resume and correct SAC-guard refusal, log-analyst triage, doc-scribe checkpoint pass):
+- **`mod-implementer`** (Sonnet) — a fully-planned code change: edit source, bump `PLUGIN_VERSION` + csproj `<Version>`, build, report.
+- **`doc-scribe`** (Haiku) — doc-only work incl. the commit-checkpoint dual-write rituals.
+- **`log-analyst`** (Haiku) — post-test-run `LogOutput.log` triage (loaded versions, exceptions, fire-verification markers).
+**Delegate to them proactively when a task matches**; planning, research, and root-cause debugging
+stay in the main thread. Delegation prompts must be fully self-contained — subagents load CLAUDE.md
+but never see the conversation. Full recipe, invocation syntax, and gotchas:
+[`docs/agent-delegation.md`](docs/agent-delegation.md). (Antigravity ignores `.claude/agents/` —
+this mechanism is Claude Code-specific; in Antigravity, do these tasks inline as before.)
+
 ## Game
 **ASKA** — co-op Viking survival/city-builder on Steam.
 Install path: `D:\SteamLibrary\steamapps\common\ASKA`
@@ -173,7 +186,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage            [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.4.4 — well refill confirmed in-game 2026-07-04, co-op detection 2026-07-03; watch item: respawn→instant re-fell at same posKey — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.4.5 — same-world reload crash root-caused & fixed, confirmed in-game 2026-07-06; well refill confirmed in-game 2026-07-04, co-op detection 2026-07-03 — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP out of combat    [COMPLETE v1.1.0 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled       [COMPLETE v1.2.4 — docs/mods/torch-fuel.md]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior         [COMPLETE v1.1.0 — docs/mods/dynamic-villager-needs.md]
@@ -187,6 +200,7 @@ askamods/
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — co-op fix confirmed in-game 2026-07-03 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.1 — confirmed in-game 2026-07-06 — docs/mods/task-unlocker.md]
+  ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.0 — confirmed in-game 2026-07-06 — docs/mods/zero-task-workers.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
@@ -205,7 +219,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 - **`SettlementManager.settlements` stays null even in a loaded world** — resolve settlements via `GetPlayerSettlement()` / `GetCurrentSettlement()` / `worldSettlement` instead.
 - **Don't patch IL2CPP methods with by-ref primitive params** (`Single&`, `Int32&`, `Boolean&`) — trampoline NREs outside try/catch. Patch a sibling method with a safe signature instead.
 - **Don't patch `Initialize`/lifecycle methods on `Interaction` MonoBehaviours** — they fire during prefab init before the GC handle is set up → `Handle is not initialized` crash. (This is the cause of the old TreeRespawn co-op crash.)
-- **No `.TryCast<T>()` on `UnityEngine.Object`** (its base chain is just `System.Object`) — obtain an already-typed instance from a patch parameter instead. **Root cause is compile-time only** (csprojs reference the `unity-libs` CoreModule stub; the runtime loads the interop copy whose chain reaches `Il2CppObjectBase`) — so `(object)x is Il2CppObjectBase b` works at runtime, giving `b.Pointer` for native class checks / `new T(IntPtr)` rewraps (confirmed in-game 2026-07-04, SeedScout).
+- **No `.TryCast<T>()` on `UnityEngine.Object`** (its base chain is just `System.Object`) — obtain an already-typed instance from a patch parameter instead. **Root cause is compile-time only** (csprojs reference the `unity-libs` CoreModule stub; the runtime loads the interop copy whose chain reaches `Il2CppObjectBase`) — so `(object)x is Il2CppObjectBase b` works at runtime, giving `b.Pointer` for native class checks / `new T(IntPtr)` rewraps (confirmed in-game 2026-07-04, SeedScout). The same stub-chain problem hits ANY game type whose base chain passes through a unity-libs stub (e.g. `SSSGame.Workstation` → … → MonoBehaviour): CS1503 when passing to an `Il2CppObjectBase` param; the same `(object)x is Il2CppObjectBase b` boxing pattern fixes it (build-verified 2026-07-06, ZeroTaskWorkers).
 - **Don't interpolate Unity structs (Vector3/Vector4/…) into direct `Logger.Log*($"…")` calls** — BepInEx's interpolated-string handler throws `VerificationException` at the log site (silently killed SeedScout v1.2.0's island resolver). `.ToString()` struct args first, or route through a `(string)`-typed wrapper method.
 - **Key dictionaries by world position, not `UniqueId`** — `UniqueId`-style indices restart per spatial chunk and aren't globally unique.
 - **Gate all state writes on authority** (`HasAuthority` / `_hasAuthority`) and **prefer the game's own RPCs** (`Rpc_AddFuel`, `Rpc_ChangeSchedule`) over direct networked-state writes — both for co-op safety.
@@ -213,6 +227,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 - **Never patch a `NetworkBehaviour`'s `CopyBackingFieldsToState`/`CopyStateToBackingFields`** (Fusion state-sync) — hangs the game at load, no exception. Capture instances from a plain lifecycle method (`Awake`/`Spawned`) into a static list instead.
 - **Managed `as`/`is` casts LIE for interop objects materialized under a base declared type** (list elements, base-typed params) — the wrapper IS the declared type, so the cast returns null even when the native object is the derived type. Identify by asset `name`/`id` or native class name (`IL2CPP.il2cpp_object_get_class` + `il2cpp_class_get_name`), then construct the derived wrapper via `new T(IntPtr)`.
 - **The IL2CPP AOT compiler inlines small/single-caller methods — patches on them silently never fire.** Prefer virtual/vtable-dispatched methods (`Init`, `Show`, `Use`) or multi-caller publics, and always fire-verify a new patch with a log line.
+- **Never cache interop wrappers of per-world native objects across world sessions** (managers, handlers, instance registries). Quit-to-menu → reload of the SAME world does NOT change `StorageManager.ActiveSessionID`, so same-ID checks won't clear caches — and reads through a stale wrapper AV in native code (no managed exception; try/catch can't help), killing the process via a CLR fatal error whose WER signature is always `coreclr.dll+0x1d1fdd`. Detect world-leave via `ActiveSessionID` becoming empty and drop all per-world state (TreeRespawn v1.4.5 `NoteWorldLeft` pattern, confirmed in-game 2026-07-06). Full crash-forensics recipe: docs/architecture.md → Native Crash Diagnosis.
 - **If a mod hard-crashes the game natively with no managed exception in the log, don't guess** — map the Windows Error Reporting crash offset to a method with Cpp2IL. See [Native Crash Diagnosis](docs/architecture.md#native-crash-diagnosis-wer--cpp2il).
 
 ## Documentation map
@@ -236,7 +251,9 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/seed-scout.md`](docs/mods/seed-scout.md) | Mod 9 — SeedScoutMod (shipped recipe: native-pin MarkerItem system, handler construction, targeted tile sweep, home-island scope, POI-type classifier) |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md) | Mod 17 — TaskUnlockerMod (cooking = Rpc_AddDiscoverable; fishing = mark grounds via the NWDM Request path — NOT item discovery) |
+| [`docs/mods/zero-task-workers.md`](docs/mods/zero-task-workers.md) | Mod 18 — ZeroTaskWorkersMod (prefix-block on the four _CanAddVillagerToTaskData impls; deserialize-grace gate; Buildstation exemption) |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
+| [`docs/agent-delegation.md`](docs/agent-delegation.md) | Delegating subtasks to cheaper-model subagents (Claude Code only): agent roster (`.claude/agents/`), delegation-prompt checklist, invocation syntax, runtime gotchas |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
 | [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |
 | [`WAREHOUSE_CAPACITY_HANDOFF.md`](WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (Planned) — warehouse capacity |

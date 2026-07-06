@@ -217,13 +217,15 @@ moment it finishes (worst case: a fresh warehouse instantly crammed with random 
 
 ---
 
-## 8. New workers start with ZERO tasks (no task-list inheritance) — new mod
+## 8. New workers start with ZERO tasks (no task-list inheritance) — SHIPPED as ZeroTaskWorkersMod v1.0.0 (2026-07-06)
 
-**Goal:** on config-listed buildings, a newly assigned worker gets *no* tasks by default (today he's
+**Status: ✅ COMPLETE — confirmed in-game 2026-07-06.** See [`docs/mods/zero-task-workers.md`](docs/mods/zero-task-workers.md) for the shipped recipe, config, and test results.
+
+**Original Goal:** on config-listed buildings, a newly assigned worker gets *no* tasks by default (today he's
 auto-activated for all 25 blacksmith tasks and you must hand-uncheck each). The user then opts him
 into exactly the tasks wanted (e.g. only Draugr weapon research).
 
-**Key API (confirmed from binary):**
+**Key API (confirmed from binary, reconfirmed for ship):**
 - Per-task assignees: `SSSGame.AI.WorkstationTaskData.VillagersInCharge : List` (+ `priority`,
   `pinnedTask`, `onDataChanged : Action`).
 - The inheritance moment: `Workstation.AddToTaskDatas(Villager)` — called when a villager joins a

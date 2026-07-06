@@ -403,6 +403,14 @@ cheap in-game verification (check the stuck villager's job for a workstation nee
 [`../TREERESPAWN_HANDOFF.md`](../TREERESPAWN_HANDOFF.md) Issue F. **Not a TreeRespawnMod bug** —
 discovered through its diagnostics, but the mod doesn't touch quest targets or resource search.
 
+### Workstation task assignment (Mod 18 groundwork)
+- **`_CanAddVillagerToTaskData(Villager, WorkstationTaskData)` has FOUR implementations:** base `SSSGame.Workstation` plus overrides in `Buildstation`, `Marketplace`, `ResourceStorage`. Harmony patches concrete methods, so blocking task inheritance requires patching all four. Derived overrides call base (paired log lines confirmed).
+- **`AddToTaskDatas(Villager)` has TWO implementations:** `Workstation` + `HarboringStation` override. It fires at WORLD LOAD for every villager (per-station re-add burst), BEFORE `DeserializeTaskData` — vanilla load order is Add-then-Deserialize; the later Deserialize overwrites `VillagersInCharge` from the save (this is also how vanilla preserves unchecked task boxes).
+- **The task-assignment UI does NOT read `_CanAddVillagerToTaskData`:** menu-open and checkbox toggles never call it (the checkbox path is RPC-only), so a prefix-block on `_CanAdd` cannot break manual checkbox assignment. `_CanAdd` is called ONLY from inside `AddToTaskDatas`.
+- **Unassigning a villager from a station auto-transfers them to the `Buildstation`** (Remove → Add(Buildstation)) — any inheritance-blocking mod must exempt the Buildstation family or unassigned villagers lose build/firekeep tasks.
+- **Load/upgrade deserialize paths:** `Workstation.DeserializeTaskData(DataObject)` (+ `Buildstation` override), `Workstation.DeserializeTaskDataForRecreation(DataObject)`. `Workstation._structure : Structure` is the back-reference (may be '?'/unlinked during load-path and on Buildstation).
+- **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` → `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil cross-assembly chain walk, build-verified).
+
 ---
 
 ## Settlement Hauling / Storage / Task-Dispatcher System (Mod 6 groundwork)
@@ -625,6 +633,13 @@ So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, wit
   `LoadActiveSession`, `SaveCurrentSession`, `ScanSaveGames`, `GetStoragePath`, `CreateNewSessionID`). This is
   the stable key for any mod that must keep per-world state (TreeRespawnMod v1.2.1 keys its respawn save on it).
   Confirmed in-game 2026-06-28: singleplayer and co-op each produced their own distinct per-world file.
+  **CRITICAL:** Quit-to-menu → reload of the SAME world does NOT change `ActiveSessionID` — it remains the
+  same. The session ID becomes empty (falsy) ONLY when the main menu is active and no world is loaded. Any
+  per-world state (cached managers, handlers, instance registries) must be flushed when `ActiveSessionID`
+  transitions to empty, else reads through stale interop wrappers will AV in native code beneath the managed
+  frame — resulting in a CLR fatal error (`coreclr.dll+0x1d1fdd` WER signature, confirmed in-game 2026-07-06
+  TreeRespawnMod reload crashes). See also the IL2CPP gotcha: "Never cache interop wrappers of per-world
+  native objects across world sessions" (CLAUDE.md) and the Native Crash Diagnosis section above.
 - **❌ Dead-end — the world SEED is unusable as a world key (confirmed in-game 2026-06-28).** On a *loaded*
   save the seed is empty/absent: `RandomGeneratorManager.SetSeedPhrase` only fires during fresh world
   generation, and `RandomGeneratorManager.seedPhrase` / `SSSGame.Network.NetworkSession.Parameters.seed` read
@@ -1163,4 +1178,13 @@ BitSet256 root cause above, but applies to any future native ASKA crash:
     Mono.Cecil — edit its `$targets` array with your crash offsets and re-run.
 4.  Unity's own `Player.log` (`%USERPROFILE%\AppData\LocalLow\Sand Sailor Studio\ASKA\`) does **not**
     contain a native stack trace for these crashes — WER events are the reliable source, not this file.
+
+#### When WER blames `coreclr.dll+0x1d1fdd`
+`coreclr.dll+0x1d1fdd` (coreclr 6.0.722, exception 0xc0000005) is NOT a real crash site — it is the CLR's fatal-error chokepoint (`EEPolicy::HandleFatalError` on the stack). It means: a NATIVE access violation happened beneath managed (mod) frames — e.g. inside a game method called from a Harmony hook — and the CLR fail-fasted. The BepInEx log always ends clean (no managed exception is possible on this path). Confirmed 2026-07-06 by symbol-resolving the public coreclr PDB from the Microsoft symbol server.
+
+To find the REAL fault: parse the matching minidump in `%LOCALAPPDATA%\CrashDumps\Aska.exe.<pid>.dmp` with `_explore/parse_minidump.ps1` (exception context + faulting-thread stack scan against module ranges), then map GameAssembly RVAs with the Cpp2IL dummy-DLL index (`_explore/map_crash_offsets.ps1` / `map_reload_crash_rvas.ps1`) and coreclr offsets with `_explore/resolve_coreclr_syms.ps1` (downloads the PDB from msdl.microsoft.com, resolves via dbghelp).
+
+`dotnet-dump analyze` CANNOT read these WER minidumps (DAC init fails — the dump lacks the managed heap); the manual parser is the working path. Worked example: the 2026-07-06 reload crash — WER said coreclr+0x1d1fdd in 4/4 crashes; the real fault in all 4 dumps was `GameAssembly+0x13e89d1` = VegetationStudioPro `InstancesDataArrays.FindIndexOfUniqueId+0xc1`, reached via `SSSGame.BiomeProceduralDataHandler.GetInstance` from TreeRespawnMod's stale cached handler after a same-world reload.
+
+Historical note: the same coreclr+0x1d1fdd signature appears in Application-Error events on 6/18, 6/23, 6/27, 6/29 (2026) — the TreeRespawn reload bug existed for weeks before it was reproduced; recurring WER offsets in coreclr.dll therefore mean "same crash CLASS (native AV under managed frames)", not necessarily same root cause.
 
