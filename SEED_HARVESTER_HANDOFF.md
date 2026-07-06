@@ -1,6 +1,9 @@
 # Seed Harvester — Handoff & Learnings
 
 ## Current Status
+
+**Parked state (2026-06-28):** the Harmony patch is commented out AND the installed plugin is renamed `SeedHarvesterMod.dll.off` (same convention as CookingStationFixMod) so BepInEx does not load it at all. A 1-frame `yield` does NOT force cave `AreaInstance` instantiation — dead-end confirmed 2026-06-28. Reading positions would require dumping `GameAssembly.dll` to parse the raw data buffers.
+
 We have successfully bypassed the slow loading screen parts and built a "Fast Harvest" coroutine (`v0.5.0`). By directly invoking `WorldGenerator.GenerateWorldMapAsync`, `BiomesManager.UpdateDataAsync`, and `CavesManager.UpdateDataAsync` in memory, we can iterate through and generate 200 seeds in a matter of seconds.
 
 **However**, there is a new blocker: every single seed currently scores `-9999`. 

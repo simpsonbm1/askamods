@@ -1,0 +1,29 @@
+<Project>
+  <!--
+    SAC bump guard (applies to every mod csproj in this repo automatically).
+
+    Smart App Control blocks a freshly built, unsigned DLL whose hash it has already blocked -
+    and .NET builds are deterministic, so rebuilding identical source at the same version yields
+    the same hash and the same block. The workflow rule (CLAUDE.md) is therefore: EVERY
+    build-test cycle bumps the version. This target enforces it mechanically: if the live
+    plugins folder already holds this mod at the version being built, fail fast with the reason,
+    BEFORE compiling or overwriting anything.
+
+    Escape hatch (rare, deliberate): dotnet build -p:SkipSacGuard=true
+  -->
+  <Target Name="SacBumpGuard" BeforeTargets="CoreCompile"
+          Condition="'$(SkipSacGuard)' != 'true' and '$(BepInExPath)' != '' and Exists('$(BepInExPath)\plugins\$(AssemblyName)\$(AssemblyName).dll')">
+    <!-- ContinueOnError: GetAssemblyIdentity LOADS the assembly and throws if Smart App
+         Control has blocked that DLL (0x800711C7, confirmed 2026-07-05). A blocked live DLL
+         means a bump is coming anyway; degrade to no-op rather than failing with a red herring. -->
+    <GetAssemblyIdentity AssemblyFiles="$(BepInExPath)\plugins\$(AssemblyName)\$(AssemblyName).dll"
+                         ContinueOnError="true">
+      <Output TaskParameter="Assemblies" ItemName="LiveModDll" />
+    </GetAssemblyIdentity>
+    <PropertyGroup>
+      <LiveModVersion>%(LiveModDll.Version)</LiveModVersion>
+    </PropertyGroup>
+    <Error Condition="'$(LiveModVersion)' == '$(Version).0' or '$(LiveModVersion)' == '$(Version)'"
+           Text="SAC BUMP GUARD: $(AssemblyName) v$(Version) is already deployed live at $(BepInExPath)\plugins\$(AssemblyName). Bump PLUGIN_VERSION and csproj &lt;Version&gt; first (Smart App Control re-evaluates only a new hash, and the loaded version must be confirmable in LogOutput.log). Deliberate same-version rebuild: -p:SkipSacGuard=true" />
+  </Target>
+</Project>

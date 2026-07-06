@@ -54,6 +54,12 @@ Tag in-game-verified facts with `confirmed in-game (YYYY-MM-DD)`.
 file, confirm you didn't append a second copy instead of replacing: `grep -c "^# AskaMods" CLAUDE.md`
 and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
 
+**Rituals 1+3 are mechanically enforced at commit** by `.githooks/pre-commit` (one-time per clone:
+`git config core.hooksPath .githooks` — set on the laptop 2026-07-05; the desktop must run it once).
+It blocks commits on: mod folder missing from either file, stated version ≠ csproj `<Version>`,
+PLUGIN_VERSION ≠ csproj `<Version>` (the SAC half-bump), doc missing from either Documentation Map,
+duplicated `# AskaMods` header. Do NOT bypass with `--no-verify` — fix the drift; that's the point.
+
 **Cadence — these rituals are commit-gated, NOT build-gated.** In an iterative build→test→build loop,
 each cycle do only: edit code, bump the version (`PLUGIN_VERSION` + csproj `<Version>` — needed so Smart
 App Control re-evaluates the new DLL hash and so the loaded version is confirmable), build, and convey
@@ -143,7 +149,11 @@ It intermittently **blocks a freshly-built, unsigned mod DLL** at load:
 Because **.NET builds are deterministic**, rebuilding identical source yields the **same hash** → the
 **same block**; relaunching won't help. **Fix: bump the mod version** (`PLUGIN_VERSION` + csproj `<Version>`)
 so the DLL hash changes — SAC re-evaluates the new (unknown) hash and lets it load. Always confirm the
-**loaded version** in `LogOutput.log` before trusting a test. Turning SAC off is permanent/irreversible — don't.
+**loaded version** in `LogOutput.log` before trusting a test. Turning SAC off is permanent/irreversible — don't. **Mechanically
+enforced since 2026-07-05:** `Directory.Build.targets` (repo root) fails any build whose `<Version>`
+is already deployed live (`SAC BUMP GUARD`); a deliberate same-version rebuild needs
+`-p:SkipSacGuard=true`. After deploy + game launch, run `.\check-loaded.ps1` for a one-table
+repo/live/loaded version verdict per mod (SAC-safe: reads PE headers, never loads the DLLs).
 
 ## Why IL2CPP Matters
 ASKA ships as IL2CPP (not Mono). The game's C# code is compiled to native machine code in
@@ -162,29 +172,25 @@ askamods/
     nexus-upload.md          ← publishing/CI workflow
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
-  BowDamageMod/              ← Mod 1: buff early-game bow damage
-  TreeRespawnMod/            ← Mod 2: respawn trees (stump condition) + gather resources (reeds, berries, etc.) + constructed-well refill [v1.4.4 — WELL REFILL CONFIRMED in-game 2026-07-04: built wells ('Water Well' max 50, 'Rain Collector' max 10) are Structures with a charge-based GatherInteraction; WellRefill.cs enumerates them via SettlementManager getter methods (the .settlements list stays null — gotcha) + manual hierarchy walk (plural generic GetComponentsInChildren missing — gotcha) and grants ReplenishCharges(n) at config [WellRefill] ChargesPerDay (default 24; decisive test at 1440 = +1/sec visibly raced the well up). Host-side; co-op client view unverified. v1.3.2 co-op detection confirmed 2026-07-03: client tree chops AND gathers register on the host via DataSyncPatch (near+far), flax pick respawned end-to-end (Issue A closed); gate is IsExhausted() || GetQuantity()<=0 (empty gather reads IsExhausted()=false — stump semantics only, see architecture.md → Gather dead-end). Tree hardening (WID-validated pointers + handler refill + catch-up registration) confirmed 2026-07-02. Watch item: 3 trees logged respawn→instant re-fell at the same posKey — players re-chopping, or near-player respawns not sticking? See TREERESPAWN_HANDOFF.md + docs/mods/tree-respawn.md]
-  HealthRegenMod/            ← Mod 3: regenerate player HP after 10s out of combat
-  TorchFuelMod/              ← Mod 4: keep torches perpetually fueled (no resin chore)
-  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior (auto sleep/leisure/work, no manual schedule)
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.27 — confirmed in-game (2026-07-03): fixed inconsistent post-combat return-to-work (villager would sometimes resume work in seconds, other times stay "in combat" ~a minute). Root cause: vanilla re-arms _combatTimeRemaining to ~60s mid-fight (e.g. on taking a hit), and the old fix only ever raised the timer toward CombatTopUpSeconds, plus its death-detection lived solely in the polled ShouldFight getter, which often stops being polled once the target dies. Fix: down-clamp any re-armed value back to CombatTopUpSeconds, and add a frame-driven (QuestRunner.Update, runs every tick regardless of getter polling) combat-end check that zeroes the timer and restores work the instant the remembered enemy reads dead. See docs/mods/villager-fight-back.md]
-  CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic (parked .dll.off; not shipped)
-  SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.0 — confirmed in-game (2026-07-04): a pin is a persistent MarkerItem that an AreaInstanceMarkerHandler spawns once isExplored=true + RefreshExploration() (caves lack a handler natively — construct one via the public (AreaInstance, MarkerInfo) ctor with CavesManager.caveMarkerInfo; other POIs' template = area.area.itemInfo, native-class-checked). Coverage needs the POI's TILE resident → a targeted sweep RequestLoadWorldTile's exactly the unpinned areas' tiles (no release API — tiles stay resident; SweepMaxTiles caps). HomeIslandOnly (default true) scopes to the spawn island (MainIsland bounds + 250m); the cfg is re-read every 5s so flipping it widens to the whole world LIVE, no relaunch. Per-POI-type toggles in [RevealTypes]. Supersedes WarpTour's teleport tour. Old scorer/overlay/base-recommender removed (git ≤v0.18.0 has them); placement recommender = future feature. See docs/mods/seed-scout.md]
-  WarpTourMod/               ← Mod 10: teleport-tour for native map pins  [WORKING v1.0.0 — SUPERSEDED by SeedScoutMod v1.x for pin reveal (no teleport needed); keep for the teleport primitive]
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh  [COMPLETE v1.3.1]
-  JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields       [COMPLETE v1.1.0]
-  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED — patch disabled, blocked; installed .dll renamed to .dll.off 2026-06-28]
-  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" — its own 4th build-menu square that instant-flattens + clears obstacles on a single E-press; vanilla Terrain Level Field 100% vanilla again [COMPLETE v1.5.0 — confirmed in-game (2026-07-01): template clone-injected into ItemInfoDatabase + hoe tab's additionalInfos, per-template behavior gating (Begin previewData id + Structure.TemplateID), localized name/desc/lore via LocalizationManager dictionary injection. Core recipe: HeightmapTool.RunOnArea LEVEL flatten + AOESpell obstacle-clear via SpellsManager.CastSpellOnPos; drag crash fixed by tile-count clamp at ChangeGridSize (BitSet256 network struct = the real, engine-hard 256-tile ceiling — town-sized areas need multiple adjacent placements). v1.5.0 CO-OP FIX confirmed in-game (2026-07-03): a client's bulldozer press only broke trees/rocks locally — only the host's own presses replicated (Nexus-reported bug) — because AOE destruction only replicates when applied by the state authority. Fix mirrors TreeRespawnMod's DataSync trick in reverse: host-side patches on TerraformingGridState (_OnInteractionMapChanged / _RefreshCellsHeights / Rpc_DebugCompleteField — the last one is the trigger actually carrying it, confirmed by log) let the HOST run the authoritative bomb+flatten for a remotely-pressed grid, gated on HasStateAuthority. Verified both near (~35m) and far (~155m) from host. See docs/mods/terrain-leveler.md + architecture.md "Build Menu / Structure Templates & Localization"]
-  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers     [WIP v1.1.2 — in-world radius, gather range, AND map/compass hover ring all scale correctly, confirmed in-game (2026-06-30) at 2x and 4x multipliers (each verified after a game relaunch to pick up the config change) via the AddMarker position-fallback resolver; some markers still fall back to vanilla ring size when resolve fails (structure=null). See MAP_RADIUS_HANDOFF.md]
+  BowDamageMod/              ← Mod 1: buff early-game bow damage            [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.4.4 — well refill confirmed in-game 2026-07-04, co-op detection 2026-07-03; watch item: respawn→instant re-fell at same posKey — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
+  HealthRegenMod/            ← Mod 3: regenerate player HP out of combat    [COMPLETE v1.1.0 — docs/mods/health-regen.md]
+  TorchFuelMod/              ← Mod 4: keep torches perpetually fueled       [COMPLETE v1.2.4 — docs/mods/torch-fuel.md]
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior         [COMPLETE v1.1.0 — docs/mods/dynamic-villager-needs.md]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies   [COMPLETE v1.0.27 — confirmed in-game 2026-07-03 — docs/mods/villager-fight-back.md]
+  CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
+  SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.0 — confirmed in-game 2026-07-04 — docs/mods/seed-scout.md]
+  WarpTourMod/               ← Mod 10: teleport-tour for native map pins    [v1.0.0 — SUPERSEDED by SeedScout for pin reveal; keep for the PlayerDrive.Teleport primitive — WARP_TOUR_HANDOFF.md]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh    [COMPLETE v1.3.1 — docs/mods/mine-refresh.md]
+  JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields         [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
+  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment  [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
+  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — co-op fix confirmed in-game 2026-07-03 — docs/mods/terrain-leveler.md]
+  ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
 ```
 
-> **SeedHarvesterMod (Mod 14)** is a parked spike: its "Fast Harvest" coroutine regenerates seeds
-> in-memory in seconds, but every seed scores `-9999` because cave `AreaInstance` GameObjects are
-> never instantiated by `UpdateDataAsync`, so cave positions can't be read (a 1-frame `yield` does
-> not force instantiation — dead-end confirmed 2026-06-28). The Harmony patch is commented out, and
-> as of 2026-06-28 the installed plugin DLL is also renamed to `SeedHarvesterMod.dll.off` (same
-> convention as CookingStationFixMod) so BepInEx doesn't load it at all. Reading positions would
-> require dumping `GameAssembly.dll` to parse the raw data buffers. See `SEED_HARVESTER_HANDOFF.md`.
+> **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
+> `.dll.off` 2026-06-28): cave positions can't be read because `UpdateDataAsync` never instantiates
+> cave `AreaInstance` GameObjects — full dead-end evidence in `SEED_HARVESTER_HANDOFF.md`.
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
 The build target `CopyToPlugins` handles this automatically on build.
