@@ -1,9 +1,9 @@
 # Nexus Page Draft — ZeroTaskWorkersMod v1.0.0
 
-Working title: **"Assigned Workers Start Idle"** (user still workshopping the final name).
-Page must be created manually on the website (the upload API can't create pages). After the page +
-first file exist, add the file Group ID to `docs/nexus-upload.md` and wire the mod into
-`.github/workflows/nexus-upload.yml` (case block + `mod` input option).
+Page published 2026-07-06 as **"Assigned Workers Start Idle"** (file group ID `7626437`, wired
+into the upload workflow). This file is the source for the page's Description tab — keep it in
+sync when a future version changes the Features/Configuration text (the tab is not API-editable;
+paste updates by hand).
 
 ---
 

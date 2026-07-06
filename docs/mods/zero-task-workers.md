@@ -97,6 +97,6 @@ The reload crash observed during testing was TreeRespawnMod's same-world reload 
 
 ## Nexus
 
-Page not yet created. Working title: "Assigned Workers Start Idle". After the Nexus page is
-published, add the file Group ID to `docs/nexus-upload.md` table and wire the mod into
-`.github/workflows/nexus-upload.yml` (case block + mod input option).
+Published 2026-07-06 as **"Assigned Workers Start Idle"**, file group ID `7626437` — wired into
+`docs/nexus-upload.md` and `.github/workflows/nexus-upload.yml`, so updates ship via the standard
+workflow. Page text source: `ZeroTaskWorkersMod/NEXUS_PAGE_DRAFT.md`.

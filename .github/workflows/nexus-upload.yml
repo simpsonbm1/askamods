@@ -32,6 +32,7 @@ on:
           - TerrainLevelerMod
           - SeedScoutMod
           - TaskUnlockerMod
+          - ZeroTaskWorkersMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -74,6 +75,7 @@ jobs:
             TerrainLevelerMod)       file_id=7606994 ;;
             SeedScoutMod)            file_id=7619375 ;;   # World Seed Scout
             TaskUnlockerMod)         file_id=7623785 ;;   # Cooking and Fishing Task Unlocker
+            ZeroTaskWorkersMod)      file_id=7626437 ;;   # Assigned Workers Start Idle
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
