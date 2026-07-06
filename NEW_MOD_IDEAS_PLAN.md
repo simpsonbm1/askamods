@@ -4,22 +4,12 @@ Status legend: everything here is **⚠️ pending in-game verification** unless
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
 (2026-07-03) — signatures are facts; *runtime behavior* claims are the ⚠️ part.
 
-**Priority order (user):** 1) well water → 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
-
----
-
-## 1. Well water regeneration rate → SHIPPED (TreeRespawnMod v1.4.4, confirmed in-game 2026-07-04)
-
-Configurable refill rate for *constructed* water structures (Water Well / Rain Collector),
-separate from the pre-existing `GatherRespawn.Water` entry (which only covers the wild Natural
-Water Collector biome node). Decisive test (`ChargesPerDay=1440` → well visibly raced up ~1/sec)
-proved the mod controls the rate, not vanilla. Live on Nexus (v1.4.4, 2026-07-04) with an updated
-Description page.
-
-Full mechanism, config, and version history: [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md#well-water-refill-v140v144--confirmed-in-game-2026-07-04).
-Reusable API facts (structure → GatherInteraction → ReplenishCharges recipe, plus two new
-universal IL2CPP gotchas hit along the way — the missing plural `GetComponentsInChildren<T>`
-overload, and `SettlementManager.settlements` staying null): [`docs/architecture.md`](docs/architecture.md#gather--press-to-collect-system).
+**Priority order (user):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
+(Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
+see [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md). NOTE: the plan's original model was only
+half right — cooking is IDiscoverableItem/Rpc_AddDiscoverable, but **fishing tasks are gated by MARKED
+fishing grounds, not item discovery** — corrected mechanism in
+[`docs/architecture.md`](docs/architecture.md) → "Task Discovery & Bypassing".)
 
 ---
 

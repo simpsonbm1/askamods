@@ -1,0 +1,1 @@
+namespace TaskUnlockerMod { public class DumpFish { public static void Dump(SSSGame.FishableItemsConfig config) { foreach (var f in config.FishableItems) { if (f.info != null) { Plugin.Log.LogInfo("Fishable: " + f.info.name + " (" + f.info.GetIl2CppType().Name + ")"); } } } } }

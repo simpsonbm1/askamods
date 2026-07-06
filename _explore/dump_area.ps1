@@ -1,0 +1,1 @@
+Add-Type -Path "D:\SteamLibrary\steamapps\common\ASKA\BepInEx\core\Mono.Cecil.dll"; $asm = [Mono.Cecil.AssemblyDefinition]::ReadAssembly("D:\SteamLibrary\steamapps\common\ASKA\BepInEx\interop\Assembly-CSharp.dll"); $type = $asm.MainModule.Types | Where-Object { $_.Name -eq "FishingGround" }; foreach ($t in $type) { foreach ($m in $t.Methods) { Write-Host "  " $m.Name } }

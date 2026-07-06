@@ -186,6 +186,7 @@ askamods/
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment  [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — co-op fix confirmed in-game 2026-07-03 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
+  TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.1 — confirmed in-game 2026-07-06 — docs/mods/task-unlocker.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
@@ -234,6 +235,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`TERRAIN_LEVELER_HANDOFF.md`](TERRAIN_LEVELER_HANDOFF.md) | Mod 15 — early (v1.3.12) session handoff — SUPERSEDED by docs/mods/terrain-leveler.md + the TerrainLevelerMod/*.md plans |
 | [`docs/mods/seed-scout.md`](docs/mods/seed-scout.md) | Mod 9 — SeedScoutMod (shipped recipe: native-pin MarkerItem system, handler construction, targeted tile sweep, home-island scope, POI-type classifier) |
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
+| [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md) | Mod 17 — TaskUnlockerMod (cooking = Rpc_AddDiscoverable; fishing = mark grounds via the NWDM Request path — NOT item discovery) |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |
 | [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 — settlement hauling plan |

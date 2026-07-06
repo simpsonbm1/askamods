@@ -987,6 +987,42 @@ to inject a **new buildable entry** into the build menu. Full recipe in
     (language switches rebuild the dictionaries); a postfix on `Loc(string, bool)` works as a
     safety net for lookup paths that bypass the dictionaries. (confirmed in-game 2026-07-01, v1.4.7)
 
+## Task Discovery & Bypassing (Fishing/Cooking)
+
+Bypassing discovery to show tasks in workstations requires different strategies depending on the station:
+
+- **Cooking Tasks (CrockpotRecipeInfo)**: Cooking workstation tasks are gated strictly by SSSGame.BlueprintConditionsDatabase. Setting NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable unlocks them natively (confirmed in-game 2026-07-05, TaskUnlockerMod). requiresDiscovery = false does not work here.
+- **Fishing Tasks — the gate is MARKING, not discovery.** Fishing tasks are not item-discovery-gated
+  at all; the 2026-07-05 "dead ends everywhere" session was attacking the wrong system. The real chain
+  (signature-traced and **confirmed in-game 2026-07-06**, TaskUnlockerMod v1.2.0): player marks a fishing ground (buoy) →
+  `FishingGround.Mark(bool)` / `NetworkWorldDataManager.MarkFishingGround(int id)` (+ `Rpc_MarkFishingGround`)
+  → `PopulationManager` (`_markedFishingGroundsMap`, `GetMarkedFishingGroundsCountForItem(ItemInfo)`) fires
+  `OnFishingGroundsMarkedCountChanged` → `FishingStation._OnFishingGroundMarkChanged(FishingGround, int count)`
+  → `_UpdateFishStatus(fish, count)` → task created/removed via `_CreateTaskDataForItem`/`AddTaskData`.
+  `FishingGround` has *separate* `Discovered` and `IsMarked` states (plus `UnlockMarking()` — marking may
+  itself be tutorial/quest-gated), and `NetworkWorldDataManager` exposes the full official quartet:
+  `DiscoverFishingGround` / `MarkFishingGround` / `DisableFishingGround` / `ChangeFishingGroundSize`, each
+  with an RPC, plus client-safe request variants `RequestDiscoverFishingGround(id)` / `RequestMarkFishinGround(id,
+  bool)` (the "FishinGround" typo is the game's). **Working recipe (confirmed in-game 2026-07-06): enumerate
+  `PopulationManager._fishingGrounds`, and per unmarked ground call its `NetworkCommunicator.RequestDiscoverFishingGround(id)`
+  + `RequestMarkFishinGround(id, true)`** and let the game build tasks natively (network-replicated) —
+  `UnlockMarking()` was NOT needed. Hand-adding tasks can't work end-to-end anyway because
+  villager dispatch (`FSM_Fishing`, `PopulationManager.TryGetFishingGroundsForItem`) needs a real marked
+  ground to row to, and count-driven `_UpdateFishStatus` would remove tasks whose marked-count is 0.
+  - **Dead end**: NetworkBlueprintConditionsDatabase / DebugAllBlueprintsUnlocked — FishingStation ignores them (wrong system).
+  - **Dead end**: StorageSupply.hideTasksForUndiscoveredItems = false has no effect (UI-level; the tasks were never created).
+  - **Dead end**: Patching WorkstationTaskData.ShouldBeHidden throws System.NullReferenceException inside the IL2CPP
+    virtual method trampoline. (Same family: `FishingStation.CheckUndiscoveredTasks(Int32&, String&)` has by-ref
+    primitives — never patch it; see universal gotchas.)
+  - **Dead end**: Setting FishingGround.Discovered = true doesn't populate the task list — Discovered isn't the gate,
+    Marked is. (Also a `Discovered` getter-postfix likely never fired for native callers — tiny property getters
+    are prime AOT-inlining candidates.)
+  - **Dead end (silent no-op, log-confirmed 2026-07-06)**: `FindAnyObjectByType<FishableItemsConfig>()` returns
+    **null** — it's a `ScriptableObject` config asset, not a scene object. TaskUnlockerMod v1.1.5's diagnostic loop
+    logged zero fish for this reason, and v1.1.6's `FishingStation.Start` patch (`_CreateTaskDataForItem` +
+    `AddTaskData` hand-rolling) uses the same lookup, so it would no-op identically — v1.1.6 was never load-tested
+    anyway (log shows 1.1.5 was the last loaded version). Use the station's own `__instance.fishables` field instead.
+
 ## Terrain / Terraforming System
 
 Backing mod: TerrainLevelerMod (Mod 15) — see [`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md)
@@ -1127,3 +1163,4 @@ BitSet256 root cause above, but applies to any future native ASKA crash:
     Mono.Cecil — edit its `$targets` array with your crash offsets and re-run.
 4.  Unity's own `Player.log` (`%USERPROFILE%\AppData\LocalLow\Sand Sailor Studio\ASKA\`) does **not**
     contain a native stack trace for these crashes — WER events are the reliable source, not this file.
+
