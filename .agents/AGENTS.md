@@ -201,6 +201,7 @@ askamods/
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.1 — confirmed in-game 2026-07-06 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.0 — confirmed in-game 2026-07-06 — docs/mods/zero-task-workers.md]
+  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.0.1 — confirmed in-game 2026-07-07: removes debris cleanly (own-set OnEnable/OnDisable tracking + RemoveObjectFromWorld), no crash. NOTE: ground clutter was NOT the framerate bottleneck (a loaded mod is — bisect pending) — docs/mods/ground-item-vacuum.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
@@ -236,7 +237,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, build menu/structure templates/localization, terrain/terraforming, native crash diagnosis (WER+Cpp2IL) |
 | [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
 | [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod (incl. the v1.4.x constructed-well refill recipe, the v1.4.7 mushroom year-round/rain-independent recipe + the v1.5.x block-respawn-under-structures recipe: durable BlockedPositions + StructureQuery footprint check) |
-| [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas (2026-07-03, +7–8 on 2026-07-06): well refill (✔ shipped, TreeRespawn v1.4.x), den respawn (Den.Revive + structure-blocking insight), crafting multiplier (BlueprintInfo.quantity data edit), ground-item vacuum (DynamicItemObjectManager), freezing hunters (warmth objective thresholds), pre-construction worker/task setup (Structure.Activate + buildsite-aware WorkstationMenu), zero-task new workers (_CanAddVillagerToTaskData gate) — approaches + Cecil-confirmed API leads |
+| [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas (2026-07-03, +7–8 on 2026-07-06, +10 on 2026-07-07): well refill (✔ shipped, TreeRespawn v1.4.x), den respawn (Den.Revive + structure-blocking insight), crafting multiplier (BlueprintInfo.quantity data edit), ground-item vacuum (DynamicItemObjectManager), freezing hunters (warmth objective thresholds), pre-construction worker/task setup (Structure.Activate + buildsite-aware WorkstationMenu), zero-task new workers (_CanAddVillagerToTaskData gate), inventory fish filleting (ResourceInfo.exhaustableComponents + ItemThumbnailPanel.CanHarvestCurrentItem gate) — approaches + Cecil-confirmed API leads |
 | [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
 | [`docs/mods/torch-fuel.md`](docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |
 | [`docs/mods/dynamic-villager-needs.md`](docs/mods/dynamic-villager-needs.md) | Mod 5 — DynamicVillagerNeedsMod |
@@ -252,6 +253,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/mods/resource-marker-radius.md`](docs/mods/resource-marker-radius.md) | Mod 16 — ResourceMarkerRadiusMod |
 | [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md) | Mod 17 — TaskUnlockerMod (cooking = Rpc_AddDiscoverable; fishing = mark grounds via the NWDM Request path — NOT item discovery) |
 | [`docs/mods/zero-task-workers.md`](docs/mods/zero-task-workers.md) | Mod 18 — ZeroTaskWorkersMod (prefix-block on the four _CanAddVillagerToTaskData impls; deserialize-grace gate; Buildstation exemption) |
+| [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md) | Mod 19 — GroundItemVacuumMod (own-set tracking via DynamicItemObject.OnEnable/OnDisable + WorldItemObject.RemoveObjectFromWorld; the v1.0.0 raw `_head`→`NextDynamicObject` linked-list walk = native-AV dead-end; incl. the framerate finding: ground clutter was NOT the bottleneck) |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`docs/agent-delegation.md`](docs/agent-delegation.md) | Delegating subtasks to cheaper-model subagents (Claude Code only): agent roster (`.claude/agents/`), delegation-prompt checklist, invocation syntax, runtime gotchas |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned |

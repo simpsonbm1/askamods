@@ -1,0 +1,281 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using SSSGame;
+using SandSailorStudio.Inventory;
+using UnityEngine;
+
+namespace GroundItemVacuumMod;
+
+public class VacuumTracker : MonoBehaviour
+{
+    private KeyCode _key = KeyCode.V;
+    private string _guiMessage = "";
+    private float _guiExpiry = 0f;
+    private float _autoTimer = 0f;
+
+    private sealed class Candidate
+    {
+        public WorldItemObject Item = null!;
+        public string Name = "?";
+        public string CatChain = "";
+        public Vector3 Pos;
+    }
+
+    private void Start()
+    {
+        if (Enum.TryParse<KeyCode>(Plugin.VacuumHotkey.Value, true, out var parsed))
+            _key = parsed;
+        else
+            Plugin.Logger.LogWarning($"[Vacuum] Could not parse hotkey '{Plugin.VacuumHotkey.Value}'. Defaulting to '{_key}'.");
+        Plugin.Logger.LogInfo($"[Vacuum] Hotkey bound to {_key}.");
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(_key))
+        {
+            try { Sweep(auto: false); }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[Vacuum] Sweep error: {ex}");
+                ShowMessage("Vacuum error - see BepInEx log.");
+            }
+        }
+
+        float autoMin = Plugin.AutoVacuumMinutes.Value;
+        if (autoMin > 0f)
+        {
+            _autoTimer += Time.deltaTime;
+            if (_autoTimer >= autoMin * 60f)
+            {
+                _autoTimer = 0f;
+                try { Sweep(auto: true); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[Vacuum] Auto-sweep error: {ex}"); }
+            }
+        }
+    }
+
+    private void Sweep(bool auto)
+    {
+        bool entireWorld = Plugin.VacuumEntireWorld.Value;
+        bool dryRun = Plugin.DryRun.Value;
+        bool trace = Plugin.TraceEachItem.Value;
+
+        Vector3 playerPos = Vector3.zero;
+        bool havePlayer = Plugin.LocalPlayer != null && Plugin.LocalPlayer.gameObject != null;
+        if (havePlayer) playerPos = Plugin.LocalPlayer!.transform.position;
+
+        if (!entireWorld && !havePlayer)
+        {
+            if (!auto) ShowMessage("Vacuum: player not ready yet.");
+            return;
+        }
+
+        // Snapshot our OWN tracked set (managed references, maintained by OnEnable/OnDisable).
+        // We never touch the game's linked list. Copy under lock, then release before touching
+        // native getters.
+        DynamicItemObject[] snap;
+        lock (Plugin.TrackedItems)
+        {
+            snap = new DynamicItemObject[Plugin.TrackedItems.Count];
+            Plugin.TrackedItems.CopyTo(snap);
+        }
+
+        if (!Plugin.TrackingConfirmed && snap.Length == 0)
+        {
+            if (!auto) ShowMessage("Vacuum: ground-item tracking not ready yet.");
+            return;
+        }
+
+        Plugin.Logger.LogInfo($"[Vacuum] Sweep start ({(auto ? "auto" : "manual")}, {(dryRun ? "DRY-RUN" : "LIVE")}): tracked={snap.Length}, trace={trace}.");
+
+        // Build candidates (read-only). Per-step trace so a native crash pinpoints the exact item.
+        var all = new List<Candidate>(snap.Length);
+        for (int i = 0; i < snap.Length; i++)
+        {
+            var node = snap[i];
+            if (node == null) continue;
+            try { AddCandidate(node, i, trace, all); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[Vacuum] item #{i} resolve error: {ex}"); }
+        }
+
+        // Filter.
+        var excludeCats = ParseCsv(Plugin.ExcludeCategories.Value);
+        var excludeItems = ParseCsv(Plugin.ExcludeItems.Value);
+        var onlyItems = ParseCsv(Plugin.OnlyItems.Value);
+        float radiusSqr = Plugin.Radius.Value * Plugin.Radius.Value;
+
+        var targets = new List<Candidate>();
+        var byName = new Dictionary<string, int>();
+        int inRangeTotal = 0;
+
+        foreach (var c in all)
+        {
+            if (!entireWorld)
+            {
+                float dSqr = (c.Pos - playerPos).sqrMagnitude;
+                if (dSqr > radiusSqr) continue;
+            }
+            inRangeTotal++;
+
+            if (onlyItems.Count > 0 && !ContainsAny(c.Name, onlyItems)) continue;
+            if (ContainsAny(c.Name, excludeItems)) continue;
+            if (ContainsAny(c.CatChain, excludeCats)) continue;
+
+            targets.Add(c);
+            byName[c.Name] = byName.TryGetValue(c.Name, out var n) ? n + 1 : 1;
+        }
+
+        // Report.
+        if (Plugin.Diagnostics.Value)
+        {
+            Plugin.Logger.LogInfo($"[Vacuum] Sweep result: {all.Count} tracked items, {inRangeTotal} in range, {targets.Count} match filters.");
+            foreach (var kv in byName)
+                Plugin.Logger.LogInfo($"[Vacuum]   would remove x{kv.Value}: {kv.Key}");
+            var catTally = new Dictionary<string, int>();
+            foreach (var c in all)
+                catTally[c.CatChain] = catTally.TryGetValue(c.CatChain, out var m) ? m + 1 : 1;
+            foreach (var kv in catTally)
+                Plugin.Logger.LogInfo($"[Vacuum]   category x{kv.Value}: {(string.IsNullOrEmpty(kv.Key) ? "<none>" : kv.Key)}");
+        }
+
+        if (dryRun)
+        {
+            ShowMessage($"SCAN: {targets.Count} item(s) would be vacuumed (of {inRangeTotal} in range). See log; set DryRun=false to remove.");
+            return;
+        }
+
+        if (Plugin.HostOnly.Value && !IsHost())
+        {
+            if (!auto) ShowMessage("Only the host can vacuum ground items.");
+            return;
+        }
+
+        int removed = 0;
+        foreach (var c in targets)
+        {
+            try
+            {
+                if (c.Item != null)
+                {
+                    c.Item.RemoveObjectFromWorld();
+                    removed++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[Vacuum] Failed to remove '{c.Name}': {ex}");
+            }
+        }
+
+        Plugin.Logger.LogInfo($"[Vacuum] Removed {removed}/{targets.Count} ground items.");
+        if (!auto || removed > 0)
+            ShowMessage($"Vacuumed {removed} ground item(s).");
+    }
+
+    private void AddCandidate(DynamicItemObject node, int idx, bool trace, List<Candidate> outList)
+    {
+        if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: node ok");
+
+        var itemObj = node._itemObject;
+        if (itemObj == null) { if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: _itemObject null - skip"); return; }
+        if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: _itemObject ok");
+
+        string name = "?";
+        string catChain = "";
+        var item = itemObj.ItemInstance;
+        if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: ItemInstance {(item == null ? "null" : "ok")}");
+        var info = item?.info;
+        if (info != null)
+        {
+            name = info.Name ?? "?";
+            if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: name={name}");
+            catChain = BuildCategoryChain(info.category);
+            if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: category='{catChain}'");
+        }
+
+        Vector3 pos = node.transform.position;
+        if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: pos ok ({pos.x:F0},{pos.z:F0})");
+
+        outList.Add(new Candidate { Item = itemObj, Name = name, CatChain = catChain, Pos = pos });
+    }
+
+    private static string BuildCategoryChain(ItemCategoryInfo? cat)
+    {
+        if (cat == null) return "";
+        var sb = new StringBuilder();
+        int depth = 0;
+        var c = cat;
+        while (c != null && depth++ < 8)
+        {
+            string n = "";
+            try { n = c.Name ?? ""; } catch { }
+            if (!string.IsNullOrEmpty(n))
+            {
+                if (sb.Length > 0) sb.Append('/');
+                sb.Append(n);
+            }
+            try { c = c.parent; } catch { break; }
+        }
+        return sb.ToString();
+    }
+
+    private bool IsHost()
+    {
+        try
+        {
+            var p = Plugin.LocalPlayer;
+            if (p == null || p.NetworkObject == null || p.NetworkObject.Runner == null) return false;
+            var runner = p.NetworkObject.Runner;
+            return runner.IsServer || runner.IsSharedModeMasterClient;
+        }
+        catch { return false; }
+    }
+
+    private static List<string> ParseCsv(string raw)
+    {
+        var result = new List<string>();
+        if (string.IsNullOrWhiteSpace(raw)) return result;
+        foreach (var part in raw.Split(','))
+        {
+            var t = part.Trim();
+            if (t.Length > 0) result.Add(t.ToLowerInvariant());
+        }
+        return result;
+    }
+
+    private static bool ContainsAny(string haystack, List<string> needles)
+    {
+        if (needles.Count == 0 || string.IsNullOrEmpty(haystack)) return false;
+        string h = haystack.ToLowerInvariant();
+        foreach (var n in needles)
+            if (h.Contains(n)) return true;
+        return false;
+    }
+
+    private void ShowMessage(string message)
+    {
+        _guiMessage = message;
+        _guiExpiry = Time.time + 5.0f;
+    }
+
+    private void OnGUI()
+    {
+        if (Time.time < _guiExpiry && !string.IsNullOrEmpty(_guiMessage))
+        {
+            var shadow = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 24,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            shadow.normal.textColor = Color.black;
+            var text = new GUIStyle(shadow);
+            text.normal.textColor = Color.cyan;
+
+            GUI.Label(new Rect(0, 81, Screen.width, 100), _guiMessage, shadow);
+            GUI.Label(new Rect(0, 80, Screen.width, 100), _guiMessage, text);
+        }
+    }
+}

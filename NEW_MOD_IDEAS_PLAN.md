@@ -1,9 +1,10 @@
-# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
-(2026-07-03; ideas 7–8 re-dumped 2026-07-06) — signatures are facts; *runtime behavior* claims
-are the ⚠️ part. Ideas 7–8 come from Nexus user feedback on TaskUnlockerMod (rondi112, 2026-07-06).
+(2026-07-03; ideas 7–8 re-dumped 2026-07-06; idea 10 dumped 2026-07-07) — signatures are facts;
+*runtime behavior* claims are the ⚠️ part. Ideas 7–8 come from Nexus user feedback on TaskUnlockerMod
+(rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07).
 
 **Priority order (user):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
 (Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
@@ -81,7 +82,12 @@ numbers even if items granted are host-authoritative — needs a test).
 
 ---
 
-## 4. "Vacuum cleaner" for ground clutter — new mod
+## 4. "Vacuum cleaner" for ground clutter — SHIPPED as GroundItemVacuumMod v1.0.1 (2026-07-07)
+
+**Status: ✅ COMPLETE — confirmed in-game 2026-07-07.** See [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md)
+for the shipped recipe (own-set OnEnable/OnDisable tracking + `RemoveObjectFromWorld`), the v1.0.0
+raw-linked-list-walk native-crash dead-end, and the framerate finding (ground clutter was NOT the
+bottleneck — a loaded mod is; bisect pending). Original plan below.
 
 **Goal:** clear loose ground items (config radius) to protect framerate; optional decay tuning,
 including items that never decay (long sticks, logs).
@@ -334,6 +340,99 @@ for a pre-scanned mushroom-process `HashSet` (reversible, no SO mutation).
   extrapolation from that design, but was not itself explicitly logged.
 - Minor: `IsAvailable` lags False→True by one weather/season eval tick after the clear (the game caches
   the result); self-corrects (`remainingDays` −1→1). The Harmony-prefix alternative was not needed.
+
+---
+
+## 10. Fillet fish directly in inventory (shift-click harvest) — new mod
+
+**Goal:** let the player break a caught fish down into its fillet output (meat / blubber) with the same
+**shift-click-in-inventory harvest** the game already gives bark, reeds, fur, straw, etc. — instead of
+having to drop the fish on the ground, fillet it with a skinning knife, and pick the results back up.
+(Nexus request from kira31374, 2026-07-07: fishing chefs waste a lot of time hand-filleting.)
+
+**Two DISTINCT mechanisms confirmed from binary (2026-07-07):**
+1. **The inventory shift-click harvest** (what bark/reeds use — toolless, instant, one item → its yield):
+   - `SSSGame.UI.ItemThumbnailPanel.CommandHarvestItem() : Void`, **gated by
+     `CanHarvestCurrentItem() : Boolean`** — plain `MonoBehaviour` UI methods (**safe patch surface,
+     not inlining-prone**, unlike the item-side `CanBeHarvested()` below).
+   - Executes via `SSSGame.CharacterInventory.HarvestSelectedItems() : Boolean` (Public **Virtual Final**,
+     implements `SandSailorStudio.Inventory.IInventoryManager.HarvestSelectedItems()`) →
+     `_HarvestItemOperation() : Void` (private worker). `PetInventory` has the identical twins.
+   - **"Shift" = the harvest modifier**: `SSSGame.UI.ContextMenu._harvestModifierInputPressed`,
+     `_onClickModifier1Changed/2Changed(CallbackContext)`, `allowHarvestCursor`, `_RefreshHarvestCursor()`,
+     `_GetHarvestEventData() : ContextMenu/HarvestCustomActionEventData` (a `CustomActionEventData` with
+     `.Use()` / `.Cancel()`). Mirrored on `ItemDetailsPanel._harvestModifierInputPressed` + `harvestTooltip`.
+2. **The fish fillet** (drop + skinning knife): the dropped fish is a world `WorldItemInstance` harvested
+   with the knife. The villager equivalent is the **harbor butcher**: `SSSGame.AI.HarborHarvestQuest` →
+   `SSSGame.AI.FSM.FSM_HarborHarvest` (`slaughterAction`, `resultName`, `categoryName`,
+   `_PrepareWorldItemInstance(HarvestData, WorldItemInstance)`) → `FSM_ReturnHarborButcherResults`. This
+   is the **same resource-harvest FSM** run on the dropped fish ⇒ strong evidence the fillet yield is the
+   fish's own `ResourceInfo.exhaustableComponents` (see below), i.e. the SAME data both paths consume.
+
+**The shared item-side data type — `SSSGame.ResourceInfo : ItemInfo`** (ScriptableObject; the type behind
+bark, fiber, raw meat, and almost certainly caught fish):
+- `exhaustableComponents : Il2CppReferenceArray` — **the harvest YIELD** (what you receive; "exhaust the
+  resource to get these"). `junk : Il2CppReferenceArray` — low-value extras. `piecesHitpoints`.
+- `mainHarvestMoveset : InteractionMoveset` — the harvest animation/tool. Tool requirement lives in
+  **`SSSGame.InteractionMoveset.requiredEqippmentCategory : ItemCategoryInfo`** (+ `baseUnarmedDamage`,
+  `damageMultiplier`, `weaponDurabilityDamage`) — this is where "needs a skinning knife" is encoded.
+- `CanBeHarvested() : Boolean` — the per-item gate. **NOT virtual ⇒ prime IL2CPP inlining candidate ⇒ a
+  Harmony patch on it may silently never fire (documented gotcha). Do NOT patch it — patch the UI gate
+  `ItemThumbnailPanel.CanHarvestCurrentItem()` instead.** Also `GetNonExhaustedDepth(IItemFilter, UInt32&)`,
+  `harvestChanceHasLootRequirements`, `harvestDiscoversComponents`, `requiresDiscovery`.
+- `SandSailorStudio.Inventory.ItemsConstants.c_NonHarvestable : Int32` (attribute-id constant) + `c_FishWeight`,
+  `c_FishingState` — items carry attributes; fish carry weight/state attrs, and `c_NonHarvestable` marks
+  items excluded from harvest. (Attributes live in `ItemInfo.attributes` / `FindAttribute(Int32&)`.)
+- Caught fish itself = `SSSGame.Fishable.info : ItemInfo` (from `FishableItemsConfig.FishableItems`) — the
+  static type is `ItemInfo`, so the concrete subtype (ResourceInfo?) is the Phase-0 question. **NB: the
+  `FishingItemInfo`/`FishingItem` types are the ROD/line (`: WeaponizedItem`), not the catch.**
+- World-loot alt-path if the yield ISN'T in exhaustableComponents: `SSSGame.LootSpawner.lootOnHarvest` /
+  `GetPieceLoot()` on the dropped-fish prefab.
+
+**Model (⚠️ the runtime half — Phase 0 decides):** bark/reeds are `ResourceInfo` with `CanBeHarvested()=true`
+and a bare-hand `mainHarvestMoveset` (empty `requiredEqippmentCategory`) ⇒ the toolless inventory shift-click
+grants their `exhaustableComponents` (fiber). Fish is (very likely) also a `ResourceInfo` whose
+`exhaustableComponents` ARE the fillets, but whose inventory-harvest is blocked because ONE of:
+(a) `CanBeHarvested()`/`CanHarvestCurrentItem()` returns false for it; (b) its `mainHarvestMoveset` requires
+the skinning-knife category so the toolless inventory path refuses it; (c) it carries the `c_NonHarvestable`
+attribute. **Determining WHICH is the entire point of Phase 0** — it also decides whether the yield is already
+present (best case) or must be reconstructed (fallback).
+
+**Approach (phased — diagnostics first, ship the cheap win):**
+1. **Phase 0 (diagnostics — decides the hook, default `true`):** for the currently-selected inventory item
+   (start with a fish; cross-dump bark/reeds as the working baseline), log: runtime IL2CPP class (is it
+   `ResourceInfo`?), `CanBeHarvested()`, `exhaustableComponents` + `junk` (item names + quantities), whether
+   it has the `c_NonHarvestable` attribute, `mainHarvestMoveset.requiredEqippmentCategory` (the required tool),
+   and whether `ItemThumbnailPanel.CanHarvestCurrentItem()` returns false. This confirms fish-is-ResourceInfo,
+   whether the meat/blubber yield already lives in `exhaustableComponents`, and exactly which gate blocks it.
+2. **Phase 1 (best case — un-hide + reuse the vanilla yield):** if fish is a `ResourceInfo` carrying the
+   fillets as `exhaustableComponents`, Harmony **postfix** `ItemThumbnailPanel.CanHarvestCurrentItem()` →
+   `__result = true` for fish (**scoped by category/name substring — never global**, so we don't unlock every
+   `c_NonHarvestable` item). Vanilla `CommandHarvestItem()` → `HarvestSelectedItems()` → `_HarvestItemOperation()`
+   then consumes the fish and grants meat+blubber through the game's own item-add + networking. If the operation
+   internally re-checks `CanBeHarvested()` and still refuses, fall back to patching `HarvestSelectedItems`/
+   `_HarvestItemOperation` to force-run for fish. Config: fish name/category list (default the fish category),
+   optional `RequireSkinningKnifeInInventory` (only allow if the player holds the knife category — matches the
+   theme), optional `ConsumeKnifeDurability`. Fire-verify the postfix with a log line.
+3. **Phase 2 (fallback — reconstruct the yield):** only if Phase 0 shows the fillet output is NOT in
+   `exhaustableComponents` (it lives on the dropped-fish prefab `LootSpawner.lootOnHarvest`). Add a custom
+   context-menu "Fillet" action (the `HarvestCustomActionEventData`/CustomAction path) that consumes one fish
+   and grants the loot read from the fish's `spawnObject` LootSpawner (or a config'd meat/blubber map), via the
+   game's own add-item RPC. More code — avoid unless forced.
+
+**⚠️ verify / risks:**
+- **Fish-is-ResourceInfo and `exhaustableComponents` = the fillets** — the central assumption; Phase 0 confirms
+  or routes to Phase 2.
+- Whether `CanHarvestCurrentItem`/`_HarvestItemOperation` **enforce the moveset tool requirement** (skinning
+  knife). If they do, either the mod supplies the tool virtually or gates on the player actually holding it.
+- **Stack behavior:** does one shift-click fillet one fish or the whole stack? Match vanilla; verify the
+  meat+blubber-per-fish quantities EQUAL the drop-and-skin result (not an exploit or a nerf).
+- **Durability:** the world-fillet spends skinning-knife durability; the inventory path may bypass it — offer
+  `ConsumeKnifeDurability` so it isn't a free shortcut if the user wants parity.
+- **Host authority / co-op:** `HarvestSelectedItems` is the game's own networked path; gate writes on authority
+  and let the vanilla op do the add. Confirm a client filleting routes through the host.
+- Fire-verify the `CanHarvestCurrentItem` postfix fires (MonoBehaviour UI method — should be safe from the
+  AOT-inlining trap, but standing rule).
 
 ---
 
