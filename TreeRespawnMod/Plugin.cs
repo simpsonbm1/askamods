@@ -35,6 +35,11 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ManualRespawnIncludeGather = null!;
     internal static ConfigEntry<float> WellChargesPerDay = null!;
     internal static ConfigEntry<bool> WellDiagnostics = null!;
+    public static ConfigEntry<bool> MushroomDiagnostics { get; private set; } = null!;
+    internal static ConfigEntry<string> MushroomDiagHotkey = null!;
+    public static ConfigEntry<bool> MushroomIgnoreRain { get; private set; } = null!;
+    public static ConfigEntry<bool> MushroomIgnoreSeason { get; private set; } = null!;
+    internal static ConfigEntry<string> MushroomItemNames = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
@@ -175,6 +180,57 @@ public class Plugin : BasePlugin
                 "elapsed/needed progress lines, and stale-entry drops. (The +N water refill line and " +
                 "error/no-op warnings always log regardless.) Feature confirmed in-game 2026-07-04; " +
                 "turn on only to troubleshoot wells not being found or not refilling.");
+
+        // ── Mushroom availability (v1.4.7) ──────────────────────────────────────────────────────
+        // Makes wild mushrooms year-round + rain-independent by clearing the game's own seasonal/weather
+        // gate on each mushroom's AvailabilityProcess (WeatherManager._descriptors). See
+        // MushroomAvailability.cs for the model (confirmed in-game 2026-07-07 via the v1.4.6 diagnostic).
+        MushroomIgnoreRain = Config.Bind(
+            section: "MushroomAvailability",
+            key: "IgnoreRain",
+            defaultValue: true,
+            description: "When ON (default), wild mushrooms no longer require rain to appear — clears the " +
+                "mandatory IsRaining condition on each mushroom's availability gate. Their placement in wooded " +
+                "areas (worldgen) is unchanged; this only lifts the weather requirement.");
+
+        MushroomIgnoreSeason = Config.Bind(
+            section: "MushroomAvailability",
+            key: "IgnoreSeason",
+            defaultValue: true,
+            description: "When ON (default), wild mushrooms appear year-round — clears the seasonal restriction " +
+                "on each mushroom's availability gate (vanilla omits Winter for common mushrooms, and limits " +
+                "Yellow Mushrooms to Autumn). Their wooded-area placement is unchanged.");
+
+        MushroomItemNames = Config.Bind(
+            section: "MushroomAvailability",
+            key: "ItemNames",
+            defaultValue: "Mushroom",
+            description: "Comma-separated, case-insensitive substring filter for WHICH biome resources the " +
+                "IgnoreRain/IgnoreSeason edits apply to. Default \"Mushroom\" covers Mushrooms, Grey/Gray " +
+                "Mushrooms and Yellow Mushrooms while never touching crops or fish. Add other resource names " +
+                "(as shown in the F8 dump) to lift their gates too.");
+
+        // ── Mushroom availability diagnostic (from v1.4.6) ──────────────────────────────────────
+        // Read-only dump of the game's seasonal/weather availability gate — used to confirm the model
+        // above. Default OFF now that the feature is shipped (flip ON to re-inspect); the F8 hotkey is
+        // handy to verify the fix took (mushrooms should read IsAvailable=True after the edit applies).
+        MushroomDiagnostics = Config.Bind(
+            section: "MushroomAvailability",
+            key: "DumpDiagnostics",
+            defaultValue: false,
+            description: "Read-only diagnostic (default OFF). ~5s after a world loads, dumps every biome " +
+                "resource registered with the game's seasonal/weather availability system (WeatherManager) — " +
+                "its Season/Time/Rain gate conditions and whether it currently evaluates available — tagging " +
+                "mushroom entries. Writes NOTHING in-game. Turn ON to troubleshoot; see DumpHotkey to re-dump.");
+
+        MushroomDiagHotkey = Config.Bind(
+            section: "MushroomAvailability",
+            key: "DumpHotkey",
+            defaultValue: "F8",
+            description: "Hotkey (letter or Unity KeyCode name) that re-runs the mushroom-availability dump on " +
+                "demand (read-only, not host-gated). Handy to verify the IgnoreRain/IgnoreSeason edits took — " +
+                "after applying, mushroom rows should read Season[0]/Other[0] and IsAvailable=True regardless of " +
+                "season/weather. Leave empty to disable the hotkey.");
 
         const string gs = "GatherRespawn";
         _gatherDefaultDays = Config.Bind(gs, "Default", 1.0f,

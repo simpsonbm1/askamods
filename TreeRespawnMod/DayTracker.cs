@@ -24,6 +24,8 @@ public class DayTracker : MonoBehaviour
     {
         _lastHandlerAttempt.Clear();
         WellRefill.ClearTransientState();
+        MushroomDiag.ResetForWorld();
+        MushroomAvailability.ResetForWorld();
     }
 
     // True while a recent failed attempt should suppress another try; otherwise stamps NOW and
@@ -53,6 +55,26 @@ public class DayTracker : MonoBehaviour
             _worldCheck = 0;
             Plugin.PollWorldId();
         }
+
+        // Mushroom availability (v1.4.7): apply the year-round / rain-independent gate edit once the
+        // descriptors are registered (once per world; the underlying SO edit is process-global). Then
+        // the read-only diagnostic: auto-dump once per world + on-demand re-dump hotkey. Neither is
+        // host-gated — the apply is a local SO edit (host's copy drives spawning in co-op) and the dump
+        // only reads game state.
+        MushroomAvailability.MaybeApply();
+        MushroomDiag.MaybeAutoDump();
+        try
+        {
+            string mk = Plugin.MushroomDiagHotkey.Value;
+            if (!string.IsNullOrWhiteSpace(mk))
+            {
+                bool mDown = Enum.TryParse<KeyCode>(mk, true, out var mkc)
+                    ? Input.GetKeyDown(mkc)
+                    : Input.GetKeyDown(mk);
+                if (mDown) MushroomDiag.Dump("hotkey");
+            }
+        }
+        catch { }
 
         bool isHotkeyDown = false;
         try

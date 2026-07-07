@@ -186,7 +186,7 @@ askamods/
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage            [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.4.5 — same-world reload crash root-caused & fixed, confirmed in-game 2026-07-06; well refill confirmed in-game 2026-07-04, co-op detection 2026-07-03 — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.4.7 — mushrooms year-round + rain-independent (MushroomAvailability, [MushroomAvailability] config), confirmed in-game 2026-07-07; same-world reload crash fixed, confirmed in-game 2026-07-06; well refill confirmed in-game 2026-07-04, co-op detection 2026-07-03 — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP out of combat    [COMPLETE v1.1.0 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled       [COMPLETE v1.2.4 — docs/mods/torch-fuel.md]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior         [COMPLETE v1.1.0 — docs/mods/dynamic-villager-needs.md]
@@ -235,7 +235,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations, settlement hauling (Mod 6 groundwork), inventory/settlement/recipes, cooking station pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, build menu/structure templates/localization, terrain/terraforming, native crash diagnosis (WER+Cpp2IL) |
 | [`docs/mods/bow-damage.md`](docs/mods/bow-damage.md) | Mod 1 — BowDamageMod |
-| [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod (incl. the v1.4.x constructed-well refill recipe) |
+| [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md) | Mod 2 — TreeRespawnMod (incl. the v1.4.x constructed-well refill recipe + the v1.4.7 mushroom year-round/rain-independent recipe) |
 | [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas (2026-07-03, +7–8 on 2026-07-06): well refill (✔ shipped, TreeRespawn v1.4.x), den respawn (Den.Revive + structure-blocking insight), crafting multiplier (BlueprintInfo.quantity data edit), ground-item vacuum (DynamicItemObjectManager), freezing hunters (warmth objective thresholds), pre-construction worker/task setup (Structure.Activate + buildsite-aware WorkstationMenu), zero-task new workers (_CanAddVillagerToTaskData gate) — approaches + Cecil-confirmed API leads |
 | [`docs/mods/health-regen.md`](docs/mods/health-regen.md) | Mod 3 — HealthRegenMod |
 | [`docs/mods/torch-fuel.md`](docs/mods/torch-fuel.md) | Mod 4 — TorchFuelMod |

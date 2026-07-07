@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.4.5)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.4.7)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
@@ -83,6 +83,23 @@ never touch the biome-instance machinery.
 **New log marker on quit-to-menu:** `[TreeRespawnMod] World session ended (quit to menu) — per-world state cleared.`
 
 **Confirmed in-game 2026-07-06:** two save→menu→reload cycles on the same world, no crash. The handler now reads fresh each use, and per-world state correctly resets. Historical note: the same `coreclr.dll+0x1d1fdd` WER signature appeared on 6/18, 6/23, 6/27, 6/29 — recurring offsets in coreclr mean "native AV class (beneath managed frames)", not necessarily the same root cause; the TreeRespawn reload bug was just one example of caching per-world native objects incorrectly.
+
+## Mushroom availability — year-round + rain-independent (v1.4.7 — CONFIRMED in-game 2026-07-07)
+The game gates seasonal/weather-restricted resources via `WeatherManager._descriptors` (Dictionary keyed by `ItemInfo`, each carrying an `AvailabilityProcess` ScriptableObject). The process ANDs four condition lists; wild mushrooms fail on exactly two: `SeasonAvailabilityConditions` (omits Winter → culls mushrooms winter-only) and `OtherAvailabilityConditions` (mandatory `IsRaining` → rain-gates their growth). The feature enumerates descriptors, matches items by case-insensitive substring filter (default `Mushroom`), snapshots each matched process's original lists **once** (idempotent), then `.Clear()`s the two condition lists to un-gate them. The game's own `replenishWhenAvailable` + `lifespan=1` loop then keeps mushrooms present year-round. Applied once per world ~5s after descriptors register, driven from `DayTracker.Update()` via `MushroomAvailability.MaybeApply()`, un-host-gated; re-armed per world in `DayTracker.ClearTransientState()` via `MushroomAvailability.ResetForWorld()`. Key gotcha: **`AvailabilityProcess` is process-global (NOT per-world state)** — the edit persists for the whole process (survives world reloads) and is naturally idempotent (clearing an already-empty list is a no-op). Originals are snapshotted before the first clear so a double-apply / per-world re-run can't wipe them; there is no runtime restore path (a game restart reverts for free). Because these are process-global assets, caching their wrappers/originals across worlds is safe — the "never cache per-world wrappers" gotcha does NOT apply here. Not host-gated: the SO edit runs locally on every peer; in co-op the host's copy drives biome spawning and client edits are harmless.
+
+**Config `[MushroomAvailability]`:**
+- `IgnoreRain` (bool, default **true**) — clears the mandatory `IsRaining` condition.
+- `IgnoreSeason` (bool, default **true**) — clears the seasonal restriction (year-round).
+- `ItemNames` (string, default `Mushroom`) — comma-separated case-insensitive substring filter for which resources the edits apply to.
+- `DumpDiagnostics` (bool, default **false** — was true in v1.4.6 research build, flipped to false since the feature shipped) — read-only diagnostic dump of the availability gate.
+- `DumpHotkey` (string, default `F8`) — re-run the read-only dump on demand.
+
+**In-game confirmation (2026-07-07):**
+- **Rain half:** in Spring with `raining=False`, mushrooms appeared where the earlier v1.4.6 diagnostic had proven vanilla read `IsAvailable=False` (in-season but rain-gated).
+- **Winter/season half:** in a co-op winter save (`season=WeatherSeason_Winter`, `raining=False`, `snowing=False`), all 3 mushrooms (Mushrooms, Grey Mushrooms, Yellow Mushrooms) read `Season[0]`/`Other[0]` and `IsAvailable=True` in both the auto-dump and the F8 dump, and the user saw mushrooms on the ground in winter (vanilla culls them).
+- **Minor observed behavior:** `IsAvailable` lags False→True by one weather/season evaluation tick after the clear because the game caches the result; it self-corrects (remainingDays −1→1).
+
+**Implementation reference:** see `NEW_MOD_IDEAS_PLAN.md` → idea 9 for the API research (Mono.Cecil Cecil-confirmed signatures, diagnostic approach, levers+gates).
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
 - **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a

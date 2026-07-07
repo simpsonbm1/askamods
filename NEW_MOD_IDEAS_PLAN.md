@@ -271,6 +271,72 @@ game's RPC path. Config: building-name list, `ApplyToAllBuildings`, and (stretch
 
 ---
 
+## 9. Mushrooms year-round / rain-independent — TreeRespawnMod extension
+
+**Status: ✅ SHIPPED in TreeRespawnMod v1.4.7 — CONFIRMED in-game 2026-07-07** (rain half Spring-no-rain; winter/season half in a co-op winter save).
+
+**Goal:** remove the seasonal + weather gating on wild mushrooms so they appear year-round (not
+culled in winter) and don't wait on rain to grow. Keep their spatial "wooded areas" placement as-is
+(that's separate worldgen spawn-location logic — untouched).
+
+**Key API (confirmed from binary via Cecil 2026-07-06):** the game gates seasonal/weather-restricted
+resources through ONE universal availability system:
+- `SSSGame.WeatherManager` (MonoBehaviour; `FindAnyObjectByType` works) holds
+  **`_descriptors : Dictionary<ItemInfo, BiomeItemAvailabilityData>`** — keyed by the produced
+  **`ItemInfo`** (so entries are targetable by item name; wild mushrooms surface as
+  `"Gray/Grey Mushroom"` / `"Yellow Mushroom"`, substring `"Mushroom"` — the same key TreeRespawn's
+  GatherRespawn already uses). `RegisterDescriptor(BiomeItemDescriptor)` populates it;
+  `HandleDescriptors()` / `IsAvailable(AvailabilityProcess)` re-evaluate on every weather/season change.
+- `SSSGame.BiomeItemAvailabilityData`: `availabilityProcess : AvailabilityProcess`, `remainingDays`,
+  `ReplenishOnAvailable`, `LastResult`, `CurrentDescriptorsState`, `_OnNewDay()` (daily countdown).
+- **`SandSailorStudio.Inventory.AvailabilityProcess`** (ScriptableObject) is the gate. Master eval
+  **`CheckAll(WeatherEventData)`** ANDs four mutable condition lists:
+  - `SeasonAvailabilityConditions : List<SSSGame.Weather.SeasonConfig>` — allowed seasons (**winter cull**),
+  - `TimeAvailabilityConditions : List<TimeCondition>` (`condition` ∈ `NormalizedSeasonTime`/`DayOfYear`/…, `+subcondition` range),
+  - `OtherAvailabilityConditions : List<OtherCondition>` (`condition` ∈ `IsRaining`/`IsWet`/… — **the rain gate**),
+  - `ProgressingWeatherConditionAvailabilityConditions`.
+  Each condition carries `isMandatory` + `negateCondition`. Sub-checks: `CheckSeasonCondition`,
+  `CheckOtherWeatherConditions`, `CheckTimeWeatherConditions`, `GetNextAvailableTime`.
+- Same system also gates `FishingGround.FishAvailabilityProcess`, `PlantableItemInfo.PlantAvailabilityProcess`,
+  traps, invasions, populations — so **any bypass MUST be scoped to mushroom entries only**, never global.
+
+**Diagnostic (TreeRespawnMod v1.4.6 — `MushroomDiag.cs`, `[MushroomAvailability]` config, read-only)
+— MODEL CONFIRMED in-game 2026-07-07.** The dump (22 descriptors; context Spring/day-12/not-raining)
+showed all **3 wild mushrooms are registered and gated exactly as expected**:
+- `Mushrooms` (id 16793608) & `Grey Mushrooms` (16793609): `Season = Spring,Summer,Autumn` (no Winter);
+  `Other = IsRaining mandatory=True`; `process.lifespan=1`.
+- `Yellow Mushrooms` (16793610): `Season = Autumn` only; `Other = IsRaining mandatory=True`; `lifespan=1`.
+- All three read `CheckAll=False / IsAvailable=False` in Spring-no-rain — and since Spring is IN-season
+  for Grey/plain, the **only** failing gate was the mandatory `IsRaining` → decisive proof the rain gate
+  is `OtherCondition{IsRaining, mandatory=True}` and the winter cull is `SeasonAvailabilityConditions`
+  (omitting Winter). Each mushroom has its **own** process (season lists differ) ⇒ no shared-SO collateral.
+- Cross-check: seasonal crops confirm the season-list mechanism (Beetroot=Autumn,**Winter**; Carrot/
+  Cabbage=Summer,Autumn — all `False` in Spring), and `mandatory=False` weather conditions do NOT block
+  (Natural Water Collector has 3 non-mandatory Others, all currently false, yet `IsAvailable=True`).
+
+**Approach (levers now exact) — data edit at world load, mushroom-keyed only:** on the 3 mushroom
+entries in `WeatherManager._descriptors` (name contains "Mushroom"), (1) **rain-independent** = clear
+`OtherAvailabilityConditions` (removes the mandatory `IsRaining`); (2) **year-round** = clear
+`SeasonAvailabilityConditions` (empty ⇒ no season restriction — evidence: empty-season items read
+available). Then the game's own `replenishWhenAvailable`/lifespan loop runs unrestricted. Config:
+substring item-name list (default `Mushroom`), plus independent `IgnoreSeason` / `IgnoreRain` toggles.
+Alternative if a data edit misbehaves: Harmony prefix on `AvailabilityProcess.CheckAll` → `__result=true`
+for a pre-scanned mushroom-process `HashSet` (reversible, no SO mutation).
+
+**✅ Verified in-game 2026-07-07 (v1.4.7 — implemented exactly as "clear both lists" above):**
+- Clearing the two lists makes mushrooms spawn/persist without rain (Spring, `raining=False` — where the
+  v1.4.6 diagnostic had proven vanilla read `IsAvailable=False`) AND in winter (co-op winter save,
+  `season=WeatherSeason_Winter`/`snowing=False` — all 3 mushrooms `Season[0]`/`Other[0]`, `IsAvailable=True`,
+  visible on the ground). The `lifespan=1` loop keeps them re-replenishing.
+- No separate winter cull remains — mushrooms stay present in winter with the availability gate cleared.
+- Co-op: the SO edit is applied locally on **every** peer (un-host-gated), so it worked in the co-op
+  session regardless of role. A second peer simultaneously seeing the host's winter mushrooms is a safe
+  extrapolation from that design, but was not itself explicitly logged.
+- Minor: `IsAvailable` lags False→True by one weather/season eval tick after the clear (the game caches
+  the result); self-corrects (`remainingDays` −1→1). The Harmony-prefix alternative was not needed.
+
+---
+
 ## Cross-cutting notes
 - Every new lever above is host-authoritative: gate on authority, prefer the game's own
   networked methods (`ReplenishCharges`, `Revive`, `RemoveObjectFromWorld`).
