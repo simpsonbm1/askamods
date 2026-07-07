@@ -14,6 +14,13 @@ public class DayTracker : MonoBehaviour
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
     private static DateTime _lastWeatherWarn = DateTime.MinValue;
 
+    // When this world first got serviced (weather+world resolved) — the clock for the structure-load grace
+    // below. Reset per world in ClearTransientState. Structures/colliders load a beat after the world, so
+    // until they're ready we HOLD under-structure-eligible respawns rather than growing a tree we can't yet
+    // check (a tree felled a prior session is overdue the instant the world loads — exactly this window).
+    private static DateTime? _worldServiceStart;
+    private const double StructureLoadGraceSeconds = 45;
+
     // Per-node cooldown so a node the handler can't service yet isn't re-attempted every frame.
     // Shared by trees and gather (a tree and a gather node never share a 0.1m-rounded position).
     private static readonly Dictionary<string, DateTime> _lastHandlerAttempt = new();
@@ -23,9 +30,21 @@ public class DayTracker : MonoBehaviour
     internal static void ClearTransientState()
     {
         _lastHandlerAttempt.Clear();
+        _worldServiceStart = null;
         WellRefill.ClearTransientState();
         MushroomDiag.ResetForWorld();
         MushroomAvailability.ResetForWorld();
+    }
+
+    // Structures load a few seconds after a world does. While BlockRespawnUnderStructures is on and the
+    // footprint data isn't available yet, return true so the caller holds the respawn (re-checks next tick)
+    // rather than growing an unchecked tree. Capped at StructureLoadGraceSeconds so a building-less world —
+    // or one where the settlement never resolves — still respawns after the grace instead of stalling.
+    private static bool StructureDataStillLoading()
+    {
+        if (StructureQuery.DataReady) return false;
+        if (_worldServiceStart == null) return true;
+        return (DateTime.UtcNow - _worldServiceStart.Value).TotalSeconds < StructureLoadGraceSeconds;
     }
 
     // True while a recent failed attempt should suppress another try; otherwise stamps NOW and
@@ -123,6 +142,9 @@ public class DayTracker : MonoBehaviour
             return;
         }
 
+        // First serviced tick for this world → start the structure-load grace clock (StructureDataStillLoading).
+        _worldServiceStart ??= DateTime.UtcNow;
+
         float dayLength = ws!.dayLength;
         float threshold = Plugin.RespawnDays.Value;
 
@@ -140,6 +162,16 @@ public class DayTracker : MonoBehaviour
         {
             string posKey = kvp.Key;
             float gameTimeFelled = kvp.Value;
+
+            // Absolute block: a cleared / under-structure spot never respawns. Drop any pending entry that
+            // somehow exists for one (a pre-fix save, or a direct HarvestPatch registration that a later
+            // clear blocked). A physical re-fell is what un-blocks a spot (HarvestPatch clears it).
+            if (Plugin.BlockedPositions.Contains(posKey))
+            {
+                CleanupTree(posKey);
+                toRemove.Add(posKey);
+                continue;
+            }
 
             bool haveWid = Plugin.TreeWid.TryGetValue(posKey, out var wid);
             Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
@@ -163,6 +195,7 @@ public class DayTracker : MonoBehaviour
             {
                 toRemove.Add(posKey);
                 CleanupTree(posKey);
+                Plugin.BlockPosition(posKey); // remember the clear so catch-up can't re-arm this spot
                 Plugin.Logger.LogInfo(
                     $"[TreeRespawnMod] Stump harvested — cancelled respawn at {posKey}");
                 continue;
@@ -171,6 +204,30 @@ public class DayTracker : MonoBehaviour
             float elapsedDays =
                 ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
             if (elapsedDays < threshold) continue;
+
+            // Backstop for clears we never observed (the build system auto-cleared the stump, or this is a
+            // pre-fix entry): if a structure now occupies this spot, permanently block instead of respawning
+            // a tree up through the building. Only runs for due entries (rare); the settlement walk is
+            // cached ~8s. Reads host-side data, so it works even for a tree far from the player.
+            if (Plugin.BlockRespawnUnderStructures.Value)
+            {
+                // Load-race guard: don't respawn a tree we can't yet check against buildings. An overdue
+                // tree under a structure comes due the instant the world loads — before the footprint cache
+                // is built — so without this it would regrow in those first seconds (confirmed in-game
+                // 2026-07-07). Hold it (re-check next tick) until structures are known or the grace elapses.
+                if (StructureDataStillLoading()) continue;
+
+                ParsePosKey(posKey, out float bx, out float bz);
+                if (StructureQuery.IsBlockedByStructure(bx, bz, Plugin.StructureBlockMargin.Value))
+                {
+                    Plugin.BlockPosition(posKey);
+                    CleanupTree(posKey);
+                    toRemove.Add(posKey);
+                    Plugin.Logger.LogInfo(
+                        $"[TreeRespawnMod] Tree at {posKey}: a structure occupies this spot — respawn permanently blocked.");
+                    continue;
+                }
+            }
 
             bool live = false;
             if (pointerTrusted && !destroyed) { try { live = inst!.Active; } catch { } }
@@ -383,6 +440,7 @@ public class DayTracker : MonoBehaviour
             case HandlerResult.Cancelled:
                 toRemove.Add(posKey);
                 CleanupTree(posKey);
+                Plugin.BlockPosition(posKey); // stump genuinely gone — block so catch-up can't re-arm it
                 Plugin.Logger.LogInfo(
                     $"[TreeRespawnMod] Stump gone (persistent data reads Destroyed) — cancelled respawn at {posKey}");
                 break;

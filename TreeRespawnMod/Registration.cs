@@ -1,6 +1,7 @@
 using System;
 using SSSGame;
 using SSSGame.Weather;
+using UnityEngine;
 
 namespace TreeRespawnMod;
 
@@ -68,11 +69,28 @@ internal static class Registration
     {
         try
         {
+            // Absolute no-respawn set (cleared stump / under a structure) — the whole point of the fix:
+            // never let catch-up/data-sync re-arm a spot the player cleared to build on.
+            if (Plugin.BlockedPositions.Contains(posKey)) return false;
             if (Plugin.RegisteredStumps.Contains(posKey) || Plugin.PendingRespawns.ContainsKey(posKey)) return false;
 
             bool exhausted, destroyed;
             try { exhausted = bi.IsExhausted(); destroyed = bi.Destroyed; } catch { return false; }
             if (!exhausted || destroyed) return false; // standing tree, or stump already cleared
+
+            // A player structure already occupies this spot → don't arm a respawn that would grow a tree
+            // up through the building. Remember it so the cheap BlockedPositions guard handles it next time
+            // without re-walking the settlement. (Structure lookup is cached ~8s; fail-open.)
+            if (Plugin.BlockRespawnUnderStructures.Value)
+            {
+                Vector3 p = default; bool haveP = false;
+                try { p = bi.GetPosition(); haveP = true; } catch { }
+                if (haveP && StructureQuery.IsBlockedByStructure(p.x, p.z, Plugin.StructureBlockMargin.Value))
+                {
+                    Plugin.BlockPosition(posKey);
+                    return false;
+                }
+            }
 
             if (!TryWeather(out var weather)) return false;
 

@@ -28,8 +28,12 @@ internal static class HarvestPatch
             // Trunk felled when only the last piece (stump) remains. Check this BEFORE touching
             // WeatherSystem so a failed weather check (logged below) only fires on the actual felling
             // hit, not on every non-final swing — TakeDamage runs once per hit.
+            // A BLOCKED position stays blocked, full stop: don't re-arm a respawn just because a
+            // (pre-existing / game-persisted) tree got felled there. Blocking is permanent — that's the
+            // whole point of the fix; felling a blocked tree leaves it felled, not queued to regrow.
             if (totalPieces < 2 || currentIdx != totalPieces - 1 || biomeInst.Destroyed
-                || Plugin.RegisteredStumps.Contains(posKey)) return;
+                || Plugin.RegisteredStumps.Contains(posKey)
+                || Plugin.BlockedPositions.Contains(posKey)) return;
 
             if (!Plugin.TryGetServerWeather(out var weather, out var reason))
             {

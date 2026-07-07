@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.4.7)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.5.4)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
@@ -100,6 +100,66 @@ The game gates seasonal/weather-restricted resources via `WeatherManager._descri
 - **Minor observed behavior:** `IsAvailable` lags False→True by one weather/season evaluation tick after the clear because the game caches the result; it self-corrects (remainingDays −1→1).
 
 **Implementation reference:** see `NEW_MOD_IDEAS_PLAN.md` → idea 9 for the API research (Mono.Cecil Cecil-confirmed signatures, diagnostic approach, levers+gates).
+
+## Block respawn under player-built structures (v1.5.0–v1.5.4 — CONFIRMED in-game 2026-07-07)
+**Bug (Nexus report, Mephisto279 06 Jul 2026):** felled trees regrew **up through buildings** — one through a
+house floor, one through a smoker-pen ground. Root cause: the mod had **no durable record that a spot was
+cleared**. "Cleared" was inferred once from a live `Destroyed` flag and thrown away; the catch-up scanner
+(`Patches/Captures.cs` → `SetWorldInstance` → `TryRegisterTree`) re-scans on every chunk stream-in and re-arms
+any `IsExhausted() && !Destroyed` node with a fresh timer. A one-shot reactive cancel structurally can't win
+against a repeat re-registrar, so a cleared spot got re-armed and grew a tree through the building. (The
+originally-reported tree can also simply be **pre-existing** — grown through the building in an earlier session
+and baked into the game's own save; the mod can't retroactively remove that, but the cleanup workflow below
+makes it stay gone once cut.)
+
+Two complementary parts:
+
+**1. Durable `BlockedPositions` set (primary).** A new persisted `# blocked` section in the per-world save
+(bare `posKey` lines). Absolute: a blocked entry NEVER respawns, and registration refuses to (re)arm it.
+Populated whenever a clear is confirmed — the live-`Destroyed` cancel in `DayTracker`, the handler-path
+`Destroyed` cancel (`ApplyTreeHandlerResult` Cancelled), AND the structure backstop below — each calls
+`Plugin.BlockPosition(posKey)`. `DayTracker` drops any pending entry whose posKey is blocked at the top of the
+loop; `Registration.TryRegisterTree` and `HarvestPatch` both refuse a blocked posKey.
+- **Blocks are PERMANENT (v1.5.3).** v1.5.0–1.5.2 un-blocked a spot on any physical re-fell (`HarvestPatch`),
+  which re-armed cleared spots — visible in the log as fell→re-arm→re-cancel churn. v1.5.3 removed that:
+  `HarvestPatch` early-returns on `BlockedPositions.Contains(posKey)`, so **felling a blocked tree is a silent
+  no-op** (no log line, no re-registration, stays felled). This is the user-facing cleanup workflow: cut each
+  pre-existing through-building tree ONCE → it stays gone.
+
+**2. Reusable `StructureQuery` footprint backstop (`StructureQuery.cs`, new).** `IsBlockedByStructure(x, z,
+margin)` — walks `Settlement.GetStructures()` (the WellRefill settlement path), computes each building's real
+footprint = union of its non-trigger `Collider` bounds as a horizontal AABB (manual hierarchy walk — plural
+`GetComponentsInChildren<T>` is trampoline-broken), and tests point-in-rect ± margin. Cached ~15s, fail-open.
+Runs at registration (`TryRegisterTree`) and at respawn-service time (`DayTracker`); if a building now sits on a
+due tree's spot it permanently blocks it (`BlockPosition`). Full primitive write-up: architecture.md →
+Structures → "Reusable structure-footprint spatial query".
+- **Footprint-based (v1.5.1), not center-distance (v1.5.0).** v1.5.0 measured distance to a building's ORIGIN —
+  blocked a tree by a small hut but MISSED one at a longhouse corner (confirmed in-game 2026-07-07). The
+  footprint approach is validated in-game: base-typed `GetComponent<Collider>()` DOES surface colliders through
+  interop.
+- **Load-race hold (v1.5.2).** Structures/colliders load a beat after the world, and a prior-session tree is
+  overdue the instant the world loads — exactly that window. `StructureQuery.DataReady` (true once ≥1 footprint
+  is walked; empty early-load snapshots are never cached) + `DayTracker.StructureDataStillLoading()` HOLD an
+  under-structure-eligible respawn (re-check next tick) until footprints load, capped at 45 s so a building-less
+  world still respawns.
+
+**Config `[TreeRespawn]`:**
+- `BlockRespawnUnderStructures` (bool, default **true**) — the structure backstop; `false` reverts to
+  position-only respawn (which can regrow trees inside buildings).
+- `StructureBlockMargin` (float, default **1.0 m** since v1.5.4; was 1.5 in v1.5.0–1.5.3) — buffer grown around
+  each building's real footprint (0 = exactly the footprint; larger = keep trees further off buildings).
+
+**Confirmed in-game 2026-07-07 (v1.5.3 loaded):** user cut ~5 trees — workshop tree + trees near houses STAYED
+DOWN, forest trees away from base CAME BACK. Log corroboration: session-start `Loaded … 12 blocked
+position(s)`; the save `# blocked` section held exactly those 12 (incl. the workshop tree `194.3:41.5:575.1`);
+re-cutting a blocked tree produced ZERO log lines and added ZERO new blocks (silent `HarvestPatch` early-return
+= the v1.5.3 permanent-block working); unblocked forest trees logged normal `respawned` lines. Earlier:
+blocked-on-clear + persistence confirmed 2026-07-07 (a felled → `Stump harvested — cancelled` → reload showed
+`1 blocked position(s)` and the posKey never re-appeared); footprint check confirmed 2026-07-07 (a
+longhouse-corner tree that regrew under v1.5.0 center-distance now fires `a structure occupies this spot`).
+Files: `StructureQuery.cs` (new), `Plugin.cs` (BlockedPositions/BlockPosition/config/save-load/world-switch
+clears), `Registration.cs` (blocked guard + structure check), `DayTracker.cs` (absolute-block drop,
+service-time backstop, load-race hold), `Patches/HarvestPatch.cs` (blocked-spots-stay-blocked).
 
 ## Woodcutter stump protection (v1.1.6 — confirmed working in-game 2026-06-26)
 - **Problem:** woodcutters harvest leftover **stumps** for **firewood** (stumps drop firewood). Harvesting a

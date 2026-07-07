@@ -27,6 +27,8 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<float> RespawnDays = null!;
     internal static ConfigEntry<bool> ProtectStumps = null!;
+    public static ConfigEntry<bool> BlockRespawnUnderStructures { get; private set; } = null!;
+    internal static ConfigEntry<float> StructureBlockMargin = null!;
     public static ConfigEntry<bool> EnableDiagnostics { get; private set; } = null!;
     public static ConfigEntry<bool> EnableInitDiagnostics { get; private set; } = null!;
     public static ConfigEntry<bool> RefillUnloadedNodes { get; private set; } = null!;
@@ -46,6 +48,15 @@ public class Plugin : BasePlugin
     // UniqueId is NOT globally unique (it's a per-buffer index; every chunk restarts at 0).
     internal static readonly Dictionary<string, float> PendingRespawns = new();
     internal static readonly HashSet<string> RegisteredStumps = new();
+
+    // Positions where a tree must NOT respawn — a stump the player deliberately CLEARED (we observed the
+    // instance go Destroyed) or a spot a player structure now occupies. This is an ABSOLUTE set: an entry
+    // here never respawns, and registration refuses to (re)arm it. Durable — persisted per-world in the
+    // save's "# blocked" section — because that's the whole point: a cancel used to be one-shot and then
+    // forgotten (CleanupTree wipes RegisteredStumps), so the catch-up scanner (Patches/Captures.cs) would
+    // re-arm a spot the player cleared to build on and grow a tree up through the building. A physical
+    // re-fell (HarvestPatch) is what un-blocks a spot, so the player can always reset it.
+    internal static readonly HashSet<string> BlockedPositions = new();
 
     // Gather resources — value is (gameTime at exhaustion, yielded item name for override lookup).
     internal static readonly Dictionary<string, (float gameTime, string itemName)> PendingGatherRespawns = new();
@@ -113,6 +124,28 @@ public class Plugin : BasePlugin
             key: "ProtectStumpsFromWoodcutters",
             defaultValue: true,
             description: "When true, village woodcutters won't harvest the stumps left by felled trees, so those stumps survive to regrow into a renewable forest. You can still clear a stump yourself by hand to make that spot permanent — clearing a stump cancels its respawn.");
+
+        BlockRespawnUnderStructures = Config.Bind(
+            section: "TreeRespawn",
+            key: "BlockRespawnUnderStructures",
+            defaultValue: true,
+            description: "When ON (default), a felled tree will NOT respawn if a player-built structure now " +
+                "sits on its spot — this stops trees regrowing up through houses, animal pens and other " +
+                "buildings you placed after clearing the tree. A blocked spot is remembered permanently " +
+                "(saved per world) so it stays clear across reloads; clearing a stump by hand also " +
+                "permanently blocks that spot. Felling a tree there again (by hand) un-blocks it. Turn OFF " +
+                "to revert to position-only respawn (which can regrow trees inside buildings).");
+
+        StructureBlockMargin = Config.Bind(
+            section: "TreeRespawn",
+            key: "StructureBlockMargin",
+            defaultValue: 1.0f,
+            description: "Extra buffer in metres added around each building's ACTUAL footprint when " +
+                "BlockRespawnUnderStructures suppresses a tree respawn. The mod computes each building's real " +
+                "footprint (so it works for large longhouses as well as small huts, unlike a fixed radius); " +
+                "this value just grows that footprint outward a little so a tree right against a wall is also " +
+                "blocked. 0 = exactly the footprint; larger = keep trees further off your buildings. (To turn " +
+                "the structure check off entirely, set BlockRespawnUnderStructures = false.)");
 
         EnableDiagnostics = Config.Bind(
             section: "TreeRespawn",
@@ -289,6 +322,14 @@ public class Plugin : BasePlugin
     internal static string PosKey(Vector3 pos) =>
         $"{pos.x:F1}:{pos.y:F1}:{pos.z:F1}";
 
+    // Permanently mark a position as "no tree respawn here" (a cleared stump, or a spot a structure now
+    // occupies) and persist it. Cheap HashSet add; only rewrites the save when the set actually changed.
+    internal static void BlockPosition(string posKey)
+    {
+        if (BlockedPositions.Add(posKey))
+            SavePending();
+    }
+
     // Local player character (captured via PlayerCharacter.Spawned/Despawned)
     internal static SSSGame.PlayerCharacter? LocalPlayer;
 
@@ -420,12 +461,14 @@ public class Plugin : BasePlugin
         PendingRespawns.Clear();
         PendingGatherRespawns.Clear();
         RegisteredStumps.Clear();
+        BlockedPositions.Clear();
         ActiveInstances.Clear();
         GatherWid.Clear();
         TreeWid.Clear();
         KnownNodes.Clear();
         LiveHarvestInteractions.Clear();
         Biomes = null;
+        StructureQuery.ClearCache();
         DayTracker.ClearTransientState();
         CurrentWorldId = null;
         _saveFilePath = null;
@@ -444,12 +487,14 @@ public class Plugin : BasePlugin
             PendingRespawns.Clear();
             PendingGatherRespawns.Clear();
             RegisteredStumps.Clear();
+            BlockedPositions.Clear();
             ActiveInstances.Clear();
             GatherWid.Clear();
             TreeWid.Clear();
             KnownNodes.Clear();
             LiveHarvestInteractions.Clear();
             Biomes = null;
+            StructureQuery.ClearCache();
             DayTracker.ClearTransientState(); // handler-retry cooldowns — posKeys collide across worlds
         }
 
@@ -509,6 +554,12 @@ public class Plugin : BasePlugin
                 if (GatherWid.TryGetValue(kvp.Key, out var wid)) { try { widRaw = wid.Raw; } catch { } }
                 lines.Add($"{kvp.Key},{kvp.Value.gameTime.ToString("R", CultureInfo.InvariantCulture)},{widRaw},{kvp.Value.itemName}");
             }
+            // Positions permanently blocked from respawn (cleared stumps / under structures). One posKey
+            // per line — no commas, so this never collides with the tree/gather parsers. Absent from older
+            // saves; new files always write the header even when empty.
+            lines.Add("# blocked");
+            foreach (var posKey in BlockedPositions)
+                lines.Add(posKey);
             File.WriteAllLines(path, lines);
         }
         catch (Exception ex)
@@ -532,6 +583,13 @@ public class Plugin : BasePlugin
                 // Old save files may contain a "# mining" section — silently drop it
                 // (mining respawn was removed; see STONE_RESPAWN_HANDOFF.md).
                 if (section == "mining") continue;
+
+                if (section == "blocked")
+                {
+                    // One posKey per line — the durable no-respawn set (cleared/under-structure spots).
+                    BlockedPositions.Add(line.Trim());
+                    continue;
+                }
 
                 if (section == "gather")
                 {
@@ -582,8 +640,8 @@ public class Plugin : BasePlugin
                 }
             }
             int total = PendingRespawns.Count + PendingGatherRespawns.Count;
-            if (total > 0)
-                Logger.LogInfo($"[TreeRespawnMod] Loaded {PendingRespawns.Count} tree + {PendingGatherRespawns.Count} gather pending respawn(s).");
+            if (total > 0 || BlockedPositions.Count > 0)
+                Logger.LogInfo($"[TreeRespawnMod] Loaded {PendingRespawns.Count} tree + {PendingGatherRespawns.Count} gather pending respawn(s), {BlockedPositions.Count} blocked position(s).");
         }
         catch (Exception ex)
         {

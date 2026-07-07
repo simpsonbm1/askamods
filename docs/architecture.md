@@ -411,6 +411,37 @@ discovered through its diagnostics, but the mod doesn't touch quest targets or r
 - **Load/upgrade deserialize paths:** `Workstation.DeserializeTaskData(DataObject)` (+ `Buildstation` override), `Workstation.DeserializeTaskDataForRecreation(DataObject)`. `Workstation._structure : Structure` is the back-reference (may be '?'/unlinked during load-path and on Buildstation).
 - **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` → `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil cross-assembly chain walk, build-verified).
 
+### Reusable structure-footprint spatial query — "is (x,z) inside a player-built structure?" (TreeRespawnMod v1.5.x, confirmed in-game 2026-07-07)
+Generic helper `TreeRespawnMod/StructureQuery.cs` — `IsBlockedByStructure(x, z, margin)` — for any "don't do X
+where the player built something" rule (trees regrowing through houses, item/creature spawns, terrain edits…).
+Mechanism:
+- **Building list:** `SettlementManager` (`FindAnyObjectByType`) → settlements via the getter methods
+  (`GetPlayerSettlement()` / `GetCurrentSettlement()` / `worldSettlement`; the `settlements` list accessor stays
+  null even when loaded) → `Settlement.GetStructures()`. Same authoritative walk WellRefill uses (returns every
+  placed building), and it reads **host-side data present regardless of where the player stands or what terrain
+  is streamed in** — so it answers correctly even for a spot far from the player.
+- **Footprint per building:** union of the structure's **non-trigger `Collider` bounds** as a horizontal AABB
+  (min/max on X and Z). Collect colliders by a **manual hierarchy walk** doing per-node `GetComponent<Collider>()`
+  + child recursion — the plural `GetComponentsInChildren<Collider>(true)` is trampoline-broken
+  (MissingMethodException, the universal gotcha). Base-typed `GetComponent<Collider>()` **does** surface derived
+  colliders through interop (confirmed in-game 2026-07-07). Falls back to a degenerate point-rect at
+  `structure.GetPosition()` if a building yields no colliders.
+- **Why footprint, not center-distance:** a fixed radius from each building's ORIGIN is inconsistent by size — it
+  blocks a point next to a small hut but misses one at a longhouse corner (confirmed in-game 2026-07-07). Test
+  point-in-rect ± `margin` instead. AABB is axis-aligned, so a rotated building gets a slightly generous box at
+  the corners — harmless for a keep-out check, and `margin` is a deliberate extra buffer.
+- **Caching + load-race:** footprints cached ~15 s (buildings are static, rarely placed); **only a NON-EMPTY
+  snapshot is cached** — an early-load walk returns empty (the settlement resolves a beat after the manager) and
+  caching that would blind the query for a full window. Expose `DataReady` (true once ≥1 building is walked) so a
+  caller can **HOLD** an action until footprints load, paired with a **time cap** so a genuinely building-less
+  world still proceeds (DayTracker's 45 s `StructureDataStillLoading` grace — a prior-session tree comes due the
+  instant the world loads, before the cache is built).
+- **Fail-open** (any resolve/read error → not blocked — a backstop must never suppress a legitimate action just
+  because the settlement wasn't resolvable) and **cache MUST be cleared on world switch** (positions are
+  world-specific) — `StructureQuery.ClearCache()` from the world-leave/switch handlers.
+- Related members: `Structure.GetPosition()`, `Settlement.GetStructures()`; see also WellRefill's identical
+  settlement walk (docs/mods/tree-respawn.md → Well water refill).
+
 ---
 
 ## Settlement Hauling / Storage / Task-Dispatcher System (Mod 6 groundwork)
