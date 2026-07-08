@@ -84,6 +84,7 @@ Full subsystem facts: `docs/architecture.md` → "Workstation task assignment (M
 | v0.2.0 | 2026-07-06 | First blocking build: grace-window direction bug — blocked whole initial load burst (1,327 BLOCKED lines) |
 | v0.2.1 | 2026-07-06 | Grace fix: never block before first-observed deserialize |
 | v1.0.0 | 2026-07-06 | Ship: diagnostics flipped to `false` default; confirmed in-game 2026-07-06 (hire → zero inherited tasks; manual opt-in works; fired villager returns to builder pool) |
+| v1.0.1 | 2026-07-07 | `Update()` gated to 1 Hz — was calling `FindAnyObjectByType<BlueprintConditionsDatabase>()` every frame for the world gate |
 
 ## Tested in-game (2026-07-06)
 

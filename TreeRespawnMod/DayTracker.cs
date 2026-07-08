@@ -11,6 +11,8 @@ namespace TreeRespawnMod;
 public class DayTracker : MonoBehaviour
 {
     private int _worldCheck;
+    private float _serviceTimer;
+    private const float ServiceInterval = 1f;
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
     private static DateTime _lastWeatherWarn = DateTime.MinValue;
 
@@ -117,6 +119,13 @@ public class DayTracker : MonoBehaviour
                 Plugin.Logger.LogWarning("[TreeRespawnMod] Manual respawn hotkey ignored — must be host.");
             }
         }
+
+        // Throttle the heavy servicing (well refill + respawn-queue iteration) to ~1 Hz. Respawns are
+        // gated on in-game DAYS and well refill on charges-per-DAY, so sub-second polling is wasted work.
+        // The world-id poll, mushroom apply, and hotkey checks above stay per-frame (cheap / input-sensitive).
+        _serviceTimer += Time.deltaTime;
+        if (_serviceTimer < ServiceInterval) return;
+        _serviceTimer = 0f;
 
         // Well refill (v1.4.0) — independent of the pending-respawn queues, so it must run before
         // the early-out below. Host-gated by the same server-weather check the queues use; a

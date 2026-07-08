@@ -14,8 +14,15 @@ namespace ZeroTaskWorkersMod
 
         public static string WorldTag => WorldGateSeenAt < 0 ? "no-world" : $"+{(Time.time - WorldGateSeenAt):F1}s";
 
+        private float _pollTimer;
+        private const float PollInterval = 1f;   // 1 Hz — world-gate detection doesn't need per-frame polling
+
         void Update()
         {
+            _pollTimer += Time.deltaTime;
+            if (_pollTimer < PollInterval) return;
+            _pollTimer = 0f;
+
             var db = UnityEngine.Object.FindAnyObjectByType<BlueprintConditionsDatabase>();
             if (db == null)
             {

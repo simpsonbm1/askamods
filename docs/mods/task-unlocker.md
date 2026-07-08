@@ -57,3 +57,4 @@ Full causal chain, evidence, and the six dead-ends that preceded this recipe:
   every fishing test a no-op. Diagnosed 2026-07-06.
 - v1.2.0: mark-based rewrite — confirmed in-game 2026-07-06.
 - v1.2.1: diagnostics default flipped to `false` for shipping (no behavior change).
+- v1.2.2: `Update()` gated to 1 Hz — was calling `FindAnyObjectByType<BlueprintConditionsDatabase>()` every frame for the world gate.

@@ -101,3 +101,7 @@ Whole world: ~450 pinnable areas, ~30–40s. Save/reload keeps all pins. Version
 0.17.0 cave-pin proof → 0.18.0 all-POI reveal → 1.0.0 strip-down (sparse regression: sweep
 removed) → 1.0.1 force-load restored → 1.1.0 targeted sweep + type toggles → 1.2.x home-island
 scope + live toggle → 1.3.0 release build.
+
+## Performance (v1.3.1 — confirmed in-game 2026-07-07)
+
+`Scout.Tick()` gated to 2 Hz (every 0.5 s at 60 FPS), feeding accumulated `deltaTime` to internal timers so the reveal pace and tile-sweep cadence remain correct. Was ticking every frame; now ~30 invocations for a full-world scan instead of ~1800.

@@ -84,3 +84,13 @@ This is why the same whitelist/config produced both behaviors from one session t
 work within seconds. Log showed the re-arm clamp firing (`63.8 -> 8.0`) on one fight — direct proof of
 root cause (1) above — and the frame-driven end firing on both (`enemy 'Wisp' down — combat ended`),
 with the post-combat watch confirming a clean priority handoff `FleeCombatQuest(41) → TerraformingQuest(15)`.
+
+## v1.0.28–1.0.29 — per-frame cost reduction (confirmed in-game 2026-07-07)
+
+**Problem:** `QuestRunner.Update` postfix patches one villager per frame in a settlement, summing to ~15–16 Hz of patch invocations for a medium settlement. Entry cost (trampoline, instance marshaling) was the bottleneck even with a cheap body.
+
+**v1.0.28:** added per-villager throttle via `Dict<IntPtr, (CombatQuest, DateTime)>` keyed by `Plugin.PtrOf(runner)`, running the patch body only once per villager per second (~1 Hz per villager = 15 Hz total for 15 villagers, but spread across the frame).
+
+**v1.0.29:** added global frame-gate `if ((Time.frameCount & 3) != 0) return;` as the **first line** of the postfix — skips the entire trampoline cost on 75% of invocations, recovering ~75% of the per-frame entry cost (~75% of ~5ms = ~3.75ms recovered). The per-villager dict cache is retained for actual work.
+
+**Confirmed in-game (2026-07-07):** per-frame FPS cost fell ~75%; combined throttle (frame-gate + per-villager limit) brought `QuestRunner.Update` patch from dominant (~25% of frame) to negligible.

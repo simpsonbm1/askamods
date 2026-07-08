@@ -32,6 +32,8 @@ namespace SeedScoutMod;
 internal static class Scout
 {
     private static float _hbTimer = 1.5f;
+    private static float _throttle;
+    private const float ThrottleInterval = 0.5f;   // 2 Hz — pin reveal is a load-time activity
     private static bool _areasDumped;
     private static bool _loggedError;
     private static Vector3 _spawnPos;
@@ -82,7 +84,12 @@ internal static class Scout
 
     internal static void Tick()
     {
-        _hbTimer += Time.deltaTime;
+        _throttle += Time.deltaTime;
+        if (_throttle < ThrottleInterval) return;
+        float dt = _throttle;   // real elapsed since last processed tick
+        _throttle = 0f;
+
+        _hbTimer += dt;
         bool heartbeat = _hbTimer >= 5f;
         if (heartbeat) _hbTimer = 0f;
 
@@ -141,7 +148,7 @@ internal static class Scout
         // few seconds so HomeIslandOnly can be flipped mid-session. On a true→false flip, re-arm
         // the reveal loop (keeping _sweepRequested, so resident tiles aren't re-requested) to
         // widen coverage to the rest of the world.
-        _cfgReloadTimer += Time.deltaTime;
+        _cfgReloadTimer += dt;
         if (_cfgReloadTimer >= 5f)
         {
             _cfgReloadTimer = 0f;
@@ -163,7 +170,7 @@ internal static class Scout
         // for stragglers whose assigned tile didn't contain them.
         if (_areasDumped && !_discoverDone && Plugin.RevealNativePins.Value)
         {
-            _discoverTimer += Time.deltaTime;
+            _discoverTimer += dt;
             if (_discoverTimer >= DiscoverInterval)
             {
                 _discoverTimer = 0f;

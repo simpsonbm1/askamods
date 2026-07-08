@@ -180,27 +180,28 @@ DLLs, not the original game DLLs. The interop layer has sharp edges — see
 askamods/
   CLAUDE.md                  ← this file (orientation + pointers)
   sync-plugins.ps1           ← push committed mod DLLs → live BepInEx\plugins (see "Syncing live plugins from git")
+  bisect-plugins.ps1         ← enable/disable live plugins for framerate/crash bisection (state-saving; -Restore reverts)
   docs/                      ← detailed knowledge base (read on demand)
     architecture.md          ← how the game works + what doesn't (by subsystem)
     nexus-upload.md          ← publishing/CI workflow
     mods/                    ← one file per mod (shipped recipe + config)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage            [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.5.4 — trees no longer respawn up through player-built structures: durable BlockedPositions set + reusable StructureQuery footprint check ([TreeRespawn] BlockRespawnUnderStructures/StructureBlockMargin), confirmed in-game 2026-07-07; mushrooms year-round + rain-independent ([MushroomAvailability] config) 2026-07-07; same-world reload crash fixed 2026-07-06; well refill 2026-07-04; co-op detection 2026-07-03 — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn + constructed-well refill [COMPLETE v1.5.5 — per-frame work throttled for framerate (confirmed in-game 2026-07-07); trees no longer respawn up through player-built structures: durable BlockedPositions set + reusable StructureQuery footprint check ([TreeRespawn] BlockRespawnUnderStructures/StructureBlockMargin), confirmed in-game 2026-07-07; mushrooms year-round + rain-independent ([MushroomAvailability] config) 2026-07-07; same-world reload crash fixed 2026-07-06; well refill 2026-07-04; co-op detection 2026-07-03 — docs/mods/tree-respawn.md + TREERESPAWN_HANDOFF.md]
   HealthRegenMod/            ← Mod 3: regenerate player HP out of combat    [COMPLETE v1.1.0 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled       [COMPLETE v1.2.4 — docs/mods/torch-fuel.md]
-  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior         [COMPLETE v1.1.0 — docs/mods/dynamic-villager-needs.md]
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies   [COMPLETE v1.0.27 — confirmed in-game 2026-07-03 — docs/mods/villager-fight-back.md]
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior         [COMPLETE v1.2.0 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/dynamic-villager-needs.md]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies   [COMPLETE v1.0.29 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/villager-fight-back.md]
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
-  SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.0 — confirmed in-game 2026-07-04 — docs/mods/seed-scout.md]
+  SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.1 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/seed-scout.md]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins    [v1.0.0 — SUPERSEDED by SeedScout for pin reveal; keep for the PlayerDrive.Teleport primitive — WARP_TOUR_HANDOFF.md]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh    [COMPLETE v1.3.1 — docs/mods/mine-refresh.md]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields         [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment  [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — co-op fix confirmed in-game 2026-07-03 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
-  TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.1 — confirmed in-game 2026-07-06 — docs/mods/task-unlocker.md]
-  ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.0 — confirmed in-game 2026-07-06 — docs/mods/zero-task-workers.md]
+  TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.2 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/task-unlocker.md]
+  ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.0.1 — confirmed in-game 2026-07-07: removes debris cleanly (own-set OnEnable/OnDisable tracking + RemoveObjectFromWorld), no crash. NOTE: ground clutter was NOT the framerate bottleneck (a loaded mod is — bisect pending) — docs/mods/ground-item-vacuum.md]
 ```
 

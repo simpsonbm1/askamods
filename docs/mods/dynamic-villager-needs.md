@@ -29,4 +29,6 @@ being a rate problem, warmth left to the game), and the dead-ends list all live 
 - **Needs drain-rate controls:** `HungerRateMultiplier` / `ThirstRateMultiplier` (both 1.0 = vanilla, zero overhead/writes when 1.0) scale how fast food/water fall, via the same observe-the-per-frame-delta-and-amplify trick as `FireWarmthMultiplier` (`ScaleDrain`). Acts only on DROPS so eating/drinking is never scaled; `BoostAttr` now clamps **both** ends so a high multiplier can't push a meter below min. A general control and the quick way to test the re-check (use ~4-8×; **×50 pins everyone at starving** → permanent emergency-tier eating, too extreme to observe normal behavior).
 - **Config additions** to `[DynamicNeeds]`: `FoodRecheckIntervalSeconds` (15.0; 0 = off), `FoodRecheckWhenNeedBelow` (0.2), `HungerRateMultiplier` (1.0), `ThirstRateMultiplier` (1.0).
 
+**v1.2.0 performance fix (2026-07-07):** villager loop in `NeedsController.Update()` gated to 4 Hz (0.25 s per tick at 60 FPS) using accumulated `deltaTime` so rate math stays correct. Was iterating all villagers every frame; now scans ~25% per frame, still responsive (~250 ms per full pass).
+
 **Planning note:** the abbreviated handoff for this mod is [`../../DYNAMIC_NEEDS_HANDOFF.md`](../../DYNAMIC_NEEDS_HANDOFF.md).

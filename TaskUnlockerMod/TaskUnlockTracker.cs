@@ -26,8 +26,15 @@ namespace TaskUnlockerMod
         private bool _loggedGroundTotal;
         private readonly Dictionary<int, int> _markAttempts = new();
 
+        private float _pollTimer;
+        private const float PollInterval = 1f;   // 1 Hz — world-gate detection doesn't need per-frame polling
+
         void Update()
         {
+            _pollTimer += Time.deltaTime;
+            if (_pollTimer < PollInterval) return;
+            _pollTimer = 0f;
+
             // BlueprintConditionsDatabase existing == a world is loaded; use it as the world gate.
             var blueprintDb = UnityEngine.Object.FindAnyObjectByType<BlueprintConditionsDatabase>();
             if (blueprintDb == null)

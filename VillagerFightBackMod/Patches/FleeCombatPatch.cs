@@ -3,6 +3,7 @@ using HarmonyLib;
 using SSSGame.AI;
 using SSSGame.AI.FSM;
 using SSSGame.Combat;
+using UnityEngine;
 
 namespace VillagerFightBackMod.Patches;
 
@@ -392,12 +393,28 @@ internal static class FleeTriggerPriorityPatch
 [HarmonyPatch(typeof(QuestRunner), nameof(QuestRunner.Update))]
 internal static class QuestRunnerUpdatePatch
 {
+    // This postfix runs per-villager per-frame; the combat-state work below is heavy interop and
+    // doesn't need 60 Hz (combat engage/disengage is multi-second). Throttle per villager to ~4 Hz.
+    private static readonly System.Collections.Generic.Dictionary<System.IntPtr, float> _lastRun = new();
+    private const float TickInterval = 0.25f;
+
     static void Postfix(QuestRunner __instance)
     {
         try
         {
+            // Cheap global frame gate FIRST. This postfix fires per-villager per-frame, so skipping 3 of
+            // every 4 invocations with a single int op cuts the per-frame ENTRY cost (the interop PtrOf +
+            // dict lookup below) ~75% with no behavioral impact: still ~15 Hz global, bodies stay staggered
+            // by the per-instance throttle, and combat engage/disengage is a multi-second event.
+            if ((Time.frameCount & 3) != 0) return;
+
             if (!Plugin.EnabledCfg.Value || !Plugin.SuspendWorkWhileEngaged) return;
             if (__instance == null) return;
+
+            System.IntPtr key = Plugin.PtrOf(__instance);
+            float now = Time.time;
+            if (_lastRun.TryGetValue(key, out var last) && now - last < TickInterval) return;
+            _lastRun[key] = now;
 
             // Is this villager currently engaged with a whitelisted enemy?
             bool engaged = false;

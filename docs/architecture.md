@@ -105,6 +105,21 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
 
 ---
 
+## Per-frame cost & throttling (universal)
+
+**Finding (confirmed in-game 2026-07-07):** ~16 mods each doing per-frame work summed to a **cumulative ~22–25 ms/frame main-thread stall**, halving FPS (23–27 fps loaded vs. 53–67 plugins-off). No single mod dominated — only disabling ALL recovered the full FPS. Throttling each mod's per-frame work to a few Hz recovered ~full FPS (45–60 fps post-throttle ≈ plugin overhead eliminated).
+
+**Anti-patterns hit (and fixes shipped):**
+
+- **`FindAnyObjectByType<T>()` every frame in `Update()` (a full-scene search).** Gate to ~1 Hz: cache the result, set a timer, re-search only every ~1 second. (ZeroTaskWorkersMod v1.0.1, TaskUnlockerMod v1.2.2 — both were doing this on every frame to check if the world was loaded; moved the world gate outside the per-frame loop.)
+- **Unthrottled per-frame loop over a settlement-sized collection** (villagers, pending respawns). Gate to a few Hz; process one (or a batched slice) per frame if you must scan. (DynamicVillagerNeedsMod v1.2.0 — was looping all villagers every frame; now gated to every 4 frames = 15 Hz at 60 FPS.)
+- **Harmony patch on a per-frame-per-entity method** (e.g. `QuestRunner.Update`, ticked per villager every frame). A throttled patch BODY still pays the trampoline + entry cost on every invocation. Add a cheap `if ((Time.frameCount & N) != 0) return;` gate as the **FIRST line** to skip most invocations before any interop. (VillagerFightBackMod v1.0.29 — frame-gated the QuestRunner.Update postfix to 4 Hz, recovering ~75% of its per-frame cost; the v1.0.28 per-villager throttle via dictionary caching halved it further.)
+- **Correctness pattern: throttled `Update()` doing rate/time math.** Do NOT early-return on skipped frames — that starves internal `+= Time.deltaTime` timers and breaks time accounting. Instead, accumulate the real elapsed time (`Time.deltaTime * skipped_count`) and feed THAT as `dt` on the frames you do process. (DynamicVillagerNeedsMod v1.2.0, SeedScoutMod v1.3.1 — both accumulate across skipped ticks and apply only on processing ticks.)
+
+**Diagnostic:** use `bisect-plugins.ps1` to bisect a live-plugin performance/crash regression (disable all, re-enable one by one). Baseline vanilla framerate check: `doorstop_config.ini enabled=false`.
+
+---
+
 ## Damage Pipeline (Projectiles / Bow)
 ```
 vShooterWeapon.Shot()

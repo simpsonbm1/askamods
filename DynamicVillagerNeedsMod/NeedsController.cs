@@ -73,15 +73,21 @@ public class NeedsController : MonoBehaviour
     private float _summaryTimer;
     // Accumulator for the periodic food/water re-check (FoodRecheckIntervalSeconds).
     private float _recheckTimer;
+    private float _tickTimer;
+    private const float TickInterval = 0.25f;   // 4 Hz — villager needs/behavior don't need per-frame updates
 
     void Update()
     {
         if (!Plugin.Enabled.Value) return;
 
-        var tracked = Plugin.TrackedSurvivals;
-        if (tracked.Count == 0) return;
+        _tickTimer += Time.deltaTime;
+        if (_tickTimer < TickInterval) return;
 
-        float dt = Time.deltaTime;
+        var tracked = Plugin.TrackedSurvivals;
+        if (tracked.Count == 0) { _tickTimer = 0f; return; }
+
+        float dt = _tickTimer;   // real elapsed since last processed tick — keeps all rate*dt math correct
+        _tickTimer = 0f;
         float sleepBelow = Plugin.SleepWhenRestBelowHours.Value;
         float wakeAbove = Plugin.WakeWhenRestAboveHours.Value;
         float needBelow = Plugin.LeisureWhenNeedBelow.Value;
