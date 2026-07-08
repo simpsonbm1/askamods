@@ -343,9 +343,12 @@ for a pre-scanned mushroom-process `HashSet` (reversible, no SO mutation).
 
 ---
 
-## 10. Fillet fish directly in inventory (shift-click harvest) — new mod
+## 10. Fillet fish directly in inventory (shift-click harvest) — SHIPPED as FishFilletMod v1.1.1 (2026-07-08)
 
-**Goal:** let the player break a caught fish down into its fillet output (meat / blubber) with the same
+**Status: ✅ COMPLETE — confirmed in-game 2026-07-08.** See [`docs/mods/fish-fillet.md`](docs/mods/fish-fillet.md)
+for the shipped recipe (Shift+RMB trigger; OnPointerClick prefix gesture; temp-null tool-req + CommandHarvestItem drive; why Shift+RMB dodges the native Shift+LMB harvest-router toast) and dead-ends (CanHarvestCurrentItem-flip-alone, CommandHarvestItem patch, persistent bare-hand).
+
+**Original Goal:** let the player break a caught fish down into its fillet output (meat / blubber) with the same
 **shift-click-in-inventory harvest** the game already gives bark, reeds, fur, straw, etc. — instead of
 having to drop the fish on the ground, fillet it with a skinning knife, and pick the results back up.
 (Nexus request from kira31374, 2026-07-07: fishing chefs waste a lot of time hand-filleting.)
