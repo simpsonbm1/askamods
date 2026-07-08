@@ -33,6 +33,7 @@ on:
           - SeedScoutMod
           - TaskUnlockerMod
           - ZeroTaskWorkersMod
+          - GroundItemVacuumMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -76,6 +77,7 @@ jobs:
             SeedScoutMod)            file_id=7619375 ;;   # World Seed Scout
             TaskUnlockerMod)         file_id=7623785 ;;   # Cooking and Fishing Task Unlocker
             ZeroTaskWorkersMod)      file_id=7626437 ;;   # Assigned Workers Start Idle
+            GroundItemVacuumMod)     file_id=7632863 ;;   # Ground Item Vacuum Cleaner
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
