@@ -25,6 +25,28 @@ thread — those need the strongest model *and* the conversation context.
 > project agents above** for matching tasks — they encode this project's rituals (dual-write,
 > SAC bump, BepInEx paths) that the generic ones only know indirectly via CLAUDE.md.
 
+## The commit-checkpoint dual-write ALWAYS goes to doc-scribe (cost-critical)
+
+This is the single most expensive doc task in the project and the one most often skipped, so it gets
+its own rule: **at every commit checkpoint, delegate the whole Ritual-2 dual-write pass to
+`doc-scribe` — do not do it inline on the main (Opus) model.** Measured 2026-07-07: doing it inline
+cost ~10% of a 5h session. Why it's costly on the main thread (and cheap on Haiku):
+
+- It writes **CLAUDE.md + `.agents/AGENTS.md`** — near-duplicate 277-line files — so the same info is
+  generated *twice*, plus a new `docs/mods/*.md` and often an `architecture.md` subsection (1221
+  lines). That is a large volume of **output** tokens (≈5× input cost).
+- It runs at **end of session**, when the main context is at its largest and often past the 5-min
+  prompt-cache TTL → full-price re-reads on every one of its 6–10 turns.
+- `doc-scribe` sidesteps both: output is generated on **Haiku (~1/10–1/15 the cost)**, in a **fresh,
+  tiny context** that never carries the session history — only its short report returns to Opus.
+
+Do **not** rationalize this as a "micro-edit that's cheaper inline" (the "Delegation isn't free"
+gotcha below) — it is multi-file, high-output, peak-context work: the canonical delegation case, not
+a borderline one. The main thread's only remaining commit-time jobs are deciding *what* is true
+(stated to doc-scribe in the prompt), then asking the user and running `git commit/push` (never
+delegated). This can't be hook-enforced — the harness can't tell which model wrote an edit — so
+compliance rides on this instruction; honor it.
+
 ## How delegation gets triggered
 
 - **Automatic**: Claude matches tasks against each agent's `description` field. The orientation
@@ -82,7 +104,8 @@ delegate a task containing an open decision.
 - **Delegation isn't free**: each spawn re-reads CLAUDE.md and re-derives context, and each result
   consumes main-thread context on return. Delegate meaty self-contained chunks (a whole
   implementation cycle, a whole doc pass), not one-file micro-edits — a tiny task is cheaper done
-  inline on the main model than paid for twice.
+  inline on the main model than paid for twice. **Do NOT misapply this to the commit-checkpoint
+  dual-write** — it is *not* a micro-edit (see below) and must always be delegated.
 - **Tight build→test loops stay coordinated by the main thread**: the user tests in-game between
   cycles and reports back to the main conversation. Delegate the mechanical inside of a cycle
   (edit + bump + build → implementer; log triage → log-analyst) when it's fully specified; keep the
