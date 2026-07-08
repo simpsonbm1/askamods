@@ -555,6 +555,45 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
 - All writes stay host-authoritative and go through the game's own RPCs (`Rpc_ChangeSchedule`; and for the
   builder stretch the `SetTaskAgent`/villagers-in-charge RPC path) — unchanged safety posture.
 
+**Implementation mapping (session decision 2026-07-08 — refines the items above where they differ):**
+- **The snapshot is chiefly a read-only window map.** Capture a per-hour `int[]` copy of
+  `villager._schedule` at the same pre-first-write moment `_originalSchedule` is captured. `Decide` gains
+  one gate — "is the current hour in this villager's off-window?" — plus two rule changes: discretionary
+  Sleep/Leisure entry requires off-window, and the needs-fine fall-through during off-window is **Leisure
+  fill** (surplus), never Work (over-manning) and never snapshot-Sleep (a rested villager napping wastes
+  happiness-gain time).
+- **On-window baseline = apply the snapshot packed schedule (a `Manual` apply state), per item 4a — NOT an
+  all-Work collapse.** Behaviorally identical during Work hours (the game reads only the current hour), but:
+  the player's REAL schedule stays visible/editable in the schedule UI mid-session (a collapse would show
+  all-Work — fatal to the coverage-staggering UX and to the Phase-3 UI warning below); mid-session edit
+  detection falls out naturally (`__NetworkedSchedule` ≠ applied packed while in Manual ⇒ player edit ⇒
+  re-read `_schedule`, re-snapshot); and the NATIVE scheduler dispatches the off-window transition itself
+  (the mod then adopts/shortens the sleep). `RestoreAll` already proves the arbitrary-packed write path.
+- **Scope:** window-gating only for 2+ same-station cohorts — group by `GetNonVikingWorkstation()`, keyed
+  by native `Pointer` via the `(object)ws is Il2CppObjectBase b` boxing pattern (Workstation's compile-time
+  base chain is unity-libs-stubbed); recompute every ~10 s, never cache the wrappers. Solo/stationless
+  villagers: today's pure-needs `Decide`, unchanged. **Degenerate off-window (all-Work snapshot) in a
+  cohort → fall back to pure needs** — otherwise the gate forbids discretionary sleep forever.
+- **Overrides:** critical hunger/thirst (`IsStarving`/`IsDehydrated` or below `CriticalNeedOffPostBelow`,
+  ~0.05) pierce the on-window anywhere; `ManualWorkIsInviolable` suppresses only discretionary cases. Cold:
+  unchanged (`FireWarmthMultiplier` is already mode-independent). **Game-forced night sleep during an
+  on-window** (night guards): adopt+boost when rest is genuinely depleted (the unavoidable mid-shift sleep);
+  otherwise the mod must WAKE them — but the existing wake trick relies on a schedule CHANGE, and `_applied`
+  idempotency would skip the re-write ⇒ needs a forced re-fire (clear `_applied` / pulse Sleep→Work).
+  ⚠️ verify in-game which write actually ends a forced sleep.
+- **Phasing:** **v1.3.0 = Phase 0, read-only diagnostics** (`ManualScheduleDiagnostics`, default true per
+  project rule): per-hour snapshot capture + logging, hourIndex calibration (`DayNightValue` → hourIndex vs
+  snapshot activity vs live behavior), cohort grouping + pairwise sleep-overlap report, player-edit
+  detection (re-read `_schedule` on packed mismatch, log whether it reflects the new hours). **v1.4.0 =
+  Phase 1, the feature** (`RespectManualSchedule` default false; log-only overlap warning). **Phase 2
+  stretch = builder-fill** (own diagnostics phase, per item 3). **Phase 3 stretch = schedule-UI overlap
+  warning (user mockup 2026-07-08):** when the player paints Sleep hours that overlap a same-station
+  coworker's sleep window, highlight the overlapping hours in the schedule panel and show e.g.
+  `SLEEP OVERLAP WITH COWORKER "ASA"` near Apply. Needs the `SSSGame.UI` schedule-panel type + its
+  paint/apply handlers + text injection (TerrainLeveler build-menu precedent proves UI injection is
+  doable); Phase 0's cohort+overlap computation is the exact data source, and Phase 1's log warning ships
+  the same detection first.
+
 ---
 
 ## Cross-cutting notes

@@ -62,6 +62,11 @@ public class Plugin : BasePlugin
 
     internal static ConfigEntry<bool> DebugLogging = null!;
 
+    // Read-only groundwork for the upcoming RespectManualSchedule (manual-schedule / coverage-staggering)
+    // mode. Logs schedule snapshots, an in-game hour calibration line, same-workstation cohort sleep-hour
+    // overlaps, and player schedule edits — but makes NO control decisions and writes nothing extra.
+    internal static ConfigEntry<bool> ManualScheduleDiagnostics = null!;
+
     // Villager survival components, registered as they spawn (pruned in the controller when destroyed).
     internal static readonly List<VillagerSurvival> TrackedSurvivals = new();
 
@@ -141,6 +146,12 @@ public class Plugin : BasePlugin
             "Log each villager's need-driven mode changes plus a periodic rest/happiness/needs summary. " +
             "Off by default (it's very verbose); turn on only when tuning thresholds.");
 
+        ManualScheduleDiagnostics = Config.Bind("DynamicNeeds", "ManualScheduleDiagnostics", true,
+            "Read-only diagnostics for the upcoming manual-schedule (RespectManualSchedule) mode: logs each " +
+            "villager's original per-hour schedule snapshot, an in-game hour calibration line, same-workstation " +
+            "cohorts with sleep-hour overlaps, and externally-changed schedules (player edits). No behavior " +
+            "change. Verbose; will default to false once the feature ships.");
+
         ClassInjector.RegisterTypeInIl2Cpp<NeedsController>();
         var go = new GameObject("DynamicVillagerNeedsMod_Controller");
         Object.DontDestroyOnLoad(go);
@@ -155,6 +166,7 @@ public class Plugin : BasePlugin
                        $"food-recheck every {FoodRecheckIntervalSeconds.Value}s while<{FoodRecheckWhenNeedBelow.Value}, " +
                        $"hungerx{HungerRateMultiplier.Value} thirstx{ThirstRateMultiplier.Value}, " +
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
-                       $"boost={LeisureHoursToFullHappiness.Value}h");
+                       $"boost={LeisureHoursToFullHappiness.Value}h, " +
+                       $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}");
     }
 }

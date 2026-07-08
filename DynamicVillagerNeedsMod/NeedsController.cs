@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using SandSailorStudio.Attributes;  // VariableAttribute
 using SSSGame;
@@ -70,6 +72,22 @@ public class NeedsController : MonoBehaviour
     // scale it (HungerRateMultiplier / ThirstRateMultiplier).
     private readonly Dictionary<VillagerSurvival, float> _lastFood = new();
     private readonly Dictionary<VillagerSurvival, float> _lastWater = new();
+
+    // --- RespectManualSchedule Phase 0 (read-only diagnostics; ManualScheduleDiagnostics gate) ---
+    // Each villager's ORIGINAL per-hour schedule, captured the same moment as _originalSchedule (first
+    // touch, before our first write). Captured unconditionally — Phase 1 (actual manual-schedule mode)
+    // will need it; only the diagnostic logging around it is gated on ManualScheduleDiagnostics.
+    private readonly Dictionary<VillagerSurvival, int[]> _scheduleHours = new();
+    // Last live packed schedule value we've already logged as "externally changed", so the player-edit
+    // log line fires once per change instead of every tick while it stays changed.
+    private readonly Dictionary<VillagerSurvival, long> _lastLoggedForeignPacked = new();
+    // Last live packed schedule value observed in the Enabled=false observe-only path (distinct from
+    // _appliedPacked/_lastLoggedForeignPacked, which only exist once the control loop has written
+    // something) — lets LogObservedSchedule re-log/re-snapshot only when the player's schedule changes.
+    private readonly Dictionary<VillagerSurvival, long> _observedPacked = new();
+    // Accumulator for the periodic (10s) same-workstation cohort report.
+    private float _cohortTimer;
+
     private float _summaryTimer;
     // Accumulator for the periodic food/water re-check (FoodRecheckIntervalSeconds).
     private float _recheckTimer;
@@ -78,7 +96,9 @@ public class NeedsController : MonoBehaviour
 
     void Update()
     {
-        if (!Plugin.Enabled.Value) return;
+        bool enabledCtl = Plugin.Enabled.Value;
+        bool msDiag = Plugin.ManualScheduleDiagnostics.Value;
+        if (!enabledCtl && !msDiag) return;
 
         _tickTimer += Time.deltaTime;
         if (_tickTimer < TickInterval) return;
@@ -88,6 +108,17 @@ public class NeedsController : MonoBehaviour
 
         float dt = _tickTimer;   // real elapsed since last processed tick — keeps all rate*dt math correct
         _tickTimer = 0f;
+
+        // Enabled=false + ManualScheduleDiagnostics=true: fully read-only observe path. Zero writes (no
+        // ApplyScheduleIfNeeded/Rpc/VAttr writes/RecheckConsumeNeeds) — this is what lets the MSdiag hour
+        // calibration + cohort reports watch the player's LIVE painted schedule instead of whatever the
+        // control loop below would otherwise collapse it to. Still advances the same 5s/10s accumulators.
+        if (!enabledCtl)
+        {
+            ObserveTick(tracked, dt);
+            return;
+        }
+
         float sleepBelow = Plugin.SleepWhenRestBelowHours.Value;
         float wakeAbove = Plugin.WakeWhenRestAboveHours.Value;
         float needBelow = Plugin.LeisureWhenNeedBelow.Value;
@@ -111,8 +142,13 @@ public class NeedsController : MonoBehaviour
         float thirstMult = Plugin.ThirstRateMultiplier.Value;
 
         _summaryTimer += dt;
-        bool summaryNow = debug && _summaryTimer >= 5f;
+        bool summaryNow = (debug || msDiag) && _summaryTimer >= 5f;
         if (summaryNow) _summaryTimer = 0f;
+
+        // MSdiag cohort report cadence (independent 10s accumulator).
+        _cohortTimer += dt;
+        bool cohortNow = msDiag && _cohortTimer >= 10f;
+        if (cohortNow) _cohortTimer = 0f;
 
         // Food/water re-check cadence: every FoodRecheckIntervalSeconds, re-arm hungry villagers' survival
         // quests so they pick up newly-restocked food instead of parking at an empty store (see RecheckConsumeNeeds).
@@ -188,7 +224,12 @@ public class NeedsController : MonoBehaviour
                     ht.cooldown = retrySeconds;
 
                 ScheduleType st = ToSchedule(next);
-                bool applied = ApplyScheduleIfNeeded(surv, villager, st);
+                bool applied = ApplyScheduleIfNeeded(surv, villager, st, i);
+
+                // MSdiag (d): detect the player editing/applying a schedule in the UI mid-session. Runs
+                // every tick (independent of the debug/summary cadence) so a change is caught promptly,
+                // but logs each distinct foreign value only once.
+                if (msDiag) LogForeignScheduleChange(surv, villager, i);
 
                 // While taking leisure, actively pump happiness up so the time isn't wasted.
                 if (next == Mode.Leisure && boostPerSec > 0f)
@@ -220,9 +261,12 @@ public class NeedsController : MonoBehaviour
                     Plugin.Logger.LogInfo(
                         $"[DynamicNeeds] villager[{i}] {prev} -> {next} (rest={restHours:F1}/24) | {Happy(villager, ht)} | {Needs(surv)} | {Diag(villager, surv)}");
 
-                if (summaryNow && i == 0)
+                if (summaryNow && i == 0 && debug)
                     Plugin.Logger.LogInfo(
                         $"[DynamicNeeds] villager[0] mode={next} rest={restHours:F1}/24 | {Happy(villager, ht)} | {Needs(surv)} | {Diag(villager, surv)}");
+
+                if (summaryNow && i == 0 && msDiag)
+                    LogHourCalibration(surv, villager);
             }
             catch (Exception ex)
             {
@@ -230,6 +274,83 @@ public class NeedsController : MonoBehaviour
                 tracked.RemoveAt(i);
             }
         }
+
+        // MSdiag (c): same-workstation cohort report, every 10 real seconds.
+        if (cohortNow) LogCohorts(tracked);
+    }
+
+    // Enabled=false + ManualScheduleDiagnostics=true observe-only tick: same 4 Hz cadence and the same
+    // prune/CanControl/GetVillager guards as the control loop above, but performs ZERO writes — no
+    // ApplyScheduleIfNeeded, no BoostAttr/ScaleDrain, no RecheckConsumeNeeds, no Rpc calls of any kind.
+    // Advances the same _summaryTimer/_cohortTimer accumulators so LogHourCalibration/LogCohorts still
+    // fire on their usual cadence while the control loop is off.
+    private void ObserveTick(List<VillagerSurvival> tracked, float dt)
+    {
+        _summaryTimer += dt;
+        bool summaryNow = _summaryTimer >= 5f;
+        if (summaryNow) _summaryTimer = 0f;
+
+        _cohortTimer += dt;
+        bool cohortNow = _cohortTimer >= 10f;
+        if (cohortNow) _cohortTimer = 0f;
+
+        for (int i = tracked.Count - 1; i >= 0; i--)
+        {
+            var surv = tracked[i];
+            if (surv == null) { tracked.RemoveAt(i); continue; }
+
+            try
+            {
+                if (!CanControl(surv)) continue;
+
+                var villager = surv.GetVillager();
+                if (villager == null) continue;
+
+                LogObservedSchedule(surv, villager, i);
+
+                if (summaryNow && i == 0)
+                    LogHourCalibration(surv, villager);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[DynamicNeeds] MSdiag observe: {ex}");
+                tracked.RemoveAt(i);
+            }
+        }
+
+        if (cohortNow) LogCohorts(tracked);
+    }
+
+    // Read-only: watches the player's live schedule while the control loop is off. On first sight of a
+    // villager, or whenever the live packed schedule changes, re-reads villager._schedule fresh into
+    // _scheduleHours[surv] (the same array the hour-calibration and cohort reports read from) — this is
+    // what lets those reports reflect the player's REAL painted stagger instead of a stale/absent snapshot.
+    private void LogObservedSchedule(VillagerSurvival surv, Villager villager, int idx)
+    {
+        try
+        {
+            long live = villager.__NetworkedSchedule;
+            bool changed = !_observedPacked.TryGetValue(surv, out var last) || last != live;
+            if (!changed) return;
+
+            try
+            {
+                var liveArr = villager._schedule;
+                if (liveArr != null)
+                {
+                    var hoursArr = new int[liveArr.Length];
+                    for (int h = 0; h < liveArr.Length; h++) hoursArr[h] = liveArr[h];
+                    _scheduleHours[surv] = hoursArr;
+
+                    Plugin.Logger.LogInfo(
+                        $"[DynamicNeeds] MSdiag observe villager[{idx}] schedule={HoursString(hoursArr)} packed=0x{live:X}");
+                }
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag observe schedule: {ex}"); }
+
+            _observedPacked[surv] = live;
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag observe: {ex}"); }
     }
 
     private static Mode Decide(Mode prev, float restHours, bool isSleeping, float minNeed, bool critical, float happiness,
@@ -349,14 +470,34 @@ public class NeedsController : MonoBehaviour
 
     // Rewrite the villager's whole schedule to a single activity via the game's own networked path.
     // Idempotent: only fires when our chosen activity actually changed. Returns true if it applied.
-    private bool ApplyScheduleIfNeeded(VillagerSurvival surv, Villager villager, ScheduleType st)
+    private bool ApplyScheduleIfNeeded(VillagerSurvival surv, Villager villager, ScheduleType st, int idx)
     {
         if (_applied.TryGetValue(surv, out var cur) && cur == st)
             return false;
 
         // Snapshot the original packed schedule once, before we ever touch it.
         if (!_originalSchedule.ContainsKey(surv))
+        {
             _originalSchedule[surv] = villager.__NetworkedSchedule;
+
+            // MSdiag (a): also snapshot the per-hour schedule array at this same "first touch" moment.
+            // Captured UNCONDITIONALLY (Phase 1 will need it); only the log line is gated.
+            try
+            {
+                var existing = villager._schedule;
+                if (existing != null)
+                {
+                    var hoursArr = new int[existing.Length];
+                    for (int h = 0; h < existing.Length; h++) hoursArr[h] = existing[h];
+                    _scheduleHours[surv] = hoursArr;
+
+                    if (Plugin.ManualScheduleDiagnostics.Value)
+                        Plugin.Logger.LogInfo(
+                            $"[DynamicNeeds] MSdiag snapshot villager[{idx}] hours={HoursString(hoursArr)} packed=0x{villager.__NetworkedSchedule:X}");
+                }
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag snapshot: {ex}"); }
+        }
 
         // Build an all-`st` schedule array of the villager's hour count and pack it the way the game
         // does, then apply through the network-safe RPC. Leave overrideSchedule off so the vanilla
@@ -469,6 +610,192 @@ public class NeedsController : MonoBehaviour
         try { var w = WeatherSystem.Instance; if (w != null) { dn = w.DayNightValue.ToString("F2"); night = w.IsNight.ToString(); } } catch { }
         return $"override={villager.overrideSchedule} behavior={villager.CurrentBehaviorType} " +
                $"sleeping={surv.IsSleeping} workstation={ws} task={task} sched={sched} night={night} dayNight={dn}";
+    }
+
+    // --- RespectManualSchedule Phase 0 diagnostics (ManualScheduleDiagnostics gate) ---
+    // Read-only: none of these write anything except their own bookkeeping dictionaries used to
+    // de-duplicate log lines. No behavior change to villager control.
+
+    private static char HourChar(int scheduleTypeInt) => scheduleTypeInt == (int)ScheduleType.Work ? 'W'
+        : scheduleTypeInt == (int)ScheduleType.Sleep ? 'S'
+        : scheduleTypeInt == (int)ScheduleType.Leisure ? 'L'
+        : '?';
+
+    private static string HoursString(int[] hours)
+    {
+        var sb = new StringBuilder(hours.Length);
+        foreach (var h in hours) sb.Append(HourChar(h));
+        return sb.ToString();
+    }
+
+    // (b) In-game hour calibration: piggybacks the 5s summary cadence (i == 0 only). Confirms which
+    // schedule-array index the game currently reads as "now" (DayNightValue -> hourIndex), so later
+    // phases can trust hour math when deciding what to write per-hour.
+    private void LogHourCalibration(VillagerSurvival surv, Villager villager)
+    {
+        try
+        {
+            int hourCount = Villager.scheduleMaxHourCount;
+            if (hourCount <= 0)
+            {
+                var existing = villager._schedule;
+                hourCount = existing != null ? existing.Length : 24;
+            }
+            if (hourCount <= 0) hourCount = 24;
+
+            float dayNight = 0f;
+            bool isNight = false;
+            try
+            {
+                var w = WeatherSystem.Instance;
+                if (w != null) { dayNight = w.DayNightValue; isNight = w.IsNight; }
+            }
+            catch { }
+            int hourIndex = Mathf.Clamp(Mathf.FloorToInt(dayNight * hourCount), 0, hourCount - 1);
+
+            char snap = '-';
+            if (_scheduleHours.TryGetValue(surv, out var snapArr) && hourIndex >= 0 && hourIndex < snapArr.Length)
+                snap = HourChar(snapArr[hourIndex]);
+
+            char live = '-';
+            try
+            {
+                var liveArr = villager._schedule;
+                if (liveArr != null && hourIndex >= 0 && hourIndex < liveArr.Length)
+                    live = HourChar(liveArr[hourIndex]);
+            }
+            catch { }
+
+            Plugin.Logger.LogInfo(
+                $"[DynamicNeeds] MSdiag hour dayNight={dayNight:F3} count={hourCount} hourIndex={hourIndex} " +
+                $"snap={snap} live={live} behavior={villager.CurrentBehaviorType} sleeping={surv.IsSleeping} night={isNight}");
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag hour: {ex}"); }
+    }
+
+    // (c) Same-workstation cohort report, every 10 real seconds. Groups currently-controlled villagers
+    // by workstation identity (native pointer — see the "managed casts lie" / Pointer-boxing gotcha) and,
+    // for any group of 2+, reports which hours ALL members' original schedules have them asleep — the
+    // future manual-schedule mode will need this to confine off-window sleep to same-station cohorts.
+    // Builds everything fresh each report; no Workstation wrapper is stored past this method.
+    private void LogCohorts(List<VillagerSurvival> tracked)
+    {
+        try
+        {
+            var groups = new Dictionary<IntPtr, List<int>>();
+            var names = new Dictionary<IntPtr, string>();
+
+            for (int i = 0; i < tracked.Count; i++)
+            {
+                var surv = tracked[i];
+                if (surv == null) continue;
+                try
+                {
+                    if (!CanControl(surv)) continue;
+                    var villager = surv.GetVillager();
+                    if (villager == null) continue;
+
+                    var ws = villager.GetNonVikingWorkstation();
+                    if (ws == null) continue;
+                    // SSSGame.Workstation's compile-time base chain runs through unity-libs stubs, so
+                    // ws.Pointer won't compile directly — box through object + Il2CppObjectBase instead
+                    // (same pattern as the universal "managed casts lie" gotcha).
+                    if (!((object)ws is Il2CppObjectBase wsBase)) continue;
+
+                    IntPtr key = wsBase.Pointer;
+                    if (!groups.TryGetValue(key, out var list))
+                    {
+                        list = new List<int>();
+                        groups[key] = list;
+                        try { names[key] = ws._structure?.GetName() ?? "?"; } catch { names[key] = "?"; }
+                    }
+                    list.Add(i);
+                }
+                catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort member: {ex}"); }
+            }
+
+            foreach (var kv in groups)
+            {
+                if (kv.Value.Count < 2) continue;
+
+                var snaps = new List<int[]>();
+                foreach (var idx in kv.Value)
+                {
+                    var surv = tracked[idx];
+                    if (surv != null && _scheduleHours.TryGetValue(surv, out var arr)) snaps.Add(arr);
+                }
+
+                string overlap;
+                if (snaps.Count < 2)
+                {
+                    overlap = "?";
+                }
+                else
+                {
+                    int hourCount = snaps[0].Length;
+                    foreach (var arr in snaps) hourCount = Mathf.Min(hourCount, arr.Length);
+
+                    var overlapHours = new List<int>();
+                    for (int h = 0; h < hourCount; h++)
+                    {
+                        bool allSleep = true;
+                        foreach (var arr in snaps)
+                        {
+                            if (arr[h] != (int)ScheduleType.Sleep) { allSleep = false; break; }
+                        }
+                        if (allSleep) overlapHours.Add(h);
+                    }
+                    overlap = "[" + string.Join(",", overlapHours) + "]";
+                }
+
+                string members = string.Join(",", kv.Value);
+                string name = names.TryGetValue(kv.Key, out var n) ? n : "?";
+                Plugin.Logger.LogInfo(
+                    $"[DynamicNeeds] MSdiag cohort station=0x{kv.Key.ToInt64():X} name='{name}' members=[{members}] sleepOverlapHours={overlap}");
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort: {ex}"); }
+    }
+
+    // (d) Player-edit detection: if the live packed schedule no longer matches what we last wrote (and
+    // we haven't already logged this exact foreign value), the player changed+applied a schedule in the
+    // UI mid-session. Re-reads villager._schedule fresh so we can confirm it reflects the NEW hours, AND
+    // (deliberate small behavior change, v1.3.1): moves the shutdown restore target (_originalSchedule)
+    // to this latest edit and refreshes _scheduleHours to match, so RestoreAll on shutdown puts back the
+    // player's LATEST painted schedule instead of the stale one captured at session start.
+    private void LogForeignScheduleChange(VillagerSurvival surv, Villager villager, int idx)
+    {
+        try
+        {
+            if (!_appliedPacked.TryGetValue(surv, out var applied)) return;
+
+            long live = villager.__NetworkedSchedule;
+            if (live == applied) return;
+            if (_lastLoggedForeignPacked.TryGetValue(surv, out var lastLogged) && lastLogged == live) return;
+
+            // Restore target update — independent of whether the per-hour array read below succeeds.
+            _originalSchedule[surv] = live;
+
+            string liveHours = "-";
+            try
+            {
+                var liveArr = villager._schedule;
+                if (liveArr != null)
+                {
+                    var tmp = new int[liveArr.Length];
+                    for (int h = 0; h < liveArr.Length; h++) tmp[h] = liveArr[h];
+                    liveHours = HoursString(tmp);
+                    _scheduleHours[surv] = tmp;
+                }
+            }
+            catch { }
+
+            Plugin.Logger.LogInfo(
+                $"[DynamicNeeds] MSdiag schedule externally changed villager[{idx}]: applied=0x{applied:X} live=0x{live:X} " +
+                $"_schedule={liveHours} (snapshot refreshed, restore target updated)");
+            _lastLoggedForeignPacked[surv] = live;
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag foreign: {ex}"); }
     }
 
     // Only the simulation authority (host in co-op, or the local player solo) should drive villager
