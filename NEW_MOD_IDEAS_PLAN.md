@@ -1,10 +1,12 @@
-# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
 (2026-07-03; ideas 7–8 re-dumped 2026-07-06; idea 10 dumped 2026-07-07) — signatures are facts;
 *runtime behavior* claims are the ⚠️ part. Ideas 7–8 come from Nexus user feedback on TaskUnlockerMod
-(rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07).
+(rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07). Idea 11 comes from a Nexus
+discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and — unusually — needs **no**
+new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
 
 **Priority order (user):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
 (Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
@@ -436,6 +438,106 @@ present (best case) or must be reconstructed (fallback).
   and let the vanilla op do the add. Confirm a client filleting routes through the host.
 - Fire-verify the `CanHarvestCurrentItem` postfix fires (MonoBehaviour UI method — should be safe from the
   AOT-inlining trap, but standing rule).
+
+---
+
+## 11. Optional "manual schedule" mode — respect player-set shifts (DynamicVillagerNeedsMod extension)
+
+**Source:** Nexus discussion on DynamicVillagerNeedsMod (snakesilver + the author, 2026-07-08). Some
+users love the needs-based automation but still want vanilla schedule control for **coverage
+staggering** — watchtowers, archer towers, kitchens, the coal depot — where pure needs-based behavior
+sends several workers to sleep at once and leaves a post unmanned (independent workers — lumberjacks,
+masons, gatherers — aren't affected because their stations don't overlap). Compromise proposed by
+snakesilver (his "Option 2"), endorsed by the author as a **"manual schedule" toggle**: still let the
+player set a schedule, but the villager **breaks out of sleep/leisure early when its needs are already
+satisfied** — keeps the mod's "no wasted time" magic while restoring shift control. (snakesilver's
+"Option 1" — villagers auto-negotiating non-overlapping shifts among themselves — is noted but is a far
+harder, downstream-effect-heavy algorithm; the toggle below is the tractable one both parties preferred.)
+
+**Framing — the real dual goal (made explicit; it's an undercurrent in every comment, not stated
+outright):** *primary* = guarantee **24/7 coverage** of manned posts (towers, kitchens, coal depot);
+*secondary* = **no villager standing idle**. The manual schedule IS the player's coverage plan, and the
+one invariant that must never break is **phase separation between the guards' rest cycles** — pure
+needs-based silently violates it (two similar guards drift into synchronized tiredness → both sleep at
+once → gap). So the mod's job in this mode is three things: (a) keep each villager present during its
+assigned on-window; (b) **confine each villager's discretionary sleep/leisure to its OWN off-window**,
+front-loaded, so the staggered cycles can never re-collide (the coverage-preserving core — see approach);
+(c) fill leftover off-window time productively rather than idle or over-man.
+
+**Why it's plausible — everything needed is ALREADY in the shipped mod (runtime-proven, not just
+Cecil-confirmed):**
+- The mod ALREADY snapshots each villager's original player-set schedule
+  (`_originalSchedule[surv] = villager.__NetworkedSchedule`) and ALREADY writes it back verbatim on
+  shutdown (`RestoreAll` → `Rpc_ChangeSchedule(original)`). So "baseline = the manual schedule" is a
+  state that already works in-game — it just needs to become a *live* mode, not only a shutdown restore.
+- The per-mode write path (`Villager._ScheduleToNetworkSchedule(arr)` → `Rpc_ChangeSchedule(packed)`,
+  made idempotent via `_appliedPacked`) already handles BOTH uniform collapses (all-Sleep/Work/Leisure)
+  AND an arbitrary packed schedule (the snapshot restore), so following the manual schedule and
+  collapsing to a single activity coexist with zero new plumbing.
+- Current in-game hour is already read for the `Diag` line: `WeatherSystem.Instance.DayNightValue`
+  (0..1) → `hourIndex = floor(DayNightValue * Villager.scheduleMaxHourCount)`. The player's activity for
+  that hour comes from the per-hour `villager._schedule` array (already referenced in
+  `ApplyScheduleIfNeeded`) — capture its contents at snapshot time so no schedule-unpack method is needed.
+- Already host-authority-gated (`_hasAuthority`), so co-op safety is unchanged.
+
+**Approach (opt-in; default OFF so existing users keep pure needs-based):** add
+`[DynamicNeeds] RespectManualSchedule` (default `false`). When true the mod stops using all-Work as the
+"needs are fine" baseline and works off each villager's snapshotted player schedule, split into its
+**on-window** (player-set Work hours) and **off-window** (player-set Sleep/Leisure hours):
+1. **On-window → man the post (Work).** Don't pull the villager off for a need unless it's truly critical —
+   the off-window top-up (item 2) is what keeps mid-shift needs from arising. **User-confirmed default
+   (2026-07-08): a worker must never die of hunger/thirst/cold at his post.** Nuance by need type:
+   critical **hunger/thirst** → allow a brief off-post trip to eat/drink, then return; **cold** is handled
+   the way this mod already handles warmth — via the game's OWN warm-up during work (`warmUpBehaviour`,
+   accelerated by `FireWarmthMultiplier`), NEVER a forced leisure trip (the documented warmth-thrash
+   dead-end), so a guard won't freeze at post without ever leaving it. Optional `ManualWorkIsInviolable`
+   sub-toggle suppresses only the *discretionary* off-post cases, never the life-threatening emergency.
+2. **Off-window + the coverage-preserving CORE — confine rest to the off-window, front-loaded.** A villager
+   sleeps/recovers ONLY inside its own off-window, and the mod biases the sleep **early** in that window
+   (top up via the existing `SleepHoursToFullRest` boost so it's fully rested when its next on-window
+   begins) — never floating by raw need across the on-window. Because the player's off-windows are out of
+   phase by construction, confined sleep can't collide → coverage holds. This is precisely what makes
+   "returns to work early" SAFE: the sleep already happened, inside the off-window, so resuming activity
+   afterward can't re-sync him onto the other guard's sleep (the failure the whole feature guards against).
+3. **Off-window SURPLUS → fill it; don't idle, don't over-man.** Once rested/fed/happy the villager has
+   leftover off-hours. Sending it back to its OWN post is wrong twice over — it over-mans a post the other
+   guard already holds (the "standing around doing nothing" users dislike) AND re-syncs the cycles. Instead:
+   - *Ships first (schedule-only, zero coverage risk):* surplus → Leisure/idle — trivial with the existing
+     machinery; safe but not yet "productive".
+   - *Stretch — the popular "builder mode" request:* divert the villager's task dispatch to the
+     construction/haul pool during the surplus **without dropping its `AssignToWorkstation(post)` binding**,
+     then restore the post agent when its on-window returns — the same snapshot-and-restore shape the mod
+     already uses for schedules, but applied to the task-agent system (`SetTaskAgent` / `WorkstationTaskData`,
+     the ideas 7/8 plumbing). ⚠️ needs its OWN diagnostics phase first: ASKA models a "builder" as
+     *unassigned* labor, so confirm an assigned villager can be lent to the build pool and cleanly restored
+     (no walking home, no dropped station/task state) before promising it; if it isn't clean, degrade to
+     the Leisure/idle fill.
+4. **`Decide` change (small, same-shape):** the existing Sleep/Leisure branches already gate on genuine
+   need and hysteresis-exit — that IS "only sleep/recover as needed." The manual-mode change is only:
+   (a) the "needs fine" fall-through returns a `Manual` state (follow the snapshot's activity for the
+   current `hourIndex`) instead of all-Work; (b) discretionary Sleep is *permitted only when the current
+   hour is in the villager's off-window* (a critical need still overrides anywhere).
+
+**⚠️ verify / risks (diagnostics first — note the phase-collision problem is now handled BY DESIGN via the
+off-window confinement in item 2, so it's the mechanism, not an open risk):**
+- **Shift longer than one full rest tank → unavoidable mid-shift sleep.** If the player gives 2 guards a
+  12h-on/12h-off split but a full rest tank lasts < 12h, a guard WILL tire mid-shift; the mod shortens that
+  sleep (boost) and guarantees he starts topped up, but it cannot conjure a third guard — gapless coverage
+  with too few workers is the player's schedule responsibility. Document the limit; optionally warn when a
+  configured on-window exceeds the achievable rest duration.
+- **`DayNightValue` → schedule hour-0 phase alignment** must be calibrated so `hourIndex` lines up with the
+  player's blocks (log `DayNightValue` + game clock + live `_schedule[hourIndex]` together).
+- **Builder-fill feasibility** (item 3 stretch) — the one genuinely uncertain mechanism; gate it behind its
+  own diagnostics phase and ship the Leisure/idle fill first so coverage is never at risk.
+- **Critical-need override of a Work hour is DECIDED, not open (user, 2026-07-08):** default allows a brief
+  off-post trip for critical hunger/thirst, and relies on the game's warm-up for cold (see item 1) — a
+  worker must never die at his post. `ManualWorkIsInviolable` gates only discretionary off-post, never the
+  emergency. What still needs tuning in-game is the *threshold* at which "critical" trips the off-post trip
+  (should be near-death, not mild hunger, so it rarely fires).
+- **Snapshot freshness if the player edits a schedule mid-session:** re-read `villager._schedule` while the
+  mod is in the `Manual` baseline (it isn't overwriting then, so that array is the player's live intent).
+- All writes stay host-authoritative and go through the game's own RPCs (`Rpc_ChangeSchedule`; and for the
+  builder stretch the `SetTaskAgent`/villagers-in-charge RPC path) — unchanged safety posture.
 
 ---
 
