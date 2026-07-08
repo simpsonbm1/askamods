@@ -34,6 +34,7 @@ on:
           - TaskUnlockerMod
           - ZeroTaskWorkersMod
           - GroundItemVacuumMod
+          - FishFilletMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -78,6 +79,7 @@ jobs:
             TaskUnlockerMod)         file_id=7623785 ;;   # Cooking and Fishing Task Unlocker
             ZeroTaskWorkersMod)      file_id=7626437 ;;   # Assigned Workers Start Idle
             GroundItemVacuumMod)     file_id=7632863 ;;   # Ground Item Vacuum Cleaner
+            FishFilletMod)           file_id=7633997 ;;   # Inventory Fish Fillet
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"

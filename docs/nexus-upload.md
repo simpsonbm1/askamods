@@ -25,6 +25,7 @@ gh run watch <run-id> --exit-status     # then: gh run view <run-id> --log  → 
 | TaskUnlockerMod | Cooking and Fishing Task Unlocker | `7623785` |
 | ZeroTaskWorkersMod | Assigned Workers Start Idle | `7626437` |
 | GroundItemVacuumMod | Ground Item Vacuum Cleaner | `7632863` |
+| FishFilletMod | Inventory Fish Fillet | `7633997` |
 
 BowDamageMod and TorchFuelMod aren't on Nexus yet — to add one: create its page + first file, then add a line to the workflow's `case` block and an option to the `mod` input.
 
