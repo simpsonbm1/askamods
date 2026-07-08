@@ -16,9 +16,15 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> HealPerTick = null!;
     internal static ConfigEntry<float> SecondsPerTick = null!;
     internal static ConfigEntry<float> OutOfCombatSeconds = null!;
+    internal static ConfigEntry<bool> ApplyToVillagers = null!;
+    internal static ConfigEntry<bool> VillagerDebugLogging = null!;
 
     // Set by PlayerCharacterPatch when the locally-controlled avatar spawns; cleared on despawn.
     internal static PlayerCharacter? LocalPlayer;
+
+    // Villagers currently spawned in the world (added in VillagerPatch's Spawned postfix,
+    // removed in Despawned postfix; RegenTracker also prunes destroyed entries).
+    internal static readonly System.Collections.Generic.List<Villager> TrackedVillagers = new();
 
     public override void Load()
     {
@@ -42,6 +48,18 @@ public class Plugin : BasePlugin
             defaultValue: 10.0f,
             description: "Seconds since last taking damage before regen starts.");
 
+        ApplyToVillagers = Config.Bind(
+            section: "VillagerRegen",
+            key: "ApplyToVillagers",
+            defaultValue: true,
+            description: "Villagers (including warriors/soldiers) regenerate HP out of combat using the same HealPerTick/SecondsPerTick/OutOfCombatSeconds settings as the player.");
+
+        VillagerDebugLogging = Config.Bind(
+            section: "VillagerRegen",
+            key: "DebugLogging",
+            defaultValue: true,
+            description: "Log villager registration and regen start/stop events.");
+
         ClassInjector.RegisterTypeInIl2Cpp<RegenTracker>();
         var go = new GameObject("HealthRegenMod_RegenTracker");
         Object.DontDestroyOnLoad(go);
@@ -50,6 +68,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"HealthRegenMod loaded. HealPerTick={HealPerTick.Value}, SecondsPerTick={SecondsPerTick.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}");
+        Logger.LogInfo($"HealthRegenMod loaded. HealPerTick={HealPerTick.Value}, SecondsPerTick={SecondsPerTick.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}, ApplyToVillagers={ApplyToVillagers.Value}");
     }
 }

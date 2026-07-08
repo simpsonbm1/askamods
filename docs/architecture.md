@@ -187,6 +187,12 @@ IsInCombat()                — PlayerCharacter's own built-in combat-timeout ch
 on `PlayerCharacter.Spawned()`/`Despawned()` (gated on `HasAuthority`) is the simpler way to capture
 the local avatar.
 
+**Villagers (soldiers/warriors — binary-confirmed via Cecil, 2026-07-08):**
+- `SSSGame.Villager : SSSGame.Character` — villagers are on the Character hierarchy, NOT Creature. They share the exact health surface the player uses: `CurrentHealth` (get+set), `MaxHealth`, `IsDead`, `HasAuthority`, `GetDamageTakenHistory().LastDamageTime`.
+- The ONLY subclasses of `Character` are `PlayerCharacter` and `Villager`; `Villager` has no subclasses and there is no Soldier/Guard class — warriors/soldiers are gear-flagged `Villager`s (`Villager.IsWarrior`).
+- `Villager` overrides `Spawned()`/`Despawned(NetworkRunner, bool)` — patch those (most-derived type) to capture villager instances.
+- ⚠️ pending in-game: whether `Character.CurrentHealth` writes stick on villagers as they do on the player (villagers also have the survival-side `CharacterSurvival._healthVAttr`, the fallback lever if not).
+
 ### Dead ends (don't retry)
 - `SSSGame.Creature.TakeDamage`/`CurrentHealth` for **player** health — `Creature` only covers monsters/NPCs. Use `Character`/`PlayerCharacter`.
 
