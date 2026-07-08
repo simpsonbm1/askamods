@@ -45,7 +45,7 @@ public class Plugin : BasePlugin
         Logger = base.Log;
 
         VacuumHotkey = Config.Bind(
-            "General", "VacuumHotkey", "v",
+            "General", "VacuumHotkey", "n",
             "Hotkey (a letter or a Unity KeyCode name) that triggers a vacuum sweep. Pressed by the host.");
 
         DryRun = Config.Bind(

@@ -9,7 +9,7 @@ namespace GroundItemVacuumMod;
 
 public class VacuumTracker : MonoBehaviour
 {
-    private KeyCode _key = KeyCode.V;
+    private KeyCode _key = KeyCode.N;
     private string _guiMessage = "";
     private float _guiExpiry = 0f;
     private float _autoTimer = 0f;

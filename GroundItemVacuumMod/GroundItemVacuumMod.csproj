@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>GroundItemVacuumMod</AssemblyName>
     <RootNamespace>GroundItemVacuumMod</RootNamespace>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

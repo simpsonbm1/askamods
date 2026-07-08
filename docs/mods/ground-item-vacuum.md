@@ -1,4 +1,4 @@
-# Mod 19: GroundItemVacuumMod — COMPLETE (v1.0.1)
+# Mod 19: GroundItemVacuumMod — COMPLETE (v1.0.2)
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey (or timer) to reduce ground clutter. Confirmed in-game 2026-07-07: removes
@@ -47,7 +47,7 @@ via lifecycle patches over ephemeral components."* The OnEnable/OnDisable own-se
 never touching the game's list pointers.
 
 ## Config (`com.askamods.grounditemvacuum.cfg`)
-- `General/VacuumHotkey` (default `v`), `DryRun` (default **true** — scan-only until configured),
+- `General/VacuumHotkey` (default `n`, was `v` until v1.0.2 — V conflicted with the emote wheel), `DryRun` (default **true** — scan-only until configured),
   `Radius` (default `60` m) / `VacuumEntireWorld` (default false), `HostOnly` (default true),
   `AutoVacuumMinutes` (default `0` = off), `Diagnostics` (default true), `TraceEachItem` (default true
   — per-item step log so a native crash pinpoints the failing item/step; turn off once stable).
@@ -57,5 +57,5 @@ never touching the game's list pointers.
   `OnlyItems = Stick,Small Stone,Bark,Twig,Young Fir,Resin,Firewood`, `ExcludeItems = Hardwood,Long`.
 
 ## Deferred (next session)
-Bake the recommended debris config into the code defaults (bump to v1.0.2), flip `TraceEachItem`/
+Bake the recommended debris config into the code defaults (v1.0.2 used for hotkey fix; target v1.0.3+), flip `TraceEachItem`/
 `Diagnostics` code defaults to false, add to `sync-plugins.ps1` awareness + the Nexus upload workflow.

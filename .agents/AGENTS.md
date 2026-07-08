@@ -202,7 +202,7 @@ askamods/
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers       [WIP v1.1.2 — scaling confirmed in-game 2026-06-30; some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks   [COMPLETE v1.2.2 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — per-frame work throttled for framerate (confirmed in-game 2026-07-07) — docs/mods/zero-task-workers.md]
-  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.0.1 — confirmed in-game 2026-07-07: removes debris cleanly (own-set OnEnable/OnDisable tracking + RemoveObjectFromWorld), no crash. NOTE: ground clutter was NOT the framerate bottleneck (a loaded mod is — bisect pending) — docs/mods/ground-item-vacuum.md]
+  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.0.2 — default hotkey changed from V to N (V conflicted with emote wheel), confirmed in-game 2026-07-08. Removes debris cleanly (own-set OnEnable/OnDisable tracking + RemoveObjectFromWorld), no crash. Ground clutter was NOT the framerate bottleneck (a loaded mod is — bisect pending) — docs/mods/ground-item-vacuum.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
