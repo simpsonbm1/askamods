@@ -459,10 +459,15 @@ outright):** *primary* = guarantee **24/7 coverage** of manned posts (towers, ki
 *secondary* = **no villager standing idle**. The manual schedule IS the player's coverage plan, and the
 one invariant that must never break is **phase separation between the guards' rest cycles** — pure
 needs-based silently violates it (two similar guards drift into synchronized tiredness → both sleep at
-once → gap). So the mod's job in this mode is three things: (a) keep each villager present during its
-assigned on-window; (b) **confine each villager's discretionary sleep/leisure to its OWN off-window**,
-front-loaded, so the staggered cycles can never re-collide (the coverage-preserving core — see approach);
-(c) fill leftover off-window time productively rather than idle or over-man.
+once → gap). **The invariant is scoped PER SHARED STATION, not globally:** nobody cares if a carpenter and
+a cook sleep at the same time, but if both cooks sleep at once no food is made. So the mod's job in this
+mode is three things: (a) keep each villager present during its assigned on-window; (b) **for villagers
+sharing a coverage-critical station (a cohort of 2+ at the same workstation — two cooks, two tower
+guards), confine each one's discretionary sleep/leisure to its OWN staggered off-window**, front-loaded, so
+their cycles can never re-collide (the coverage-preserving core — see approach) — villagers on
+independent/solo stations (carpenter, lumberjack, mason, gatherer — snakesilver's own examples of
+non-overlapping roles) need NO confinement and keep pure needs-based efficiency; (c) fill leftover
+off-window time productively rather than idle or over-man.
 
 **Why it's plausible — everything needed is ALREADY in the shipped mod (runtime-proven, not just
 Cecil-confirmed):**
@@ -492,13 +497,17 @@ Cecil-confirmed):**
    accelerated by `FireWarmthMultiplier`), NEVER a forced leisure trip (the documented warmth-thrash
    dead-end), so a guard won't freeze at post without ever leaving it. Optional `ManualWorkIsInviolable`
    sub-toggle suppresses only the *discretionary* off-post cases, never the life-threatening emergency.
-2. **Off-window + the coverage-preserving CORE — confine rest to the off-window, front-loaded.** A villager
-   sleeps/recovers ONLY inside its own off-window, and the mod biases the sleep **early** in that window
-   (top up via the existing `SleepHoursToFullRest` boost so it's fully rested when its next on-window
-   begins) — never floating by raw need across the on-window. Because the player's off-windows are out of
-   phase by construction, confined sleep can't collide → coverage holds. This is precisely what makes
-   "returns to work early" SAFE: the sleep already happened, inside the off-window, so resuming activity
-   afterward can't re-sync him onto the other guard's sleep (the failure the whole feature guards against).
+2. **Off-window + the coverage-preserving CORE — confine rest to the off-window, front-loaded, SCOPED TO
+   SAME-STATION COHORTS.** Confinement only matters between villagers assigned to the SAME coverage-critical
+   station — so group tracked villagers by their assigned workstation (`Villager.GetNonVikingWorkstation()`,
+   already read in `Diag`) and apply it only to cohorts of **2+**. For a villager in such a cohort: it
+   sleeps/recovers ONLY inside its own off-window, biased **early** (top up via the existing
+   `SleepHoursToFullRest` boost so it's fully rested for its next on-window) — never floating by raw need
+   across its on-window. Because the player staggered the cohort's off-windows, confined sleep can't
+   collide → the station is always manned. This is precisely what makes "returns to work early" SAFE: the
+   sleep already happened inside the off-window, so resuming activity can't re-sync it onto a cohort-mate's
+   sleep (the failure the whole feature guards against). Villagers NOT in a 2+ cohort (solo/independent
+   stations) get no confinement — pure needs-based, maximal efficiency, exactly as the mod behaves today.
 3. **Off-window SURPLUS → fill it; don't idle, don't over-man.** Once rested/fed/happy the villager has
    leftover off-hours. Sending it back to its OWN post is wrong twice over — it over-mans a post the other
    guard already holds (the "standing around doing nothing" users dislike) AND re-syncs the cycles. Instead:
@@ -527,6 +536,13 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   configured on-window exceeds the achievable rest duration.
 - **`DayNightValue` → schedule hour-0 phase alignment** must be calibrated so `hourIndex` lines up with the
   player's blocks (log `DayNightValue` + game clock + live `_schedule[hourIndex]` together).
+- **The mod preserves a stagger; it doesn't invent one.** Manual mode relies on the player having given a
+  same-station cohort staggered schedules; the job is to stop pure-needs behavior from DESTROYING that
+  stagger, not to auto-generate one (auto-negotiating non-overlapping shifts is snakesilver's harder
+  "Option 1" — out of scope here). If a 2+ cohort is left with identical off-windows, confinement can't
+  separate them — surface that (warn when same-station villagers share an off-window) rather than silently
+  failing coverage. **Cohort membership is dynamic** (re-assignment, hiring, firing), so recompute the
+  station→villagers grouping periodically, not once.
 - **Builder-fill feasibility** (item 3 stretch) — the one genuinely uncertain mechanism; gate it behind its
   own diagnostics phase and ship the Leisure/idle fill first so coverage is never at risk.
 - **Critical-need override of a Work hour is DECIDED, not open (user, 2026-07-08):** default allows a brief
