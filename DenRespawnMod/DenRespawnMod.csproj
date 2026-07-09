@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>DenRespawnMod</AssemblyName>
     <RootNamespace>DenRespawnMod</RootNamespace>
-    <Version>1.1.1</Version>
+    <Version>1.1.7</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
@@ -57,6 +57,14 @@
     </Reference>
     <Reference Include="Fusion.Runtime">
       <HintPath>$(BepInExPath)\interop\Fusion.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(BepInExPath)\interop\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(BepInExPath)\unity-libs\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

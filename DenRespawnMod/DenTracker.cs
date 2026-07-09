@@ -6,6 +6,7 @@ using SandSailorStudio.Storage;
 using SandSailorStudio.WorldGen;
 using SandSailorStudio.Streaming;
 using UnityEngine;
+using DenRespawnMod.Patches;
 
 namespace DenRespawnMod;
 
@@ -70,6 +71,28 @@ public class DenTracker : MonoBehaviour
             {
                 Plugin.Logger.LogError($"[DenRespawn] Error during den revive: {ex}");
                 ShowMessage("Error occurred during den revive! Check BepInEx log.");
+            }
+        }
+
+        // Map-pin click trigger (v1.1.4). CompassObjectiveMarker.OnSelect only TRACKS the hovered
+        // pin (it fires on hover, not click) — the actual click is detected here, every frame,
+        // as a Shift+Left-mouse-press while a pin is hovered. TryRevive's own 0.3s dedupe window
+        // still applies.
+        if (DenMapRevive.HaveHovered && Input.GetMouseButtonDown(0) && DenMapRevive.ModifierHeld())
+        {
+            try
+            {
+                if (Plugin.DenDiagnostics.Value)
+                {
+                    string posStr = DenMapRevive.HoveredPos.ToString();
+                    Plugin.Logger.LogInfo($"[DenRespawn] Pin click: reviving '{DenMapRevive.HoveredName}' at {posStr}");
+                }
+
+                DenMapRevive.TryRevive(DenMapRevive.HoveredName, DenMapRevive.HoveredPos);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[DenRespawn] Pin click revive error: {ex}");
             }
         }
 
@@ -222,7 +245,6 @@ public class DenTracker : MonoBehaviour
                 try { isActive = den.isActive; } catch { }
 
                 bool anyIgnore = false;
-                bool anyEmpty = false;
                 try
                 {
                     var affected = den.affectedSpawners;
@@ -232,7 +254,6 @@ public class DenTracker : MonoBehaviour
                         {
                             if (spawner == null) continue;
                             try { if (spawner.ignoreRespawning) anyIgnore = true; } catch { }
-                            try { if (spawner.HasNoAliveCreatures()) anyEmpty = true; } catch { }
                         }
                     }
                 }
@@ -241,7 +262,12 @@ public class DenTracker : MonoBehaviour
                     Plugin.Logger.LogError($"[DenRespawn] Error scanning affectedSpawners: {ex}");
                 }
 
-                bool needsWork = !isActive || anyIgnore || anyEmpty;
+                // Key selection on the defeat flag ALONE (v1.1.6). ignoreRespawning is the proven
+                // vanilla never-respawn-again defeat marker (confirmed on defeated cemeteries,
+                // wulfar dens, and long-cleared crawler dens). !isActive false-positives on
+                // nocturnally-inactive wolf dens; anyEmpty false-positives on healthy dens whose
+                // creatures are merely roaming or streaming-culled (both observed in-game 2026-07-09).
+                bool needsWork = anyIgnore;
                 if (!needsWork)
                 {
                     healthy++;
@@ -361,6 +387,12 @@ public class DenTracker : MonoBehaviour
             bool nowActive = false;
             try { nowActive = den.isActive; } catch { }
             Plugin.Logger.LogInfo($"[DenRespawn] Post-refresh: isActive={nowActive}");
+
+            if (havePos)
+            {
+                try { MarkerRefresher.RefreshPinNear(posVec); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[DenRespawn] Error calling MarkerRefresher.RefreshPinNear: {ex}"); }
+            }
 
             try
             {

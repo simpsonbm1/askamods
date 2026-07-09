@@ -10,6 +10,7 @@ using Il2CppInterop.Runtime.Injection;
 using SandSailorStudio.Streaming;
 using SSSGame;
 using UnityEngine;
+using DenRespawnMod.Patches;
 
 namespace DenRespawnMod;
 
@@ -41,6 +42,11 @@ public class Plugin : BasePlugin
     // StreamingCapturePatch — feeds DenTracker's remote force-load path. Never keep across world
     // sessions (project-wide gotcha); cleared in NoteWorldLeft.
     internal static WorldStreamingManager? StreamingManager;
+
+    // Captured from BiomesManager.Awake/OnDisable (Patches/BiomesCapturePatches.cs), mirroring
+    // SeedScoutMod's BiomesCapture.cs — feeds MarkerRefresher's area-instance lookup (v1.1.3 pin
+    // recolor). Never keep across world sessions (project-wide gotcha); cleared in NoteWorldLeft.
+    internal static BiomesManager? Biomes;
 
     // Parsed from AutoRespawnRules at Load() — den type name (case-insensitive) -> days-after-defeat.
     internal static Dictionary<string, int> AutoRules = new(StringComparer.OrdinalIgnoreCase);
@@ -235,6 +241,10 @@ public class Plugin : BasePlugin
         DenRegistry.Save();
         DenRegistry.Clear();
         StreamingManager = null;
+        Biomes = null;
+        DenMapRevive.MapMenuInstance = null;
+        DenMapRevive.HaveHovered = false;
+        DenMapRevive.HoveredWidgetPtr = IntPtr.Zero;
         DenTracker.ClearTransientState(); // pending remote-refresh queue + anchor GameObjects
         DayCounter.ClearTransientState();
     }

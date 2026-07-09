@@ -673,7 +673,7 @@ So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, wit
 
 ---
 
-## Dens & Population Spawners (DenRespawnMod evidence, in-game 2026-07-08 — mod still WIP)
+## Dens & Population Spawners (DenRespawnMod evidence, confirmed in-game 2026-07-09)
 
 **Den defeat is recorded at the SPAWNER level, not on `den.isActive` (confirmed in-game 2026-07-08,
 controlled experiment):** clearing a Wulfar Den's nodes + boss made vanilla set `ignoreRespawning=true`
@@ -718,7 +718,48 @@ non-empty→empty (quit to menu) or changes between two non-empty values — but
 first becomes readable** (null→non-empty), else the load-time captures are wiped. Same first-resolve
 special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 
-**Map-pin click handler:** `SSSGame.UI.MapMenu._OnMarkersLeftClick(WorldObjectiveMarker marker)` exists (Cecil-confirmed 2026-07-08) as the native map-pin left-click handler; `WorldObjectiveMarker` carries `.transform.position` and `.CustomName` for pin identification. Harmony postfixes on this method fire cleanly. ⚠️ Patch fire and runtime behavior pending in-game verification (DenRespawnMod v1.1.x map-revive feature).
+### Map Pins & Revision (DenRespawnMod v1.1.x confirmed in-game 2026-07-09)
+
+**DEAD-END: `MapMenu._OnMarkersLeftClick(WorldObjectiveMarker marker)` is AOT-inlined** — Harmony patches never fire on this method. `MapMenu.OnPointerClick(PointerEventData)` is the patchable click entry point, but ONLY receives clicks on empty map space (pin widgets swallow clicks on themselves; confirmed in-game 2026-07-09).
+
+**Map pins: UI components and state**
+- UI widget for a pin = `CompassObjectiveMarker` (MonoBehaviour)
+- Pins SELECT ON HOVER (`OnSelect` fires on mouse-over, no click required; confirmed in-game 2026-07-09)
+- Pins carry NO `Button` component (confirmed 2026-07-09)
+- Vanilla pin left-click toggles the compass-eyeball via the pin's own event handler (not routed through `MapMenu`)
+- Reliable pin-click recipe: OnSelect/OnDeselect postfixes to TRACK the hovered pin (clear tracked pin only when OnDeselect fires on a matching widget pointer) + per-frame `Input.GetMouseButtonDown(0)` poll in a tracker's Update method (DenRespawnMod v1.1.4 pattern, confirmed working 2026-07-09)
+
+**Widget-to-marker mapping (UI state sync)**
+- `MapMenu._objectiveContainer._icons` is `List<ObjectiveIcon>` where each icon pairs a UI widget with a game-world marker
+- `ObjectiveIcon.widget` = the `CompassObjectiveMarker` (UI)
+- `ObjectiveIcon._wMarker` = the `WorldObjectiveMarker` (game-state marker link)
+- Match via Il2CppObjectBase.Pointer equality (boxing escape hatch: `(object)x is Il2CppObjectBase b` → `b.Pointer`)
+- Capture the `MapMenu` instance via an `OnActivate` postfix (fires on every map open); never cache it across world sessions (map-instance is per-world)
+
+**Screen-to-world coordinate transform on the map**
+- `RectTransformUtility.ScreenPointToLocalPointInRectangle(MapMenu.Content, screenPos, eventData.pressEventCamera, out local)` → converts screen click to local map-rect coords
+- `MapMenu.GetWorldPosition(local)` → converts map-rect coords to world position
+- Confirmed accurate in-game 2026-07-09 (matched den's position to within ~19 m of click point)
+
+**Pin state refresh (map-pin recolor on revive)**
+- `MarkerObject.RefreshSpawnersHostileStatus(bool noNotification)` — re-evaluates den-spawner hostility and recolors the pin (confirmed in-game 2026-07-09; pins visibly red→yellow on revive)
+- Reach the `MarkerObject` via `area.areaInstanceMarkerHandler.GetMarkerObject()` — returns it DECLARED as `SandSailorStudio.Inventory.ItemComponent`; managed casts lie (universal gotcha) — use native-class-name check + rewrap `new MarkerObject(IntPtr)`
+- GOTCHA: some markers (long-defeated enemy dens) have `_biomePopulation == null` and calling RefreshSpawnersHostileStatus on them throws a managed NRE inside the native call (caught by try/catch but noisy in logs) — null-check before calling
+- With `noNotification=false`, the game fires its native "monsters are back" notification (toast wording ⚠️ unconfirmed)
+
+**Spatial data**
+- `AreaInstance.position` is `Vector2Int` (world X,Z)
+- `AreaInstance` lives in `SandSailorStudio.WorldGen` namespace
+- `AreaInstanceMarkerHandler`/`IAreaInstanceMarkerHandler` are in GLOBAL namespace
+
+**Den defeat semantics (confirmed in-game 2026-07-09)**
+- `spawner.ignoreRespawning=true` is the DURABLE vanilla defeat flag (user-confirmed on dens cleared long ago that stayed flagged; natural respawn ~1 in-game year)
+- `den.isActive=false` does NOT mean defeated (nocturnal wolf dens inactive by design)
+- `PopulationSpawner.HasNoAliveCreatures()` is TRANSIENT (creatures can be roaming/streaming-culled) — false-positive as "needs revive" signal alone
+- Reliable defeat selection: `needsWork = (anyIgnore || outOfCombatBeingDecided)` where `anyIgnore = any(affectedSpawner.ignoreRespawning)` (confirmed in-game 2026-07-09; narrower filter than v1.1.2's `anyEmpty || anyIgnore`)
+
+**Map pin labels ≠ den type names**
+- "Small Cemetery"/"Large Cemetery" pins = Skeleton Den / Skeleton Den Cluster dens internally
 
 ---
 
