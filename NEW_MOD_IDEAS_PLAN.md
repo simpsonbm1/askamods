@@ -332,6 +332,16 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   played under the ACTIVE mod have uniform saved schedules). ⚠️ softened risk: a painted-W night
   was worked straight through (villager had a midday sleep block) — the "wake night guards from
   game-forced sleep" problem may only exist for rest-depleted villagers; verify during Phase 1.
+- **Phase 1 IMPLEMENTED (2026-07-09, v1.4.0–v1.4.4, ⚠️ pending in-game confirmation):** shipped as
+  designed with four deltas: (a) `ManualWorkIsInviolable` dropped — cohort on-windows already forbid
+  discretionary off-post, only the critical emergency pierces; (b) snapshot freshness = 5 s array-diff
+  (per Phase 0), moved out of the diag gate; (c) the top-up sleep is BACK-loaded (timed via the boost's
+  refill rate to end at shift start), not front-loaded — off-windows are disjoint per cohort so
+  placement is coverage-neutral, and leisure drains rest ~1 h/game-h (front-load left a 12 h shift
+  ending at rest 0.4); (d) the qualifier requires a real MIXED paint (uniform all-S saved schedules are
+  legacy collapse junk, not player intent). Boost rates scale by `WeatherSystem.TimeSpeedMultiplier`.
+  Builder-fill (Phase 2) and the schedule-UI overlap warning (Phase 3) remain open; Phase 1's log-only
+  overlap warning ships in `RefreshCohorts`.
 
 ---
 

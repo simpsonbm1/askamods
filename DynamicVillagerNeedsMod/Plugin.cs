@@ -66,6 +66,8 @@ public class Plugin : BasePlugin
     // mode. Logs schedule snapshots, an in-game hour calibration line, same-workstation cohort sleep-hour
     // overlaps, and player schedule edits — but makes NO control decisions and writes nothing extra.
     internal static ConfigEntry<bool> ManualScheduleDiagnostics = null!;
+    internal static ConfigEntry<bool> RespectManualSchedule = null!;
+    internal static ConfigEntry<float> CriticalNeedOffPostBelow = null!;
 
     // Villager survival components, registered as they spawn (pruned in the controller when destroyed).
     internal static readonly List<VillagerSurvival> TrackedSurvivals = new();
@@ -152,6 +154,18 @@ public class Plugin : BasePlugin
             "cohorts with sleep-hour overlaps, and externally-changed schedules (player edits). No behavior " +
             "change. Verbose; will default to false once the feature ships.");
 
+        RespectManualSchedule = Config.Bind("DynamicNeeds", "RespectManualSchedule", false,
+            "Manual-schedule mode: villagers sharing a workstation with a coworker (2+ at the same station) follow " +
+            "their player-painted schedule — present during painted Work hours (only a life-threatening food/water " +
+            "emergency pulls them off-post), sleeping front-loaded within their own painted off-hours (the rest boost " +
+            "still shortens it), and filling leftover off-hours with leisure instead of over-manning the post. " +
+            "Villagers on solo stations, and cohort members whose painted schedule has no off-hours, keep pure " +
+            "needs-based behavior. Preserves player-staggered 24/7 coverage of shared posts (towers, kitchens).");
+        CriticalNeedOffPostBelow = Config.Bind("DynamicNeeds", "CriticalNeedOffPostBelow", 0.05f,
+            "Manual-schedule mode: normalized food/water level below which an on-shift villager takes an emergency " +
+            "off-post trip (the game's starving/dehydrated flags also trigger it). Keep near-death-low — off-hours " +
+            "top-ups should normally prevent it ever firing.");
+
         ClassInjector.RegisterTypeInIl2Cpp<NeedsController>();
         var go = new GameObject("DynamicVillagerNeedsMod_Controller");
         Object.DontDestroyOnLoad(go);
@@ -167,6 +181,6 @@ public class Plugin : BasePlugin
                        $"hungerx{HungerRateMultiplier.Value} thirstx{ThirstRateMultiplier.Value}, " +
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
                        $"boost={LeisureHoursToFullHappiness.Value}h, " +
-                       $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}");
+                       $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}");
     }
 }

@@ -844,6 +844,10 @@ Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehavi
 - **DEAD-END: `WeatherSystem.DayNightValue` is NOT a clock** — it saturates at exactly 0.0/1.0 for long stretches (a day/night blend factor) with transitions at odd times; `floor(DayNightValue*24)` pins at 0/23. Never use it for schedule-hour math. `WeatherSystem.IsNight` flips ~20:00 (False→True) and ~07:00 (True→False).
 - **`Villager.__NetworkedSchedule` is a transient change-transport field, NOT an at-rest schedule mirror**: it reads 0x0 at world load even when villagers' `_schedule` arrays differ; the game mass-resets it to 0x0 mid-session (seen for all 45 tracked villagers at once); and **player UI schedule edits never pulse it at all** — an apply in the schedule panel changes `villager._schedule` (per-hour int array) without touching the packed field. **Detect player edits by diffing `_schedule` array contents on a slow cadence (5 s is ample; catches edits within one tick)** — packed-value comparison misses real edits and false-positives on the 0x0 resets. (Extends the older "sched=match/REVERTED readback quirk" note below.)
 - ⚠️ Tentative (2026-07-09, one villager, two accelerated nights): a UI-painted **Work schedule kept a villager awake working straight through the night** (20:00–02:00, behavior=Work, sleeping=False) — the long-documented "nightfall forces sleep regardless of schedule" did not occur. Possibly rest-depletion-driven (this villager had a painted midday sleep block keeping rest topped up) or specific to Rpc-written all-W schedules. Re-verify during idea-11 Phase 1 before relying on it.
+- **Rest drains ~1 h per in-game hour while awake, regardless of activity** — leisure drains it the
+  same as work (confirmed from transition telemetry 2026-07-09: 23→20.9 over ~2 h of leisure;
+  11.4→0.4 over an 11 h shift). Sleep placement inside an off-window therefore matters: rest peaks at
+  sleep end and decays linearly after.
 
 **Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
 
