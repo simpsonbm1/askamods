@@ -294,6 +294,21 @@ public class NeedsController : MonoBehaviour
         bool cohortNow = _cohortTimer >= 10f;
         if (cohortNow) _cohortTimer = 0f;
 
+        // Player UI schedule edits do NOT reliably pulse __NetworkedSchedule (confirmed in-game
+        // 2026-07-09: painting staggered cook schedules produced zero packed changes), so the
+        // array-content diff in ObserveScheduleArrayAndProbe below is the only reliable edit
+        // detector. TimeOfDay is read once per 5 s summary for the mixed-schedule behavior probes.
+        float timeOfDay = -1f;
+        if (summaryNow)
+        {
+            try
+            {
+                var w = WeatherSystem.Instance;
+                if (w != null) timeOfDay = w.TimeOfDay;
+            }
+            catch { }
+        }
+
         for (int i = tracked.Count - 1; i >= 0; i--)
         {
             var surv = tracked[i];
@@ -307,6 +322,9 @@ public class NeedsController : MonoBehaviour
                 if (villager == null) continue;
 
                 LogObservedSchedule(surv, villager, i);
+
+                if (summaryNow)
+                    ObserveScheduleArrayAndProbe(surv, villager, i, timeOfDay);
 
                 if (summaryNow && i == 0)
                     LogHourCalibration(surv, villager);
@@ -351,6 +369,51 @@ public class NeedsController : MonoBehaviour
             _observedPacked[surv] = live;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag observe: {ex}"); }
+    }
+
+    // Observe-mode, every 5 s per villager: (1) diff the per-hour _schedule ARRAY against the stored
+    // snapshot — player UI edits don't reliably change __NetworkedSchedule (confirmed in-game
+    // 2026-07-09), so packed-diff alone misses them; (2) for any villager whose schedule is MIXED
+    // (a painted stagger), log a behavior probe line so slot<->clock-hour alignment can be read off
+    // the log (does behavior flip when hourTod crosses a painted boundary?).
+    private void ObserveScheduleArrayAndProbe(VillagerSurvival surv, Villager villager, int idx, float timeOfDay)
+    {
+        try
+        {
+            var liveArr = villager._schedule;
+            if (liveArr == null) return;
+
+            _scheduleHours.TryGetValue(surv, out var stored);
+            bool changed = stored == null || stored.Length != liveArr.Length;
+            if (!changed)
+            {
+                for (int h = 0; h < stored!.Length; h++)
+                    if (stored[h] != liveArr[h]) { changed = true; break; }
+            }
+
+            var arr = stored;
+            if (changed)
+            {
+                arr = new int[liveArr.Length];
+                for (int h = 0; h < liveArr.Length; h++) arr[h] = liveArr[h];
+                _scheduleHours[surv] = arr;
+                Plugin.Logger.LogInfo(
+                    $"[DynamicNeeds] MSdiag observe villager[{idx}] schedule={HoursString(arr)} packed=0x{villager.__NetworkedSchedule:X} (array change)");
+            }
+            if (arr == null) return;
+
+            bool mixed = false;
+            for (int h = 1; h < arr.Length; h++)
+                if (arr[h] != arr[0]) { mixed = true; break; }
+            if (!mixed) return;
+
+            int hourTod = timeOfDay >= 0f ? Mathf.Clamp(Mathf.FloorToInt(timeOfDay), 0, arr.Length - 1) : -1;
+            char slot = hourTod >= 0 ? HourChar(arr[hourTod]) : '-';
+            Plugin.Logger.LogInfo(
+                $"[DynamicNeeds] MSdiag mixed villager[{idx}] timeOfDay={timeOfDay:F3} hourTod={hourTod} slot={slot} " +
+                $"behavior={villager.CurrentBehaviorType} sleeping={surv.IsSleeping}");
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag mixed: {ex}"); }
     }
 
     private static Mode Decide(Mode prev, float restHours, bool isSleeping, float minNeed, bool critical, float happiness,
@@ -478,6 +541,9 @@ public class NeedsController : MonoBehaviour
         // Snapshot the original packed schedule once, before we ever touch it.
         if (!_originalSchedule.ContainsKey(surv))
         {
+            // Known (2026-07-09): __NetworkedSchedule reads 0x0 at rest/load — this captures a packed
+            // transient, not the painted schedule. Writing 0x0 back at shutdown is harmless (it IS the
+            // at-rest value), but Phase 1's Manual mode must work from _scheduleHours, not this.
             _originalSchedule[surv] = villager.__NetworkedSchedule;
 
             // MSdiag (a): also snapshot the per-hour schedule array at this same "first touch" moment.
@@ -645,30 +711,42 @@ public class NeedsController : MonoBehaviour
 
             float dayNight = 0f;
             bool isNight = false;
+            float timeOfDay = -1f;
             try
             {
                 var w = WeatherSystem.Instance;
-                if (w != null) { dayNight = w.DayNightValue; isNight = w.IsNight; }
+                if (w != null) { dayNight = w.DayNightValue; isNight = w.IsNight; timeOfDay = w.TimeOfDay; }
             }
             catch { }
+            // DayNightValue saturates at exactly 0/1 for long stretches (it's a lighting blend, not a
+            // clock — confirmed in-game 2026-07-09), so this hourIndex pins at 0/23. TimeOfDay is the
+            // linear 0..24 in-game clock; hourTod is the candidate replacement being calibrated.
             int hourIndex = Mathf.Clamp(Mathf.FloorToInt(dayNight * hourCount), 0, hourCount - 1);
+            int hourTod = timeOfDay >= 0f ? Mathf.Clamp(Mathf.FloorToInt(timeOfDay), 0, hourCount - 1) : -1;
 
-            char snap = '-';
-            if (_scheduleHours.TryGetValue(surv, out var snapArr) && hourIndex >= 0 && hourIndex < snapArr.Length)
-                snap = HourChar(snapArr[hourIndex]);
+            char snap = '-', snapTod = '-';
+            if (_scheduleHours.TryGetValue(surv, out var snapArr))
+            {
+                if (hourIndex >= 0 && hourIndex < snapArr.Length) snap = HourChar(snapArr[hourIndex]);
+                if (hourTod >= 0 && hourTod < snapArr.Length) snapTod = HourChar(snapArr[hourTod]);
+            }
 
-            char live = '-';
+            char live = '-', liveTod = '-';
             try
             {
                 var liveArr = villager._schedule;
-                if (liveArr != null && hourIndex >= 0 && hourIndex < liveArr.Length)
-                    live = HourChar(liveArr[hourIndex]);
+                if (liveArr != null)
+                {
+                    if (hourIndex >= 0 && hourIndex < liveArr.Length) live = HourChar(liveArr[hourIndex]);
+                    if (hourTod >= 0 && hourTod < liveArr.Length) liveTod = HourChar(liveArr[hourTod]);
+                }
             }
             catch { }
 
             Plugin.Logger.LogInfo(
                 $"[DynamicNeeds] MSdiag hour dayNight={dayNight:F3} count={hourCount} hourIndex={hourIndex} " +
-                $"snap={snap} live={live} behavior={villager.CurrentBehaviorType} sleeping={surv.IsSleeping} night={isNight}");
+                $"snap={snap} live={live} timeOfDay={timeOfDay:F3} hourTod={hourTod} snapTod={snapTod} liveTod={liveTod} " +
+                $"behavior={villager.CurrentBehaviorType} sleeping={surv.IsSleeping} night={isNight}");
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag hour: {ex}"); }
     }
@@ -772,6 +850,18 @@ public class NeedsController : MonoBehaviour
             long live = villager.__NetworkedSchedule;
             if (live == applied) return;
             if (_lastLoggedForeignPacked.TryGetValue(surv, out var lastLogged) && lastLogged == live) return;
+
+            // __NetworkedSchedule is a transient change-transport field, not an at-rest schedule
+            // mirror: it reads 0x0 at world load, and the game resets it to 0x0 mid-session (seen for
+            // all 45 tracked villagers at once, 2026-07-09). A reset is NOT a player edit — keep the
+            // snapshot and the restore target. Real edits arrive as a NONZERO packed value.
+            if (live == 0)
+            {
+                Plugin.Logger.LogInfo(
+                    $"[DynamicNeeds] MSdiag packed reset villager[{idx}]: applied=0x{applied:X} live=0x0 (native reset — ignored, snapshot kept)");
+                _lastLoggedForeignPacked[surv] = live;
+                return;
+            }
 
             // Restore target update — independent of whether the per-hour array read below succeeds.
             _originalSchedule[surv] = live;

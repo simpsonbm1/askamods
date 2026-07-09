@@ -304,7 +304,7 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   on-window** (night guards): adopt+boost when rest is genuinely depleted (the unavoidable mid-shift sleep);
   otherwise the mod must WAKE them — but the existing wake trick relies on a schedule CHANGE, and `_applied`
   idempotency would skip the re-write ⇒ needs a forced re-fire (clear `_applied` / pulse Sleep→Work).
-  ⚠️ verify in-game which write actually ends a forced sleep.
+  ⚠️ verify in-game which write actually ends a forced sleep. (Phase 0 note 2026-07-09: painted-W nights were worked straight through by a rest-topped villager — forced sleep may be rest-depletion-only, making this moot for adequately-scheduled guards; still verify.)
 - **Phasing:** **v1.3.0 = Phase 0, read-only diagnostics** (`ManualScheduleDiagnostics`, default true per
   project rule): per-hour snapshot capture + logging, hourIndex calibration (`DayNightValue` → hourIndex vs
   snapshot activity vs live behavior), cohort grouping + pairwise sleep-overlap report, player-edit
@@ -317,6 +317,21 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   paint/apply handlers + text injection (TerrainLeveler build-menu precedent proves UI injection is
   doable); Phase 0's cohort+overlap computation is the exact data source, and Phase 1's log warning ships
   the same detection first.
+- **Phase 0 RESULTS (2026-07-09, v1.3.1–v1.3.3, COMPLETE — all exit criteria met):** hour source is
+  `floor(WeatherSystem.Instance.TimeOfDay)` (linear 0..24 wall clock; slot k == clock hour k, zero
+  offset — painted midday Sleep block 10–13 executed 10:00–13:59 exactly). `DayNightValue` is a
+  saturating blend, NOT a clock — dead-end. `__NetworkedSchedule` is a transient: 0x0 at rest,
+  mass-reset to 0x0 by the game mid-session, and NEVER pulsed by player UI edits ⇒ **snapshot
+  freshness / edit detection must diff `_schedule` array contents** (5 s cadence caught 3/3 live
+  edits) — this replaces the packed-mismatch mechanism items above assume. Cohort grouping +
+  sleep-overlap math validated on real painted staggers. Design refinements for Phase 1: while in
+  the Manual baseline the mod should write NOTHING (the game executes painted schedules natively —
+  confirmed); write only on mode exits (adopt-sleep collapse, emergency/fill Leisure) and write the
+  painted array back on return; shutdown RestoreAll should pack the stored `_scheduleHours` array
+  (packed `_originalSchedule` snapshots are 0x0 and restore nothing — this is also why worlds
+  played under the ACTIVE mod have uniform saved schedules). ⚠️ softened risk: a painted-W night
+  was worked straight through (villager had a midday sleep block) — the "wake night guards from
+  game-forced sleep" problem may only exist for rest-depleted villagers; verify during Phase 1.
 
 ---
 
