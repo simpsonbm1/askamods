@@ -8,12 +8,20 @@ All type/member signatures below were confirmed from the interop binaries via Mo
 discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and — unusually — needs **no**
 new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
 
-**Priority order (user):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting multiplier.
-(Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
-see [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md). NOTE: the plan's original model was only
-half right — cooking is IDiscoverableItem/Rpc_AddDiscoverable, but **fishing tasks are gated by MARKED
-fishing grounds, not item discovery** — corrected mechanism in
-[`docs/architecture.md`](docs/architecture.md) → "Task Discovery & Bypassing".)
+**Priority order (user, historical):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting
+multiplier. Vacuum (4) has since shipped; remaining open priority: 5) freezing hunters → 2) den respawn
+→ 3) crafting multiplier.
+
+**Shipped ideas — full research retired, self-documented in `docs/mods/`:**
+- Idea 4, ground-item vacuum → **SHIPPED** as GroundItemVacuumMod v1.1.0 — [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md).
+- Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
+  [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md). NOTE: the plan's original model was only
+  half right — cooking is IDiscoverableItem/Rpc_AddDiscoverable, but **fishing tasks are gated by MARKED
+  fishing grounds, not item discovery** — corrected mechanism in
+  [`docs/architecture.md`](docs/architecture.md) → "Task Discovery & Bypassing".
+- Idea 8, new workers start with zero tasks → **SHIPPED** as ZeroTaskWorkersMod v1.0.0 — [`docs/mods/zero-task-workers.md`](docs/mods/zero-task-workers.md).
+- Idea 9, mushrooms year-round/rain-independent → **SHIPPED** in TreeRespawnMod v1.4.7 — [`docs/mods/tree-respawn.md`](docs/mods/tree-respawn.md).
+- Idea 10, inventory fish fillet (shift-click) → **SHIPPED** as FishFilletMod v1.1.1 — [`docs/mods/fish-fillet.md`](docs/mods/fish-fillet.md).
 
 ---
 
@@ -81,38 +89,6 @@ substring-map pattern). Guard against double-applying (idempotence flag per sess
 world reload). ⚠️ verify: UI shows scaled quantity; villager quota logic stays sane; co-op client
 sees host-consistent results (data edit is local — client without the mod may display vanilla
 numbers even if items granted are host-authoritative — needs a test).
-
----
-
-## 4. "Vacuum cleaner" for ground clutter — SHIPPED as GroundItemVacuumMod v1.0.1 (2026-07-07)
-
-**Status: ✅ COMPLETE — confirmed in-game 2026-07-07.** See [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md)
-for the shipped recipe (own-set OnEnable/OnDisable tracking + `RemoveObjectFromWorld`), the v1.0.0
-raw-linked-list-walk native-crash dead-end, and the framerate finding (ground clutter was NOT the
-bottleneck — a loaded mod is; bisect pending). Original plan below.
-
-**Goal:** clear loose ground items (config radius) to protect framerate; optional decay tuning,
-including items that never decay (long sticks, logs).
-
-**Key API (confirmed from binary):**
-- `SSSGame.DynamicItemObjectManager` — persistent manager holding an intrusive **linked list of every
-  dynamic ground item** (`_head` → `DynamicItemObject.NextDynamicObject`). Enumerable without
-  FindObjectsByType.
-- `DynamicItemObject._itemObject : WorldItemObject`; `WorldItemObject.RemoveObjectFromWorld()` —
-  the game's own "delete this ground item" (it's what the confirm-dialogue destroy uses) ⇒ the
-  network-safe removal call.
-- Decay already exists as item *processes*: `SandSailorStudio.Inventory.ExpirationProcess` +
-  `SSSGame.Network.ItemDecaySyncProcess` (per-item-asset lifespans).
-
-**Approach:**
-1. **Phase 1 (vacuum):** hotkey → walk the DynamicItemObjectManager list, filter by distance to
-   player and a config item-name/category blacklist (default-exclude equipment: Weaponized/Wearable/
-   EquipmentItemObject — identify by native class name, NOT managed `is`/`as`, per interop gotcha),
-   call `RemoveObjectFromWorld()` host-side. Config: radius, hotkey, exclusions, optional auto-run
-   every N minutes. Diagnostics default true: log per-sweep counts by item name.
-2. **Phase 2 (decay tuning):** enumerate item assets, scale `ExpirationProcess` lifespans; for
-   never-decay items (logs, long sticks) attach/enable an expiration process — riskier (asset
-   surgery + network sync), do only after Phase 1 proves the enumeration.
 
 ---
 
@@ -222,222 +198,6 @@ moment it finishes (worst case: a fresh warehouse instantly crammed with random 
 - All writes host-authoritative; the villagers-in-charge RPC lives on the GENERIC
   NetworkWorkstation base — patching generic NetworkBehaviour methods is untested territory here
   (prefer calling the RPCs, never patching `CopyBackingFieldsToState` — load-hang gotcha).
-
----
-
-## 8. New workers start with ZERO tasks (no task-list inheritance) — SHIPPED as ZeroTaskWorkersMod v1.0.0 (2026-07-06)
-
-**Status: ✅ COMPLETE — confirmed in-game 2026-07-06.** See [`docs/mods/zero-task-workers.md`](docs/mods/zero-task-workers.md) for the shipped recipe, config, and test results.
-
-**Original Goal:** on config-listed buildings, a newly assigned worker gets *no* tasks by default (today he's
-auto-activated for all 25 blacksmith tasks and you must hand-uncheck each). The user then opts him
-into exactly the tasks wanted (e.g. only Draugr weapon research).
-
-**Key API (confirmed from binary, reconfirmed for ship):**
-- Per-task assignees: `SSSGame.AI.WorkstationTaskData.VillagersInCharge : List` (+ `priority`,
-  `pinnedTask`, `onDataChanged : Action`).
-- The inheritance moment: `Workstation.AddToTaskDatas(Villager)` — called when a villager joins a
-  station (assignment chain: `Villager.AssignToWorkstation(IWorkstation)` →
-  `_AssignToWorkstationInternal` → `Workstation.SetTaskAgent(ITaskAgent)`); the reverse is
-  `RemoveFromTaskDatas(Villager)`.
-- **The clean per-(villager, task) gate:** `Workstation._CanAddVillagerToTaskData(Villager,
-  WorkstationTaskData) : Boolean` — and it's **overridden by `Buildstation`** ⇒ virtual/vtable-
-  dispatched ⇒ safe from the AOT-inlining trap that kills small-method patches.
-- Network sync is the game's own: the generic NetworkWorkstation's
-  `Rpc_ChangeTaskVillagersInCharge(Int32, Il2CppStructArray)` /
-  `OnTaskVillagersInChargeChanged(WorkstationTaskData)` (mask-based,
-  `_UpdateTaskVillagersInChargeFromMask`). The UI checkbox path goes through this — so removals done
-  via the same calls replicate correctly.
-- NOT the same system as station *whitelisting* (`IsWhitelisted` / `WhitelistNewVillagers` /
-  `Rpc_ChangeWhitelistedVillager`) — that's "which villagers may use this station", not per-task
-  in-charge lists. Don't conflate them.
-
-**Approach:** prefix `Workstation._CanAddVillagerToTaskData` → `__result = false` (skip original)
-when the station's `Structure.GetName()`/`DefaultName` matches the config list (TreeRespawnMod
-substring-map pattern; option for "all buildings"). Result: `AddToTaskDatas` adds the villager to
-nothing — zero tasks, exactly the ask. Fallback if that gate turns out to be consulted elsewhere
-(e.g. by the UI to decide which checkboxes to *show*): postfix `AddToTaskDatas(Villager)` and
-immediately strip the villager back out of every `WorkstationTaskData.VillagersInCharge` via the
-game's RPC path. Config: building-name list, `ApplyToAllBuildings`, and (stretch) `NewTasksStartUnassigned`
-— when a new task is added to a station, existing workers likely inherit it the same way
-(`WorkstationTaskData` ctors take a villager list) — same gate should cover it.
-
-**⚠️ verify / risks (the diagnostics phase decides the final hook):**
-- **When exactly `AddToTaskDatas` fires** — must be hire-time only. If it also runs on world load /
-  villager respawn / structure upgrade re-registration, a blanket prefix would strip SAVED
-  assignments every load. Vanilla preserves unchecked boxes across save/load, so load-path
-  restoration is probably `DeserializeTaskData` / network state — but confirm with a
-  diagnostics-first build (log every call with villager name + station + call timing), and if
-  needed gate on "world finished loading" (TaskUnlockerMod's `BlueprintConditionsDatabase` world
-  gate) before treating a call as a real hire.
-- Whether the UI task checkboxes read `_CanAddVillagerToTaskData` (would make unchecked boxes
-  un-checkable — then use the postfix-strip fallback instead).
-- Fire-verify the prefix actually intercepts calls from `AddToTaskDatas` (virtual dispatch should
-  guarantee it, but that's the standing rule).
-- Host-only (`NetworkLogic.HasStateAuthority`); client-side assignment presumably routes through
-  the host anyway — confirm in co-op.
-
----
-
-## 9. Mushrooms year-round / rain-independent — TreeRespawnMod extension
-
-**Status: ✅ SHIPPED in TreeRespawnMod v1.4.7 — CONFIRMED in-game 2026-07-07** (rain half Spring-no-rain; winter/season half in a co-op winter save).
-
-**Goal:** remove the seasonal + weather gating on wild mushrooms so they appear year-round (not
-culled in winter) and don't wait on rain to grow. Keep their spatial "wooded areas" placement as-is
-(that's separate worldgen spawn-location logic — untouched).
-
-**Key API (confirmed from binary via Cecil 2026-07-06):** the game gates seasonal/weather-restricted
-resources through ONE universal availability system:
-- `SSSGame.WeatherManager` (MonoBehaviour; `FindAnyObjectByType` works) holds
-  **`_descriptors : Dictionary<ItemInfo, BiomeItemAvailabilityData>`** — keyed by the produced
-  **`ItemInfo`** (so entries are targetable by item name; wild mushrooms surface as
-  `"Gray/Grey Mushroom"` / `"Yellow Mushroom"`, substring `"Mushroom"` — the same key TreeRespawn's
-  GatherRespawn already uses). `RegisterDescriptor(BiomeItemDescriptor)` populates it;
-  `HandleDescriptors()` / `IsAvailable(AvailabilityProcess)` re-evaluate on every weather/season change.
-- `SSSGame.BiomeItemAvailabilityData`: `availabilityProcess : AvailabilityProcess`, `remainingDays`,
-  `ReplenishOnAvailable`, `LastResult`, `CurrentDescriptorsState`, `_OnNewDay()` (daily countdown).
-- **`SandSailorStudio.Inventory.AvailabilityProcess`** (ScriptableObject) is the gate. Master eval
-  **`CheckAll(WeatherEventData)`** ANDs four mutable condition lists:
-  - `SeasonAvailabilityConditions : List<SSSGame.Weather.SeasonConfig>` — allowed seasons (**winter cull**),
-  - `TimeAvailabilityConditions : List<TimeCondition>` (`condition` ∈ `NormalizedSeasonTime`/`DayOfYear`/…, `+subcondition` range),
-  - `OtherAvailabilityConditions : List<OtherCondition>` (`condition` ∈ `IsRaining`/`IsWet`/… — **the rain gate**),
-  - `ProgressingWeatherConditionAvailabilityConditions`.
-  Each condition carries `isMandatory` + `negateCondition`. Sub-checks: `CheckSeasonCondition`,
-  `CheckOtherWeatherConditions`, `CheckTimeWeatherConditions`, `GetNextAvailableTime`.
-- Same system also gates `FishingGround.FishAvailabilityProcess`, `PlantableItemInfo.PlantAvailabilityProcess`,
-  traps, invasions, populations — so **any bypass MUST be scoped to mushroom entries only**, never global.
-
-**Diagnostic (TreeRespawnMod v1.4.6 — `MushroomDiag.cs`, `[MushroomAvailability]` config, read-only)
-— MODEL CONFIRMED in-game 2026-07-07.** The dump (22 descriptors; context Spring/day-12/not-raining)
-showed all **3 wild mushrooms are registered and gated exactly as expected**:
-- `Mushrooms` (id 16793608) & `Grey Mushrooms` (16793609): `Season = Spring,Summer,Autumn` (no Winter);
-  `Other = IsRaining mandatory=True`; `process.lifespan=1`.
-- `Yellow Mushrooms` (16793610): `Season = Autumn` only; `Other = IsRaining mandatory=True`; `lifespan=1`.
-- All three read `CheckAll=False / IsAvailable=False` in Spring-no-rain — and since Spring is IN-season
-  for Grey/plain, the **only** failing gate was the mandatory `IsRaining` → decisive proof the rain gate
-  is `OtherCondition{IsRaining, mandatory=True}` and the winter cull is `SeasonAvailabilityConditions`
-  (omitting Winter). Each mushroom has its **own** process (season lists differ) ⇒ no shared-SO collateral.
-- Cross-check: seasonal crops confirm the season-list mechanism (Beetroot=Autumn,**Winter**; Carrot/
-  Cabbage=Summer,Autumn — all `False` in Spring), and `mandatory=False` weather conditions do NOT block
-  (Natural Water Collector has 3 non-mandatory Others, all currently false, yet `IsAvailable=True`).
-
-**Approach (levers now exact) — data edit at world load, mushroom-keyed only:** on the 3 mushroom
-entries in `WeatherManager._descriptors` (name contains "Mushroom"), (1) **rain-independent** = clear
-`OtherAvailabilityConditions` (removes the mandatory `IsRaining`); (2) **year-round** = clear
-`SeasonAvailabilityConditions` (empty ⇒ no season restriction — evidence: empty-season items read
-available). Then the game's own `replenishWhenAvailable`/lifespan loop runs unrestricted. Config:
-substring item-name list (default `Mushroom`), plus independent `IgnoreSeason` / `IgnoreRain` toggles.
-Alternative if a data edit misbehaves: Harmony prefix on `AvailabilityProcess.CheckAll` → `__result=true`
-for a pre-scanned mushroom-process `HashSet` (reversible, no SO mutation).
-
-**✅ Verified in-game 2026-07-07 (v1.4.7 — implemented exactly as "clear both lists" above):**
-- Clearing the two lists makes mushrooms spawn/persist without rain (Spring, `raining=False` — where the
-  v1.4.6 diagnostic had proven vanilla read `IsAvailable=False`) AND in winter (co-op winter save,
-  `season=WeatherSeason_Winter`/`snowing=False` — all 3 mushrooms `Season[0]`/`Other[0]`, `IsAvailable=True`,
-  visible on the ground). The `lifespan=1` loop keeps them re-replenishing.
-- No separate winter cull remains — mushrooms stay present in winter with the availability gate cleared.
-- Co-op: the SO edit is applied locally on **every** peer (un-host-gated), so it worked in the co-op
-  session regardless of role. A second peer simultaneously seeing the host's winter mushrooms is a safe
-  extrapolation from that design, but was not itself explicitly logged.
-- Minor: `IsAvailable` lags False→True by one weather/season eval tick after the clear (the game caches
-  the result); self-corrects (`remainingDays` −1→1). The Harmony-prefix alternative was not needed.
-
----
-
-## 10. Fillet fish directly in inventory (shift-click harvest) — SHIPPED as FishFilletMod v1.1.1 (2026-07-08)
-
-**Status: ✅ COMPLETE — confirmed in-game 2026-07-08.** See [`docs/mods/fish-fillet.md`](docs/mods/fish-fillet.md)
-for the shipped recipe (Shift+RMB trigger; OnPointerClick prefix gesture; temp-null tool-req + CommandHarvestItem drive; why Shift+RMB dodges the native Shift+LMB harvest-router toast) and dead-ends (CanHarvestCurrentItem-flip-alone, CommandHarvestItem patch, persistent bare-hand).
-
-**Original Goal:** let the player break a caught fish down into its fillet output (meat / blubber) with the same
-**shift-click-in-inventory harvest** the game already gives bark, reeds, fur, straw, etc. — instead of
-having to drop the fish on the ground, fillet it with a skinning knife, and pick the results back up.
-(Nexus request from kira31374, 2026-07-07: fishing chefs waste a lot of time hand-filleting.)
-
-**Two DISTINCT mechanisms confirmed from binary (2026-07-07):**
-1. **The inventory shift-click harvest** (what bark/reeds use — toolless, instant, one item → its yield):
-   - `SSSGame.UI.ItemThumbnailPanel.CommandHarvestItem() : Void`, **gated by
-     `CanHarvestCurrentItem() : Boolean`** — plain `MonoBehaviour` UI methods (**safe patch surface,
-     not inlining-prone**, unlike the item-side `CanBeHarvested()` below).
-   - Executes via `SSSGame.CharacterInventory.HarvestSelectedItems() : Boolean` (Public **Virtual Final**,
-     implements `SandSailorStudio.Inventory.IInventoryManager.HarvestSelectedItems()`) →
-     `_HarvestItemOperation() : Void` (private worker). `PetInventory` has the identical twins.
-   - **"Shift" = the harvest modifier**: `SSSGame.UI.ContextMenu._harvestModifierInputPressed`,
-     `_onClickModifier1Changed/2Changed(CallbackContext)`, `allowHarvestCursor`, `_RefreshHarvestCursor()`,
-     `_GetHarvestEventData() : ContextMenu/HarvestCustomActionEventData` (a `CustomActionEventData` with
-     `.Use()` / `.Cancel()`). Mirrored on `ItemDetailsPanel._harvestModifierInputPressed` + `harvestTooltip`.
-2. **The fish fillet** (drop + skinning knife): the dropped fish is a world `WorldItemInstance` harvested
-   with the knife. The villager equivalent is the **harbor butcher**: `SSSGame.AI.HarborHarvestQuest` →
-   `SSSGame.AI.FSM.FSM_HarborHarvest` (`slaughterAction`, `resultName`, `categoryName`,
-   `_PrepareWorldItemInstance(HarvestData, WorldItemInstance)`) → `FSM_ReturnHarborButcherResults`. This
-   is the **same resource-harvest FSM** run on the dropped fish ⇒ strong evidence the fillet yield is the
-   fish's own `ResourceInfo.exhaustableComponents` (see below), i.e. the SAME data both paths consume.
-
-**The shared item-side data type — `SSSGame.ResourceInfo : ItemInfo`** (ScriptableObject; the type behind
-bark, fiber, raw meat, and almost certainly caught fish):
-- `exhaustableComponents : Il2CppReferenceArray` — **the harvest YIELD** (what you receive; "exhaust the
-  resource to get these"). `junk : Il2CppReferenceArray` — low-value extras. `piecesHitpoints`.
-- `mainHarvestMoveset : InteractionMoveset` — the harvest animation/tool. Tool requirement lives in
-  **`SSSGame.InteractionMoveset.requiredEqippmentCategory : ItemCategoryInfo`** (+ `baseUnarmedDamage`,
-  `damageMultiplier`, `weaponDurabilityDamage`) — this is where "needs a skinning knife" is encoded.
-- `CanBeHarvested() : Boolean` — the per-item gate. **NOT virtual ⇒ prime IL2CPP inlining candidate ⇒ a
-  Harmony patch on it may silently never fire (documented gotcha). Do NOT patch it — patch the UI gate
-  `ItemThumbnailPanel.CanHarvestCurrentItem()` instead.** Also `GetNonExhaustedDepth(IItemFilter, UInt32&)`,
-  `harvestChanceHasLootRequirements`, `harvestDiscoversComponents`, `requiresDiscovery`.
-- `SandSailorStudio.Inventory.ItemsConstants.c_NonHarvestable : Int32` (attribute-id constant) + `c_FishWeight`,
-  `c_FishingState` — items carry attributes; fish carry weight/state attrs, and `c_NonHarvestable` marks
-  items excluded from harvest. (Attributes live in `ItemInfo.attributes` / `FindAttribute(Int32&)`.)
-- Caught fish itself = `SSSGame.Fishable.info : ItemInfo` (from `FishableItemsConfig.FishableItems`) — the
-  static type is `ItemInfo`, so the concrete subtype (ResourceInfo?) is the Phase-0 question. **NB: the
-  `FishingItemInfo`/`FishingItem` types are the ROD/line (`: WeaponizedItem`), not the catch.**
-- World-loot alt-path if the yield ISN'T in exhaustableComponents: `SSSGame.LootSpawner.lootOnHarvest` /
-  `GetPieceLoot()` on the dropped-fish prefab.
-
-**Model (⚠️ the runtime half — Phase 0 decides):** bark/reeds are `ResourceInfo` with `CanBeHarvested()=true`
-and a bare-hand `mainHarvestMoveset` (empty `requiredEqippmentCategory`) ⇒ the toolless inventory shift-click
-grants their `exhaustableComponents` (fiber). Fish is (very likely) also a `ResourceInfo` whose
-`exhaustableComponents` ARE the fillets, but whose inventory-harvest is blocked because ONE of:
-(a) `CanBeHarvested()`/`CanHarvestCurrentItem()` returns false for it; (b) its `mainHarvestMoveset` requires
-the skinning-knife category so the toolless inventory path refuses it; (c) it carries the `c_NonHarvestable`
-attribute. **Determining WHICH is the entire point of Phase 0** — it also decides whether the yield is already
-present (best case) or must be reconstructed (fallback).
-
-**Approach (phased — diagnostics first, ship the cheap win):**
-1. **Phase 0 (diagnostics — decides the hook, default `true`):** for the currently-selected inventory item
-   (start with a fish; cross-dump bark/reeds as the working baseline), log: runtime IL2CPP class (is it
-   `ResourceInfo`?), `CanBeHarvested()`, `exhaustableComponents` + `junk` (item names + quantities), whether
-   it has the `c_NonHarvestable` attribute, `mainHarvestMoveset.requiredEqippmentCategory` (the required tool),
-   and whether `ItemThumbnailPanel.CanHarvestCurrentItem()` returns false. This confirms fish-is-ResourceInfo,
-   whether the meat/blubber yield already lives in `exhaustableComponents`, and exactly which gate blocks it.
-2. **Phase 1 (best case — un-hide + reuse the vanilla yield):** if fish is a `ResourceInfo` carrying the
-   fillets as `exhaustableComponents`, Harmony **postfix** `ItemThumbnailPanel.CanHarvestCurrentItem()` →
-   `__result = true` for fish (**scoped by category/name substring — never global**, so we don't unlock every
-   `c_NonHarvestable` item). Vanilla `CommandHarvestItem()` → `HarvestSelectedItems()` → `_HarvestItemOperation()`
-   then consumes the fish and grants meat+blubber through the game's own item-add + networking. If the operation
-   internally re-checks `CanBeHarvested()` and still refuses, fall back to patching `HarvestSelectedItems`/
-   `_HarvestItemOperation` to force-run for fish. Config: fish name/category list (default the fish category),
-   optional `RequireSkinningKnifeInInventory` (only allow if the player holds the knife category — matches the
-   theme), optional `ConsumeKnifeDurability`. Fire-verify the postfix with a log line.
-3. **Phase 2 (fallback — reconstruct the yield):** only if Phase 0 shows the fillet output is NOT in
-   `exhaustableComponents` (it lives on the dropped-fish prefab `LootSpawner.lootOnHarvest`). Add a custom
-   context-menu "Fillet" action (the `HarvestCustomActionEventData`/CustomAction path) that consumes one fish
-   and grants the loot read from the fish's `spawnObject` LootSpawner (or a config'd meat/blubber map), via the
-   game's own add-item RPC. More code — avoid unless forced.
-
-**⚠️ verify / risks:**
-- **Fish-is-ResourceInfo and `exhaustableComponents` = the fillets** — the central assumption; Phase 0 confirms
-  or routes to Phase 2.
-- Whether `CanHarvestCurrentItem`/`_HarvestItemOperation` **enforce the moveset tool requirement** (skinning
-  knife). If they do, either the mod supplies the tool virtually or gates on the player actually holding it.
-- **Stack behavior:** does one shift-click fillet one fish or the whole stack? Match vanilla; verify the
-  meat+blubber-per-fish quantities EQUAL the drop-and-skin result (not an exploit or a nerf).
-- **Durability:** the world-fillet spends skinning-knife durability; the inventory path may bypass it — offer
-  `ConsumeKnifeDurability` so it isn't a free shortcut if the user wants parity.
-- **Host authority / co-op:** `HarvestSelectedItems` is the game's own networked path; gate writes on authority
-  and let the vanilla op do the add. Confirm a client filleting routes through the host.
-- Fire-verify the `CanHarvestCurrentItem` postfix fires (MonoBehaviour UI method — should be safe from the
-  AOT-inlining trap, but standing rule).
 
 ---
 
