@@ -16,6 +16,8 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
 
     // --- config ---
+    // Tracker re-reads the file periodically so settings can be changed mid-session (SeedScout pattern)
+    internal static ConfigFile? Cfg;
     internal static ConfigEntry<string> VacuumHotkey = null!;
     internal static ConfigEntry<bool> DryRun = null!;
     internal static ConfigEntry<float> Radius = null!;
@@ -43,6 +45,7 @@ public class Plugin : BasePlugin
     public override void Load()
     {
         Logger = base.Log;
+        Cfg = Config;
 
         VacuumHotkey = Config.Bind(
             "General", "VacuumHotkey", "n",

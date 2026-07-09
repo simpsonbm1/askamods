@@ -1,8 +1,24 @@
-# Mod 19: GroundItemVacuumMod — COMPLETE (v1.0.2)
+# Mod 19: GroundItemVacuumMod — COMPLETE (v1.1.0)
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey (or timer) to reduce ground clutter. Confirmed in-game 2026-07-07: removes
 the debris cleanly with only a minor ~2-frame hitch on ~1165 removals, no crash.
+
+## v1.1.0 — Live config hot-reload (confirmed in-game 2026-07-08)
+The mod now re-reads the BepInEx config file every 5 seconds during active play, allowing the user to
+tweak settings (VacuumHotkey, DryRun, Radius, filters, etc.) without restarting the game. The mechanism
+(ported from SeedScout's pattern):
+- Plugin.cs exposes `internal static ConfigFile? Cfg;` set to `Config` in `Load()`.
+- `VacuumTracker.Update()` accumulates `_cfgReloadTimer` and calls `Plugin.Cfg?.Reload()` inside try/catch
+  every 5 seconds. BepInEx does NOT re-read an edited config on its own, so the explicit `Reload()` is required.
+- All sweep settings (DryRun, Radius, VacuumEntireWorld, filters, HostOnly, AutoVacuumMinutes, Diagnostics,
+  TraceEachItem) are read fresh from `.Value` at sweep time, so they take effect automatically after a reload.
+- The hotkey was the only once-cached value. Its parsing moved from `Start()` into `ApplyHotkey()`, which
+  no-ops unless the raw config string changed and logs "[Vacuum] Hotkey bound to <key>" on a re-bind.
+  `ApplyHotkey()` is called from `Start()` and after each 5-second reload.
+
+Confirmed in-game: the user changed `VacuumHotkey` and flipped `DryRun` in `BepInEx\config\com.askamods.grounditemvacuum.cfg`
+while the game was running and both took effect without a relaunch.
 
 > **Important finding (2026-07-07):** this mod does its job, but **ground clutter was NOT the user's
 > framerate bottleneck.** Removing ~1165 items barely moved FPS. A vanilla-vs-modded test (disable

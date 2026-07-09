@@ -10,9 +10,11 @@ namespace GroundItemVacuumMod;
 public class VacuumTracker : MonoBehaviour
 {
     private KeyCode _key = KeyCode.N;
+    private string _keyRaw = "";
     private string _guiMessage = "";
     private float _guiExpiry = 0f;
     private float _autoTimer = 0f;
+    private float _cfgReloadTimer = 0f;
 
     private sealed class Candidate
     {
@@ -24,15 +26,37 @@ public class VacuumTracker : MonoBehaviour
 
     private void Start()
     {
-        if (Enum.TryParse<KeyCode>(Plugin.VacuumHotkey.Value, true, out var parsed))
+        ApplyHotkey();
+    }
+
+    // Re-binds _key from config. No-op unless the raw config string changed, so it's safe to
+    // call on every config reload without log spam.
+    private void ApplyHotkey()
+    {
+        string raw = Plugin.VacuumHotkey.Value ?? "";
+        if (raw == _keyRaw) return;
+        _keyRaw = raw;
+        if (Enum.TryParse<KeyCode>(raw, true, out var parsed))
             _key = parsed;
         else
-            Plugin.Logger.LogWarning($"[Vacuum] Could not parse hotkey '{Plugin.VacuumHotkey.Value}'. Defaulting to '{_key}'.");
+            Plugin.Logger.LogWarning($"[Vacuum] Could not parse hotkey '{raw}'. Keeping '{_key}'.");
         Plugin.Logger.LogInfo($"[Vacuum] Hotkey bound to {_key}.");
     }
 
     private void Update()
     {
+        // Live config pickup: BepInEx does NOT re-read an edited cfg on its own — reload it every
+        // few seconds so DryRun/filters/radius/hotkey can be changed mid-session without a
+        // relaunch (SeedScout pattern). Every other setting is already read fresh at sweep time,
+        // so the hotkey is the only value that needs explicit re-application.
+        _cfgReloadTimer += Time.deltaTime;
+        if (_cfgReloadTimer >= 5f)
+        {
+            _cfgReloadTimer = 0f;
+            try { Plugin.Cfg?.Reload(); } catch { }
+            ApplyHotkey();
+        }
+
         if (Input.GetKeyDown(_key))
         {
             try { Sweep(auto: false); }
