@@ -102,6 +102,11 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   (despite being declared virtual). Prefer patching **virtual/vtable-dispatched methods** (`Init`,
   `Show`, `Use`) or multi-caller publics, and **ALWAYS fire-verify a new patch with a log line** before
   trusting it.
+- **`Fusion.SimulationBehaviour` exposes public properties for authority checks.** Any `NetworkBehaviour`
+  inherits from `Fusion.SimulationBehaviour`, which exposes `Runner` (the Fusion runner), `Object` (this
+  networked object), `HasStateAuthority`, and `HasInputAuthority` as public properties. Authority-check
+  any networked object directly via `x.Runner.IsServer || x.Runner.IsSharedModeMasterClient` (build +
+  runtime verified 2026-07-09, TimeWarpMod).
 
 ---
 
@@ -210,8 +215,15 @@ WeatherSystem.Instance           ← singleton accessor
   .NetworkedCurrentGameTime (Single) ← persists across saves; valid for elapsed-time math after restart
   .GetTimeDifferenceFromCurrentGameTimeInSeconds()  ← elapsed-since helper
   .IsNight (bool) / .DayNightValue (Single, ~1=midday ~0=deep night)
+  .Rpc_ToggleFastForward()       ← dev RPC: cycles TimeSpeedMultiplier 1→10→36→75→162→1 (confirmed 2026-07-09, TimeWarpMod)
+  .Rpc_SetDayOfYear(Int32)       ← dev RPC: set day-of-year, also advances GetDaysPassed() (confirmed 2026-07-09)
+  .Rpc_SetGameTime(Single)       ← dev RPC: set absolute game time (untested)
+  .Rpc_ToggleTimePassing()       ← dev RPC: pause/resume time (untested)
+  .TimeRunningEnabled            ← writable field controlling whether time advances (untested)
 ```
 In-game hour = `dayLength / 24`.
+
+**Time-control oddities (confirmed 2026-07-09):** `dayOfYear` can exceed `daysInOneYear` (e.g. 74 vs 57 read in the same session) — year-wrap is not enforced the way field names suggest. Right after world load, `GetDaysPassed()` can briefly read 0 before WeatherSystem deserializes (transient).
 
 **Respawn countdown — `SSSGame.BiomeItemAvailabilityData`** (the game's own built-in per-resource countdown; reference)
 ```
@@ -757,6 +769,8 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 - `den.isActive=false` does NOT mean defeated (nocturnal wolf dens inactive by design)
 - `PopulationSpawner.HasNoAliveCreatures()` is TRANSIENT (creatures can be roaming/streaming-culled) — false-positive as "needs revive" signal alone
 - Reliable defeat selection: `needsWork = (anyIgnore || outOfCombatBeingDecided)` where `anyIgnore = any(affectedSpawner.ignoreRespawning)` (confirmed in-game 2026-07-09; narrower filter than v1.1.2's `anyEmpty || anyIgnore`)
+
+**Vanilla natural den respawn = LOAD-TIME check (working model, confirmed-by-correlation 2026-07-09):** At world load, dens whose TRUE defeat age exceeds a threshold (~1 in-game year per community lore) receive a foreign `Den.Revive()` attempt; mid-session elapsed time triggers NOTHING (74 fast-forwarded in-game days produced zero attempts, confirmed in-game 2026-07-09 via TimeWarpMod). Evidence: only the same 3 long-ago-cleared Baby Crawler dens ever received foreign Revive() calls (at every load); a freshly-defeated Skeleton Den with reviveCooldown=0 was NOT attempted (kills a cooldown-only selection theory); mod-revived dens carry ReviveCooldown=1 and re-defeating a den does NOT reset it (observed on the Wulfar den across defeat cycles); Revive() bumps ReviveCooldown 0→1 (previously known). ⚠️ Caveat: threshold-crossing was INFERRED from defeat-age correlation, never watched live; ReviveCooldown's role in driver selection cannot be isolated from defeat-freshness with current data.
 
 **Map pin labels ≠ den type names**
 - "Small Cemetery"/"Large Cemetery" pins = Skeleton Den / Skeleton Den Cluster dens internally

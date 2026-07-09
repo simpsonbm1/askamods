@@ -4,9 +4,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>DenRespawnMod</AssemblyName>
-    <RootNamespace>DenRespawnMod</RootNamespace>
-    <Version>1.2.1</Version>
+    <AssemblyName>TimeWarpMod</AssemblyName>
+    <RootNamespace>TimeWarpMod</RootNamespace>
+    <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

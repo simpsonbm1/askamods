@@ -18,8 +18,6 @@ namespace DenRespawnMod;
 public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
-    internal static ConfigEntry<string> ReviveHotkey = null!;
-    internal static ConfigEntry<float> ReviveRadiusMeters = null!;
     internal static ConfigEntry<bool> AllowRespawnNearStructures = null!;
     internal static ConfigEntry<bool> ClearIgnoreRespawning = null!;
     internal static ConfigEntry<bool> ForceRespawnPopulations = null!;
@@ -54,18 +52,6 @@ public class Plugin : BasePlugin
     public override void Load()
     {
         Logger = base.Log;
-
-        ReviveHotkey = Config.Bind(
-            section: "General",
-            key: "ReviveHotkey",
-            defaultValue: "j",
-            description: "The hotkey (lowercase letter or Unity KeyCode name) pressed to revive defeated dens (wulfar/bear/skeleton dens, etc).");
-
-        ReviveRadiusMeters = Config.Bind(
-            section: "General",
-            key: "ReviveRadiusMeters",
-            defaultValue: 150.0f,
-            description: "Only dens within this many meters of the player are refreshed by the hotkey. 0 = refresh ALL tracked dens on the whole map.");
 
         AllowRespawnNearStructures = Config.Bind(
             section: "General",
@@ -135,7 +121,7 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"DenRespawnMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. Hotkey='{ReviveHotkey.Value}', AllowRespawnNearStructures={AllowRespawnNearStructures.Value}");
+        Logger.LogInfo($"DenRespawnMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. MapReviveModifier='{MapReviveModifier.Value}', AllowRespawnNearStructures={AllowRespawnNearStructures.Value}");
     }
 
     // Parses AutoRespawnRules ("<Den Name>:<days>, ...") into AutoRules. Malformed entries are

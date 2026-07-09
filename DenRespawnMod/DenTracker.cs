@@ -18,7 +18,6 @@ public class DenTracker : MonoBehaviour
     private const float RemoteMatchRadius = 75f;
     private const float RemoteRequestTimeoutSeconds = 30f;
 
-    private KeyCode _key = KeyCode.J;
     private int _frame;
     private int _frame300;
     private StorageManager? _storage;
@@ -37,6 +36,7 @@ public class DenTracker : MonoBehaviour
     {
         public DenRecord Record;
         public float RequestedAt;
+        public string Source;
     }
 
     private readonly List<PendingRefresh> _pendingRefreshes = new();
@@ -46,34 +46,10 @@ public class DenTracker : MonoBehaviour
     private void Start()
     {
         Instance = this;
-
-        if (Enum.TryParse<KeyCode>(Plugin.ReviveHotkey.Value, true, out var parsedKey))
-        {
-            _key = parsedKey;
-            Plugin.Logger.LogInfo($"[DenRespawn] Parsed hotkey: {_key}");
-        }
-        else
-        {
-            Plugin.Logger.LogWarning($"[DenRespawn] Failed to parse hotkey '{Plugin.ReviveHotkey.Value}'. Defaulting to 'J'.");
-            _key = KeyCode.J;
-        }
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(_key))
-        {
-            try
-            {
-                TriggerRevive();
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"[DenRespawn] Error during den revive: {ex}");
-                ShowMessage("Error occurred during den revive! Check BepInEx log.");
-            }
-        }
-
         // Map-pin click trigger (v1.1.4). CompassObjectiveMarker.OnSelect only TRACKS the hovered
         // pin (it fires on hover, not click) — the actual click is detected here, every frame,
         // as a Shift+Left-mouse-press while a pin is hovered. TryRevive's own 0.3s dedupe window
@@ -188,107 +164,8 @@ public class DenTracker : MonoBehaviour
         Instance._anchors.Clear();
     }
 
-    private void TriggerRevive()
-    {
-        if (Plugin.LocalPlayer == null)
-        {
-            ShowMessage("Player not spawned yet.");
-            return;
-        }
-
-        var player = Plugin.LocalPlayer;
-        if (player.NetworkObject == null || player.NetworkObject.Runner == null ||
-            (!player.NetworkObject.Runner.IsServer && !player.NetworkObject.Runner.IsSharedModeMasterClient))
-        {
-            ShowMessage("Only the host can revive dens!");
-            return;
-        }
-
-        Den[] dens;
-        lock (Plugin.TrackedDens)
-        {
-            Plugin.TrackedDens.RemoveAll(d => d == null);
-            dens = Plugin.TrackedDens.ToArray();
-        }
-
-        var playerPos = player.transform.position;
-        float radius = Plugin.ReviveRadiusMeters.Value;
-
-        int refreshed = 0;
-        int healthy = 0;
-        int outOfRange = 0;
-
-        foreach (var den in dens)
-        {
-            try
-            {
-                if (den == null) continue;
-
-                if (radius > 0)
-                {
-                    float dist;
-                    try { dist = Vector3.Distance(playerPos, den.transform.position); }
-                    catch (Exception ex)
-                    {
-                        Plugin.Logger.LogError($"[DenRespawn] Error reading den position: {ex}");
-                        continue;
-                    }
-
-                    if (dist > radius)
-                    {
-                        outOfRange++;
-                        continue;
-                    }
-                }
-
-                bool isActive = false;
-                try { isActive = den.isActive; } catch { }
-
-                bool anyIgnore = false;
-                try
-                {
-                    var affected = den.affectedSpawners;
-                    if (affected != null)
-                    {
-                        foreach (var spawner in affected)
-                        {
-                            if (spawner == null) continue;
-                            try { if (spawner.ignoreRespawning) anyIgnore = true; } catch { }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Logger.LogError($"[DenRespawn] Error scanning affectedSpawners: {ex}");
-                }
-
-                // Key selection on the defeat flag ALONE (v1.1.6). ignoreRespawning is the proven
-                // vanilla never-respawn-again defeat marker (confirmed on defeated cemeteries,
-                // wulfar dens, and long-cleared crawler dens). !isActive false-positives on
-                // nocturnally-inactive wolf dens; anyEmpty false-positives on healthy dens whose
-                // creatures are merely roaming or streaming-culled (both observed in-game 2026-07-09).
-                bool needsWork = anyIgnore;
-                if (!needsWork)
-                {
-                    healthy++;
-                    continue;
-                }
-
-                if (RunRefresh(den, "hotkey")) refreshed++;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"[DenRespawn] Error refreshing a den: {ex}");
-            }
-        }
-
-        string summary = $"Refreshed {refreshed} den(s) — tracked={dens.Length} healthy={healthy} outOfRange={outOfRange}";
-        Plugin.Logger.LogInfo($"[DenRespawn] {summary}");
-        ShowMessage(summary);
-    }
-
-    // Shared per-den lever sequence (v1.0.2 hotkey path, extracted so the map-revive and timed
-    // auto-respawn paths reuse the exact same levers + diagnostics). den.Revive() is wrapped with
+    // Shared per-den lever sequence (originally the v1.0.2 hotkey path; the map-revive and timed
+    // auto-respawn paths both run the exact same levers + diagnostics through here). den.Revive() is wrapped with
     // Plugin.AllowReviveCall so the Den.Revive prefix gate can tell this call apart from a
     // foreign (game-driven natural respawn) one. Updates the registry (MarkAlive + Save) on
     // success so defeat-transition scanning and the auto-respawn timer see the revive.
@@ -534,8 +411,50 @@ public class DenTracker : MonoBehaviour
         }
     }
 
+    // Live defeat check: any node spawner with ignoreRespawning set — the proven vanilla defeat
+    // flag (same signal ScanDefeatTransitions keys on). Errs toward "not defeated" on read
+    // failures so a flaky read can only SKIP a timer revive, never fire a spurious one.
+    private static bool IsDenDefeated(Den den)
+    {
+        try
+        {
+            var affected = den.affectedSpawners;
+            if (affected != null)
+            {
+                foreach (var spawner in affected)
+                {
+                    if (spawner == null) continue;
+                    try { if (spawner.ignoreRespawning) return true; } catch { }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    // Stale-registry correction for the timer path: the registry recorded a defeat but the live
+    // den reads alive — happens when the player defeats a den then reloads a game save from
+    // BEFORE the defeat (the mod's registry saves immediately; the game's save may never have).
+    // The auto-rule would otherwise revive an already-alive den (phantom toast, possible
+    // double-spawned populations). Map clicks stay unguarded — an explicit Shift+click is user
+    // intent. TreeRespawn Issue E is the same desync class; this is the cheap point-of-action
+    // guard instead of the parked volatile/committed save-event design.
+    private void SkipStaleTimerRevive(DenRecord rec)
+    {
+        Plugin.Logger.LogInfo($"[DenRespawn] Registry stale — den '{rec.TypeName}' at ({rec.X:F0},{rec.Z:F0}) already alive; skipping timer revive.");
+        try
+        {
+            DenRegistry.MarkAlive(rec);
+            DenRegistry.Save();
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[DenRespawn] Error correcting stale registry record: {ex}");
+        }
+    }
+
     // Shared entry point for a remote revive request (map click or auto-respawn timer). Host-gated
-    // exactly like TriggerRevive. If a live tracked den already sits within RemoteMatchRadius of
+    // (Runner.IsServer / IsSharedModeMasterClient). If a live tracked den already sits within RemoteMatchRadius of
     // the record, refreshes it immediately; otherwise force-loads the record's world tile and
     // queues it for the pending scan to pick up once the tile streams the den in.
     internal void EnqueueRemoteRefresh(DenRecord rec, string source)
@@ -572,6 +491,11 @@ public class DenTracker : MonoBehaviour
                     if (den == null) continue;
                     if (Vector3.Distance(recPos, den.transform.position) <= RemoteMatchRadius)
                     {
+                        if (source == "timer" && !IsDenDefeated(den))
+                        {
+                            SkipStaleTimerRevive(rec);
+                            return;
+                        }
                         RunRefresh(den, source);
                         return;
                     }
@@ -618,7 +542,7 @@ public class DenTracker : MonoBehaviour
                 Plugin.Logger.LogError($"[DenRespawn] RequestLoadWorldTile failed: {ex}");
             }
 
-            _pendingRefreshes.Add(new PendingRefresh { Record = rec, RequestedAt = Time.time });
+            _pendingRefreshes.Add(new PendingRefresh { Record = rec, RequestedAt = Time.time, Source = source });
 
             string tileStr = tileId.ToString();
             Plugin.Logger.LogInfo($"[DenRespawn] Requested remote tile load for '{rec.TypeName}' at ({rec.X:F0},{rec.Z:F0}) tile={tileStr} reqId={requestId} source={source}");
@@ -663,8 +587,15 @@ public class DenTracker : MonoBehaviour
 
             if (found != null)
             {
-                RunRefresh(found, "remote");
-                Notify($"Monsters back at {entry.Record.TypeName}!");
+                if (entry.Source == "timer" && !IsDenDefeated(found))
+                {
+                    SkipStaleTimerRevive(entry.Record);
+                }
+                else
+                {
+                    RunRefresh(found, entry.Source);
+                    Notify($"Monsters back at {entry.Record.TypeName}!");
+                }
                 _pendingRefreshes.RemoveAt(i);
             }
             else if (Time.time - entry.RequestedAt > RemoteRequestTimeoutSeconds)

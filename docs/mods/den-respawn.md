@@ -1,4 +1,4 @@
-# Mod 21: DenRespawnMod — WIP (v1.1.1, NOT shipped; core hotkey refresh confirmed in-game up close 2026-07-08; v1.1.x adds natural-respawn suppression, map-pin revive, timed auto-respawn — all ⚠️ pending in-game test)
+# Mod 21: DenRespawnMod — WIP (v1.2.1, NOT shipped; J-hotkey revive REMOVED per user decision; map-pin Shift+click + auto-rules are the drivers; core features CONFIRMED in-game 2026-07-09; v1.2.1 stale-registry timer guard ⚠️ pending in-game test)
 
 **Goal:** Refresh/revive defeated monster and beast dens (wulfar, bear, skeleton, etc.) back to life via a configurable hotkey, bringing them back into the creature-spawning rotation.
 
@@ -25,8 +25,8 @@
 - **Session ID poll for world-leave detection**: `StorageManager.ActiveSessionID` becomes empty when the player leaves a world; the first non-empty ID after that signals a new world load. A naive clear-on-entry would erase the dens captured *during* that load (before the ID is readable) — gate the clear on a state machine transition, not a value presence check.
 
 **Config (`com.askamods.denrespawn.cfg`):**
-- `General/ReviveHotkey` (string, default: `"j"`): The key to trigger den refresh. (U taken by MineRefresh, N by Vacuum, V by emote wheel.)
-- `General/ReviveRadiusMeters` (float, default: `150.0`): Maximum distance to scan for defeated dens (0 = whole map).
+- ~~`General/ReviveHotkey`~~ (REMOVED in v1.2.0 — hotkey revive deleted per user decision)
+- ~~`General/ReviveRadiusMeters`~~ (REMOVED in v1.2.0)
 - `General/AllowRespawnNearStructures` (bool, default: `true`): If true, bypass the game's structure-block check so dens near buildings can respawn.
 - `General/ClearIgnoreRespawning` (bool, default: `true`): Clear the spawner `ignoreRespawning` flags as part of refresh.
 - `General/ForceRespawnPopulations` (bool, default: `true`): Call `RespawnAllPopulations()` to instantly repopulate.
@@ -59,13 +59,19 @@ The v1.1.x branch adds three new features on top of v1.0.2's confirmed hotkey re
 - v1.1.5 CONFIRMED IN-GAME (2026-07-09): `RefreshSpawnersHostileStatus(false)` (noNotification=false) so game fires native "monsters are back" toast on remote revives — exact toast appearance/wording ⚠️ not yet explicitly confirmed but fires reliably.
 - v1.1.6: Warning cleanup; csproj `UnityEngine.UI` ref moved to conditional. SAC bump guard correctly refused same-version rebuild (1.1.6 superseded within minutes). Added null-check on `MarkerObject._biomePopulation` before RefreshSpawnersHostileStatus (long-defeated crawler dens' markers have it null, causing a managed NRE inside the native call — caught but noisy).
 - v1.1.7 CONFIRMED (map/registry/suppression 2026-07-09, hotkey selection pending): Hotkey selection now `needsWork = anyIgnore` ALONE (was `anyEmpty || anyIgnore`). Evidence from live tests: J refreshed a HEALTHY Wulfar Den (matching on anyEmpty=false, wolves streaming-culled), yet two Baby Crawler Dens matching on ignoreRespawning=true were USER-CONFIRMED long-cleared dens (correct revives). The broader filter was false-positive. ⚠️ v1.1.7 selection change (narrowed gate) pending in-game test.
+- v1.2.0: J-hotkey revive REMOVED per user decision. Map-pin Shift+click (`MapRevive` path) is the primary manual driver; config auto-respawn rules (`AutoRespawn Rules`) cover timed revive. Deleted: `TriggerRevive()`, the hotkey input block, and the `ReviveHotkey` + `ReviveRadiusMeters` config binds (hotkey-only settings). Load log now reports `MapReviveModifier` instead. The v1.1.7 defeat-flag-only hotkey selection logic (`needsWork = anyIgnore`) was tied to `TriggerRevive()` and died with it; the same defeat-flag insight remains in `ScanDefeatTransitions` and the auto-rules. Map-pin revive + recolor, timed auto-respawn day rule, defeat-day reload persistence, natural-respawn suppression all confirmed in-game 2026-07-09.
+- v1.2.1: NEW stale-registry guard on the TIMER path (protects against: defeat a den → quit WITHOUT game-saving → reload older save → game reverts den alive but mod registry says Defeated → auto-rule would phantom-revive an alive den). Guard mechanics: `PendingRefresh` struct now carries `Source` ("map"/"timer"); pending resolutions call `RunRefresh(found, entry.Source)` (previously always "remote"); new `IsDenDefeated(den)` checks any `affectedSpawner.ignoreRespawning`; new `SkipStaleTimerRevive(rec)` logs "Registry stale — … already alive; skipping timer revive", marks the record `MarkAlive`, and saves. Applied at BOTH timer→RunRefresh points (immediate-match in `EnqueueRemoteRefresh` + resolve in `ScanPendingRefreshes`). Map clicks deliberately unguarded (explicit user intent). ⚠️ Guard has never fired in-game — pending confirmation. (Same desync class as TreeRespawn Issue E; volatile/committed designs rejected/parked — no known "game just saved" hook; this point-of-action guard is the chosen mitigation.)
+
+**Confirmed in-game (2026-07-09):**
+- Timed auto-respawn day rule: 'Wulfar Den' DEFEATED (day 56) → TimeWarp day-skip (daysPassed 56→57) → auto-rule firing logged → spawners visibly returned. **Cosmetic note:** the immediate-match timer path shows NO mod toast — "Monsters back at …" only fires in the pending force-load path (user OK with this).
+- Defeat-day persistence across save→quit→reload: registry loaded with defeated=6 unchanged, day-stamps intact.
+- Natural-respawn suppression VERIFIED: 3 long-ago-cleared Baby Crawler dens received foreign `Den.Revive()` attempts AT EVERY WORLD LOAD, all BLOCKED (SuppressNaturalRespawns=true). Defeated Wulfar+cemetery dens stayed gone across 74 fast-forwarded in-game days with zero mid-session attempts. (Vanilla natural respawn = **load-time check, not mid-session elapsed-time trigger** — see architecture.md for the model.)
 
 **Still open (record as ⚠️ untested / future work):**
-- Remote whole-map refresh (ReviveRadiusMeters=0) — plausible but untested.
+- Stale-registry timer guard (v1.2.1) — guard logic untested in-game.
 - Real-world effect of structure-block bypass — the test world had no structure-blocked dens.
-- Save/reload persistence — whether a refreshed den stays alive after quit-to-menu and reload (expected yes, untested).
-- Auto-revive after N days (candidate v1.1, using `Den.ReviveCooldown` semantics and a day tracker like TreeRespawn).
-- Map-click revive from the POI pin (Phase 2, requires map UI work — see `NEW_MOD_IDEAS_PLAN.md`).
+- Remote whole-map revive (would need hotkey re-implementation, per user decision to remove hotkey path).
+- Map-click revive from the POI pin widget itself (currently clicks ON a pin swallow before reaching the map; Phase 2, requires map UI work — see `NEW_MOD_IDEAS_PLAN.md`).
 - Villager den-attack blacklist to prevent workers from destroying dens (Phase 2b, needs diagnostics on whether villagers actually attack `Den` hitzones vs. the structure-blocking explanation).
 
 **Dead-ends (don't retry):**
