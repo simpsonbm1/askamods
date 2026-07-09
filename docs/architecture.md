@@ -673,6 +673,55 @@ So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, wit
 
 ---
 
+## Dens & Population Spawners (DenRespawnMod evidence, in-game 2026-07-08 — mod still WIP)
+
+**Den defeat is recorded at the SPAWNER level, not on `den.isActive` (confirmed in-game 2026-07-08,
+controlled experiment):** clearing a Wulfar Den's nodes + boss made vanilla set `ignoreRespawning=true`
+on its node spawner (`SSSGame.Den.affectedSpawners : PopulationSpawner[]`); a depleted-but-never-attacked
+cemetery likewise showed a node spawner with `ignoreRespawning=true` + `HasNoAliveCreatures()=true` while
+its `den.isActive` stayed True. **`den.isActive` semantics are murky — don't key logic on it**: two far
+wolf dens sat `isActive=False` all (day-time) session while a near one read True; possibly day/night
+related (`Den.isDay`, `Den_OnWeatherChanged` exist) but ⚠️ unconfirmed.
+
+**Working revive recipe (the full set is confirmed SUFFICIENT in-game 2026-07-08; per-lever necessity
+NOT isolated):**
+1. `Den.Revive()` — observed to bump `ReviveCooldown : Int32` 0→1 and NOT flip `isActive` (12
+   observations); **called alone it produced no visible respawn** (v1.0.0 falsification).
+2. `Den.IgnorePopulationSpawnersRespawning(false)` — after the full recipe, node spawners read
+   `ignoreRespawning=False`.
+3. `Den.SetDenActive(false, true)` when `!isActive` (signature = `(bool fromDeserialize, bool forced)`).
+4. Per `affectedSpawners[i]` with `HasNoAliveCreatures()`: `SetActiveSpawner(true, true)` →
+   `RespawnAllPopulations(false)` — repopulation is **INSTANT** (`noAlive=False` immediately) and fires
+   the game's own "The monsters from <Den> are back!" toast, i.e. this drives the native revive pipeline.
+   Refreshes hold within a session (refreshed dens read healthy on later checks); ⚠️ save/reload
+   persistence untested.
+
+**Never touch `alphaSpawner : PopulationSpawner`** — it's the boss spawner; empty/inactive is its normal
+pre-boss state (boss spawns after the nodes are cleared — see the den table in `SEED_SCOUT_HANDOFF.md`).
+
+**Structure blocking (⚠️ hypothesis, effect untested):** vanilla has a blocked-by-structures mechanism
+(`Den.IsBlockedByStructures()`; `PopulationSpawner.RespawningBlockedByStructures`, recomputed by
+`_UpdateBlockedByStructures()`). The ideas-plan hypothesis that this explains "depleted dens near a base"
+is **unconfirmed** — in the only test world so far every read was False and the depleted dens were
+`ignoreRespawning` cases instead. Harmony postfixes on both members DO fire (fire-verified in-game — not
+AOT-inlined). (DenRespawnMod, [`docs/mods/den-respawn.md`](mods/den-respawn.md))
+
+**Den capture pattern (IL2CPP interop):** `Den`'s compile-time base chain passes through a `unity-libs`
+stub, so `.Pointer` isn't visible on the declared type — use the boxing pattern
+`(object)den is Il2CppObjectBase b` → `b.Pointer` (another instance of the existing universal gotcha).
+Capture via `Den.Start()` + `Den.Spawned()` postfixes into a static list, dedupe by pointer; `Den.Start`
+was already runtime-proven by SeedScout.
+
+**Per-world state and `ActiveSessionID` timing:** dens are captured during world load BEFORE
+`StorageManager.ActiveSessionID` becomes readable. So clear per-world den state when the id goes
+non-empty→empty (quit to menu) or changes between two non-empty values — but **KEEP captures when the id
+first becomes readable** (null→non-empty), else the load-time captures are wiped. Same first-resolve
+special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
+
+**Map-pin click handler:** `SSSGame.UI.MapMenu._OnMarkersLeftClick(WorldObjectiveMarker marker)` exists (Cecil-confirmed 2026-07-08) as the native map-pin left-click handler; `WorldObjectiveMarker` carries `.transform.position` and `.CustomName` for pin identification. Harmony postfixes on this method fire cleanly. ⚠️ Patch fire and runtime behavior pending in-game verification (DenRespawnMod v1.1.x map-revive feature).
+
+---
+
 ## World Generation (Headless / Main Menu)
 - `WorldGenerator` is a `MonoBehaviour` but can be attached to a dummy GameObject in the Main Menu and successfully run `Setup(size...)`. It does not require a live 3D scene to generate the mathematical map!
 - `GenerateWorldMapAsync(filterTag)` executes the procedural generation logic, producing a `WorldDataMap` (with `_areaInstances` containing caves/lakes/dens).

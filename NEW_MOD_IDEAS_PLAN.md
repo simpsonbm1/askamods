@@ -9,8 +9,9 @@ discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and —
 new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
 
 **Priority order (user, historical):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting
-multiplier. Vacuum (4) has since shipped; remaining open priority: 5) freezing hunters → 2) den respawn
-→ 3) crafting multiplier.
+multiplier. Vacuum (4) has since shipped; den respawn (2) is **IN PROGRESS** as DenRespawnMod (WIP
+v1.0.2, NOT shipped — core hotkey refresh confirmed in-game up close 2026-07-08; see the idea-2
+section status note below); remaining open priority: 5) freezing hunters → 3) crafting multiplier.
 
 **Shipped ideas — full research retired, self-documented in `docs/mods/`:**
 - Idea 4, ground-item vacuum → **SHIPPED** as GroundItemVacuumMod v1.1.0 — [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md).
@@ -26,6 +27,14 @@ multiplier. Vacuum (4) has since shipped; remaining open priority: 5) freezing h
 ---
 
 ## 2. Monster/beast den respawning (wulfar/bear dens) — new mod
+
+**STATUS (2026-07-08): IN PROGRESS as DenRespawnMod, WIP v1.0.2 — NOT shipped.** The core hotkey
+refresh is confirmed in-game up close (instant repopulation + native toast); shipped-quality recipe
++ corrections live in [`docs/mods/den-respawn.md`](docs/mods/den-respawn.md). Two model corrections
+vs. the research below: defeat is recorded as `ignoreRespawning=True` on the den's NODE SPAWNERS
+(NOT `den.isActive`, whose semantics are murky), and `Revive()` alone flips nothing visible.
+Still open: remote whole-map refresh, structure-block bypass effect, save/reload persistence,
+goal (b) villager blacklist, Phase 2 map-click revive, auto-revive timer.
 
 **Goal:** (a) bring "Defeated" den POIs back to life, ideally remotely from the map;
 (b) stop villagers from destroying dens (keep huntable spawns alive).
