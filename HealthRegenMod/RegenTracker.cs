@@ -165,7 +165,7 @@ public class RegenTracker : MonoBehaviour
                     state.sinceHit += dt;
                 }
 
-                if (state.sinceHit < Plugin.OutOfCombatSeconds.Value) continue;
+                if (state.sinceHit < Plugin.VillagerOutOfCombatSeconds.Value) continue;
 
                 if (v.CurrentHealth >= v.MaxHealth)
                 {
@@ -179,10 +179,10 @@ public class RegenTracker : MonoBehaviour
                 }
                 state.regenActive = true;
 
-                float vInterval = Plugin.SecondsPerTick.Value;
+                float vInterval = Plugin.VillagerSecondsPerTick.Value;
                 if (vInterval <= 0f)
                 {
-                    v.CurrentHealth = Mathf.Min(v.CurrentHealth + Plugin.HealPerTick.Value * dt, v.MaxHealth);
+                    v.CurrentHealth = Mathf.Min(v.CurrentHealth + Plugin.VillagerHealPerTick.Value * dt, v.MaxHealth);
                     continue;
                 }
 
@@ -190,7 +190,7 @@ public class RegenTracker : MonoBehaviour
                 while (state.sinceTick >= vInterval)
                 {
                     state.sinceTick -= vInterval;
-                    v.CurrentHealth = Mathf.Min(v.CurrentHealth + Plugin.HealPerTick.Value, v.MaxHealth);
+                    v.CurrentHealth = Mathf.Min(v.CurrentHealth + Plugin.VillagerHealPerTick.Value, v.MaxHealth);
                     if (v.CurrentHealth >= v.MaxHealth)
                     {
                         state.sinceTick = 0f;

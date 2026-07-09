@@ -17,6 +17,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> SecondsPerTick = null!;
     internal static ConfigEntry<float> OutOfCombatSeconds = null!;
     internal static ConfigEntry<bool> ApplyToVillagers = null!;
+    internal static ConfigEntry<float> VillagerHealPerTick = null!;
+    internal static ConfigEntry<float> VillagerSecondsPerTick = null!;
+    internal static ConfigEntry<float> VillagerOutOfCombatSeconds = null!;
     internal static ConfigEntry<bool> VillagerDebugLogging = null!;
 
     // Set by PlayerCharacterPatch when the locally-controlled avatar spawns; cleared on despawn.
@@ -52,12 +55,30 @@ public class Plugin : BasePlugin
             section: "VillagerRegen",
             key: "ApplyToVillagers",
             defaultValue: true,
-            description: "Villagers (including warriors/soldiers) regenerate HP out of combat using the same HealPerTick/SecondsPerTick/OutOfCombatSeconds settings as the player.");
+            description: "Villagers (including warriors/soldiers) regenerate HP out of combat. Rates are set by the [VillagerRegen] HealPerTick/SecondsPerTick/OutOfCombatSeconds keys below, independent of the player's [HealthRegen] rates.");
+
+        VillagerHealPerTick = Config.Bind(
+            section: "VillagerRegen",
+            key: "HealPerTick",
+            defaultValue: 1.0f,
+            description: "HP restored per villager heal tick while out of combat. Independent of the player's [HealthRegen] HealPerTick.");
+
+        VillagerSecondsPerTick = Config.Bind(
+            section: "VillagerRegen",
+            key: "SecondsPerTick",
+            defaultValue: 1.0f,
+            description: "Seconds between each villager heal tick. Set to 0 for smooth/continuous regen (HealPerTick treated as HP/sec).");
+
+        VillagerOutOfCombatSeconds = Config.Bind(
+            section: "VillagerRegen",
+            key: "OutOfCombatSeconds",
+            defaultValue: 10.0f,
+            description: "Seconds since a villager last took damage before its regen starts.");
 
         VillagerDebugLogging = Config.Bind(
             section: "VillagerRegen",
             key: "DebugLogging",
-            defaultValue: true,
+            defaultValue: false,
             description: "Log villager registration and regen start/stop events.");
 
         ClassInjector.RegisterTypeInIl2Cpp<RegenTracker>();
@@ -68,6 +89,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"HealthRegenMod loaded. HealPerTick={HealPerTick.Value}, SecondsPerTick={SecondsPerTick.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}, ApplyToVillagers={ApplyToVillagers.Value}");
+        Logger.LogInfo($"HealthRegenMod loaded. Player: HealPerTick={HealPerTick.Value}, SecondsPerTick={SecondsPerTick.Value}, OutOfCombatSeconds={OutOfCombatSeconds.Value}. ApplyToVillagers={ApplyToVillagers.Value} (Villager: HealPerTick={VillagerHealPerTick.Value}, SecondsPerTick={VillagerSecondsPerTick.Value}, OutOfCombatSeconds={VillagerOutOfCombatSeconds.Value}).");
     }
 }

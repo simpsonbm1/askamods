@@ -1236,6 +1236,24 @@ BitSet256 root cause above, but applies to any future native ASKA crash:
 
 To find the REAL fault: parse the matching minidump in `%LOCALAPPDATA%\CrashDumps\Aska.exe.<pid>.dmp` with `_explore/parse_minidump.ps1` (exception context + faulting-thread stack scan against module ranges), then map GameAssembly RVAs with the Cpp2IL dummy-DLL index (`_explore/map_crash_offsets.ps1` / `map_reload_crash_rvas.ps1`) and coreclr offsets with `_explore/resolve_coreclr_syms.ps1` (downloads the PDB from msdl.microsoft.com, resolves via dbghelp).
 
+### Startup: a one-off `UnityEngine.CoreModule` chainloader abort is transient — NOT a SAC block
+Distinct from both the native crashes above and from a Smart App Control block. Symptom (seen
+2026-07-08, laptop): the game launches but **no** mods load — `LogOutput.log` ends right at
+`Chainloader initialized` with zero plugin lines, and `check-loaded.ps1` shows nothing loaded. The
+real error is in **`BepInEx\ErrorLog.log`** (not `LogOutput.log`):
+`Unhandled exception. System.IO.FileNotFoundException: Could not load file or assembly 'UnityEngine.CoreModule,
+Version=0.0.0.0' … at BepInEx.Unity.IL2CPP.IL2CPPChainloader.OnInvokeMethod`. Because it is
+**unhandled**, it aborts the ENTIRE chainloader before any plugin loads — one plugin's failure takes
+down all of them.
+- **It is transient.** A plain relaunch with **no** changes cleared it, after which all plugins (incl.
+  a foreign third-party mod) loaded normally. So: relaunch first; only dig deeper if it recurs
+  identically (then bisect with `bisect-plugins.ps1`, suspecting any foreign/Nexus mod first).
+- **Do not mistake it for SAC.** A SAC block is a *different*, per-DLL, NON-fatal error logged during
+  plugin loading: `System.IO.FileLoadException … An Application Control policy has blocked this file.
+  (0x800711C7)` — it skips only that one DLL; the rest still load. Quick discriminator: if
+  `check-loaded` shows *some* mods loaded and one missing → SAC (bump that mod's version). If **zero**
+  loaded and the log dies at `Chainloader initialized` → this transient chainloader abort, not SAC.
+
 `dotnet-dump analyze` CANNOT read these WER minidumps (DAC init fails — the dump lacks the managed heap); the manual parser is the working path. Worked example: the 2026-07-06 reload crash — WER said coreclr+0x1d1fdd in 4/4 crashes; the real fault in all 4 dumps was `GameAssembly+0x13e89d1` = VegetationStudioPro `InstancesDataArrays.FindIndexOfUniqueId+0xc1`, reached via `SSSGame.BiomeProceduralDataHandler.GetInstance` from TreeRespawnMod's stale cached handler after a same-world reload.
 
 Historical note: the same coreclr+0x1d1fdd signature appears in Application-Error events on 6/18, 6/23, 6/27, 6/29 (2026) — the TreeRespawn reload bug existed for weeks before it was reproduced; recurring WER offsets in coreclr.dll therefore mean "same crash CLASS (native AV under managed frames)", not necessarily same root cause.

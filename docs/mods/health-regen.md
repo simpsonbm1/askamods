@@ -15,7 +15,7 @@
 - Config: `HealthRegen/HealPerTick` (float, default 1.0), `HealthRegen/SecondsPerTick` (float, default 1.0; 0 = continuous), `HealthRegen/OutOfCombatSeconds` (float, default 10.0). Default 1 HP/1s matches the old average rate, just in 1-HP steps
 - Confirmed working in-game: regen kicked in ~10s after spawning at half health; taking damage mid-regen paused it, then it resumed ~10s after the last hit
 
-## v1.2.0 — Villager/Soldier Regen (⚠️ pending in-game confirmation, built 2026-07-08)
+## v1.2.0 — Villager/Soldier Regen (CONFIRMED IN-GAME 2026-07-08)
 
 **Feature:** Extends passive out-of-combat health regen to all villagers and soldiers (gear-flagged `Villager` instances — no separate Soldier/Guard class).
 
@@ -27,6 +27,24 @@
 
 **Performance:** The whole mod's `Update()` (player pass included — previously every frame) is now gated to every 4th frame (`(Time.frameCount & 3) != 0` first line) with `Time.deltaTime` accumulated across skipped frames and fed as dt, per the project throttle convention (confirmed in-game framerate recovery 2026-07-07 on all per-frame-work mods).
 
-**Open questions for in-game test:**
-- Whether `Character.CurrentHealth` writes stick on villagers; fallback = `CharacterSurvival._healthVAttr`.
-- Soldiers/warriors are just `Villager`s with `IsWarrior == true` — no separate handling needed (binary-confirmed via Cecil, 2026-07-08).
+**Resolved in-game (2026-07-08):** `Character.CurrentHealth` writes DO stick on villagers — a hurt
+villager's health bar visibly ticked upward out of combat, so the `CharacterSurvival._healthVAttr`
+fallback was **not** needed. Soldiers/warriors are just `Villager`s with `IsWarrior == true` — no
+separate handling needed (binary-confirmed via Cecil, 2026-07-08).
+
+## v1.3.x — Separate villager regen rates (v1.3.0 config split; v1.3.1 ships)
+
+**Feature:** Villager regen rates are now **independent of the player's**. Previously the villager
+pass reused the player's `[HealthRegen]` HealPerTick/SecondsPerTick/OutOfCombatSeconds; now it reads
+its own `[VillagerRegen]` keys. Confirmed in-game 2026-07-08 (villagers heal at their own configured
+rate while the player heals at the separate `[HealthRegen]` rate).
+
+- New config in the `[VillagerRegen]` section: `HealPerTick`, `SecondsPerTick`, `OutOfCombatSeconds`
+  (float; defaults **1.0 / 1.0 / 10.0** — identical to the player defaults, so behavior is unchanged
+  until tuned). `SecondsPerTick = 0` = continuous (HealPerTick treated as HP/sec), same semantics as
+  the player side.
+- `RegenTracker.UpdateVillagers` now reads `Plugin.VillagerHealPerTick` /
+  `Plugin.VillagerSecondsPerTick` / `Plugin.VillagerOutOfCombatSeconds` instead of the player entries.
+  The player pass (`UpdatePlayer`) is unchanged and still reads `[HealthRegen]`.
+- **v1.3.1** flips `[VillagerRegen] DebugLogging` default `true` → `false` (mod verified; per the
+  diagnostics rule). Existing configs keep their written value; only fresh installs get `false`.
