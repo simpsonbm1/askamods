@@ -14,6 +14,7 @@ v1.0.2, NOT shipped — core hotkey refresh confirmed in-game up close 2026-07-0
 section status note below); remaining open priority: 5) freezing hunters → 3) crafting multiplier.
 
 **Shipped ideas — full research retired, self-documented in `docs/mods/`:**
+- Idea 2, monster/beast den respawning → **SHIPPED** as DenRespawnMod v1.2.2 — [`docs/mods/den-respawn.md`](docs/mods/den-respawn.md).
 - Idea 4, ground-item vacuum → **SHIPPED** as GroundItemVacuumMod v1.1.0 — [`docs/mods/ground-item-vacuum.md`](docs/mods/ground-item-vacuum.md).
 - Idea 6, recipe/fish task unlock → **SHIPPED** as TaskUnlockerMod v1.2.x, confirmed in-game 2026-07-06 —
   [`docs/mods/task-unlocker.md`](docs/mods/task-unlocker.md). NOTE: the plan's original model was only
@@ -26,52 +27,6 @@ section status note below); remaining open priority: 5) freezing hunters → 3) 
 
 ---
 
-## 2. Monster/beast den respawning (wulfar/bear dens) — new mod
-
-**STATUS (2026-07-08): IN PROGRESS as DenRespawnMod, WIP v1.0.2 — NOT shipped.** The core hotkey
-refresh is confirmed in-game up close (instant repopulation + native toast); shipped-quality recipe
-+ corrections live in [`docs/mods/den-respawn.md`](docs/mods/den-respawn.md). Two model corrections
-vs. the research below: defeat is recorded as `ignoreRespawning=True` on the den's NODE SPAWNERS
-(NOT `den.isActive`, whose semantics are murky), and `Revive()` alone flips nothing visible.
-Still open: remote whole-map refresh, structure-block bypass effect, save/reload persistence,
-goal (b) villager blacklist, Phase 2 map-click revive, auto-revive timer.
-
-**Goal:** (a) bring "Defeated" den POIs back to life, ideally remotely from the map;
-(b) stop villagers from destroying dens (keep huntable spawns alive).
-
-**Key API (confirmed from binary):**
-- `SSSGame.Den : Creature` (a Fusion NetworkBehaviour):
-  - `Revive()` / `_ReviveCreatureComponents()` / `SetDenActive(bool, bool)` / `isActive` — the un-defeat levers.
-  - `ReviveCooldown : Int32` (networked + serialized) — vanilla already has a den-revive cooldown concept.
-  - `affectedSpawners : PopulationSpawner[]`, `alphaSpawner : PopulationSpawner` (the boss).
-  - `IsBlockedByStructures()` and `IgnorePopulationSpawnersRespawning(bool)`.
-  - ⚠️ NEVER patch its `CopyBackingFieldsToState`/`CopyStateToBackingFields` (load-hang gotcha).
-    Capture live dens via `Den.Spawned()`/`Start()` postfix into a static list (documented safe pattern).
-- `SSSGame.Combat.PopulationSpawner : CreatureSpawner`:
-  - `RespawnAllPopulations(bool)`, `SetActiveSpawner(bool[, bool])`, `Spawn()`, `HasNoAliveCreatures()`.
-  - `ignoreRespawning : bool`, `RespawningBlockedByStructures : bool`, `_UpdateBlockedByStructures()`.
-- **Likely root cause of "depleted dens I never destroyed": vanilla blocks spawner respawn when
-  player structures are built nearby** (`RespawningBlockedByStructures` + `Den.IsBlockedByStructures()`).
-  So near-base dens quietly stop repopulating even with no combat. The mod should offer a config
-  to neutralize this (postfix `IsBlockedByStructures` → false and/or clear
-  `RespawningBlockedByStructures`), which may fix the whole complaint *without* any manual revive.
-
-**Approach:**
-1. **Phase 1 (core):** capture dens on `Spawned()`; hotkey (MineRefreshMod on-demand pattern) that
-   calls `Revive()` on defeated dens within a config radius — or all tracked dens ("remote"
-   without UI work). Config: `AllowRespawnNearStructures` (the blocker bypass), `ReviveHotkey`,
-   optional auto-revive after N days (timer like TreeRespawn, using `ReviveCooldown` semantics).
-2. **Phase 2 (map-click revive):** reuse WarpTourMod's native-map-pin knowledge (map icon / world
-   objective types dumped during that mod) to trigger a revive from the den's POI icon. Riskier UI
-   work; hotkey-first ships value sooner.
-3. **Villager blacklist (b):** needs a diagnostics session first — unclear whether villagers
-   (warriors on defend duty / HunterCombatQuest) actually attack `Den` hitzones, vs. the
-   structure-blocking explanation above. If they do: dens are `Creature`s ⇒ `IAttackTarget`;
-   blacklist in target selection (log `GetTargetName()`/`Faction` of what warriors engage, then
-   gate the acquisition method — the VillagerFightBackMod toolbox: patch the *selection* method,
-   not priority getters).
-
----
 
 ## 3. Crafting output multiplier — new mod
 

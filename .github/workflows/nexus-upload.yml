@@ -35,6 +35,7 @@ on:
           - ZeroTaskWorkersMod
           - GroundItemVacuumMod
           - FishFilletMod
+          - DenRespawnMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -80,6 +81,7 @@ jobs:
             ZeroTaskWorkersMod)      file_id=7626437 ;;   # Assigned Workers Start Idle
             GroundItemVacuumMod)     file_id=7632863 ;;   # Ground Item Vacuum Cleaner
             FishFilletMod)           file_id=7633997 ;;   # Inventory Fish Fillet
+            DenRespawnMod)           file_id=7638170 ;;   # Enemy Den Respawner
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"

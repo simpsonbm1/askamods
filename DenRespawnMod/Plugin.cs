@@ -74,7 +74,7 @@ public class Plugin : BasePlugin
         DenDiagnostics = Config.Bind(
             section: "Diagnostics",
             key: "DenDiagnostics",
-            defaultValue: true,
+            defaultValue: false,
             description: "If true, periodically logs the state of all tracked dens and their spawners for debugging.");
 
         DiagnosticsIntervalSeconds = Config.Bind(
