@@ -444,6 +444,19 @@ discovered through its diagnostics, but the mod doesn't touch quest targets or r
 - **Load/upgrade deserialize paths:** `Workstation.DeserializeTaskData(DataObject)` (+ `Buildstation` override), `Workstation.DeserializeTaskDataForRecreation(DataObject)`. `Workstation._structure : Structure` is the back-reference (may be '?'/unlinked during load-path and on Buildstation).
 - **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` → `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil cross-assembly chain walk, build-verified).
 
+### Workstation task priority machinery (idea-12 groundwork)
+**Task data + priority (confirmed in-game 2026-07-09):**
+- **`WorkstationTaskData` structure:** `itemInfoQuantity : ItemInfoQuantity` (item + quota), `priority : Int32`, `pinnedTask : Boolean`, `VillagersInCharge : List`, `onDataChanged : Action`, `GetQuantityRange()`. Priority is SERIALIZED into saves (key names per station type: `c_taskDataPriority` on CraftingStation/CookingStation/AnimalPen; `c_taskPriority` on Buildstation/ResourceStorage; `c_taskPriorityKey` on FarmingStation) — a modified priority PERSISTS across save/reload.
+- **Native co-op priority update path:** UI `WorkstationMenu.IncreaseTaskPriority/DecreaseTaskPriority(TaskDataPanel)` → `TaskDataPanel._SetPriority(WorkstationTaskData)` → **`NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32, Int32)`** + `OnTaskPriorityChanged(WorkstationTaskData)` callback (exact arg signatures ⚠️ unverified, but the RPC exists and fires).
+- **Task-priority tiers/types:** `WorkstationTaskPriority` enum exists (seen on `StorageSupply.defaultTaskPriority`) — [likely] the High/Medium/Low tier used by gathering stations (woodcutter, forager, stonecutter). Crafting stations use an integer `priority : Int32` for a ranked list.
+- **Item → producer lookup:** `CraftingStation.KnowsBlueprintForItem(ItemInfo, out CraftBlueprint)` — check if a station can craft an item. Also exists: `_outsourcedQuests`/`_outsourcedBlueprints` dictionaries and `GetPersonalFetchDepth(Villager, ItemInfo, out minDepth, out topPriority)` on CraftingStation (fetch-chain plumbing, unexplored). `BuildstationQuest.c_TaskPriorityCoefficient : Single` hints priority feeds quest-priority math.
+
+**Two priority mechanisms + the vanilla starvation loop (confirmed in-game 2026-07-09):**
+1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL inventory. Worker fills rank 1's quota locally, moves to rank 2, snaps BACK to earlier ranks if their quota drops below the local count.
+2. **Gathering stations** (woodcutter, forager, stonecutter, …): use High/Medium/Low TIERS per eligible resource + quota — all Highs satisfied → Mediums → Lows.
+3. **Priority is effectively WINNER-TAKE-ALL**, not a soft weight: one task set higher monopolizes the worker (a woodcutter with only long-hardwood-stick=High did nothing else; a warehouse with one raised Collect-priority let everything else run dry).
+4. **The persistent-monopoly mechanism:** QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop — haulers carrying output away keep the quota unmet, so the top task never self-completes (intended vanilla design; creates the user-observed starvation loop).
+
 ### Reusable structure-footprint spatial query — "is (x,z) inside a player-built structure?" (TreeRespawnMod v1.5.x, confirmed in-game 2026-07-07)
 Generic helper `TreeRespawnMod/StructureQuery.cs` — `IsBlockedByStructure(x, z, margin)` — for any "don't do X
 where the player built something" rule (trees regrowing through houses, item/creature spawns, terrain edits…).
@@ -474,6 +487,17 @@ Mechanism:
   world-specific) — `StructureQuery.ClearCache()` from the world-leave/switch handlers.
 - Related members: `Structure.GetPosition()`, `Settlement.GetStructures()`; see also WellRefill's identical
   settlement walk (docs/mods/tree-respawn.md → Well water refill).
+
+### Villager Complaint / Issue System (idea-12 groundwork)
+**Structured complaint events for "villager needs X" (confirmed via Cecil dump 2026-07-09):**
+- **`SSSGame.AI.Complaint`** (Il2CppSystem.Object-derived) is the typed system behind villager barks/exclamation-point statuses — **NOT text parsing**.
+- **Per-villager complaint tracking:** `VillagerSocial.complaints : List<Complaint>`, `AddComplaint(Complaint)`/`_AddComplaintInternal(Complaint)` (candidate Harmony postfix for capture), `Rpc_AddComplaint(Complaint)`/`Rpc_RemoveComplaint(Complaint)`, `OnComplainChange : Action` (do NOT subscribe — IL2CPP Action gotcha; patch the add method or poll instead), `ImportantComplaintsCount`/`NotificationComplaintsCount`/`MenuNotificationComplaintsCount` counters.
+- **Per-complaint alert tiers:** boolean flags `important`/`notification`/`forcedMenuNotification` control UI alert level.
+- **Typed complaint payloads carry the missing resource/item directly:** `ItemComplaint.itemInfo : ItemInfo`, `ItemManifestComplaint.itemManifest : ItemManifest` (+ `maxItemCount`), `ItemCategoryComplaint.itemCategory`, `ComplexCategoryComplaint` (itemA, itemB, category), `LoadoutsComplaint.missingItems : List<ItemInfo>`, `StructureComplaint._structure`. **No text parsing needed — every missing item is a strong-typed object.**
+- **~120 named complaint format keys** cover every station type: `c_defender_needAmmo_format`, `c_buildstation_noSupplies_format(Single)`, `c_crafting_noPartsFound_format`, `c_farming_noSeeds_format`, `c_item_needItem_format`, etc.
+- **Settlement-wide issue aggregation:** `SettlementIssueTrackerWidget` (UI widget tracking maps of marker/storage-full/mine-exhausted/no-crafting-station/no-production/farm complaints across all villagers) + `SettlementIssuesTabPage`.
+- **Per-station complaint quests:** every workstation type owns a typed complain quest (`CrafterComplainQuest`, `BuildstationComplainQuest`, `CookingComplainQuest`, `ForesterComplaintQuest`, …) + `complainBehaviour : vFSMBehaviour`; quest priority tier `QuestPriority` has `c_ComplainHigh`/`c_WorkstationComplain`/`c_ComplainLow`.
+- **Subclass identification:** `TryCast<T>(Complaint)` works on Il2CppSystem.Object-derived complaint types (confirmed pattern from QuestData precedent).
 
 ---
 
