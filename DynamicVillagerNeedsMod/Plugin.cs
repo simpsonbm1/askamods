@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Configuration;
@@ -71,7 +72,34 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ManualScheduleDiagnostics = null!;
     internal static ConfigEntry<bool> RespectManualSchedule = null!;
     internal static ConfigEntry<float> CriticalNeedOffPostBelow = null!;
+    // v1.7.2: whitelist restricting which cohorts manual mode applies to (Buildstation-family stations
+    // are ALWAYS excluded regardless of this list — see NeedsController.IsBuildstation).
+    internal static ConfigEntry<string> ManualScheduleStations = null!;
     internal static ConfigEntry<OffWindowFillMode> OffWindowFill = null!;
+    // OffWindowFill=Builder (v1.7.0): while loaned, leave the loan once this close to the on-window so
+    // there's time to walk back to the post. Fallback only — the back-loaded top-up sleep normally
+    // preempts it.
+    internal static ConfigEntry<float> BuilderReturnLeadHours = null!;
+    // Save fix (v1.7.0): mask a live needs-collapse write with the player's painted schedule for the
+    // duration of Villager.Serialize, so quitting/autosaving mid-collapse can't bake the collapse into
+    // the save file over the player's real painted schedule.
+    internal static ConfigEntry<bool> PreserveScheduleInSaves = null!;
+
+    // Panel-mask fix (v1.8.0): the schedule UI panel reads a villager's LIVE _schedule, which this mod
+    // temporarily collapses to a uniform activity while driving needs-based behavior (all-Work during a
+    // builder loan, all-Leisure during off-window fill, etc.). Without this, opening the panel mid-collapse
+    // showed the mod's temporary operating schedule instead of the player's real painted intent — reading
+    // as "my schedule got wiped" even though it's correctly preserved and restored underneath. When true,
+    // the panel always shows the real painted schedule for the duration it's open/reading.
+    internal static ConfigEntry<bool> ShowIntendedScheduleInUI = null!;
+
+    // v1.6.0 builder-fill diagnostics: read-only baseline dump + hotkey lend/restore experiment for
+    // testing whether Buildstation.SetTaskAgent alone can inject build quests without touching
+    // Villager._workstation (see BuilderDiag.cs). Diagnostics-only — no existing behavior mode changes.
+    internal static ConfigEntry<bool> BuilderDiagnostics = null!;
+    internal static ConfigEntry<string> BuilderTestKey = null!;
+    // Parsed once at startup from BuilderTestKey.Value (falls back to F9 on parse failure).
+    internal static KeyCode BuilderTestKeyCode = KeyCode.F9;
 
     // Villager survival components, registered as they spawn (pruned in the controller when destroyed).
     internal static readonly List<VillagerSurvival> TrackedSurvivals = new();
@@ -170,18 +198,87 @@ public class Plugin : BasePlugin
             "off-post trip (the game's starving/dehydrated flags also trigger it). Keep near-death-low — off-hours " +
             "top-ups should normally prevent it ever firing.");
 
+        ManualScheduleStations = Config.Bind("DynamicNeeds", "ManualScheduleStations", "",
+            "Manual-schedule mode: comma-separated, case-insensitive substrings matched against each 2+ cohort's " +
+            "station display name. Empty (default) = current behavior: any non-Buildstation 2+ same-station cohort " +
+            "with a mixed (Work + off-hour) painted schedule qualifies for manual mode. Non-empty = manual mode " +
+            "applies ONLY to cohorts whose station name contains at least one of these substrings; every other " +
+            "villager (e.g. newly summoned/unassigned workers at other stations) falls back to pure needs-based " +
+            "behavior instead of being treated as manual-scheduled. Buildstation-family stations are ALWAYS " +
+            "excluded from manual mode regardless of this list. Example: 'Cooking House, Barbecue' limits " +
+            "manual-schedule staggering to those two station families and leaves every other station on needs.");
+
         OffWindowFill = Config.Bind("DynamicNeeds", "OffWindowFill", OffWindowFillMode.Leisure,
             "Manual-schedule mode only: what an off-shift cohort villager does with surplus off-hours after their " +
             "timed top-up sleep and needs are handled. Leisure = hangout + happiness recovery (default, v1.4.4 " +
             "behavior). Work = go back to the post instead (deliberately over-mans a post a coworker holds; the " +
-            "normal happiness-leisure thresholds still apply so mood can't bottom out). Builder = NOT YET " +
-            "IMPLEMENTED (planned: lend off-duty villagers to the construction pool) — currently behaves as " +
-            "Leisure and logs a note.");
+            "normal happiness-leisure thresholds still apply so mood can't bottom out). Builder (v1.7.0) = lend " +
+            "the off-duty villager to the settlement's builder pool — they build/repair/haul like a dedicated " +
+            "builder WITHOUT their job assignment or schedule UI changing. They still take their timed top-up " +
+            "sleep and are back at their post by shift start (or earlier, via BuilderReturnLeadHours), and needs " +
+            "emergencies / the happiness safety valve pull them off the loan just like the other fills. If the " +
+            "lend itself fails (no Buildstation resolved, etc.) that villager falls back to Leisure for the rest " +
+            "of the off-window and a warning is logged.");
+
+        BuilderReturnLeadHours = Config.Bind("DynamicNeeds", "BuilderReturnLeadHours", 1.0f,
+            "OffWindowFill=Builder only: while a villager is on loan, leave the loan once the time remaining " +
+            "until their painted on-window starts drops to this many in-game hours (gives them time to walk " +
+            "back to their post). Fallback only — the back-loaded top-up sleep normally ends the loan first.");
+
+        PreserveScheduleInSaves = Config.Bind("DynamicNeeds", "PreserveScheduleInSaves", true,
+            "Fixes a save bug: this mod only restores a villager's real painted schedule at app-quit, so " +
+            "quitting to the main menu (or any autosave) while a needs-driven collapse write is live permanently " +
+            "bakes that collapse over the player's painted schedule into the save file. When true, the mod masks " +
+            "the live schedule with the player's painted one for the instant the game actually saves a villager, " +
+            "then puts the collapse back immediately after — so saves always capture the real painted schedule " +
+            "and the mod's own tracking is unaffected. Leave this on unless you're debugging the save patch itself.");
+
+        ShowIntendedScheduleInUI = Config.Bind("DynamicNeeds", "ShowIntendedScheduleInUI", true,
+            "Fixes a UI-confusion bug: this mod temporarily collapses a villager's schedule to a single " +
+            "activity while driving needs-based behavior (e.g. all-Work during a builder loan, all-Leisure " +
+            "during off-window fill). Without this option, opening the villager schedule panel while a " +
+            "collapse is live showed that temporary operating schedule instead of what you actually painted " +
+            "— it looks like your schedule got erased, even though the mod correctly preserves and restores " +
+            "it underneath. When true, the panel always shows your real painted schedule, and editing/applying " +
+            "a new paint in the panel still works normally. Leave this on unless you're debugging the mask itself.");
+
+        BuilderDiagnostics = Config.Bind("DynamicNeeds", "BuilderDiagnostics", true,
+            "Read-only diagnostics + a hotkey-driven lend/restore EXPERIMENT for the planned OffWindowFill=Builder " +
+            "mode. ~10s after the first villager is tracked, logs a one-time baseline dump (each tracked " +
+            "villager's name/workstation/Buildstation-agent membership, then the default Buildstation's own " +
+            "agent counts). While active, pressing BuilderTestKey lends the nearest eligible villager to the " +
+            "settlement's default Buildstation to test whether Buildstation.SetTaskAgent alone injects build " +
+            "quests into the villager's QuestRunner WITHOUT changing Villager._workstation (the field the UI job " +
+            "icon reads) — logging before/after state so the variants can be compared. Every code path here is " +
+            "try/catch-guarded and can never affect normal mod behavior or any shipped mode. Verbose; default " +
+            "true per project convention for new diagnostics (flip to false once builder-fill ships).");
+
+        BuilderTestKey = Config.Bind("DynamicNeeds", "BuilderTestKey", "F9",
+            "Hotkey for the BuilderDiagnostics lend/restore experiment (host/solo only — non-authority clients " +
+            "will never find an eligible target). Parsed once at startup as a Unity KeyCode name. Plain key = " +
+            "variant FULL_LOAN (release from home so its quests leave the runner, join the Buildstation for " +
+            "real via SetTaskAgent+AddToTaskDatas, then paint an all-Work schedule so nothing else competes " +
+            "for the villager's dispatch — the v1.6.0 test showed the home station's quests otherwise stay in " +
+            "the runner and out-priority the build quests); Shift+key = variant AGENT+TASKDATA (SetTaskAgent " +
+            "then AddToTaskDatas, home workstation left untouched, no schedule write); Ctrl+key = variant SWAP " +
+            "(Villager.AssignToWorkstation — the normal reassignment, kept as the comparison baseline). While " +
+            "a lend is active, NeedsController's own control loop skips that villager entirely. Press again " +
+            "(any modifier) while an experiment is active to restore.");
+
+        if (Enum.TryParse<KeyCode>(BuilderTestKey.Value, true, out var builderKey))
+            BuilderTestKeyCode = builderKey;
+        else
+        {
+            BuilderTestKeyCode = KeyCode.F9;
+            Logger.LogWarning($"[DynamicNeeds] Could not parse BuilderTestKey '{BuilderTestKey.Value}'. Falling back to F9.");
+        }
 
         ClassInjector.RegisterTypeInIl2Cpp<NeedsController>();
         var go = new GameObject("DynamicVillagerNeedsMod_Controller");
-        Object.DontDestroyOnLoad(go);
-        go.AddComponent<NeedsController>();
+        UnityEngine.Object.DontDestroyOnLoad(go);
+        // v1.7.0: kept as a static so the save-preservation Harmony patch (a static class — patches
+        // can't take constructor args) can reach the mod's live per-villager schedule snapshots.
+        NeedsController.Instance = go.AddComponent<NeedsController>();
 
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
@@ -194,6 +291,10 @@ public class Plugin : BasePlugin
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
                        $"boost={LeisureHoursToFullHappiness.Value}h, " +
                        $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}, " +
-                       $"OffWindowFill={OffWindowFill.Value}");
+                       $"ManualScheduleStations='{ManualScheduleStations.Value}', " +
+                       $"OffWindowFill={OffWindowFill.Value} builderReturnLead={BuilderReturnLeadHours.Value}h, " +
+                       $"PreserveScheduleInSaves={PreserveScheduleInSaves.Value}, " +
+                       $"ShowIntendedScheduleInUI={ShowIntendedScheduleInUI.Value}, " +
+                       $"BuilderDiagnostics={BuilderDiagnostics.Value} testKey={BuilderTestKeyCode}");
     }
 }

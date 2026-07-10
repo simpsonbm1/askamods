@@ -1,12 +1,13 @@
-# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09; idea 13 added 2026-07-10)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
-(2026-07-03; ideas 7–8 re-dumped 2026-07-06; idea 10 dumped 2026-07-07) — signatures are facts;
-*runtime behavior* claims are the ⚠️ part. Ideas 7–8 come from Nexus user feedback on TaskUnlockerMod
-(rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07). Idea 11 comes from a Nexus
-discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and — unusually — needs **no**
-new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
+(2026-07-03; ideas 7–8 re-dumped 2026-07-06; idea 10 dumped 2026-07-07; idea 13 dumped 2026-07-10) —
+signatures are facts; *runtime behavior* claims are the ⚠️ part. Ideas 7–8 come from Nexus user feedback
+on TaskUnlockerMod (rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07). Idea 11 comes
+from a Nexus discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and — unusually —
+needs **no** new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
+Idea 13 comes from a Nexus discussion (rondi112 + author, 2026-07-10).
 
 **Priority order (user, historical):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting
 multiplier. Vacuum (4) has since shipped; den respawn (2) is **IN PROGRESS** as DenRespawnMod (WIP
@@ -347,15 +348,15 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   new Leisure | Work | Builder config option (default Leisure) controls off-window surplus fill for 2+-cohort villagers.
   `OffWindowFill=Work` (opt-in over-manning) confirmed in-game (2026-07-09): after the one back-loaded top-up sleep,
   qualifying villagers resume their post during off-hours when rested, bounded by the mode's base happiness-leisure safety
-  valve. `OffWindowFill=Builder` (unassigned-labor lend/restore) deferred to its own diagnostics phase — ASKA models builders
-  as UNASSIGNED, so it must be verified that an assigned villager can be cleanly lent and restored without walking home or
-  dropping task state.
+  valve.
 
-- **Roadmap from 2026-07-09 brainstorm (user + Nexus feedback):**
-  Goal ledger: (1) automate everything = the base mode ✅; (2) no-overlap split schedules: 2a off-duty leisure ✅ (Phase 1),
-  2b off-duty productive/builder = Phase 2's Builder enum (diagnostics-gated), 2c off-duty back-to-work-after-needs ✅
-  (v1.5.0 `OffWindowFill=Work`); (3) stretch, SEPARATE-MOD idea: demand-driven crafting prioritization (see new idea 12).
+- **Phase 2 COMPLETE — v1.6.0–v1.8.0 shipped (2026-07-10), `OffWindowFill=Builder` + schedule preservation + UI display:**
+  `OffWindowFill=Builder` (unassigned-labor lend/restore via agent registry) confirmed in-game (2026-07-10): the recipe (v1.6.0 research, v1.7.0 implementation) is `home.ReleaseTaskAgent(agent)` + `bs.SetTaskAgent` + `bs.AddToTaskDatas` + all-Work schedule; 227 lend/restore cycles verified, zero failures. v1.7.0–v1.7.1 adds `PreserveScheduleInSaves` Harmony mask on `Villager.Serialize` to prevent quit-to-menu collapse-bake (confirmed root cause of schedule destruction). v1.7.2 adds universal mode-independent player-edit adoption + Buildstation exclusion from cohorts. v1.8.0 adds `ShowIntendedScheduleInUI` Harmony masks on `VillagerSchedulePanel` Set/Refresh/OnEnable/HasUnappliedChanges so the UI always shows painted schedules, not the mod's temporary collapses (three false bug reports fixed). Phase 3 (schedule-UI overlap warning) remains open — the user's requested next feature (see Phase 3 details below).
+
+- **Roadmap (2026-07-10 update):**
+  Goal ledger: (1) automate everything = the base mode ✅; (2) no-overlap split schedules: 2a off-duty leisure ✅ (Phase 1), 2b off-duty productive/builder ✅ (Phase 2, v1.8.0), 2c off-duty back-to-work-after-needs ✅ (v1.5.0 `OffWindowFill=Work`); (3) stretch, SEPARATE-MOD idea: demand-driven crafting prioritization (see new idea 12).
   Nexus-derived enhancements (open, not committed):
+  - **Skip builder lend when Buildstation has no pending projects:** lent villagers acquire the Buildstation complain quest → idle barks ("It's time to build something") when no work queues exist. Readable gates: `buildProjects`/`repairProjects` non-empty. Candidate: skip the lend entirely when both are empty (or lend only when projects exist) to avoid idle-builder noise.
   - **Idle→leisure default with per-station leisure concurrency cap — FLAGGED GOOD:** workers idle because no work exists
     (builders with nothing queued, full inventories, completed bills) default to leisure instead of loitering; cap concurrent
     leisure per station (e.g. 4 assigned → max 3 on leisure) so a sudden job always has someone present. Machinery echoes DVN's
@@ -388,6 +389,126 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
 **F3 — Two priority mechanisms + the starvation loop [in-game, confirmed in-game (2026-07-09)].** (a) CRAFTING stations use an absolute RANKED LIST with a per-task QUOTA measured against the LOCAL station inventory: worker fills rank 1's quota locally, moves to rank 2, etc., and snaps BACK to an earlier rank whenever its local count drops below quota. (b) GATHERING stations (woodcutter, forager, stonecutter, …) use High/Medium/Low TIERS per eligible resource + quota: all highs satisfied locally → mediums → lows. (c) Priority is effectively WINNER-TAKE-ALL, not a soft weight: one task set higher monopolizes the worker (a woodcutter with only long-hardwood-stick=high did nothing else; a warehouse with one raised collect-priority let everything else run dry). (d) The persistent-monopoly mechanism is the QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop: haulers carrying output away keep the quota unmet, so the top task never completes (intended vanilla design). Type mapping [Cecil-corroborated]: rank = `WorkstationTaskData.priority : Int32` (one-step UI moves); quota = `itemInfoQuantity`; tier = [likely] `WorkstationTaskPriority`.
 
 **F4 — Idea-12 approach design (session synthesis, 2026-07-09; no code, nothing built).** Chain: complaint event → missing ItemInfo → find station(s) with an EXISTING matching task (never create tasks — user scope guard) → temporary priority boost through the game's own RPC → revert. Design decisions: (1) transient boost is the feature (winner-take-all makes "drop everything briefly" work); REVERT is the safety-critical core AND the normal termination path (hauler drain means a boost never self-terminates at the station; only complaint-clear or window-expiry end it); (2) stranded-boost risk: since priorities persist in saves, Phase 1 needs a mod-side per-world store of original priorities restored at world load + a hard max-boost-duration; (3) duty-cycling (boost N minutes → restore → cooldown → re-boost if complaint persists) = soft-priority behavior without patching game code; (4) same-station conflicts (e.g. archers need arrows + farmer needs hoes from one workshop): per-station micro-scheduler — ONE active boost, queue ordered by `Complaint.important` then FIFO, time-slice rotation until all clear; optional later: shortest-job-first via demand quantities (manifest/loadout complaints carry counts); (5) TWO bump/revert flavors needed: rank-move (crafting) vs tier-set (gathering) — Phase 0 checks whether Rpc_ChangeTaskPriority serves both; (6) QUOTA is a second candidate lever — a demand-derived temporary quota could make boosts self-limiting; (7) stretch/maybe-separate-mod: "priority softening" — patch the task-selection logic into weighted/round-robin — deeper+riskier, duty-cycle achieves most of it externally. Phasing: Phase 0 read-only diagnostics (log complaints as they arrive w/ payloads; log task datas incl. priority ints/tiers/quotas on both station kinds; locate the task-selection method; verify AddComplaint patch fires, TryCast subclasses, Rpc args) → Phase 1 auto-bump w/ duty-cycle + revert + per-world originals store (solo/host) → Phase 2 config polish (which complaint classes act, window/cooldown, magnitude). Open unknowns list: priority Int32 rank-vs-index semantics; Rpc_ChangeTaskPriority args; complaint add/remove cadence (hysteresis tuning); AddComplaint AOT-inlining; NetworkWorkstation<T> base-chain reachability from station wrappers; TryCast in practice.
+
+---
+
+## 13. Outhouse composter — repurpose the Outhouse as a compost bin (new mod, research 2026-07-10)
+
+**Goal:** throw vegetables/seeds (and other food) into the Outhouse's storage; after they rot they
+become **compost** usable on farm plots. The compost-bin fantasy WITHOUT new assets (author
+constraint: logic/code changes only, no asset generation) — reuse the existing Outhouse structure as
+the container shell. Per the Nexus thread: reserve the outhouse's own function, let the other storage
+capacity accept food/seeds, optionally speed their spoilage inside (but the resulting compost's own
+rotting speed stays default), and make the storage bigger where safe.
+
+**Source:** Nexus discussion (rondi112 + author, 2026-07-10). rondi112's original ask was a new
+compost-bin structure; the author steered to repurposing an existing structure. rondi112 proposed the
+Outhouse specifically (always built near the farm anyway). Author's scoping in-thread, now
+Cecil-corroborated (see MP caveat below): stack-size increases are doable and "safe to a value";
+adding storage-grid squares is problematic for multiplayer + villager interaction ⇒ treat
+grid growth as **singleplayer/host-only**, stack scaling as the safe axis.
+
+**Verdict: fully plausible, and cheaper than it looked — BOTH halves of the loop are native systems:**
+the game already has a complete item-decay pipeline (food rots into per-item "junk" outputs) AND a
+complete farm-compost pipeline (compost items, per-cell compost volume, villager + player application).
+The mod is plumbing between two existing systems, not a new mechanic.
+
+**Key API (confirmed from binary, 2026-07-10):**
+- **Native compost system (output side — the "fertilizer" already exists):**
+  `SSSGame.FarmGridCellData` — `_currentCompostVolume`/`MaxCompostVolume`/`CurrentCompostRatio`,
+  `HasEnoughCompost()`, save key `c_CurrentCompostVolumeKey` (per-cell compost volume, persisted).
+  `SSSGame.FarmCrop.AddCompostVolumeToCell(Vector3, Single)` / `AddCompostVolumeToAllCells(Single)` +
+  networked `Rpc_AddCompostToCell(Int32, Single)` / `Rpc_AddCompostToAllCells(Single)`.
+  **`FarmingStation.composts : ItemInfoList`** (villager-side: which items ARE compost) and
+  **`FarmCropInteraction.compatibleComposts : ItemInfoList`** + `CheckCompost(ItemInfo)` (player-side
+  manual application). `Complaint.c_farming_needCompost` (ties into the idea-12 complaint system);
+  debug helper `SettlementDebugAddon._CompostAllCrops()`. ⇒ The output item needs only to be an entry
+  of those lists — **no new item asset**; Phase 0 logs the lists' contents to learn its name.
+- **Native decay/spoil system (input side):** `SSSGame.ItemDurablilityProcess : ItemProcess` —
+  `category : DecayMode { INVENTORY_AND_WORLD, ONLY_WORLD, EQUIPPED }`, `decayMultiplier`,
+  `badWeatherMultiplier`, `Run(Item, Single&)`, `_BreakItem(Item)`, `fallbackJunkItem : ItemInfoQuantity`;
+  subclass `ContainerItemDurabilityProcess` (items INSIDE containers decay too — own `_BreakItem`).
+  **Per-item conversion table: `SSSGame.ResourceInfo.junk : ItemInfoQuantity[]`** (also
+  `EquipmentItemInfo.junk`) — a fully-decayed item transmutes into its junk item(s)+quantity natively.
+  Decay-pace levers: `ItemInfo._decayRateAttrData : AttributeData`, property ids
+  `ItemsConstants.c_Decay / c_DecayRate / c_DecayProtection / c_DecayMultiplier`,
+  `ItemDurablilityProcess.checkDecayRateMultiplierOnItem`, `Item.SyncDecay()` (+ network
+  `ItemDecaySyncProcess`). `CrockpotInteraction.junkRecipe` (overcooking precedent).
+- **Storage/container machinery:** `SandSailorStudio.Inventory.ItemContainer` — **`capacity : Int32`**
+  (slot count, plain int on the instance), `containerType : ItemContainerType`, `CanStoreItemType(ItemInfo)`,
+  `Check(ItemInfo)`, `GetStackSize(ItemInfo)`, `AddItems(ItemInfo, Int32)`, `RemoveItem`, `GetItems()`,
+  `IsHidden` / `NoActionTargets` flags (candidate way to keep settlement AI's hands off the contents).
+  `ItemContainerType : ScriptableObject` — `storageClasses : StorageClassData[]` where
+  **`StorageClassData { storageClass : ItemStorageClass; stackSize : Int32 }`**, plus
+  `overrideStackSizes` / `overrideWithMaxSize` and an `attributes` property array (candidate carrier of a
+  container-level decay-rate/protection property — semantics ⚠️). **`ItemInfo.storageClass : ItemStorageClass`**
+  (one tag SO per item) — acceptance = does the container type list your class ⇒ both an asset-edit lever
+  (add food/seed classes to the outhouse's type, TerrainLeveler/idea-3 asset-edit precedent) and a patch
+  lever (`CanStoreItemType`/`Check` prefix scoped to the outhouse's container instance).
+  `ItemContainerComponent : MonoBehaviour` bridges container↔prefab (`DepositItems`, `TryAddOneItemOrDropNearby`).
+- **The multiplayer caveat is visible in the binary:** the networked storage family is
+  `SSSGame.Network.NetworkSimpleResourceStorage_2/_3/_4/_5/_8/_12/_22/_42/_45` (+ `NetworkCompositeResourceStorage`)
+  — **slot counts baked into compile-time Fusion network-state types**. Growing a grid past its network
+  struct cannot sync ⇒ capacity growth is host/solo-only by construction; stack-size scaling doesn't
+  change slot count and is the co-op-safe axis. (Corroborates the author's in-thread assessment.)
+- **No `Outhouse` type exists** — the outhouse is a generic `Structure` template (name confirmed via
+  `ReligionOutlet.c_bless_Outhouse`); its villager-visit function is some interaction component on the
+  prefab (which need drives visits is still unknown — same open question as the DVN "outhouse disuse"
+  note in idea 11's roadmap). The mod doesn't need to touch that function — only the storage side.
+
+**Approach (phased — transmute by mod timer first, native decay as a flavor later):**
+1. **Phase 0 (read-only diagnostics, default true):** aim-at/interact logging for the Outhouse
+   structure: walk its components and log whether it has an `ItemContainer`/`ItemContainerComponent`
+   at all (⚠️ biggest unknown — decides the container strategy), its `containerType` name +
+   uniqueness (is the ScriptableObject shared with other structures? decides asset-edit vs
+   instance-patch), `capacity`, storage classes + stack sizes, and any Network*ResourceStorage backing.
+   Also log: contents of `FarmingStation.composts` + `FarmCropInteraction.compatibleComposts` (what IS
+   compost — item name(s) for the config default); `ResourceInfo.junk` + decay attribute for a sample
+   of vegetables/seeds/fish/meat (do foods already rot into something compost-compatible natively? do
+   seeds decay at all?); and whether items sitting in a structure container visibly tick decay
+   (`ContainerItemDurabilityProcess` reachability).
+2. **Phase 1 (the feature, host/solo-authoritative):** make the outhouse container accept food+seeds
+   (asset-edit its `ItemContainerType.storageClasses` if unique, else patch `CanStoreItemType`/`Check`
+   per-instance) with a configurable stack size (`StorageClassData.stackSize`, "safe to a value" —
+   default modest). **Conversion = mod-side timer, not native decay:** a throttled poller (existing
+   DayTracker/world-clock pattern — `WeatherSystem.TimeOfDay`/day count, runtime-proven in DVN/TimeWarp)
+   snapshots the outhouse container's stacks and, once a stack has sat N in-game days (config
+   `DaysToCompost`, the "adjust the spoil rate" knob without touching global decay), replaces it via
+   `RemoveItem` + `AddItems(compostItem, n × yieldRatio)`. Compost output item = first entry of
+   `compatibleComposts` (config override by name). The compost item itself is untouched — its rotting
+   speed stays vanilla, exactly as requested. Timer approach also covers **seeds** even if they have no
+   native decay attribute. Guardrails: host-authority gate; set/verify `NoActionTargets`/`IsHidden` (or
+   equivalent) so cooks/haulers/hungry villagers don't raid or stock the rot bin (⚠️ verify villagers
+   actually ignore it — the author's "villager interaction" worry); persistence of "sat N days" across
+   save/reload via re-derivation (age unknown after load ⇒ restart the clock — document; a per-slot
+   day-stamp store in the mod's own per-world file is the upgrade if that annoys).
+3. **Phase 2 (bigger grid, config-gated, host/solo only):** bump `ItemContainer.capacity` for the
+   outhouse instance. ⚠️ verify: UI grid panel copes with extra slots; serialization round-trips them;
+   any Fusion storage backing tolerates it (if the outhouse container turns out network-backed, cap
+   capacity at the baked slot count and rely on stack scaling instead). Hide/disable in co-op sessions.
+4. **Phase 3 (optional native-decay flavor):** let the game's own rot do the work instead of the
+   timer — edit accepted foods' `ResourceInfo.junk` to a compost-compatible output and/or patch
+   `_BreakItem` scoped to items inside the outhouse container. NOTE: `junk` edits are global (food
+   rotting ANYWHERE would yield compost — arguably a feature, definitely a design decision), and
+   `_BreakItem` on a possibly-inlined small method needs fire-verification. Only pursue if the timer
+   version feels artificial.
+
+**⚠️ verify / risks (Phase 0 resolves most):**
+- Does the vanilla Outhouse actually have an item container/storage grid? (The thread assumes yes;
+  nothing in the binary proves it.) If not: nearest fallback shells with confirmed storage are any
+  small `ResourceStorage` structure — or attach our own `ItemContainer` to the outhouse structure
+  (heavier, new serialization surface — prefer a shell that already has one).
+- What the native compost item(s) are, and whether food already rots into one natively (if vanilla
+  `junk` already yields compost-compatible output, Phase 1 shrinks further).
+- Villager/AI interaction with a food-holding outhouse container (raiding cooks, haulers stocking it,
+  outhouse-visit function confused by contents) — the `NoActionTargets`/`IsHidden` flags are the
+  candidate mitigation, semantics unverified.
+- Stack-size "safe value" ceiling (author's own caveat): villager carry/haul math and UI stack display
+  with big stacks — start small (e.g. 2–4× vanilla), test up.
+- Decay/property semantics (`c_DecayProtection` vs `c_DecayRate` vs `c_DecayMultiplier`, container
+  `attributes`) only matter for Phase 3 — the Phase 1 timer sidesteps them entirely.
+- Co-op: all writes host-gated; stack scaling is the only axis exposed in co-op; capacity growth
+  hidden/disabled there (network-struct evidence above).
 
 ---
 

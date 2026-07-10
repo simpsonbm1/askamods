@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using SandSailorStudio.Attributes;  // VariableAttribute
@@ -47,7 +48,15 @@ public class NeedsController : MonoBehaviour
 {
     // Manual = RespectManualSchedule baseline: follow the villager's own painted schedule
     // (write-silent while held — see ApplyManualIfNeeded).
-    private enum Mode { Work, Sleep, Leisure, Manual }
+    // Builder (v1.7.0) = OffWindowFillMode.Builder: the villager is on loan to the settlement's builder
+    // pool (see BuilderLoan.cs). ToSchedule(Builder) writes Work — the loan's schedule IS a Work
+    // collapse; the mode is only distinct so the lend/restore side-effects can key off the transition.
+    private enum Mode { Work, Sleep, Leisure, Manual, Builder }
+
+    // Set once by Plugin.Load() right after the controller GameObject is created. Lets the save-
+    // preservation Harmony patch (a static class — Harmony patches can't take constructor args) reach
+    // this instance's live per-villager schedule snapshots without a second, competing copy of that state.
+    internal static NeedsController? Instance;
 
     // Plateau window: how long happiness must fail to rise (relative to what our boost is pumping in)
     // before we treat the villager as happiness-capped and stop holding them in leisure.
@@ -124,10 +133,27 @@ public class NeedsController : MonoBehaviour
     // Sleep-overlap warnings already issued (station name+members -> overlap string) so the manual-mode
     // coverage warning fires on change, not on every 10 s report.
     private readonly Dictionary<string, string> _overlapWarned = new();
-    // OffWindowFill=Builder isn't implemented yet; log the "using Leisure instead" note once ever, not
-    // every tick/villager.
-    private static bool _builderFillNoteLogged;
+    // v1.7.2 Fix C: villagers already warned once about an unresolvable station name while
+    // ManualScheduleStations is non-empty (see RefreshCohorts) — logs once per villager, not every 10 s.
+    private readonly HashSet<VillagerSurvival> _unresolvedStationNameWarned = new();
     private bool _cohortsComputed;
+
+    // --- OffWindowFill=Builder (v1.7.0) state ---
+    // Villagers currently lent to the settlement's builder pool. See BuilderLoan.cs for the shared
+    // lend/restore recipe (also used by BuilderDiag's hotkey experiment). Multiple villagers may be
+    // loaned simultaneously (a whole cohort off-shift).
+    private readonly Dictionary<VillagerSurvival, BuilderLoan.State> _builderLoans = new();
+    // Villagers whose builder lend failed THIS off-window — armed (removed) when their painted hour
+    // returns to Work, so a persistently-broken lend doesn't retry (and re-warn) every tick.
+    private readonly HashSet<VillagerSurvival> _builderFailedWindow = new();
+    // Last Time.time a "restore still failing" warning was logged per villager — throttles the retry
+    // warning to once per 10s instead of every tick while a restore keeps failing.
+    private readonly Dictionary<VillagerSurvival, float> _builderRestoreRetryTimer = new();
+    // Tracks whether Plugin.TrackedSurvivals held any villagers last frame, so a 1->0 transition (world
+    // leave) can be detected and any active loan state dropped WITHOUT native calls (stale wrappers).
+    private bool _hadTrackedVillagers;
+    // One-time (per world session) stale-loan-leftover diagnostic gate — see CheckStaleLoanLeftovers.
+    private bool _staleLoanCheckDone;
 
     // Accumulator for the periodic (10s) same-workstation cohort report.
     private float _cohortTimer;
@@ -140,6 +166,18 @@ public class NeedsController : MonoBehaviour
 
     void Update()
     {
+        // v1.6.0 builder-fill diagnostics: independent of Enabled/ManualScheduleDiagnostics (its own
+        // BuilderDiagnostics gate) and must run every frame — NOT behind the 4 Hz throttle below —
+        // because its hotkey uses Input.GetKeyDown, which is frame-scoped and would be missed otherwise.
+        BuilderDiag.Tick(Plugin.TrackedSurvivals);
+
+        // v1.7.0 OffWindowFill=Builder: world-leave detection and the one-time stale-loan diagnostic are
+        // both independent of Enabled/msDiag gating below — a world can be left (or a stale loan can be
+        // sitting from a prior session) while the mod is disabled.
+        var trackedForLoanChecks = Plugin.TrackedSurvivals;
+        CheckBuilderLoanWorldLeave(trackedForLoanChecks);
+        if (trackedForLoanChecks.Count > 0) CheckStaleLoanLeftovers(trackedForLoanChecks);
+
         bool enabledCtl = Plugin.Enabled.Value;
         bool msDiag = Plugin.ManualScheduleDiagnostics.Value;
         if (!enabledCtl && !msDiag) return;
@@ -242,10 +280,21 @@ public class NeedsController : MonoBehaviour
                 var villager = surv.GetVillager();
                 if (villager == null) continue;
 
-                // Manual mode: capture the painted per-hour schedule BEFORE any possible write this
-                // tick (first sight), and keep it fresh against player UI edits (5 s cadence).
-                if (manualMode) EnsureSnapshot(surv, villager, i);
-                if (manualMode && fiveSec) RefreshPaintedSnapshot(surv, villager, i, msDiag);
+                // v1.6.1: while BuilderDiag has this villager lent to the Buildstation, DVN must not
+                // make any mode/schedule decision for them — its own writes would fight the
+                // experiment's schedule paint and task-agent membership. The observe-only path
+                // (ObserveTick, Enabled=false) is unaffected and keeps running.
+                if (BuilderDiag.IsLent(surv)) continue;
+
+                // Capture the painted per-hour schedule BEFORE any possible write this tick (first
+                // sight), and keep it fresh against player UI edits (5 s cadence). v1.7.2 Fix A:
+                // mode-independent — runs for every controlled villager regardless of
+                // RespectManualSchedule, cohort qualification, or current Mode (including a builder
+                // loan), because a stale snapshot corrupts the Manual-mode restore, RestoreAll, AND
+                // PreserveScheduleInSaves' save-mask no matter what mode the villager is in when the
+                // player repaints them. See RefreshPaintedSnapshot for the discrimination rule.
+                EnsureSnapshot(surv, villager, i);
+                if (fiveSec) RefreshPaintedSnapshot(surv, villager, i, msDiag);
 
                 var rest = surv._restVariableAttribute;
                 if (rest == null) continue;
@@ -323,9 +372,9 @@ public class NeedsController : MonoBehaviour
                 {
                     manualProbe = true;
                     bool onWindow = paintedNow == (int)ScheduleType.Work;
-                    // Arm the once-per-off-window top-up while on shift; it is spent below by one
-                    // completed (rested) off-window sleep.
-                    if (onWindow) _toppedUp.Remove(surv);
+                    // Arm the once-per-off-window top-up (and the once-per-off-window builder-lend-
+                    // failed flag) while on shift; both are spent below.
+                    if (onWindow) { _toppedUp.Remove(surv); _builderFailedWindow.Remove(surv); }
                     bool emergency = critical || minNeed <= criticalBelow;
                     float resleepBelow = Mathf.Max(wakeAbove - ResleepMarginHours, 0f);
 
@@ -343,20 +392,16 @@ public class NeedsController : MonoBehaviour
                     bool topUpNow = !_toppedUp.Contains(surv) && restHours < resleepBelow
                         && (hoursUntilOn <= sleepLeadHours || restHours <= sleepBelow);
 
+                    // A lend that already failed this off-window doesn't retry every tick — fall back to
+                    // Leisure for the rest of the window (re-armed above when the on-window returns).
                     var fill = Plugin.OffWindowFill.Value;
-                    if (fill == OffWindowFillMode.Builder)
-                    {
-                        if (!_builderFillNoteLogged)
-                        {
-                            _builderFillNoteLogged = true;
-                            Plugin.Logger.LogInfo("[DynamicNeeds] OffWindowFill=Builder is not implemented yet (pending builder-pool diagnostics) — using Leisure fill.");
-                        }
+                    if (fill == OffWindowFillMode.Builder && _builderFailedWindow.Contains(surv))
                         fill = OffWindowFillMode.Leisure;
-                    }
 
                     next = DecideManual(prev, restHours, surv.IsSleeping, minNeed, emergency,
-                        needAbove, wakeAbove, resleepBelow, onWindow, topUpNow,
-                        fillWork: fill == OffWindowFillMode.Work, happiness, happyBelow, happyUntil, ht.plateaued, happyAllowed);
+                        needAbove, wakeAbove, resleepBelow, onWindow, topUpNow, fill,
+                        hoursUntilOn, Plugin.BuilderReturnLeadHours.Value,
+                        happiness, happyBelow, happyUntil, ht.plateaued, happyAllowed);
                     if (!onWindow && prev == Mode.Sleep && next != Mode.Sleep && restHours >= wakeAbove)
                         _toppedUp.Add(surv);
                 }
@@ -365,6 +410,26 @@ public class NeedsController : MonoBehaviour
                     next = Decide(prev, restHours, surv.IsSleeping, minNeed, critical, happiness,
                         sleepBelow, wakeAbove, needBelow, needAbove,
                         happyBelow, happyUntil, ht.plateaued, happyAllowed);
+                }
+
+                // OffWindowFill=Builder loan side-effects on mode TRANSITIONS. Mode.Builder is only ever
+                // produced by DecideManual, but this transition check is generic on prev/next, so it also
+                // correctly restores a loan if the villager loses cohort qualification mid-loan (falls
+                // through to Decide() above, which never returns Builder).
+                if (prev != Mode.Builder && next == Mode.Builder)
+                {
+                    if (!TryLendToBuilder(surv, villager, i))
+                    {
+                        next = Mode.Leisure;
+                        _builderFailedWindow.Add(surv);
+                    }
+                }
+                else if (prev == Mode.Builder && next != Mode.Builder)
+                {
+                    // Must not leave the villager silently loaned — if the restore fails, stay in
+                    // Mode.Builder and retry on a later tick (warning throttled to once per 10s).
+                    if (!TryRestoreFromBuilder(surv, villager, i))
+                        next = Mode.Builder;
                 }
                 _mode[surv] = next;
 
@@ -634,7 +699,8 @@ public class NeedsController : MonoBehaviour
     // anyone off-shift here — the off-window leisure fill (plus its boost) is where happiness recovers.
     private static Mode DecideManual(Mode prev, float restHours, bool isSleeping, float minNeed,
         bool emergency, float needAbove, float wakeAbove, float resleepBelow, bool onWindow, bool topUpNow,
-        bool fillWork, float happiness, float happyBelow, float happyUntil, bool happyPlateaued, bool happyAllowed)
+        OffWindowFillMode fillMode, float hoursUntilOn, float builderReturnLeadHours,
+        float happiness, float happyBelow, float happyUntil, bool happyPlateaued, bool happyAllowed)
     {
         // 1. Life-threatening food/water pierces any window — a worker must never die at his post. Off
         //    the shift, hold the trip (hysteresis) until the need genuinely recovers; on-shift, release
@@ -661,18 +727,28 @@ public class NeedsController : MonoBehaviour
         // 4. Off-window: fill the surplus, with ONE back-loaded top-up sleep timed (by the caller's
         //    topUpNow) to end at the shift start — or immediately if genuinely exhausted. The once-
         //    per-window flag and the re-entry margin (both folded into topUpNow) prevent the nap
-        //    limit cycle. Fill policy: Leisure (default — never over-mans the post) or, opt-in
-        //    (OffWindowFill=Work), back to the post — with the normal happiness-leisure thresholds
-        //    (entry, hysteresis hold, plateau give-up + retry cooldown) still honored so an
-        //    all-work off-window can't bottom out the villager's mood.
+        //    limit cycle. Fill policy: Leisure (default — never over-mans the post), opt-in
+        //    (OffWindowFill=Work) back to the post, or opt-in (OffWindowFill=Builder) a loan to the
+        //    settlement's builder pool (see BuilderLoan.cs) — Work and Builder share the same gating
+        //    (the normal happiness-leisure thresholds — entry, hysteresis hold, plateau give-up + retry
+        //    cooldown — still apply so an all-work/all-builder off-window can't bottom out the
+        //    villager's mood) and differ only in which Mode they yield.
         if (!onWindow)
         {
             if (topUpNow) return Mode.Sleep;
-            if (fillWork)
+
+            // Builder return lead: a villager already on loan leaves it once there's only just enough
+            // time left to walk back to the post before the on-window starts. The back-loaded top-up
+            // sleep above normally ends the loan first; this is the fallback for when no top-up fires
+            // this off-window (e.g. the villager was already sufficiently rested).
+            if (prev == Mode.Builder && hoursUntilOn >= 0f && hoursUntilOn <= builderReturnLeadHours)
+                return Mode.Manual;
+
+            if (fillMode == OffWindowFillMode.Work || fillMode == OffWindowFillMode.Builder)
             {
                 if (prev == Mode.Leisure && happyEnabled && happiness < happyUntil && !happyPlateaued) return Mode.Leisure;
                 if (happyEnabled && happyAllowed && happiness <= happyBelow) return Mode.Leisure;
-                return Mode.Work;
+                return fillMode == OffWindowFillMode.Builder ? Mode.Builder : Mode.Work;
             }
             return Mode.Leisure;
         }
@@ -724,55 +800,64 @@ public class NeedsController : MonoBehaviour
         return wasCollapsed;
     }
 
-    // Active-mode painted-snapshot freshness (5 s cadence, RespectManualSchedule only). Player UI edits
-    // never pulse __NetworkedSchedule (confirmed in-game 2026-07-09), so diff the ARRAY: in the Manual
-    // baseline the live array IS the player's intent — any diff is an edit (re-snapshot; this is the
-    // player-edit re-snapshot moved OUT of the diagnostics gate, per the idea-11 Phase-1 note). During
-    // a collapse the live array is OUR uniform write — a diff from it means the player painted over it
-    // mid-override: adopt the fresh intent (re-snapshot + flip to Manual; Decide may lawfully
-    // re-override next tick).
+    // Player-edit adoption (5 s cadence). v1.7.2 Fix A — mode-independent: runs for every controlled
+    // villager regardless of current Mode. The OLD version of this method only recognized a player edit
+    // in two hand-picked cases (holding the Manual baseline, or a uniform single-value collapse) — a
+    // repaint that landed while the villager was in ANY OTHER collapse-holding mode (notably an
+    // OffWindowFill=Builder loan, whose collapse is also a uniform Work write but wasn't reliably
+    // distinguished) was never adopted, and the next Manual re-entry / RestoreAll / save-mask then wrote
+    // the STALE snapshot back over the player's fresh paint (confirmed bug: repeatedly destroyed a
+    // repainted cook's schedule while she was on builder loan).
+    //
+    // Discrimination rule: re-pack the LIVE array with the game's own packer and compare it to
+    // _appliedPacked — the exact packed value we last wrote via Rpc_ChangeSchedule (the same field
+    // GetPaintedSnapshotForSave / the v1.7.1 save-mask guard use). A match means the live array IS our
+    // own most recent write, not a player edit — nothing to adopt (this is what stops every tick of
+    // holding a Sleep/Leisure/Work/Builder collapse from misreading our OWN uniform write as if the
+    // player had repainted over it). Anything else that also differs from the stored snapshot is player
+    // intent: adopt it into _scheduleHours. This deliberately leaves Mode/_applied/_appliedManual (and
+    // any active builder loan) untouched — the fresh paint simply becomes the restore target for
+    // whenever the current mode naturally ends (Manual re-entry re-applies _scheduleHours; a builder
+    // loan's eventual TryRestoreFromBuilder does the same). The old collapse-branch used to force the
+    // villager straight to Mode.Manual on detecting an edit — that bypassed TryRestoreFromBuilder for a
+    // villager on loan and orphaned the loan's bookkeeping, so this version never does that.
+    //
+    // Comparing the ARRAY (not villager.__NetworkedSchedule) also sidesteps the native packed-transient
+    // reset (__NetworkedSchedule -> 0x0 mid-session, see LogForeignScheduleChange's guard): livePacked
+    // here is RE-PACKED from the array via _ScheduleToNetworkSchedule, never read from that transient
+    // field, so the reset can't masquerade as a player edit here.
     private void RefreshPaintedSnapshot(VillagerSurvival surv, Villager villager, int idx, bool msDiag)
     {
         try
         {
             var liveArr = villager._schedule;
             if (liveArr == null) return;
-            if (!_scheduleHours.TryGetValue(surv, out var stored)) return;  // EnsureSnapshot owns first capture
 
-            if (_appliedManual.Contains(surv))
+            long livePacked;
+            try { livePacked = villager._ScheduleToNetworkSchedule(liveArr); }
+            catch { return; }
+
+            if (_appliedPacked.TryGetValue(surv, out var applied) && applied == livePacked)
+                return; // our own last write — nothing to adopt
+
+            bool hasStored = _scheduleHours.TryGetValue(surv, out var stored);
+            bool differs = !hasStored || stored!.Length != liveArr.Length;
+            if (!differs)
             {
-                bool differs = stored.Length != liveArr.Length;
-                if (!differs)
-                {
-                    for (int h = 0; h < stored.Length; h++)
-                        if (stored[h] != liveArr[h]) { differs = true; break; }
-                }
-                if (!differs) return;
-
-                var tmp = new int[liveArr.Length];
-                for (int h = 0; h < liveArr.Length; h++) tmp[h] = liveArr[h];
-                _scheduleHours[surv] = tmp;
-                if (msDiag)
-                    Plugin.Logger.LogInfo(
-                        $"[DynamicNeeds] manual villager[{idx}] player edit adopted: schedule={HoursString(tmp)}");
+                for (int h = 0; h < stored!.Length; h++)
+                    if (stored[h] != liveArr[h]) { differs = true; break; }
             }
-            else if (_applied.TryGetValue(surv, out var st))
-            {
-                int stInt = (int)st;
-                bool oursStill = true;
-                for (int h = 0; h < liveArr.Length; h++)
-                    if (liveArr[h] != stInt) { oursStill = false; break; }
-                if (oursStill) return;
+            if (!differs) return; // already matches the snapshot — nothing to adopt
 
-                var tmp = new int[liveArr.Length];
-                for (int h = 0; h < liveArr.Length; h++) tmp[h] = liveArr[h];
-                _scheduleHours[surv] = tmp;
-                _applied.Remove(surv);
-                _appliedManual.Add(surv);
-                _mode[surv] = Mode.Manual;
-                if (msDiag)
-                    Plugin.Logger.LogInfo(
-                        $"[DynamicNeeds] manual villager[{idx}] player edit during override adopted: schedule={HoursString(tmp)}");
+            var tmp = new int[liveArr.Length];
+            for (int h = 0; h < liveArr.Length; h++) tmp[h] = liveArr[h];
+            _scheduleHours[surv] = tmp;
+
+            if (msDiag)
+            {
+                string mode = _mode.TryGetValue(surv, out var m) ? m.ToString() : "?";
+                Plugin.Logger.LogInfo(
+                    $"[DynamicNeeds] manual villager[{idx}] player edit adopted (mode={mode}): schedule={HoursString(tmp)}");
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] manual refresh: {ex}"); }
@@ -850,7 +935,7 @@ public class NeedsController : MonoBehaviour
     {
         Mode.Sleep => ScheduleType.Sleep,
         Mode.Leisure => ScheduleType.Leisure,
-        _ => ScheduleType.Work,
+        _ => ScheduleType.Work,   // Work, Builder (the loan's schedule IS a Work collapse), Manual (unused: Manual is applied via ApplyManualIfNeeded, never ToSchedule)
     };
 
     // Rewrite the villager's whole schedule to a single activity via the game's own networked path.
@@ -920,12 +1005,237 @@ public class NeedsController : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag snapshot: {ex}"); }
     }
 
+    // --- OffWindowFill=Builder (v1.7.0) ---
+
+    // Attempts to lend `surv` to the settlement's default Buildstation via the shared BuilderLoan recipe.
+    // On success, records the loan in _builderLoans (read back by TryRestoreFromBuilder and by
+    // RestoreAll at shutdown) and returns true. On failure, logs a warning and returns false — the
+    // caller falls back to Leisure fill for the rest of this off-window.
+    private bool TryLendToBuilder(VillagerSurvival surv, Villager villager, int idx)
+    {
+        try
+        {
+            // v1.7.2 Fix B: refuse to lend a villager who is already AT a Buildstation-family station —
+            // lending them to their own current station is circular nonsense. Falls back to Leisure
+            // fill like any other lend failure.
+            Workstation? curWs = null;
+            try { curWs = villager.GetNonVikingWorkstation(); } catch { }
+            if (IsBuildstation(curWs))
+            {
+                Plugin.Logger.LogWarning($"[DynamicNeeds] builder-loan villager[{idx}]: already at a Buildstation-family station, refusing circular lend, falling back to Leisure fill.");
+                return false;
+            }
+
+            Buildstation? bs = null;
+            try { bs = villager._GetDefaultBuildstationToAssign(); } catch { }
+            if (bs == null)
+            {
+                Plugin.Logger.LogWarning($"[DynamicNeeds] builder-loan villager[{idx}]: no default Buildstation resolved, falling back to Leisure fill.");
+                return false;
+            }
+            Workstation? homeWs = null;
+            try { homeWs = villager.GetWorkstation(); } catch { }
+
+            var state = BuilderLoan.Lend(villager, bs, homeWs, out var failReason);
+            if (state == null)
+            {
+                Plugin.Logger.LogWarning($"[DynamicNeeds] builder-loan villager[{idx}] lend failed ({failReason}), falling back to Leisure fill.");
+                return false;
+            }
+
+            _builderLoans[surv] = state;
+            if (Plugin.ManualScheduleDiagnostics.Value)
+                Plugin.Logger.LogInfo($"[DynamicNeeds] builder-loan villager[{idx}] lent to buildstation.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[DynamicNeeds] builder-loan villager[{idx}] lend threw: {ex}");
+            return false;
+        }
+    }
+
+    // Attempts to reverse an active loan. On success, drops it from _builderLoans and returns true. On
+    // failure, LEAVES the entry in _builderLoans (a villager must never be silently left loaned) and
+    // returns false — the caller keeps them in Mode.Builder and retries on a later tick.
+    private bool TryRestoreFromBuilder(VillagerSurvival surv, Villager villager, int idx)
+    {
+        if (!_builderLoans.TryGetValue(surv, out var state)) return true; // nothing active — trivially done
+        try
+        {
+            bool ok = BuilderLoan.Restore(villager, state, out var failReason);
+            if (!ok)
+            {
+                LogRestoreRetryThrottled(surv, idx, failReason);
+                return false;
+            }
+            _builderLoans.Remove(surv);
+            _builderRestoreRetryTimer.Remove(surv);
+            if (Plugin.ManualScheduleDiagnostics.Value)
+                Plugin.Logger.LogInfo($"[DynamicNeeds] builder-loan villager[{idx}] restored from buildstation.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogRestoreRetryThrottled(surv, idx, ex.Message);
+            return false;
+        }
+    }
+
+    // Throttles the "restore still failing" warning to once per 10 real seconds per villager (the
+    // restore attempt itself still retries every tick via TryRestoreFromBuilder's caller).
+    private void LogRestoreRetryThrottled(VillagerSurvival surv, int idx, string reason)
+    {
+        float now = Time.time;
+        if (_builderRestoreRetryTimer.TryGetValue(surv, out var last) && now - last < 10f) return;
+        _builderRestoreRetryTimer[surv] = now;
+        Plugin.Logger.LogWarning($"[DynamicNeeds] builder-loan villager[{idx}] restore still failing ({reason}) — retrying; villager remains on loan.");
+    }
+
+    // Used only by Patches.VillagerScheduleSavePatch: returns the painted per-hour snapshot for this
+    // villager if we've captured one (the same _scheduleHours source RestoreAll uses to put the real
+    // schedule back at shutdown) AND the live schedule is exactly the collapse write this mod itself
+    // last applied (livePacked == _appliedPacked) AND it differs from the snapshot. The applied-packed
+    // check is load-bearing (v1.7.1): a fresh player repaint that the 5 s array-diff hasn't adopted yet
+    // ALSO differs from the snapshot — masking then would bake the STALE snapshot over the player's new
+    // paint (confirmed: ate one cook's repainted schedule on save). Only our own writes may be masked;
+    // any other live value is player intent and must serialize as-is.
+    internal int[]? GetPaintedSnapshotForSave(VillagerSurvival surv, int[] liveSchedule, long livePacked)
+    {
+        if (surv == null || liveSchedule == null) return null;
+        if (!_appliedPacked.TryGetValue(surv, out var applied) || applied != livePacked) return null;
+        if (!_scheduleHours.TryGetValue(surv, out var snap) || snap == null || snap.Length == 0) return null;
+        if (snap.Length != liveSchedule.Length) return null;
+        for (int h = 0; h < snap.Length; h++)
+            if (snap[h] != liveSchedule[h]) return snap;
+        return null;
+    }
+
+    // Detects the tracked-villager list emptying (a world leave) and drops any active builder-loan state
+    // WITHOUT calling BuilderLoan.Restore — those wrappers are stale/gone at that point (never safe to
+    // call native methods on across a world boundary; the same rule BuilderDiag follows for its own
+    // experiment state — see CLAUDE.md "never cache interop wrappers of per-world native objects").
+    private void CheckBuilderLoanWorldLeave(List<VillagerSurvival> tracked)
+    {
+        bool has = tracked.Count > 0;
+        if (!has && _hadTrackedVillagers)
+        {
+            if (_builderLoans.Count > 0)
+            {
+                Plugin.Logger.LogWarning($"[DynamicNeeds] builder-loan: tracked list emptied (world change) — dropping {_builderLoans.Count} active loan(s) without a restore call (stale wrappers).");
+                _builderLoans.Clear();
+            }
+            _builderFailedWindow.Clear();
+            _builderRestoreRetryTimer.Clear();
+            _staleLoanCheckDone = false;
+        }
+        _hadTrackedVillagers = has;
+    }
+
+    // One-time (per world session) read-only diagnostic: a villager whose builder-loan was never
+    // restored (a crash, or a quit that skipped RestoreAll, or a save taken mid-loan under an older mod
+    // version) can be left registered in the Buildstation's own Build task checkbox list while this
+    // session's _builderLoans tracking (freshly empty) knows nothing about it. Deliberately NOT
+    // auto-healed — undoing someone else's Buildstation membership blind is riskier than surfacing it
+    // for the player to notice. Log-only, gated on ManualScheduleDiagnostics.
+    private void CheckStaleLoanLeftovers(List<VillagerSurvival> tracked)
+    {
+        if (_staleLoanCheckDone) return;
+        _staleLoanCheckDone = true;
+        if (!Plugin.ManualScheduleDiagnostics.Value) return;
+        try
+        {
+            foreach (var surv in tracked)
+            {
+                if (surv == null || _builderLoans.ContainsKey(surv)) continue; // known-active this session
+                Villager? villager = null;
+                try { villager = surv.GetVillager(); } catch { }
+                if (villager == null) continue;
+
+                // v1.7.2 Fix D: a villager legitimately assigned to the Buildstation (an unassigned/
+                // manual builder — confirmed by the user: 4 flagged "leftovers" were actual assigned
+                // builders) naturally appears in BuildTask.VillagersInCharge; that's their real job, not
+                // a stale loan. Skip anyone whose CURRENT workstation IS the Buildstation family.
+                Workstation? curWs = null;
+                try { curWs = villager.GetNonVikingWorkstation(); } catch { }
+                if (IsBuildstation(curWs)) continue;
+
+                Buildstation? bs = null;
+                try { bs = villager._GetDefaultBuildstationToAssign(); } catch { }
+                if (bs == null) continue;
+
+                var inCharge = bs.BuildTask?.VillagersInCharge;
+                if (inCharge == null) continue;
+
+                IntPtr vPtr = PtrOf(villager);
+                for (int k = 0; k < inCharge.Count; k++)
+                {
+                    var v = inCharge[k];
+                    if (v != null && PtrOf(v) == vPtr)
+                    {
+                        string name = "?";
+                        try { name = villager.GetName(); } catch { }
+                        Plugin.Logger.LogWarning($"[DynamicNeeds] possible stale loan leftover from a mid-loan save: {name}");
+                        break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] stale loan leftover check: {ex}"); }
+    }
+
+    // Villager compiles through the unity-libs MonoBehaviour stub chain (CLAUDE.md "managed casts lie")
+    // so `.Pointer` isn't directly accessible — box through `object` first.
+    private static IntPtr PtrOf(object o) => o is Il2CppObjectBase b ? b.Pointer : IntPtr.Zero;
+
+    // v1.7.2 Fix B: is `ws` a Buildstation-family station? `ws is Buildstation` LIES here —
+    // GetNonVikingWorkstation() returns the BASE-declared Workstation type, and an interop object
+    // materialized under a base declared type keeps the wrapper's compile-time type even when the
+    // native object is actually a derived Buildstation (CLAUDE.md "managed casts lie" gotcha; the same
+    // trap ZeroTaskWorkersMod hit for its own Buildstation exemption). Identify by the NATIVE class name
+    // instead (IL2CPP.il2cpp_object_get_class + il2cpp_class_get_name — same pattern as
+    // SeedScoutMod.Scout.NativeClassName / TaskUnlockTracker), matching any class name CONTAINING
+    // "Buildstation" so a derived/renamed variant is still caught. Unassigned villagers (including
+    // newly summoned ones) are auto-parked here by the game — they must never qualify for Manual mode,
+    // be builder-lent (lending them to their own current station is circular), or join a manual cohort.
+    private static bool IsBuildstation(Workstation? ws)
+    {
+        if (ws == null) return false;
+        try
+        {
+            if (!((object)ws is Il2CppObjectBase wsBase)) return false;
+            var cls = IL2CPP.il2cpp_object_get_class(wsBase.Pointer);
+            string name = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(cls)) ?? "";
+            return name.IndexOf("Buildstation", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+        catch { return false; }
+    }
+
     // Put back the real painted schedule for every villager we actually wrote to. The per-hour
     // _scheduleHours copy is the truth — packed _originalSchedule values are 0x0 at-rest transients
     // that restore nothing (confirmed in-game 2026-07-09; that's also why worlds played under the
     // active mod used to save uniform collapsed schedules). Best-effort on shutdown.
     private void RestoreAll()
     {
+        BuilderDiag.RestoreIfActive();
+
+        // v1.7.0: put back every villager still actively lent to the builder pool — they're still valid
+        // objects at app-quit (unlike a mid-session world-leave, where CheckBuilderLoanWorldLeave drops
+        // this same state without calling BuilderLoan.Restore because the wrappers are stale by then).
+        foreach (var kv in _builderLoans)
+        {
+            var lentSurv = kv.Key;
+            if (lentSurv == null) continue;
+            try
+            {
+                var villager = lentSurv.GetVillager();
+                if (villager == null) continue;
+                BuilderLoan.Restore(villager, kv.Value, out _); // best-effort — shutting down
+            }
+            catch { /* shutting down — best effort */ }
+        }
+        _builderLoans.Clear();
+
         foreach (var surv in _everWrote)
         {
             if (surv == null) continue;
@@ -1121,6 +1431,13 @@ public class NeedsController : MonoBehaviour
 
                     var ws = villager.GetNonVikingWorkstation();
                     if (ws == null) continue;
+                    // v1.7.2 Fix B: never form/join a manual cohort at the Buildstation — unassigned
+                    // villagers (including newly summoned ones) are auto-parked there by the game and
+                    // would otherwise form a spurious 2+ "cohort" of default (mixed) schedules that
+                    // wrongly qualifies for manual mode. This also transitively keeps them out of
+                    // manualQualifies (which gates solely on _inCohort membership) without a second
+                    // per-tick check.
+                    if (IsBuildstation(ws)) continue;
                     // SSSGame.Workstation's compile-time base chain runs through unity-libs stubs, so
                     // ws.Pointer won't compile directly — box through object + Il2CppObjectBase instead
                     // (same pattern as the universal "managed casts lie" gotcha).
@@ -1138,16 +1455,37 @@ public class NeedsController : MonoBehaviour
                 catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort member: {ex}"); }
             }
 
+            // v1.7.2 Fix C: ManualScheduleStations whitelist. Empty (default) = every non-Buildstation
+            // 2+ cohort qualifies (current behavior). Non-empty = only cohorts whose station name
+            // contains at least one configured substring join _inCohort; everyone else falls back to
+            // pure needs-based behavior (Decide(), never DecideManual()).
+            string[] stationWhitelist = ParseStationWhitelist(Plugin.ManualScheduleStations.Value);
+
             foreach (var kv in groups)
             {
                 if (kv.Value.Count < 2) continue;
+
+                string name = names.TryGetValue(kv.Key, out var n) ? n : "?";
+                bool nameUnresolved = string.IsNullOrEmpty(name) || name == "?";
+                bool whitelisted = stationWhitelist.Length == 0
+                    || (!nameUnresolved && StationNameMatches(name, stationWhitelist));
 
                 var snaps = new List<int[]>();
                 foreach (var idx in kv.Value)
                 {
                     var surv = tracked[idx];
                     if (surv == null) continue;
-                    _inCohort.Add(surv);
+                    if (whitelisted)
+                    {
+                        _inCohort.Add(surv);
+                    }
+                    else if (stationWhitelist.Length > 0 && nameUnresolved && logReport
+                             && _unresolvedStationNameWarned.Add(surv))
+                    {
+                        Plugin.Logger.LogInfo(
+                            $"[DynamicNeeds] MSdiag cohort villager[{idx}] station name unresolved — " +
+                            "ManualScheduleStations is non-empty, treating as NOT whitelisted (needs-based fallback).");
+                    }
                     if (_scheduleHours.TryGetValue(surv, out var arr)) snaps.Add(arr);
                 }
 
@@ -1176,16 +1514,18 @@ public class NeedsController : MonoBehaviour
                 }
 
                 string members = string.Join(",", kv.Value);
-                string name = names.TryGetValue(kv.Key, out var n) ? n : "?";
 
                 if (logReport)
                     Plugin.Logger.LogInfo(
-                        $"[DynamicNeeds] MSdiag cohort station=0x{kv.Key.ToInt64():X} name='{name}' members=[{members}] sleepOverlapHours={overlap}");
+                        $"[DynamicNeeds] MSdiag cohort station=0x{kv.Key.ToInt64():X} name='{name}' members=[{members}] " +
+                        $"sleepOverlapHours={overlap} whitelisted={whitelisted}");
 
                 // Manual-mode coverage warning: this cohort's painted off-windows collide, so
                 // confinement cannot separate their sleep — the post can go unmanned. Warn once per
-                // distinct overlap value (not every 10 s).
-                if (Plugin.RespectManualSchedule.Value && overlapHours != null && overlapHours.Count > 0)
+                // distinct overlap value (not every 10 s). Fix C: only for cohorts manual mode actually
+                // applies to — a non-whitelisted cohort is intentionally left to needs-based behavior,
+                // so its sleep overlap isn't a coverage risk under this mod.
+                if (Plugin.RespectManualSchedule.Value && whitelisted && overlapHours != null && overlapHours.Count > 0)
                 {
                     string wkey = $"{name}|{members}";
                     if (!_overlapWarned.TryGetValue(wkey, out var prevOverlap) || prevOverlap != overlap)
@@ -1199,6 +1539,29 @@ public class NeedsController : MonoBehaviour
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort: {ex}"); }
+    }
+
+    // v1.7.2 Fix C: split Plugin.ManualScheduleStations.Value on commas, trim whitespace, drop empty
+    // entries. Empty/whitespace-only config -> empty array (= "no whitelist", current behavior).
+    private static string[] ParseStationWhitelist(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<string>();
+        var parts = raw.Split(',');
+        var result = new List<string>(parts.Length);
+        foreach (var p in parts)
+        {
+            var t = p.Trim();
+            if (t.Length > 0) result.Add(t);
+        }
+        return result.ToArray();
+    }
+
+    // Case-insensitive substring match against any whitelist entry.
+    private static bool StationNameMatches(string name, string[] whitelist)
+    {
+        foreach (var w in whitelist)
+            if (name.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        return false;
     }
 
     // (d) Player-edit detection: if the live packed schedule no longer matches what we last wrote (and

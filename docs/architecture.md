@@ -457,6 +457,15 @@ discovered through its diagnostics, but the mod doesn't touch quest targets or r
 3. **Priority is effectively WINNER-TAKE-ALL**, not a soft weight: one task set higher monopolizes the worker (a woodcutter with only long-hardwood-stick=High did nothing else; a warehouse with one raised Collect-priority let everything else run dry).
 4. **The persistent-monopoly mechanism:** QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop — haulers carrying output away keep the quota unmet, so the top task never self-completes (intended vanilla design; creates the user-observed starvation loop).
 
+### Builder-loan recipe via agent registry (idea-11 Phase 2, confirmed in-game 2026-07-10)
+**Loan plumbing — off-duty villagers temporarily assigned to the builder pool:**
+- Villager assignment = single `Villager._workstation` pointer (networked `__WorkstationID`, `Rpc_ChangeWorkstation`); the UI job icon/marker and schedule-panel binding read it. `_GetDefaultBuildstationToAssign()` resolves the unassigned pool; "builders" ARE villagers assigned to the Buildstation.
+- Station-side agent registry (`Workstation._taskAgents`, `SetTaskAgent`/`ReleaseTaskAgent` — base-class methods) is SEPARATE from the villager pointer. **The builder-loan recipe (confirmed in-game 2026-07-10):** `home.ReleaseTaskAgent(agent)` removes home quests from the villager's QuestRunner without touching `_workstation` or task checkboxes; `bs.SetTaskAgent(agent)` + `bs.AddToTaskDatas(villager)` + an all-Work schedule write = the villager does real builder work (build/haul/terraform/lightkeep) while every UI surface still shows the home job; exact reverse restores cleanly. `SetTaskAgent` ALONE is insufficient — home quests outcompete (dead-end, v1.6.0). Registry membership is sticky (no reconciler eviction observed across sessions).
+- Observed quest priorities: `BuilderPrepareForWorkQuest` 16.0, `BuildAndSupplyQuest` 15.1, cooking quests ~15.5.
+- `ITaskAgent`/`IWorkstation` interop wrapper classes are in `SSSGame.AI` (not SSSGame), `.ctor(IntPtr)`; interop `Villager` does NOT managed-implement `ITaskAgent` — rewrap via pointer (boxing pattern for `.Pointer`).
+- **Buildstation cohort trap:** unassigned (incl. newly-summoned) villagers are auto-parked on the Buildstation → any station-pointer cohort grouping must exclude the Buildstation family (native class-name check; managed `is` lies) or the "builder pool" masquerades as a schedulable cohort.
+- Lent villagers also receive the Buildstation complain quest → builder barks while idle on loan.
+
 ### Reusable structure-footprint spatial query — "is (x,z) inside a player-built structure?" (TreeRespawnMod v1.5.x, confirmed in-game 2026-07-07)
 Generic helper `TreeRespawnMod/StructureQuery.cs` — `IsBlockedByStructure(x, z, margin)` — for any "don't do X
 where the player built something" rule (trees regrowing through houses, item/creature spawns, terrain edits…).
@@ -886,6 +895,12 @@ Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehavi
   same as work (confirmed from transition telemetry 2026-07-09: 23→20.9 over ~2 h of leisure;
   11.4→0.4 over an 11 h shift). Sleep placement inside an off-window therefore matters: rest peaks at
   sleep end and decays linearly after.
+
+**Quit-to-menu does NOT fire plugin OnDestroy (confirmed in-game 2026-07-10):** shutdown-restore patterns (e.g., `RestoreAll`) never run before the save; any live schedule write bakes into the save. Mitigation proven: Harmony prefix/postfix mask on `Villager.Serialize(DataObject)` (patchable, fires; `DataObject` = `SandSailorStudio.Storage.DataObject`; saves serialize the schedule from `_schedule`). `Villager.GetSurvival()` bridges Villager→VillagerSurvival.
+
+**Player UI schedule edits land in `_schedule` (per-hour int array), discriminable from a mod's own writes:** array-diff detectable; discriminate player edits from a mod's own writes by comparing the packed live array against the mod's recorded last write — an "anything not bit-for-bit mine is player intent" rule (DynamicVillagerNeedsMod v1.7.1/v1.7.2 pattern).
+
+**Schedule UI surface (confirmed in-game 2026-07-10):** `SSSGame.UI.VillagerSchedulePanel` (MonoBehaviour; `_v` property = bound villager; populate/read = `Set(Villager)`/`Refresh()`/`OnEnable()`; `HasUnappliedChanges()` diffs panel vs live; apply = `UpdateSchedule()`; renders via `_schedulePixels`/`_scheduleTexture`); parent `SSSGame.UI.ScheduleEditorMenu` (ContextMenu, `SetupVillagers()` builds per-villager panels). Set/Refresh/OnEnable/HasUnappliedChanges are Harmony-patchable; Set and OnEnable fire-verified in-game 2026-07-10.
 
 **Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
 
