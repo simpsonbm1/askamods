@@ -1,8 +1,11 @@
-# Mod 19: GroundItemVacuumMod — COMPLETE (v1.1.0)
+# Mod 19: GroundItemVacuumMod — COMPLETE (v1.1.1)
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey (or timer) to reduce ground clutter. Confirmed in-game 2026-07-07: removes
 the debris cleanly with only a minor ~2-frame hitch on ~1165 removals, no crash.
+
+## v1.1.1 — Typing guard (confirmed in-game 2026-07-10)
+Vacuum hotkey now ignored while a game text field (structure-rename, etc.) is focused. Confirmed: keyboard mashing in rename window triggers nothing; hotkeys work again after the window closes.
 
 ## v1.1.0 — Live config hot-reload (confirmed in-game 2026-07-08)
 The mod now re-reads the BepInEx config file every 5 seconds during active play, allowing the user to

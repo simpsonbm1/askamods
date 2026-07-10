@@ -61,6 +61,22 @@ public class DayTracker : MonoBehaviour
 
     private enum HandlerResult { Retry, Replenished, AlreadyDone, Cancelled }
 
+    // Typing guard: keystrokes in the game's text fields (e.g. structure rename) also reach
+    // Input.GetKeyDown, so letter-bound hotkeys fire while the player types. Skip hotkey handling
+    // whenever the UI's selected object is a text input. (confirmed leak 2026-07-10)
+    private static bool IsTextInputFocused()
+    {
+        try
+        {
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            var go = es != null ? es.currentSelectedGameObject : null;
+            if (go == null) return false;
+            return go.GetComponent<TMPro.TMP_InputField>() != null
+                || go.GetComponent<UnityEngine.UI.InputField>() != null;
+        }
+        catch { return false; }
+    }
+
     void Update()
     {
         // Resolve which world we're in (StorageManager.ActiveSessionID) so we use the right per-world
@@ -84,10 +100,11 @@ public class DayTracker : MonoBehaviour
         // only reads game state.
         MushroomAvailability.MaybeApply();
         MushroomDiag.MaybeAutoDump();
+        bool textFocused = IsTextInputFocused();
         try
         {
             string mk = Plugin.MushroomDiagHotkey.Value;
-            if (!string.IsNullOrWhiteSpace(mk))
+            if (!textFocused && !string.IsNullOrWhiteSpace(mk))
             {
                 bool mDown = Enum.TryParse<KeyCode>(mk, true, out var mkc)
                     ? Input.GetKeyDown(mkc)
@@ -100,11 +117,14 @@ public class DayTracker : MonoBehaviour
         bool isHotkeyDown = false;
         try
         {
-            string keyStr = Plugin.ManualRespawnHotkey.Value;
-            if (Enum.TryParse<KeyCode>(keyStr, true, out var kc))
-                isHotkeyDown = Input.GetKeyDown(kc);
-            else
-                isHotkeyDown = Input.GetKeyDown(keyStr);
+            if (!textFocused)
+            {
+                string keyStr = Plugin.ManualRespawnHotkey.Value;
+                if (Enum.TryParse<KeyCode>(keyStr, true, out var kc))
+                    isHotkeyDown = Input.GetKeyDown(kc);
+                else
+                    isHotkeyDown = Input.GetKeyDown(keyStr);
+            }
         }
         catch { }
 

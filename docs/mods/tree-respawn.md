@@ -1,8 +1,11 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.5.4)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.5.6)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
 wells** (Water Well / Rain Collector buildings).
+
+**v1.5.6 — Typing guard (confirmed in-game 2026-07-10)**
+Both DayTracker hotkey paths now ignored while a game text field is focused, including the mushroom-diag hotkey. Confirmed: hotkeys work again after the rename window closes.
 
 **Game subsystems:** [Resource / Tree System](../architecture.md#resource--tree-system) and
 [Gather / Press-to-Collect System](../architecture.md#gather--press-to-collect-system) — both carry

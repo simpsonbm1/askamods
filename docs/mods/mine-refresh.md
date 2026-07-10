@@ -1,6 +1,9 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.1)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.2)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
+
+**v1.3.2 — Typing guard (confirmed in-game 2026-07-10)**
+Trigger key now ignored while a game text field is focused. Confirmed: hotkey works again after the rename window closes.
 
 **Game subsystem:** [Caves, Mines & Hallway Excavation](../architecture.md#caves-mines--hallway-excavation)
 — the classes, data structures, and state managers governing the ASKA cave and excavation systems, along with the IL2CPP interop quirks (like missing inheritance and casting limitations) discovered and solved.

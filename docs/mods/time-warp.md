@@ -1,6 +1,9 @@
-# Mod 22: TimeWarpMod — DEV TOOL (v0.1.0, NOT for Nexus)
+# Mod 22: TimeWarpMod — DEV TOOL (v0.1.1, NOT for Nexus)
 
 **Purpose:** Accelerate in-game time for mod testing. A day is 24 real minutes; a year ~20 hours — naturally untestable. Deliberately distorts gameplay (raids/events pile up under fast-forward). Local development/test tool only.
+
+**v0.1.1 — Typing guard (confirmed in-game 2026-07-10)**
+K and L hotkeys now ignored while a game text field is focused. Confirmed: hotkeys work again after the rename window closes.
 
 **Implementation:** Zero Harmony patches. Hotkeys call the game's own debug RPCs on `SSSGame.Weather.WeatherSystem.Instance` (read FRESH every call, never cached — per-world singleton gotcha).
 

@@ -29,7 +29,7 @@ public class MineRefreshTracker : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(_triggerKey))
+        if (!IsTextInputFocused() && Input.GetKeyDown(_triggerKey))
         {
             try
             {
@@ -476,6 +476,22 @@ public class MineRefreshTracker : MonoBehaviour
     {
         _guiMessage = message;
         _guiMessageExpiry = Time.time + 5.0f;
+    }
+
+    // Typing guard: keystrokes in the game's text fields (e.g. structure rename) also reach
+    // Input.GetKeyDown, so letter-bound hotkeys fire while the player types. Skip hotkey handling
+    // whenever the UI's selected object is a text input. (confirmed leak 2026-07-10)
+    private static bool IsTextInputFocused()
+    {
+        try
+        {
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            var go = es != null ? es.currentSelectedGameObject : null;
+            if (go == null) return false;
+            return go.GetComponent<TMPro.TMP_InputField>() != null
+                || go.GetComponent<UnityEngine.UI.InputField>() != null;
+        }
+        catch { return false; }
     }
 
     private void OnGUI()

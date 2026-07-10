@@ -1,9 +1,12 @@
-# Mod 5: DynamicVillagerNeedsMod — COMPLETE
+# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.9.5)
 
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours)
 with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real
 food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without reducing
 happiness.** Villager-only; the player is never touched.
+
+**v1.9.5 — Typing guard (confirmed in-game 2026-07-10)**
+BuilderDiag F9 hotkey now guarded for consistency with other mods' input handlers. Confirmed: hotkeys work again after the rename window closes.
 
 **Game subsystem:** [Villager Schedule / Needs / Happiness System](../architecture.md#villager-schedule--needs--happiness-system)
 — survival/happiness/schedule APIs, the eating FSM, the game-mechanic facts (night-sleep race, sleep
