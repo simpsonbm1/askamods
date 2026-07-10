@@ -1,4 +1,4 @@
-# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09; idea 13 added 2026-07-10)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09; ideas 13–14 added 2026-07-10)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
@@ -7,7 +7,10 @@ signatures are facts; *runtime behavior* claims are the ⚠️ part. Ideas 7–8
 on TaskUnlockerMod (rondi112, 2026-07-06); idea 10 from Nexus user kira31374 (2026-07-07). Idea 11 comes
 from a Nexus discussion on DynamicVillagerNeedsMod (snakesilver + author, 2026-07-08) and — unusually —
 needs **no** new binary dump: every API it relies on is already used by the shipped mod (runtime-proven).
-Idea 13 comes from a Nexus discussion (rondi112 + author, 2026-07-10).
+Idea 13 comes from a Nexus discussion (rondi112 + author, 2026-07-10). Idea 14 comes from a Nexus
+comment on TerrainLevelerMod (ButtKoWitz, 2026-07-10) and — like idea 11 — needs **no** new binary
+dump: every API it relies on is already runtime-proven by TerrainLevelerMod, and its core behavior
+was literally observed in-game (2026-07-01) as a bulldozer-dev misconfiguration.
 
 **Priority order (user, historical):** 5) freezing hunters → 2) den respawn → 4) vacuum → 3) crafting
 multiplier. Vacuum (4) has since shipped; den respawn (2) is **IN PROGRESS** as DenRespawnMod (WIP
@@ -512,6 +515,81 @@ The mod is plumbing between two existing systems, not a new mechanic.
   `attributes`) only matter for Phase 3 — the Phase 1 timer sidesteps them entirely.
 - Co-op: all writes host-gated; stack scaling is the only axis exposed in co-op; capacity growth
   hidden/disabled there (network-struct evidence above).
+
+---
+
+## 14. Rocks-only remover — hotkey + radius around the player (research 2026-07-10)
+
+**Goal:** remove ONLY rocks within a configurable radius of the player, on a hotkey — trees, terrain
+height, buildings, and living things all untouched. For cleaning up rocks inside an already-built base,
+where dragging a bulldozer field is impractical/destructive.
+
+**Source:** Nexus comment on TerrainLevelerMod (ButtKoWitz, 2026-07-10): using the bulldozer
+single-plot to pick off rocks in his main base, ">50% of the rocks that I try to remove can't be
+removed without selecting a much larger area"; explicitly suggests "a hotkey based on the player's
+position, search for rocks w/in nn meters." (Plausible cause of the >50% failure: the fixed rock's
+data-layer instance origin sits outside a small plot's footprint even when the visible mesh overlaps
+it — a radius query around the player sidesteps footprint games entirely.)
+
+**Verdict: highly plausible — the core rocks-only behavior has ALREADY been observed in-game.**
+During bulldozer development (confirmed in-game 2026-07-01, documented as the `skipAllCollisionChecks`
+gotcha in `docs/architecture.md` → Terrain/Terraforming and `docs/mods/terrain-leveler.md`): an
+`AOESpell` cast with `skipAllCollisionChecks = true` skips `CollisionCheck()` — the overlap pass that
+gathers harvestable damage targets — so only the `clearItemInstances = true` data-layer pass fired.
+Observed result: **fixed rocks cleared, trees survived.** For the bulldozer that was the bug to fix;
+for this idea it IS the feature. No new Cecil dump needed — `SpellsManager` registry (Awake postfix),
+`CastSpellOnPos(aoe, ref pos)`, and the `AOESpell` field recipe are all runtime-proven in shipped
+TerrainLevelerMod code.
+
+**Two rock kinds, two levers (per the bulldozer's confirmed clearing model):**
+1. **Fixed "invincible" `WorldItemInstance` rocks** (the ones the vanilla level field can't remove —
+   likely most of the complaint) → an `AOESpell` sized to the radius, centered on the player, with
+   `clearItemInstances = true` and **no damage** (`dealDamageToHarvestables = false`, `baseDamage = 0`;
+   `skipAllCollisionChecks = true` is the belt-and-braces confirmed-in-game variant of the same
+   outcome). Dealing zero damage makes it inherently safe for the player/villagers/buildings/trees —
+   none of the bulldozer's `BuildLivingExclusionMask` machinery is even needed.
+2. **Harvestable stone clumps** (mineable rocks, e.g. `Harvest_Stone4` — Fusion scene objects) → NOT
+   touched by `clearItemInstances`; they die to damage, but a damage AOE would hit trees too. Instead
+   target per-object: OverlapSphere the radius → per-hit `GetComponent<HarvestInteraction>` (singular —
+   plural generic is the documented dead-end) → classify rock vs tree by GameObject name
+   (`Harvest_Stone*` vs `Harvest_Wood_*`) and/or `_worldInstance.TryCast<BiomeItemInstance>() == null`
+   (non-biome = rocks per the Resource/Tree section) → call `HarvestInteraction.TakeDamage(DamageData)`
+   (documented safe entry point, no ref params) with lethal damage. Per-object targeting means trees
+   and buildings *cannot* be collateral, regardless of layer layout. ⚠️ constructing a valid
+   `DamageData` for a direct call is unverified; fallback if it's awkward — a second, damage-dealing
+   `AOESpell` with `damageMask` limited to the rock layer, IF Phase 0 shows rocks and trees live on
+   different layers (the exact open question from the author's own Nexus reply).
+
+**Approach (phased):**
+- **Phase 0 (read-only diagnostics, default true):** hotkey logs everything in the radius — GameObject
+  names, layers, `HarvestInteraction`/`WorldItemInstance` presence, biome vs non-biome. Answers: (a)
+  are rocks/trees on distinct layers; (b) which rock varieties are actually in a base area (fixed
+  instances vs harvestable clumps vs `"Small Stone"` gather pickups); (c) **what else
+  `clearItemInstances` would sweep** — the top risk below.
+- **Phase 1 (the likely 90% win):** hotkey (with the standard typing guard, per the 2026-07-10
+  cross-mod convention) + `RadiusMeters` config → cast the zero-damage, `clearItemInstances`-only AOE.
+  If the problem rocks are all fixed instances, this alone satisfies the request.
+- **Phase 2:** harvestable clumps via per-object `TakeDamage` (or the layer-masked damage AOE if
+  Phase 0 blessed it). Damage-killed clumps drop their normal stone loot — arguably a feature
+  (and GroundItemVacuumMod picks it up).
+
+**⚠️ verify / risks (Phase 0 resolves most):**
+- **`clearItemInstances` selectivity is the big one:** trees surviving is confirmed, but trees are
+  *biome* instances killed via damage — what the data-layer pass does to OTHER non-biome
+  `WorldItemInstance`s in the radius (loose `Item_Wood_*` logs/debris, dropped items) is unknown. In
+  the bulldozer everything got cleared anyway, so nobody could tell. If it sweeps loose items, either
+  accept+document it, shrink via any filter fields `AOESpell` exposes (re-check its field list in
+  Cecil), or pre-snapshot + re-drop. Also confirm gather nodes (berry bushes etc. — biome instances,
+  so *expected* to survive like trees) really do survive.
+- Whether a rock partially under a placed structure clears cleanly (fine — that's the use case) vs.
+  destabilizes anything.
+- Co-op: AOE/data destruction only replicates from the state authority — gate the hotkey action on
+  host authority (Phase 1 = solo/host only). Unlike the bulldozer there's no networked structure whose
+  replication a client press rides in on (a bare hotkey has no `TerraformingGridState` to postfix), so
+  a client-usable version would need custom signaling — out of scope; document host-only.
+- **Home:** either a TerrainLevelerMod feature (all plumbing already lives there, same Nexus audience
+  asking) or a tiny standalone RockRemoverMod (for users who want rock cleanup without the bulldozer).
+  Default lean: TerrainLeveler extension reusing the shipped `SpellsManager`/AOE code; user decides.
 
 ---
 
