@@ -124,6 +124,9 @@ public class NeedsController : MonoBehaviour
     // Sleep-overlap warnings already issued (station name+members -> overlap string) so the manual-mode
     // coverage warning fires on change, not on every 10 s report.
     private readonly Dictionary<string, string> _overlapWarned = new();
+    // OffWindowFill=Builder isn't implemented yet; log the "using Leisure instead" note once ever, not
+    // every tick/villager.
+    private static bool _builderFillNoteLogged;
     private bool _cohortsComputed;
 
     // Accumulator for the periodic (10s) same-workstation cohort report.
@@ -340,8 +343,20 @@ public class NeedsController : MonoBehaviour
                     bool topUpNow = !_toppedUp.Contains(surv) && restHours < resleepBelow
                         && (hoursUntilOn <= sleepLeadHours || restHours <= sleepBelow);
 
+                    var fill = Plugin.OffWindowFill.Value;
+                    if (fill == OffWindowFillMode.Builder)
+                    {
+                        if (!_builderFillNoteLogged)
+                        {
+                            _builderFillNoteLogged = true;
+                            Plugin.Logger.LogInfo("[DynamicNeeds] OffWindowFill=Builder is not implemented yet (pending builder-pool diagnostics) — using Leisure fill.");
+                        }
+                        fill = OffWindowFillMode.Leisure;
+                    }
+
                     next = DecideManual(prev, restHours, surv.IsSleeping, minNeed, emergency,
-                        needAbove, wakeAbove, resleepBelow, onWindow, topUpNow);
+                        needAbove, wakeAbove, resleepBelow, onWindow, topUpNow,
+                        fillWork: fill == OffWindowFillMode.Work, happiness, happyBelow, happyUntil, ht.plateaued, happyAllowed);
                     if (!onWindow && prev == Mode.Sleep && next != Mode.Sleep && restHours >= wakeAbove)
                         _toppedUp.Add(surv);
                 }
@@ -618,7 +633,8 @@ public class NeedsController : MonoBehaviour
     // leisure fill) so same-station coworkers' rest cycles can never re-collide. Happiness never pulls
     // anyone off-shift here — the off-window leisure fill (plus its boost) is where happiness recovers.
     private static Mode DecideManual(Mode prev, float restHours, bool isSleeping, float minNeed,
-        bool emergency, float needAbove, float wakeAbove, float resleepBelow, bool onWindow, bool topUpNow)
+        bool emergency, float needAbove, float wakeAbove, float resleepBelow, bool onWindow, bool topUpNow,
+        bool fillWork, float happiness, float happyBelow, float happyUntil, bool happyPlateaued, bool happyAllowed)
     {
         // 1. Life-threatening food/water pierces any window — a worker must never die at his post. Off
         //    the shift, hold the trip (hysteresis) until the need genuinely recovers; on-shift, release
@@ -640,11 +656,26 @@ public class NeedsController : MonoBehaviour
         //    schedule. (Fired correctly in the 2026-07-09 test — woke an overslept cook at 01:00.)
         if (isSleeping && onWindow) return Mode.Work;
 
-        // 4. Off-window: leisure fill, with ONE back-loaded top-up sleep timed (by the caller's
+        bool happyEnabled = happyBelow > 0f;
+
+        // 4. Off-window: fill the surplus, with ONE back-loaded top-up sleep timed (by the caller's
         //    topUpNow) to end at the shift start — or immediately if genuinely exhausted. The once-
         //    per-window flag and the re-entry margin (both folded into topUpNow) prevent the nap
-        //    limit cycle. Never Work (over-mans the post a coworker is holding).
-        if (!onWindow) return topUpNow ? Mode.Sleep : Mode.Leisure;
+        //    limit cycle. Fill policy: Leisure (default — never over-mans the post) or, opt-in
+        //    (OffWindowFill=Work), back to the post — with the normal happiness-leisure thresholds
+        //    (entry, hysteresis hold, plateau give-up + retry cooldown) still honored so an
+        //    all-work off-window can't bottom out the villager's mood.
+        if (!onWindow)
+        {
+            if (topUpNow) return Mode.Sleep;
+            if (fillWork)
+            {
+                if (prev == Mode.Leisure && happyEnabled && happiness < happyUntil && !happyPlateaued) return Mode.Leisure;
+                if (happyEnabled && happyAllowed && happiness <= happyBelow) return Mode.Leisure;
+                return Mode.Work;
+            }
+            return Mode.Leisure;
+        }
 
         // 5. On-window, nothing pressing: man the post — follow the painted schedule.
         return Mode.Manual;

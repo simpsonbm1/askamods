@@ -637,7 +637,11 @@ completed dish. This is a UI-discoverability issue, **not a code or mod bug.** (
 - **Suspecting DynamicVillagerNeedsMod (Mod 5) of breaking cooking** — ruled out twice: the loop reproduces with
   Mod 5 `Enabled=false`, and with Mod 5 `Enabled=true` cooks complete dishes fine (9 dishes, 0 errors,
   2026-06-23). `WorkstationQuestData._OnVillagerBehaviorChanged(ScheduleType)` means Mod 5's schedule flips DO
-  notify the cook's quest, but in practice this does not interrupt cooking.
+  notify the cook's quest, but in practice this does not interrupt cooking. **Confirmed in-game (2026-07-09):**
+  quest-layer eligibility ignores schedule/behavior mode — an off-duty cook in Leisure (probe: mode/behavior=Leisure,
+  TaskRunner act/run empty) can still be pulled out to deliver finished dishes (the `FSM_ReturnCookingResults` /
+  `CookingReturnQuest` step), then returns to leisure after. New-dish starts do NOT happen off-schedule; only
+  retrieval of already-cooking results fires, protected by the delivered-dish safety logic (vanilla `OvercookingQuest`).
 
 ---
 

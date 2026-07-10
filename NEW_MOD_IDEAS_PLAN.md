@@ -332,8 +332,8 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   played under the ACTIVE mod have uniform saved schedules). ⚠️ softened risk: a painted-W night
   was worked straight through (villager had a midday sleep block) — the "wake night guards from
   game-forced sleep" problem may only exist for rest-depleted villagers; verify during Phase 1.
-- **Phase 1 IMPLEMENTED (2026-07-09, v1.4.0–v1.4.4, ⚠️ pending in-game confirmation):** shipped as
-  designed with four deltas: (a) `ManualWorkIsInviolable` dropped — cohort on-windows already forbid
+- **Phase 1 COMPLETE — confirmed in-game 2026-07-09 (cook cohort; other workstation types assumed to track):**
+  v1.4.0–v1.4.4 shipped as designed with four deltas: (a) `ManualWorkIsInviolable` dropped — cohort on-windows already forbid
   discretionary off-post, only the critical emergency pierces; (b) snapshot freshness = 5 s array-diff
   (per Phase 0), moved out of the diag gate; (c) the top-up sleep is BACK-loaded (timed via the boost's
   refill rate to end at shift start), not front-loaded — off-windows are disjoint per cohort so
@@ -342,6 +342,46 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
   legacy collapse junk, not player intent). Boost rates scale by `WeatherSystem.TimeSpeedMultiplier`.
   Builder-fill (Phase 2) and the schedule-UI overlap warning (Phase 3) remain open; Phase 1's log-only
   overlap warning ships in `RefreshCohorts`.
+
+- **Phase 1.5 (first slice of Phase 2) — v1.5.0 shipped (2026-07-09), `[DynamicNeeds] OffWindowFill` enum:**
+  new Leisure | Work | Builder config option (default Leisure) controls off-window surplus fill for 2+-cohort villagers.
+  `OffWindowFill=Work` (opt-in over-manning) confirmed in-game (2026-07-09): after the one back-loaded top-up sleep,
+  qualifying villagers resume their post during off-hours when rested, bounded by the mode's base happiness-leisure safety
+  valve. `OffWindowFill=Builder` (unassigned-labor lend/restore) deferred to its own diagnostics phase — ASKA models builders
+  as UNASSIGNED, so it must be verified that an assigned villager can be cleanly lent and restored without walking home or
+  dropping task state.
+
+- **Roadmap from 2026-07-09 brainstorm (user + Nexus feedback):**
+  Goal ledger: (1) automate everything = the base mode ✅; (2) no-overlap split schedules: 2a off-duty leisure ✅ (Phase 1),
+  2b off-duty productive/builder = Phase 2's Builder enum (diagnostics-gated), 2c off-duty back-to-work-after-needs ✅
+  (v1.5.0 `OffWindowFill=Work`); (3) stretch, SEPARATE-MOD idea: demand-driven crafting prioritization (see new idea 12).
+  Nexus-derived enhancements (open, not committed):
+  - **Idle→leisure default with per-station leisure concurrency cap — FLAGGED GOOD:** workers idle because no work exists
+    (builders with nothing queued, full inventories, completed bills) default to leisure instead of loitering; cap concurrent
+    leisure per station (e.g. 4 assigned → max 3 on leisure) so a sudden job always has someone present. Machinery echoes DVN's
+    existing same-station cohort grouping, so cheaper to build than it sounds. Phase-2-adjacent.
+  - **Runestone recreation:** DVN-boosted villagers are so efficient their leisure is short/rare → they stop meditating at
+    runestones → runestone shaman-XP loop unused. Existing knobs already tune this (lower `LeisureHoursToFullHappiness` toward
+    0 = vanilla rate → longer leisure; thresholds). Candidate: minimum leisure duration or "prefer recreation structures," NOT
+    forced visits.
+  - **Outhouse disuse:** probably the same efficiency root cause, but WHICH need drives outhouse trips is unknown — investigate
+    before designing.
+
+---
+
+---
+
+## 12. Demand-driven crafting prioritization — new mod (planned, idea from 2026-07-09 brainstorm)
+
+**Goal:** automatically adjust recipe priorities based on downstream demand — e.g. armorsmith missing iron plates → plates jump the metalworker's queue; archers need arrows → arrows jump for craftspeople; conflict resolution TBD.
+
+**Source:** Nexus discussion on DynamicVillagerNeedsMod (2026-07-09), user suggested as a SEPARATE MOD (not baked into DVN). Captures the "optimize villager labor" spirit but via a different lever: instead of schedule/rest/needs automation, tune the recipe *dispatch* priority to match the game's current bottleneck.
+
+**Key challenge:** detecting "downstream demand" — what queues indicate a resource is actually needed? (e.g. "armorsmith needs iron plates" shows as an unfulfilled quest or stockpile target; arrows = archers' active build requirement). **Approach is unresearched** — the binary dump + runtime investigation would need to happen first.
+
+**Phasing:** Phase 0 diagnostics on how unmet demands surface (via quest / stockpile / task data / etc.), then Phase 1 prototype a narrow case (e.g. arrows for active archer tasks) before widening to general-case optimization.
+
+**API signatures to investigate:** TBD — likely `WorkstationQuestData`, `CraftingStockpileQuestData`, task-requirement queries.
 
 ---
 

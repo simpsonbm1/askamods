@@ -10,6 +10,9 @@ using UnityEngine;
 
 namespace DynamicVillagerNeedsMod;
 
+// RespectManualSchedule off-window surplus fill policy (see Plugin.OffWindowFill / NeedsController.DecideManual).
+public enum OffWindowFillMode { Leisure, Work, Builder }
+
 // Replaces ASKA's clock-based villager schedule (Sleep/Work/Leisure hours you assign per villager)
 // with needs-based behavior: a villager sleeps when tired, takes leisure to address a basic need
 // (hunger/thirst/cold) or to recover low happiness, and otherwise works. We rewrite the villager's
@@ -68,6 +71,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> ManualScheduleDiagnostics = null!;
     internal static ConfigEntry<bool> RespectManualSchedule = null!;
     internal static ConfigEntry<float> CriticalNeedOffPostBelow = null!;
+    internal static ConfigEntry<OffWindowFillMode> OffWindowFill = null!;
 
     // Villager survival components, registered as they spawn (pruned in the controller when destroyed).
     internal static readonly List<VillagerSurvival> TrackedSurvivals = new();
@@ -166,6 +170,14 @@ public class Plugin : BasePlugin
             "off-post trip (the game's starving/dehydrated flags also trigger it). Keep near-death-low — off-hours " +
             "top-ups should normally prevent it ever firing.");
 
+        OffWindowFill = Config.Bind("DynamicNeeds", "OffWindowFill", OffWindowFillMode.Leisure,
+            "Manual-schedule mode only: what an off-shift cohort villager does with surplus off-hours after their " +
+            "timed top-up sleep and needs are handled. Leisure = hangout + happiness recovery (default, v1.4.4 " +
+            "behavior). Work = go back to the post instead (deliberately over-mans a post a coworker holds; the " +
+            "normal happiness-leisure thresholds still apply so mood can't bottom out). Builder = NOT YET " +
+            "IMPLEMENTED (planned: lend off-duty villagers to the construction pool) — currently behaves as " +
+            "Leisure and logs a note.");
+
         ClassInjector.RegisterTypeInIl2Cpp<NeedsController>();
         var go = new GameObject("DynamicVillagerNeedsMod_Controller");
         Object.DontDestroyOnLoad(go);
@@ -181,6 +193,7 @@ public class Plugin : BasePlugin
                        $"hungerx{HungerRateMultiplier.Value} thirstx{ThirstRateMultiplier.Value}, " +
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
                        $"boost={LeisureHoursToFullHappiness.Value}h, " +
-                       $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}");
+                       $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}, " +
+                       $"OffWindowFill={OffWindowFill.Value}");
     }
 }
