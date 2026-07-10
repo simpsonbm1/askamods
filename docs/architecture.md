@@ -777,6 +777,16 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 
 ---
 
+## Villager Summoning (Eye of Odin) — SummonTimerMod evidence
+
+**Structure & state:** `SSSGame.VillagerOutlet` is a `NetworkBehaviour` (one instance per Eye of Odin structure, captures via `Spawned()` postfix). Handles the entire summon flow: `_CheckSummonAvailability(ItemContainer)` gates the 5-jotun-blood requirement; `OnStorageMenuConfirmationPressed(ItemContainer)` initiates the wait; `__NetworkedVillagerTimerEnd : float` + `_SpawnPending : NetworkBool` track the timer state; `SpawnVillager()` fires when timer expires. Additional features: `GenerateNewVillagerChoices()` / `Rpc_SetUpcomingVillagerData(DescriptionData, SByte)` handle the villager-choice UI; instance fields for `_pm : PopulationManager`, `_wm : WeatherManager`, militia management (`GetCurrentMilitiaCount`/`GetMaxMilitiaCount`/`CanAssignNewMilitia`), and demo-mode fields (`trialPopulation`, `trialGametimeToSpawnVillager` — ignore).
+
+**Delay data structure:** `_spawnTimeline : VillagerSpawnCooldownsConfig` (shared `ScriptableObject`, one per Eye of Odin blueprint) contains `cooldowns : SandSailorStudio.Types.IntThresholdList<float>` — a struct (`ValueType`) whose `thresholds` property is `Il2CppSystem.Collections.Generic.List<IntThreshold<float>>`. Each threshold entry is `IntThreshold<float>{threshold : int, value : float}`. **IL2CPP interop gotcha:** reading `cooldowns` returns a struct COPY, but its inner `thresholds` List is a shared native reference — to mutate entries, read the list in place with copy-back round-trip (`var e = list[i]; e.value = x; list[i] = e;`). Accessed via `GetValue(int)` lookup in game logic. Per-instance timer lives in `gametimeToSpawnVillager : float`.
+
+**⚠️ Cooldown-table semantics UNKNOWN (confirmed reads in-game 2026-07-09):** All 9 vanilla threshold entries (villager counts: 3, 8, 12, 20, 40, 70, 110, 150, 200) hold the SAME negative value `-2.5980988`, and `gametimeToSpawnVillager = 10`. The per-count escalation is NOT a direct per-threshold duration lookup; the value may be a rate/curve input, and actual growth math may involve `gametimeCustomizationData : GametimeCustomizationData` (world-customization slots; role unconfirmed). **Consequence:** removing the wait entirely (multiplier 0) is confirmed SUFFICIENT; fractional multipliers (0 < m < 1) are UNTESTED and may not scale linearly. Harmless degenerate observed: scaling to 0 produces `__NetworkedVillagerTimerEnd = -2147483.8` (underflow) — game handles gracefully (no crash, timer expires immediately). (SummonTimerMod v0.1.0, confirmed in-game 2026-07-09.)
+
+---
+
 ## World Generation (Headless / Main Menu)
 - `WorldGenerator` is a `MonoBehaviour` but can be attached to a dummy GameObject in the Main Menu and successfully run `Setup(size...)`. It does not require a live 3D scene to generate the mathematical map!
 - `GenerateWorldMapAsync(filterTag)` executes the procedural generation logic, producing a `WorldDataMap` (with `_areaInstances` containing caves/lakes/dens).
