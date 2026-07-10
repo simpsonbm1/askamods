@@ -123,6 +123,12 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
 
 **Diagnostic:** use `bisect-plugins.ps1` to bisect a live-plugin performance/crash regression (disable all, re-enable one by one). Baseline vanilla framerate check: `doorstop_config.ini enabled=false`.
 
+## Configuration & Live Reload (universal)
+
+**BepInEx does NOT re-read edited .cfg files (confirmed in-game 2026-07-10):** `ConfigEntry.Value` reflects only in-memory state; when the user edits `BepInEx/config/com.modname.cfg` in a text editor mid-session, the changes are visible to the OS but not to the running process. To pick up file edits at runtime, call `ConfigFile.Reload()` (or `Plugin.Cfg?.Reload()`) periodically in `Update()` — the GroundItemVacuum/SeedScout/DynamicVillagerNeedsMod 5 s pattern does this at the top of `Update()` BEFORE the Enabled gate, so even toggling `Enabled=true` from the config file takes effect immediately. Single-run config parses (e.g. key bindings read once at startup) do NOT need live reload — only values that change behavior per-session need the polling.
+
+**Known issue (fix pending, cross-mod): typing in the game's structure-rename text field delivers keystrokes to `Input.GetKeyDown`** — every mod hotkey bound to a letter fires while the player types, creating unwanted mod actions mid-rename (observed 2026-07-10). Workaround (not yet shipped): gate hotkeys on `EventSystem.current.IsPointerOverGameObject(-1)` (detects focused input field).
+
 ---
 
 ## Damage Pipeline (Projectiles / Bow)
@@ -705,6 +711,8 @@ LightOutlet (StructureTaskDispatcher) .fireStructure / .fireInteraction / .Initi
     crafting fires alone (TorchFuelMod's KeepAllLightSources path).
 ```
 **Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name (e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name`.
+
+**Rename-proof name matching (confirmed in-game 2026-07-10):** station/structure display names are player-editable at runtime via `Structure.Rpc_ChangeName(String)` (networked `__NetworkedStructureName`, `OnNameChanged`). **`Structure.DefaultName` keeps returning the pristine type name after a rename** — any name-keyed matching/config should check BOTH `GetName()` (display name) and `DefaultName` (type name). When both names differ, display them as `Display (Default)` for clarity (DynamicVillagerNeedsMod v1.9.4 pattern).
 
 **Built-in / composite-building fires (e.g. tavern campfire):** these ARE `FireStructure`s and DO fire `Initialize`, but their owning `Structure` is the *building* ("Tavern"), so a name filter of `"Torch"` misses them. Two ways to catch them: add the building/fire name to the name list, or use the `LightOutlet.Initialize` patch above (catches any light-emitting fire by component, no name needed).
 

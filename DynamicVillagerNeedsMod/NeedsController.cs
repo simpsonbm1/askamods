@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
@@ -122,6 +123,13 @@ public class NeedsController : MonoBehaviour
     // Members of a 2+ same-workstation cohort (recomputed every 10 s by RefreshCohorts) — the only
     // villagers manual-mode window gating applies to.
     private readonly HashSet<VillagerSurvival> _inCohort = new();
+    // v1.9.0: each cohort member's RESOLVED off-window fill (global OffWindowFill, or the per-station
+    // ':Fill' override from ManualScheduleStations that matched their station). Recomputed alongside
+    // _inCohort every RefreshCohorts pass (cleared then repopulated together), so it self-clears the
+    // same way _inCohort does on a world leave (the next pass sees an empty tracked list and adds
+    // nothing back). Only entries for villagers currently in a whitelisted cohort exist here — the
+    // control loop falls back to the global value if a lookup misses (belt and braces).
+    private readonly Dictionary<VillagerSurvival, OffWindowFillMode> _villagerFill = new();
     // Villagers we have actually written a schedule to — the only ones RestoreAll must touch.
     private readonly HashSet<VillagerSurvival> _everWrote = new();
     // Manual mode: villagers whose CURRENT off-window already got its one top-up sleep. Armed
@@ -136,7 +144,31 @@ public class NeedsController : MonoBehaviour
     // v1.7.2 Fix C: villagers already warned once about an unresolvable station name while
     // ManualScheduleStations is non-empty (see RefreshCohorts) — logs once per villager, not every 10 s.
     private readonly HashSet<VillagerSurvival> _unresolvedStationNameWarned = new();
+    // v1.9.0: raw ':Fill' tokens already warned about once (invalid Fill value in a ManualScheduleStations
+    // entry) — keyed on the whole trimmed entry text so the warning fires once per distinct bad token
+    // instead of every 10 s ParseStationRules re-parses the config string.
+    private readonly HashSet<string> _badFillTokenWarned = new();
     private bool _cohortsComputed;
+
+    // --- v1.9.2 station-name discovery (Feature 1: generated stations file) ---
+    // Filename written into BepInEx.Paths.ConfigPath, listing the actual current station display names
+    // so a player never has to guess a ManualScheduleStations substring — see WriteStationsFileIfChanged.
+    internal const string StationsFileName = "com.askamods.dynamicneeds.stations.txt";
+    // Last content actually written, so we only touch disk when something changed (not every 10 s pass).
+    private string? _lastWrittenStationsFileContent;
+    // Set on the first write failure and never cleared — "log ONE warning per session and stop trying"
+    // so a broken file write (permissions, etc.) can never keep hammering the disk or the log.
+    private bool _stationsFileWriteFailed;
+
+    // --- v1.9.2 station-name discovery (Feature 2: mismatch feedback) ---
+    // One-time-per-distinct-value gates for the two mismatch warnings below. Reset alongside the other
+    // per-world state in CheckBuilderLoanWorldLeave (a different save has different stations).
+    private readonly HashSet<string> _unmatchedStationWarned = new();
+    private readonly HashSet<string> _unmatchedEntryWarned = new();
+    // Time.time the tracked-villager list first went from empty to non-empty this world session — the
+    // entry-unmatched warning waits ~60s from here so late-loading stations don't false-positive an
+    // entry whose real match just hasn't loaded/been assigned yet. -1 = not armed for this world.
+    private float _firstTrackedTime = -1f;
 
     // --- OffWindowFill=Builder (v1.7.0) state ---
     // Villagers currently lent to the settlement's builder pool. See BuilderLoan.cs for the shared
@@ -162,10 +194,23 @@ public class NeedsController : MonoBehaviour
     // Accumulator for the periodic food/water re-check (FoodRecheckIntervalSeconds).
     private float _recheckTimer;
     private float _tickTimer;
+    private float _cfgReloadTimer;
     private const float TickInterval = 0.25f;   // 4 Hz — villager needs/behavior don't need per-frame updates
 
     void Update()
     {
+        // v1.9.3 live config pickup: BepInEx does NOT re-read an edited cfg file on its own — .Value
+        // only reflects in-memory state, so a mid-session file edit (e.g. fixing a
+        // ManualScheduleStations entry after checking the stations.txt list) is invisible without an
+        // explicit Reload(). Same 5 s pattern as GroundItemVacuum/SeedScout. Runs before the Enabled
+        // gate so even a disabled mod picks up an Enabled=true edit.
+        _cfgReloadTimer += Time.deltaTime;
+        if (_cfgReloadTimer >= 5f)
+        {
+            _cfgReloadTimer = 0f;
+            try { Plugin.Cfg?.Reload(); } catch { }
+        }
+
         // v1.6.0 builder-fill diagnostics: independent of Enabled/ManualScheduleDiagnostics (its own
         // BuilderDiagnostics gate) and must run every frame — NOT behind the 4 Hz throttle below —
         // because its hotkey uses Input.GetKeyDown, which is frame-scoped and would be missed otherwise.
@@ -394,8 +439,21 @@ public class NeedsController : MonoBehaviour
 
                     // A lend that already failed this off-window doesn't retry every tick — fall back to
                     // Leisure for the rest of the window (re-armed above when the on-window returns).
-                    var fill = Plugin.OffWindowFill.Value;
+                    // v1.9.0: per-villager resolved fill (global OffWindowFill, or the ManualScheduleStations
+                    // ':Fill' override for this villager's cohort) — falls back to the global value if
+                    // RefreshCohorts hasn't populated an entry yet (belt and braces; should be rare since
+                    // manualQualifies already requires _inCohort membership, which is set at the same time).
+                    var fill = _villagerFill.TryGetValue(surv, out var resolvedFill) ? resolvedFill : Plugin.OffWindowFill.Value;
                     if (fill == OffWindowFillMode.Builder && _builderFailedWindow.Contains(surv))
+                        fill = OffWindowFillMode.Leisure;
+
+                    // v1.9.1: a painted-Leisure off-hour is honored regardless of the resolved fill
+                    // (global OffWindowFill or a per-station ':Fill' override) — the player explicitly
+                    // painted "relax here" for this hour, so it overrides Work/Builder fill. Only the
+                    // off-window path uses `fill` at all (see DecideManual step 4), so this can't touch
+                    // on-window/Manual baseline behavior. Priority above this is unchanged: topUpNow and
+                    // emergency are handled earlier/inside DecideManual and still take precedence.
+                    if (!onWindow && paintedNow == (int)ScheduleType.Leisure)
                         fill = OffWindowFillMode.Leisure;
 
                     next = DecideManual(prev, restHours, surv.IsSleeping, minNeed, emergency,
@@ -1128,6 +1186,19 @@ public class NeedsController : MonoBehaviour
             _builderFailedWindow.Clear();
             _builderRestoreRetryTimer.Clear();
             _staleLoanCheckDone = false;
+
+            // v1.9.2: station-list mismatch-feedback state (Feature 2) is per-world too — a different
+            // save has different stations, so stale once-flags from the last world must not suppress
+            // this world's warnings.
+            _unmatchedStationWarned.Clear();
+            _unmatchedEntryWarned.Clear();
+            _firstTrackedTime = -1f;
+        }
+        else if (has && !_hadTrackedVillagers)
+        {
+            // v1.9.2: mark this world session's "first tracked villager" moment — the entry-unmatched
+            // warning (Feature 2) waits ~60s from here so late-loading stations don't false-positive.
+            _firstTrackedTime = Time.time;
         }
         _hadTrackedVillagers = has;
     }
@@ -1415,9 +1486,29 @@ public class NeedsController : MonoBehaviour
         {
             _cohortsComputed = true;
             _inCohort.Clear();
+            _villagerFill.Clear();
 
             var groups = new Dictionary<IntPtr, List<int>>();
             var names = new Dictionary<IntPtr, string>();
+            // v1.9.4: DEFAULT (type) name parallel to `names` — see allDefaultNames below for why.
+            var defaultNames = new Dictionary<IntPtr, string>();
+            // v1.9.2 Feature 1 (station-list file): every distinct station seen this pass with >=1
+            // assigned tracked villager, INCLUDING Buildstation-family and solo (<2-member) stations
+            // that `groups`/`names` deliberately exclude below — the file is meant to be a complete,
+            // honest inventory of real names, not just the manual-mode-eligible subset.
+            var allNames = new Dictionary<IntPtr, string>();
+            // v1.9.4: rename-proof matching. Structure.GetName() is the player-editable display name
+            // (Structure.Rpc_ChangeName lets a co-op player rename e.g. a tavern to "Tomaso's"), so a
+            // type-based whitelist entry ('Tavern') silently stops matching after a rename. DefaultName
+            // is the structure's original type name — resolved alongside the display name so whitelist
+            // matching (TryMatchStationRule) and the stations file can fall back to it. ⚠️ Unverified:
+            // whether DefaultName still returns the pristine type name after a rename, or reflects the
+            // rename too — if the latter, dual-matching harmlessly collapses to today's display-name-
+            // only behavior (FormatStationNames folds identical names; TryMatchStationRule's `hasDefault`
+            // guard skips a default name equal to the display name).
+            var allDefaultNames = new Dictionary<IntPtr, string>();
+            var allCounts = new Dictionary<IntPtr, int>();
+            var allIsBuild = new Dictionary<IntPtr, bool>();
 
             for (int i = 0; i < tracked.Count; i++)
             {
@@ -1431,44 +1522,86 @@ public class NeedsController : MonoBehaviour
 
                     var ws = villager.GetNonVikingWorkstation();
                     if (ws == null) continue;
+                    // SSSGame.Workstation's compile-time base chain runs through unity-libs stubs, so
+                    // ws.Pointer won't compile directly — box through object + Il2CppObjectBase instead
+                    // (same pattern as the universal "managed casts lie" gotcha).
+                    if (!((object)ws is Il2CppObjectBase wsBase)) continue;
+                    IntPtr key = wsBase.Pointer;
+                    bool isBuild = IsBuildstation(ws);
+
+                    if (!allNames.TryGetValue(key, out var resolvedName))
+                    {
+                        try { resolvedName = ws._structure?.GetName() ?? "?"; } catch { resolvedName = "?"; }
+                        string resolvedDefaultName;
+                        try { resolvedDefaultName = ws._structure?.DefaultName ?? "?"; } catch { resolvedDefaultName = "?"; }
+                        allNames[key] = resolvedName;
+                        allDefaultNames[key] = resolvedDefaultName;
+                        allIsBuild[key] = isBuild;
+                    }
+                    allCounts.TryGetValue(key, out int cnt);
+                    allCounts[key] = cnt + 1;
+
                     // v1.7.2 Fix B: never form/join a manual cohort at the Buildstation — unassigned
                     // villagers (including newly summoned ones) are auto-parked there by the game and
                     // would otherwise form a spurious 2+ "cohort" of default (mixed) schedules that
                     // wrongly qualifies for manual mode. This also transitively keeps them out of
                     // manualQualifies (which gates solely on _inCohort membership) without a second
                     // per-tick check.
-                    if (IsBuildstation(ws)) continue;
-                    // SSSGame.Workstation's compile-time base chain runs through unity-libs stubs, so
-                    // ws.Pointer won't compile directly — box through object + Il2CppObjectBase instead
-                    // (same pattern as the universal "managed casts lie" gotcha).
-                    if (!((object)ws is Il2CppObjectBase wsBase)) continue;
+                    if (isBuild) continue;
 
-                    IntPtr key = wsBase.Pointer;
                     if (!groups.TryGetValue(key, out var list))
                     {
                         list = new List<int>();
                         groups[key] = list;
-                        try { names[key] = ws._structure?.GetName() ?? "?"; } catch { names[key] = "?"; }
+                        names[key] = resolvedName;
+                        defaultNames[key] = allDefaultNames.TryGetValue(key, out var dn) ? dn : "?";
                     }
                     list.Add(i);
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort member: {ex}"); }
             }
 
-            // v1.7.2 Fix C: ManualScheduleStations whitelist. Empty (default) = every non-Buildstation
-            // 2+ cohort qualifies (current behavior). Non-empty = only cohorts whose station name
-            // contains at least one configured substring join _inCohort; everyone else falls back to
-            // pure needs-based behavior (Decide(), never DecideManual()).
-            string[] stationWhitelist = ParseStationWhitelist(Plugin.ManualScheduleStations.Value);
+            // v1.7.2 Fix C / v1.9.0: ManualScheduleStations whitelist + per-station fill override. Empty
+            // (default) = every non-Buildstation 2+ cohort qualifies (current behavior), using the global
+            // OffWindowFill. Non-empty = only cohorts whose station name contains at least one configured
+            // substring join _inCohort; everyone else falls back to pure needs-based behavior (Decide(),
+            // never DecideManual()). Each rule is either bare (Fill == null -> global OffWindowFill) or
+            // 'Name:Fill' (per-station override) — see ParseStationRules. First-match-wins in list order.
+            StationRule[] stationRules = ParseStationRules(Plugin.ManualScheduleStations.Value);
+
+            // v1.9.2 Feature 1: refresh the generated station-name file. Independent of logReport/
+            // ManualScheduleDiagnostics — this is player-facing observability, not a debug diagnostic.
+            WriteStationsFileIfChanged(allNames, allDefaultNames, allCounts, allIsBuild, stationRules);
 
             foreach (var kv in groups)
             {
                 if (kv.Value.Count < 2) continue;
 
                 string name = names.TryGetValue(kv.Key, out var n) ? n : "?";
+                string defName = defaultNames.TryGetValue(kv.Key, out var dn2) ? dn2 : "?";
                 bool nameUnresolved = string.IsNullOrEmpty(name) || name == "?";
-                bool whitelisted = stationWhitelist.Length == 0
-                    || (!nameUnresolved && StationNameMatches(name, stationWhitelist));
+                bool whitelisted;
+                OffWindowFillMode? matchedFill = null;
+                bool viaDefault = false;
+                if (stationRules.Length == 0)
+                    whitelisted = true;
+                else if (nameUnresolved)
+                    whitelisted = false;
+                else
+                    whitelisted = TryMatchStation(name, defName, stationRules, out matchedFill, out viaDefault);
+                OffWindowFillMode effectiveFill = matchedFill ?? Plugin.OffWindowFill.Value;
+                // v1.9.4: dual-name display for logging — "<display> (<default>)" when a player rename
+                // has made them diverge, or just "<display>" (unchanged from pre-v1.9.4) when identical.
+                string displayName = FormatStationNames(name, defName);
+
+                // v1.9.2 Feature 2 (#1): a resolved-name 2+ cohort that no whitelist entry matches gets a
+                // one-time INFO pointing the player at the generated file — independent of logReport.
+                if (stationRules.Length > 0 && !nameUnresolved && !whitelisted && _unmatchedStationWarned.Add(name))
+                {
+                    Plugin.Logger.LogInfo(
+                        $"[DynamicNeeds] station '{displayName}' has a 2+ worker cohort but no ManualScheduleStations " +
+                        $"entry matches it — it will use needs-based behavior. Exact station names are listed in {StationsFileName}.");
+                }
 
                 var snaps = new List<int[]>();
                 foreach (var idx in kv.Value)
@@ -1478,8 +1611,9 @@ public class NeedsController : MonoBehaviour
                     if (whitelisted)
                     {
                         _inCohort.Add(surv);
+                        _villagerFill[surv] = effectiveFill;
                     }
-                    else if (stationWhitelist.Length > 0 && nameUnresolved && logReport
+                    else if (stationRules.Length > 0 && nameUnresolved && logReport
                              && _unresolvedStationNameWarned.Add(surv))
                     {
                         Plugin.Logger.LogInfo(
@@ -1517,8 +1651,8 @@ public class NeedsController : MonoBehaviour
 
                 if (logReport)
                     Plugin.Logger.LogInfo(
-                        $"[DynamicNeeds] MSdiag cohort station=0x{kv.Key.ToInt64():X} name='{name}' members=[{members}] " +
-                        $"sleepOverlapHours={overlap} whitelisted={whitelisted}");
+                        $"[DynamicNeeds] MSdiag cohort station=0x{kv.Key.ToInt64():X} name='{displayName}' members=[{members}] " +
+                        $"sleepOverlapHours={overlap} whitelisted={whitelisted} fill={(whitelisted ? effectiveFill.ToString() : "-")}");
 
                 // Manual-mode coverage warning: this cohort's painted off-windows collide, so
                 // confinement cannot separate their sleep — the post can go unmanned. Warn once per
@@ -1537,31 +1671,251 @@ public class NeedsController : MonoBehaviour
                     }
                 }
             }
+
+            // v1.9.2 Feature 2 (#2): whitelist entries that never matched any station, ~60s after the
+            // first tracked villager this world session (lets late-loading stations settle before an
+            // entry is declared dead). Checked against ALL distinct stations seen this pass (allNames),
+            // not just 2+ cohorts — a station with only 1 assigned villager right now still counts as a
+            // legitimate match, avoiding a false "no match" while the settlement is still growing.
+            if (stationRules.Length > 0 && _firstTrackedTime >= 0f && Time.time - _firstTrackedTime >= 60f)
+            {
+                foreach (var rule in stationRules)
+                {
+                    if (_unmatchedEntryWarned.Contains(rule.Name)) continue;
+                    bool matchedAny = false;
+                    foreach (var kv2 in allNames)
+                    {
+                        var n = kv2.Value;
+                        bool hitDisplay = n != "?" && n.Length > 0 && n.IndexOf(rule.Name, StringComparison.OrdinalIgnoreCase) >= 0;
+                        // v1.9.4: also check the DEFAULT (type) name — a whitelist entry that only ever
+                        // matches via a renamed station's default name shouldn't be flagged as dead.
+                        string dn = allDefaultNames.TryGetValue(kv2.Key, out var dnv) ? dnv : "?";
+                        bool hitDefault = !hitDisplay && dn != "?" && dn.Length > 0 &&
+                                           dn.IndexOf(rule.Name, StringComparison.OrdinalIgnoreCase) >= 0;
+                        if (hitDisplay || hitDefault)
+                        {
+                            matchedAny = true;
+                            break;
+                        }
+                    }
+                    if (!matchedAny && _unmatchedEntryWarned.Add(rule.Name))
+                    {
+                        Plugin.Logger.LogWarning(
+                            $"[DynamicNeeds] ManualScheduleStations entry '{rule.Name}' has not matched any station " +
+                            $"in this settlement — check {StationsFileName} for the exact names.");
+                    }
+                }
+            }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[DynamicNeeds] MSdiag cohort: {ex}"); }
     }
 
-    // v1.7.2 Fix C: split Plugin.ManualScheduleStations.Value on commas, trim whitespace, drop empty
-    // entries. Empty/whitespace-only config -> empty array (= "no whitelist", current behavior).
-    private static string[] ParseStationWhitelist(string raw)
+    // v1.9.2 Feature 1: writes StationsFileName into BepInEx.Paths.ConfigPath — a plain-text inventory
+    // of every distinct station this pass saw with >=1 assigned tracked villager (allNames/allDefaultNames/
+    // allCounts/allIsBuild, built alongside `groups`/`names` in the loop above but WITHOUT the 2+/
+    // non-Buildstation filtering — this file is a complete reference, not just the manual-mode-eligible
+    // subset), each line naming the station, how many tracked villagers are assigned there, and a verdict
+    // against the CURRENT ManualScheduleStations list. Rewrites the file only when the computed content
+    // actually changed (_lastWrittenStationsFileContent), and gives up for the rest of the session on the
+    // first write failure (_stationsFileWriteFailed) — a broken file write must never affect the mod itself.
+    private void WriteStationsFileIfChanged(
+        Dictionary<IntPtr, string> allNames, Dictionary<IntPtr, string> allDefaultNames,
+        Dictionary<IntPtr, int> allCounts, Dictionary<IntPtr, bool> allIsBuild,
+        StationRule[] rules)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<string>();
+        if (_stationsFileWriteFailed) return;
+        try
+        {
+            // `name` stays the raw display name (used for the copy-pasteable "Example:" line below);
+            // `renderedName` is the v1.9.4 dual-name form used in the actual listing rows.
+            var entries = new List<(string name, string renderedName, int count, string verdict)>();
+            int unresolvedCount = 0;
+            foreach (var kv in allNames)
+            {
+                string name = kv.Value;
+                if (string.IsNullOrEmpty(name) || name == "?") { unresolvedCount++; continue; }
+
+                string defName = allDefaultNames.TryGetValue(kv.Key, out var dn) ? dn : "?";
+                string renderedName = FormatStationNames(name, defName);
+
+                int count = allCounts.TryGetValue(kv.Key, out var c) ? c : 0;
+                bool isBuild = allIsBuild.TryGetValue(kv.Key, out var b) && b;
+
+                string verdict;
+                if (isBuild)
+                    verdict = "builder pool — always excluded from manual mode";
+                else if (rules.Length == 0)
+                    verdict = $"whitelist empty — all stations eligible (fill={Plugin.OffWindowFill.Value})";
+                else if (TryMatchStationRule(name, defName, rules, out var matched, out bool viaDefault))
+                    verdict = viaDefault
+                        ? $"matched entry '{matched.Name}' (via default name, fill={(matched.Fill ?? Plugin.OffWindowFill.Value)})"
+                        : $"matched entry '{matched.Name}' (fill={(matched.Fill ?? Plugin.OffWindowFill.Value)})";
+                else
+                    verdict = "NOT matched by any ManualScheduleStations entry";
+
+                entries.Add((name, renderedName, count, verdict));
+            }
+            entries.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
+
+            var sb = new StringBuilder();
+            sb.AppendLine("# DynamicVillagerNeedsMod — station names currently in your settlement");
+            sb.AppendLine("#");
+            sb.AppendLine("# Generated automatically; regenerated whenever it changes (~every 10s while the mod runs).");
+            sb.AppendLine("# Use these EXACT names in the ManualScheduleStations config entry (this mod's .cfg file).");
+            sb.AppendLine("# Entries there are case-insensitive SUBSTRINGS matched against these names — e.g. a");
+            sb.AppendLine("# ManualScheduleStations entry 'Guard Tower' matches a station literally named 'Guard Tower'.");
+            sb.AppendLine("# Only stations with at least one ASSIGNED tracked villager appear here — assign a villager");
+            sb.AppendLine("# to a building to see it listed.");
+            sb.AppendLine("#");
+            sb.AppendLine("# A station renamed in-game (right-click -> Rename) is listed as 'CurrentName (TypeName)' —");
+            sb.AppendLine("# either name matches a ManualScheduleStations entry, so a type-based entry like 'Tavern'");
+            sb.AppendLine("# keeps matching even after the building is renamed to something like 'Tomaso's'.");
+            sb.AppendLine("#");
+            sb.AppendLine($"# Example: ManualScheduleStations = {(entries.Count > 0 ? entries[0].name : "Guard Tower")}");
+            if (unresolvedCount > 0)
+                sb.AppendLine($"# ({unresolvedCount} station(s) with an unresolved name were omitted from this list.)");
+            sb.AppendLine("#");
+
+            if (entries.Count == 0)
+                sb.AppendLine("# (no stations with an assigned tracked villager seen yet)");
+            else
+                foreach (var e in entries)
+                    sb.AppendLine($"{e.renderedName}  |  {e.count} assigned villager(s)  |  {e.verdict}");
+
+            string content = sb.ToString();
+            if (content == _lastWrittenStationsFileContent) return;
+
+            string path = Path.Combine(BepInEx.Paths.ConfigPath, StationsFileName);
+            File.WriteAllText(path, content);
+            _lastWrittenStationsFileContent = content;
+        }
+        catch (Exception ex)
+        {
+            _stationsFileWriteFailed = true;
+            Plugin.Logger.LogWarning($"[DynamicNeeds] station-list file write failed (giving up for this session): {ex.Message}");
+        }
+    }
+
+    // v1.9.0: one parsed ManualScheduleStations entry — a station-name substring, optionally paired with
+    // a per-station off-window fill override ('Name:Fill'). Fill == null means "use the global
+    // OffWindowFill" (a bare entry, or an entry whose Fill token failed to parse).
+    internal readonly struct StationRule
+    {
+        public readonly string Name;
+        public readonly OffWindowFillMode? Fill;
+        public StationRule(string name, OffWindowFillMode? fill) { Name = name; Fill = fill; }
+    }
+
+    // v1.7.2 Fix C, extended v1.9.0: split Plugin.ManualScheduleStations.Value on commas, trim
+    // whitespace, drop empty entries. Empty/whitespace-only config -> empty array (= "no whitelist",
+    // current behavior). Each non-empty entry is either a bare name substring (Fill = null -> caller
+    // uses the global OffWindowFill) or 'Name:Fill' where Fill is Leisure/Work/Builder (case-insensitive)
+    // -- an invalid Fill token logs a one-time warning (per distinct bad entry text) and falls back to
+    // treating the entry as bare rather than dropping it or failing the whole list. Instance method (not
+    // static) because the one-time-warning gate lives in the instance field _badFillTokenWarned.
+    internal StationRule[] ParseStationRules(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<StationRule>();
         var parts = raw.Split(',');
-        var result = new List<string>(parts.Length);
+        var result = new List<StationRule>(parts.Length);
         foreach (var p in parts)
         {
             var t = p.Trim();
-            if (t.Length > 0) result.Add(t);
+            if (t.Length == 0) continue;
+
+            int colon = t.IndexOf(':');
+            if (colon < 0)
+            {
+                result.Add(new StationRule(t, null));
+                continue;
+            }
+
+            string namePart = t.Substring(0, colon).Trim();
+            string fillPart = t.Substring(colon + 1).Trim();
+            if (namePart.Length == 0) continue; // degenerate ":Fill" with no name to match — drop it
+
+            if (Enum.TryParse<OffWindowFillMode>(fillPart, true, out var fillMode))
+            {
+                result.Add(new StationRule(namePart, fillMode));
+            }
+            else
+            {
+                if (_badFillTokenWarned.Add(t))
+                    Plugin.Logger.LogWarning(
+                        $"[DynamicNeeds] ManualScheduleStations: invalid fill token '{fillPart}' in entry '{t}' " +
+                        "(expected Leisure, Work, or Builder) — treating as a bare entry (uses the global OffWindowFill).");
+                result.Add(new StationRule(namePart, null));
+            }
         }
         return result.ToArray();
     }
 
-    // Case-insensitive substring match against any whitelist entry.
-    private static bool StationNameMatches(string name, string[] whitelist)
+    // First-match-wins (list order) case-insensitive substring match against the parsed rules. Returns
+    // the matched rule's Fill (which may itself be null == "use the global OffWindowFill").
+    private static bool TryMatchStation(string name, string? defaultName, StationRule[] rules, out OffWindowFillMode? fill, out bool viaDefault)
     {
-        foreach (var w in whitelist)
-            if (name.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        if (TryMatchStationRule(name, defaultName, rules, out var matched, out viaDefault)) { fill = matched.Fill; return true; }
+        fill = null;
         return false;
+    }
+
+    // v1.9.2: same first-match-wins substring match as TryMatchStation, but returns the whole matched
+    // rule (name + fill) — used by the station-list file (Feature 1) to report WHICH entry matched.
+    // v1.9.4: dual-name (rename-proof) matching — display names are player-editable (Structure.
+    // Rpc_ChangeName), so each rule is now checked against BOTH the station's current display name AND
+    // its DefaultName (original type name) before moving to the next rule in list order; an entry
+    // matches if it hits EITHER name. `defaultName` may be null/"?"/equal-to-`name` (unresolved, or
+    // DefaultName didn't survive a rename as hoped) — `hasDefault` skips the second check in that case,
+    // which harmlessly reduces to the pre-v1.9.4 display-name-only behavior. `viaDefault` tells the
+    // caller which name actually matched, for player-facing messages.
+    private static bool TryMatchStationRule(string name, string? defaultName, StationRule[] rules, out StationRule matched, out bool viaDefault)
+    {
+        bool hasDefault = !string.IsNullOrEmpty(defaultName) && defaultName != "?" && defaultName != name;
+        foreach (var r in rules)
+        {
+            if (name.IndexOf(r.Name, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                matched = r;
+                viaDefault = false;
+                return true;
+            }
+            if (hasDefault && defaultName!.IndexOf(r.Name, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                matched = r;
+                viaDefault = true;
+                return true;
+            }
+        }
+        matched = default;
+        viaDefault = false;
+        return false;
+    }
+
+    // v1.9.4: renders a station's dual name for player-facing output — "<display> (<default>)" when a
+    // player rename (Structure.Rpc_ChangeName) has made them diverge, or just "<display>" when they're
+    // identical/unresolved. A station that was never renamed (or on a DefaultName that turns out to
+    // track renames too — see the ⚠️ note in RefreshCohorts) renders byte-for-byte the same as before
+    // v1.9.4.
+    private static string FormatStationNames(string display, string? defaultName)
+    {
+        if (string.IsNullOrEmpty(defaultName) || defaultName == "?" || defaultName == display) return display;
+        return $"{display} ({defaultName})";
+    }
+
+    // Startup-summary helper (Plugin.Load): a compact "Name=Fill, Name=<global>, ..." rendering of the
+    // parsed rules, or "" if there are none (caller falls back to just the raw config string).
+    internal static string DescribeStationRules(StationRule[] rules)
+    {
+        if (rules.Length == 0) return "";
+        var sb = new StringBuilder();
+        for (int i = 0; i < rules.Length; i++)
+        {
+            if (i > 0) sb.Append(", ");
+            var fill = rules[i].Fill;
+            string fillText = fill.HasValue ? fill.Value.ToString() : "<global>";
+            sb.Append(rules[i].Name).Append('=').Append(fillText);
+        }
+        return sb.ToString();
     }
 
     // (d) Player-edit detection: if the live packed schedule no longer matches what we last wrote (and

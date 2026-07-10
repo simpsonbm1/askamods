@@ -25,6 +25,12 @@ public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger = null!;
 
+    // v1.9.3: NeedsController re-reads the cfg FILE every 5 s via Cfg.Reload() so mid-session edits
+    // apply without a relaunch (BepInEx never re-reads an edited file on its own; .Value is
+    // in-memory only — GroundItemVacuum/SeedScout pattern). Note: BuilderTestKey is parsed once at
+    // startup and is the one setting a reload does NOT re-apply.
+    internal static ConfigFile? Cfg;
+
     internal static ConfigEntry<bool> Enabled = null!;
 
     // Sleep need — rest is a 0..24 "hours of rest" pool that drains while awake, fills while asleep.
@@ -107,6 +113,7 @@ public class Plugin : BasePlugin
     public override void Load()
     {
         Logger = base.Log;
+        Cfg = Config;
 
         Enabled = Config.Bind("DynamicNeeds", "Enabled", true,
             "Master switch. When true, villagers ignore their assigned schedule and act on needs instead.");
@@ -180,19 +187,23 @@ public class Plugin : BasePlugin
             "Log each villager's need-driven mode changes plus a periodic rest/happiness/needs summary. " +
             "Off by default (it's very verbose); turn on only when tuning thresholds.");
 
-        ManualScheduleDiagnostics = Config.Bind("DynamicNeeds", "ManualScheduleDiagnostics", true,
-            "Read-only diagnostics for the upcoming manual-schedule (RespectManualSchedule) mode: logs each " +
-            "villager's original per-hour schedule snapshot, an in-game hour calibration line, same-workstation " +
-            "cohorts with sleep-hour overlaps, and externally-changed schedules (player edits). No behavior " +
-            "change. Verbose; will default to false once the feature ships.");
+        ManualScheduleDiagnostics = Config.Bind("DynamicNeeds", "ManualScheduleDiagnostics", false,
+            "Read-only diagnostics for the manual-schedule (RespectManualSchedule) mode: logs each villager's " +
+            "original per-hour schedule snapshot, an in-game hour calibration line, same-workstation cohorts " +
+            "with sleep-hour overlaps (including each cohort's resolved off-window fill), and externally-changed " +
+            "schedules (player edits). No behavior change. Verbose — the feature is verified/shipped; enable " +
+            "only when debugging.");
 
         RespectManualSchedule = Config.Bind("DynamicNeeds", "RespectManualSchedule", false,
             "Manual-schedule mode: villagers sharing a workstation with a coworker (2+ at the same station) follow " +
-            "their player-painted schedule — present during painted Work hours (only a life-threatening food/water " +
-            "emergency pulls them off-post), sleeping front-loaded within their own painted off-hours (the rest boost " +
-            "still shortens it), and filling leftover off-hours with leisure instead of over-manning the post. " +
-            "Villagers on solo stations, and cohort members whose painted schedule has no off-hours, keep pure " +
-            "needs-based behavior. Preserves player-staggered 24/7 coverage of shared posts (towers, kitchens).");
+            "their player-painted schedule via three brushes. Painted Work hours are followed as painted — present " +
+            "at the post (only a life-threatening food/water emergency pulls them off-post). Painted Leisure hours " +
+            "are also followed as painted — the villager relaxes then, regardless of OffWindowFill. Painted Sleep " +
+            "blocks are flexible rest time the mod optimizes: one shorter, well-timed sleep (back-loaded to end at " +
+            "shift start; the rest boost shortens it further), with the hours freed up by that optimization filled " +
+            "per OffWindowFill. Villagers on solo stations, and cohort members whose painted schedule has no " +
+            "off-hours, keep pure needs-based behavior. Preserves player-staggered 24/7 coverage of shared posts " +
+            "(towers, kitchens).");
         CriticalNeedOffPostBelow = Config.Bind("DynamicNeeds", "CriticalNeedOffPostBelow", 0.05f,
             "Manual-schedule mode: normalized food/water level below which an on-shift villager takes an emergency " +
             "off-post trip (the game's starving/dehydrated flags also trigger it). Keep near-death-low — off-hours " +
@@ -201,24 +212,46 @@ public class Plugin : BasePlugin
         ManualScheduleStations = Config.Bind("DynamicNeeds", "ManualScheduleStations", "",
             "Manual-schedule mode: comma-separated, case-insensitive substrings matched against each 2+ cohort's " +
             "station display name. Empty (default) = current behavior: any non-Buildstation 2+ same-station cohort " +
-            "with a mixed (Work + off-hour) painted schedule qualifies for manual mode. Non-empty = manual mode " +
-            "applies ONLY to cohorts whose station name contains at least one of these substrings; every other " +
-            "villager (e.g. newly summoned/unassigned workers at other stations) falls back to pure needs-based " +
-            "behavior instead of being treated as manual-scheduled. Buildstation-family stations are ALWAYS " +
-            "excluded from manual mode regardless of this list. Example: 'Cooking House, Barbecue' limits " +
-            "manual-schedule staggering to those two station families and leaves every other station on needs.");
+            "with a mixed (Work + off-hour) painted schedule qualifies for manual mode, using the global " +
+            "OffWindowFill. Non-empty = manual mode applies ONLY to cohorts whose station name contains at least " +
+            "one of these substrings; every other villager (e.g. newly summoned/unassigned workers at other " +
+            "stations) falls back to pure needs-based behavior instead of being treated as manual-scheduled. Each " +
+            "entry is either a bare substring (that cohort uses the global OffWindowFill) or 'Substring:Fill' " +
+            "where Fill is Leisure, Work, or Builder (case-insensitive) to override the off-window fill for just " +
+            "that cohort. An invalid Fill token (e.g. a typo) logs a one-time warning naming the bad token and " +
+            "falls back to treating the entry as bare rather than dropping it. Matching is FIRST-MATCH-WINS in " +
+            "list order — the first entry whose substring is found in the station name supplies the fill, so put " +
+            "more specific substrings before broader ones if they could both match. Buildstation-family stations " +
+            "are ALWAYS excluded from manual mode regardless of this list. Example: 'Cooking House:Leisure, " +
+            "Workshop:Builder, Watchtower' — cooks off-window relax, workshop workers off-window build, and " +
+            "watchtower guards use whatever OffWindowFill (the global default) is set to. Station display names " +
+            $"vary by save and game language, so don't guess them: {NeedsController.StationsFileName} (written " +
+            "next to this config file, refreshed automatically while the mod is running) lists the exact names " +
+            "in your settlement and whether each currently matches an entry here. Entries here match both a " +
+            "station's CURRENT (possibly player-renamed, e.g. via right-click Rename) name and its ORIGINAL " +
+            "type name, so an entry 'Tavern' keeps matching a tavern renamed 'Tomaso's'; the stations list file " +
+            "shows both forms as 'Tomaso's (Tavern)' when they differ. Whichever fill applies " +
+            "(global or per-station) only governs flexible off-hours (the hours freed by the optimized painted-" +
+            "Sleep block) — hours the player painted as Leisure are always spent as Leisure regardless of the " +
+            "resolved fill (see RespectManualSchedule).");
 
         OffWindowFill = Config.Bind("DynamicNeeds", "OffWindowFill", OffWindowFillMode.Leisure,
-            "Manual-schedule mode only: what an off-shift cohort villager does with surplus off-hours after their " +
-            "timed top-up sleep and needs are handled. Leisure = hangout + happiness recovery (default, v1.4.4 " +
-            "behavior). Work = go back to the post instead (deliberately over-mans a post a coworker holds; the " +
-            "normal happiness-leisure thresholds still apply so mood can't bottom out). Builder (v1.7.0) = lend " +
-            "the off-duty villager to the settlement's builder pool — they build/repair/haul like a dedicated " +
-            "builder WITHOUT their job assignment or schedule UI changing. They still take their timed top-up " +
-            "sleep and are back at their post by shift start (or earlier, via BuilderReturnLeadHours), and needs " +
-            "emergencies / the happiness safety valve pull them off the loan just like the other fills. If the " +
-            "lend itself fails (no Buildstation resolved, etc.) that villager falls back to Leisure for the rest " +
-            "of the off-window and a warning is logged.");
+            "Manual-schedule mode only: the GLOBAL DEFAULT for what an off-shift cohort villager does with " +
+            "surplus off-hours after their timed top-up sleep and needs are handled. Used by any cohort whose " +
+            "ManualScheduleStations entry is bare (no ':Fill' suffix), and by every cohort when " +
+            "ManualScheduleStations is empty. A per-station ':Fill' suffix in ManualScheduleStations (e.g. " +
+            "'Workshop:Builder') overrides this default for just that cohort — see ManualScheduleStations. " +
+            "Leisure = hangout + happiness recovery (default, v1.4.4 behavior). Work = go back to the post " +
+            "instead (deliberately over-mans a post a coworker holds; the normal happiness-leisure thresholds " +
+            "still apply so mood can't bottom out). Builder (v1.7.0) = lend the off-duty villager to the " +
+            "settlement's builder pool — they build/repair/haul like a dedicated builder WITHOUT their job " +
+            "assignment or schedule UI changing. They still take their timed top-up sleep and are back at their " +
+            "post by shift start (or earlier, via BuilderReturnLeadHours), and needs emergencies / the happiness " +
+            "safety valve pull them off the loan just like the other fills. If the lend itself fails (no " +
+            "Buildstation resolved, etc.) that villager falls back to Leisure for the rest of the off-window and " +
+            "a warning is logged. Applies only to flexible off-hours — the hours freed by the optimized painted-" +
+            "Sleep block; hours the player painted as Leisure are always spent as Leisure regardless of this " +
+            "setting (see RespectManualSchedule).");
 
         BuilderReturnLeadHours = Config.Bind("DynamicNeeds", "BuilderReturnLeadHours", 1.0f,
             "OffWindowFill=Builder only: while a villager is on loan, leave the loan once the time remaining " +
@@ -242,16 +275,16 @@ public class Plugin : BasePlugin
             "it underneath. When true, the panel always shows your real painted schedule, and editing/applying " +
             "a new paint in the panel still works normally. Leave this on unless you're debugging the mask itself.");
 
-        BuilderDiagnostics = Config.Bind("DynamicNeeds", "BuilderDiagnostics", true,
-            "Read-only diagnostics + a hotkey-driven lend/restore EXPERIMENT for the planned OffWindowFill=Builder " +
-            "mode. ~10s after the first villager is tracked, logs a one-time baseline dump (each tracked " +
-            "villager's name/workstation/Buildstation-agent membership, then the default Buildstation's own " +
-            "agent counts). While active, pressing BuilderTestKey lends the nearest eligible villager to the " +
-            "settlement's default Buildstation to test whether Buildstation.SetTaskAgent alone injects build " +
-            "quests into the villager's QuestRunner WITHOUT changing Villager._workstation (the field the UI job " +
-            "icon reads) — logging before/after state so the variants can be compared. Every code path here is " +
-            "try/catch-guarded and can never affect normal mod behavior or any shipped mode. Verbose; default " +
-            "true per project convention for new diagnostics (flip to false once builder-fill ships).");
+        BuilderDiagnostics = Config.Bind("DynamicNeeds", "BuilderDiagnostics", false,
+            "Read-only diagnostics + a hotkey-driven lend/restore EXPERIMENT for the OffWindowFill=Builder mode. " +
+            "~10s after the first villager is tracked, logs a one-time baseline dump (each tracked villager's " +
+            "name/workstation/Buildstation-agent membership, then the default Buildstation's own agent counts). " +
+            "While active, pressing BuilderTestKey lends the nearest eligible villager to the settlement's " +
+            "default Buildstation to test whether Buildstation.SetTaskAgent alone injects build quests into the " +
+            "villager's QuestRunner WITHOUT changing Villager._workstation (the field the UI job icon reads) — " +
+            "logging before/after state so the variants can be compared. Every code path here is try/catch-" +
+            "guarded and can never affect normal mod behavior or any shipped mode. Verbose — builder-fill is " +
+            "verified/shipped; enable only when debugging.");
 
         BuilderTestKey = Config.Bind("DynamicNeeds", "BuilderTestKey", "F9",
             "Hotkey for the BuilderDiagnostics lend/restore experiment (host/solo only — non-authority clients " +
@@ -283,6 +316,18 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
+        // v1.9.0: echo the parsed per-station fill assignments (if any) alongside the raw config string —
+        // parsing here (via the same NeedsController.ParseStationRules the control loop uses) also means
+        // an invalid ':Fill' token's one-time warning fires immediately at startup rather than waiting for
+        // the first 10 s cohort report.
+        string stationFillSummary = "";
+        try
+        {
+            var stationRules = NeedsController.Instance!.ParseStationRules(ManualScheduleStations.Value);
+            stationFillSummary = NeedsController.DescribeStationRules(stationRules);
+        }
+        catch (Exception ex) { Logger.LogError($"[DynamicNeeds] startup station-rule parse: {ex}"); }
+
         Logger.LogInfo($"DynamicVillagerNeedsMod loaded. Enabled={Enabled.Value}, " +
                        $"sleep<{SleepWhenRestBelowHours.Value}h wake>{WakeWhenRestAboveHours.Value}h restBoost={SleepHoursToFullRest.Value}h, " +
                        $"need-leisure<{LeisureWhenNeedBelow.Value} until>{LeisureUntilNeedAbove.Value} (food/water only) warmthx{FireWarmthMultiplier.Value}, " +
@@ -291,7 +336,8 @@ public class Plugin : BasePlugin
                        $"happy-leisure<{LeisureWhenHappinessBelow.Value} until>{LeisureUntilHappinessAbove.Value} " +
                        $"boost={LeisureHoursToFullHappiness.Value}h, " +
                        $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}, " +
-                       $"ManualScheduleStations='{ManualScheduleStations.Value}', " +
+                       $"ManualScheduleStations='{ManualScheduleStations.Value}'" +
+                       (stationFillSummary.Length > 0 ? $" fills=[{stationFillSummary}]" : "") + ", " +
                        $"OffWindowFill={OffWindowFill.Value} builderReturnLead={BuilderReturnLeadHours.Value}h, " +
                        $"PreserveScheduleInSaves={PreserveScheduleInSaves.Value}, " +
                        $"ShowIntendedScheduleInUI={ShowIntendedScheduleInUI.Value}, " +
