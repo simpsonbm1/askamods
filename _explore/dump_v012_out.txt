@@ -1,0 +1,605 @@
+
+### SSSGame.PlayerCharacter  (base=Character)
+  P _areaOfInterestRadius : Single
+  P _ActionManager_k__BackingField : ActionManager
+  P _IsGhost_k__BackingField : Boolean
+  P _LastBordedShip_k__BackingField : SailingShip
+  P OnInteractionAreaChanged : Action`1
+  P GhostContext : Context
+  P GhostWings : VisualEffect
+  P GhostMaterial : Material
+  P GeometryRoot : GameObject
+  P GhostVolume : Volume
+  P coldVolume : Volume
+  P coldVolumeCurve : AnimationCurve
+  P damageTakenVolume : Volume
+  P damageVolumeCurve : AnimationCurve
+  P damageEffectDuration : Single
+  P damageVolumeEffectThreshold : Single
+  P alwaysShowDamageThreshold : Single
+  P alwaysShowDamageValue : Single
+  P coldChangeTime : Single
+  P nameTag : PlayerNameTag
+  P networkColorHelper : MaterialColoratorHelper
+  P networkColorTable : ColorTableConfig
+  P audioSourcesForRemotesToMake3D : Il2CppReferenceArray`1
+  P marker : WorldObjectiveMarker
+  P localAutohorityOnlyParent : GameObject
+  P footPlantingPlayer : FootPlantingPlayer
+  P roadStatusEffects : Il2CppReferenceArray`1
+  P disableNavObstacleTimeStationary : Single
+  P respawnAtSettlementTag : TagId
+  P godsFavorFx : FxSetup
+  P levelUpFx : FxSetup
+  P spawnFx : FxSetup
+  P _refColdWeight : Single
+  P _coldWeightTarget : Single
+  P _pd : PlayerDrive
+  P _cm : CharacterMovement
+  P _ghostRoutine : Coroutine
+  P _playerSurvival : PlayerSurvival
+  P _lastDamageHealthRatio : Single
+  P _warmthAttr : Attribute
+  P _damageEffectRoutine : Coroutine
+  P _guid : String
+  P _requestingAgents : HashSet`1
+  P _pickingAgents : HashSet`1
+  P _isPicked : Int32
+  P _pvp : Boolean
+  P _noBothering : Boolean
+  P _pickable : Pickable
+  P _currentRoadStatusEffect : Int32
+  P _characterAppearance : PlayerCharacterAppearance
+  P _navMeshObstacle : NavMeshObstacle
+  P _dd : DeedsDatabase
+  P _session : NetworkSession
+  P _settings : SettingsManager
+  P __Name : NetworkString`1
+  P __NetworkedGhostForm : NetworkBool
+  P __PvP : NetworkBool
+  P __NetworkedNoBothering : NetworkBool
+  P OnNameChanged : Action`1
+  P c_ActionsKey : String
+  P c_IsGhostKey : String
+  P c_LastBordedShipKey : String
+  P c_LastShipTemplateID : String
+  P c_LastShipUniqueID : String
+  P field_CompilerControlled_Static_Changed_1_PlayerCharacter_0 : Changed`1
+  P field_CompilerControlled_Static_ChangedDelegate_1_PlayerCharacter_0 : ChangedDelegate`1
+  P field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_PlayerCharacter_0 : NetworkBehaviourCallbacks`1
+  P ActionManager : ActionManager
+  P IsInteractable : Boolean
+  P IsGhost : Boolean
+  P NoBothering : Boolean
+  P EnablePvP : Boolean
+  P TeamId : Int32
+  P RequestsCount : Int32
+  P PickersCount : Int32
+  P LastBordedShip : SailingShip
+  P ShowAreaDescriptionWithoutInteractions : Boolean
+  P _Name : NetworkString`1
+  P _NetworkedGhostForm : NetworkBool
+  P _PvP : NetworkBool
+  P _NetworkedNoBothering : NetworkBool
+  M add_OnInteractionAreaChanged(Action`1 value) : Void
+  M remove_OnInteractionAreaChanged(Action`1 value) : Void
+  M Awake() : Void
+  M _OnFootstep(Transform transform) : Void
+  M _RemoveFromCurrentRoad() : Void
+  M _OnGrounded(Boolean grounded) : Void
+  M _OnRaven(Boolean isRaven) : Void
+  M _OnDead(Boolean obj) : Void
+  M _OnRegisteredToPlatformSurface(IPlatformSurface obj) : Void
+  M Start() : Void
+  M OnDisable() : Void
+  M BeforeSpawned() : Void
+  M Spawned() : Void
+  M RefreshNoBotheringVillagerSetting() : Void
+  M AfterSpawned() : Void
+  M Despawned(NetworkRunner runner, Boolean hasState) : Void
+  M OnDestroy() : Void
+  M Update() : Void
+  M PlayGodsFavorFx() : Void
+  M PlayLevelUpFx() : Void
+  M PlaySpawnFx(Boolean playForLocal, Boolean playForRemote) : Void
+  M ShowLocDialogue(String& locTextKey, Single& time, Boolean& addFirst, Boolean& waitForCurrentDialogue) : Void
+  M ChooseName(Int32 localPlayer) : Void
+  M GetNetworkColor() : Color
+  M _GetNetworkColorID() : Int32
+  M GetParty() : PlayerParty
+  M GetDescription() : String
+  M GetName() : String
+  M add_OnNameChanged(Action`1 value) : Void
+  M remove_OnNameChanged(Action`1 value) : Void
+  M _OnNameChanged(Changed`1 changed) : Void
+  M GetTargetName() : String
+  M Rpc_ShowDialogueMessage(Int32 idx, Single time, Boolean addFirst, Boolean waitForCurrent) : Void
+  M Submit(ActionResultType result, ActionResultData data) : Void
+  M _OnNetworkGhostChanged(Changed`1 changed) : Void
+  M _OnPvPChanged(Changed`1 changed) : Void
+  M _OnNoBotheringChanged(Changed`1 changed) : Void
+  M EnableGhostForm(Boolean value, Single fadeTime) : Void
+  M _GhostVolumeRoutine(Boolean active, Single time) : IEnumerator
+  M Rpc_PlayGodsFavorFx() : Void
+  M Rpc_PlayLevelUpFx() : Void
+  M Rpc_SpawnFx() : Void
+  M _PlayGodsFavorFx() : Void
+  M _PlayLevelUpFx() : Void
+  M _PlaySpawnFx() : Void
+  M _InitializeAttributes() : Void
+  M _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _OnHealthChanged() : Void
+  M GetPlayerSurvival() : PlayerSurvival
+  M TakeDamage(DamageData damage) : Void
+  M _OnHealthLow() : Void
+  M CanBeKnockbacked() : Boolean
+  M IsInCombat() : Boolean
+  M PlayDamageVolumeEffect(Boolean force) : Void
+  M _OnWarmthAttributeChanged() : Void
+  M _DamageVolumeEffectRoutine() : IEnumerator
+  M _OnMovesetChange(InteractionMoveset obj) : Void
+  M GetCharacterMovement() : CharacterMovement
+  M IsPlayer() : Boolean
+  M TryGetLastShip(DataObject source, SailingShip& sailingShip) : Boolean
+  M Serialize(DataObject destination) : DataObject
+  M Deserialize(DataObject source) : Boolean
+  M GetGuid() : String
+  M SetGuid(String guid) : Void
+  M GetGameObject() : GameObject
+  M Request(IInteractionAgent agent, Boolean& active) : Void
+  M IsTouchedByAgent(IInteractionAgent agent) : Boolean
+  M IsViable() : Boolean
+  M GetUsableInteractions(List`1 interactionSites) : Void
+  M GetIcon() : Sprite
+  M _Pick_OnTouch(IInteractionAgent pickingAgent, Boolean touched) : Void
+  M _ActivatePickables(Boolean active) : Void
+  M IsRequestedByAgent(IInteractionAgent agent) : Boolean
+  M SSSGame_IInteractionArea_Request(IInteractionAgent agent, Boolean& active) : Void
+  M _Spawned_b__108_0(WorldObjectiveMarker wMrk) : Boolean
+  M CopyBackingFieldsToState(Boolean ) : Void
+  M CopyStateToBackingFields() : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+
+### SSSGame.Character  (base=NetworkBehaviour)
+  P c_MaxLastDamageTakenPeriod : Single
+  P c_stationarySqrVelocityMagnitudeThreshold : Single
+  P OnDead : Action`1
+  P OnHealthChange : Action`1
+  P OnMaxHealthChange : Action`1
+  P OnTakeDamage : Action`1
+  P OnContextsChanged : Action
+  P untargettable : Boolean
+  P OverheadWidgetPosition : Transform
+  P AditionalAttributesToShow : List`1
+  P proefficiencyMultiplier : Single
+  P _mountedObject : NetworkObject
+  P __NetIsDead : NetworkBool
+  P __NetInCutscene : NetworkBool
+  P _targetContexts : List`1
+  P _ownerTarget : IAttackTarget
+  P focusPointTransform : Transform
+  P huntingList : List`1
+  P dataSheet : CharacterDataSheet
+  P definition : CharacterDefinition
+  P events : Events
+  P dialogueMarker : GameObject
+  P __NetworkAppearance : Appearance
+  P _vitalityAttr : Attribute
+  P _staminaAttr : Attribute
+  P _usedCartAttr : Attribute
+  P _staminaRegenAttr : Attribute
+  P _healthVAttr : VariableAttribute
+  P _energyVAttr : VariableAttribute
+  P _ravenLeftVAttr : VariableAttribute
+  P _woodHarvesterPerk : CustomOperationAttributeModifier
+  P _stoneHarvesterPerk : CustomOperationAttributeModifier
+  P _skinHarvesterPerk : CustomOperationAttributeModifier
+  P _crafterPerk : CustomOperationAttributeModifier
+  P _lastVitalityValue : Single
+  P _lastStaminaConsumeTime : Single
+  P _oldEnergyValue : Single
+  P _isDead : Boolean
+  P _inCutscene : Boolean
+  P _interactionAgent : IInteractionAgent
+  P _meleeManager : MeleeManager
+  P _rangedManager : RangedManager
+  P _damageDealtHistory : DamageHistory
+  P _collider : Collider
+  P _moveset : InteractionMoveset
+  P _baseMoveset : InteractionMoveset
+  P _isDeserializing : Boolean
+  P _contextZones : List`1
+  P _damageHistory : DamageHistory
+  P _velocitiesBuffer : Il2CppStructArray`1
+  P _computedTargetVelocity : Vector3
+  P _lastPosition : Vector3
+  P _velocitySqrMagnitude : Single
+  P _isStationary : Boolean
+  P _stationaryTime : Single
+  P _characterApperance : CharacterAppearance
+  P _animator : Animator
+  P _lastDamageDealerNameKeyID : Int32
+  P _harvestStaminaDiscountAttr : Attribute
+  P _combatStaminaDiscountAttr : Attribute
+  P _attributeManager : AttributeManager
+  P _onMovingPlatform : NetworkOnMovingPlatform
+  P _sEffMngr : StatusEffectManager
+  P _chrGeo : CharacterGeometry
+  P _eqMngr : EquipmentManager
+  P _invCmp : InventoryComponent
+  P _cullHandler : CharacterCullHandler
+  P authority : PlayerRef
+  P hasAuthority : Boolean
+  P _heavyTooting : Boolean
+  P _lightTooting : Boolean
+  P _heavyTootCounter : Int32
+  P _lightTootCounter : Int32
+  P s_dmgData : DamageData
+  P s_dmgEventData : SettlementEventData`1
+  P _playerManager : PlayerManager
+  P _settlementManager : SettlementManager
+  P _t : Transform
+  P OnNameChanged : Action`1
+  P OnSpawned : Action`1
+  P OnDespawned : Action`1
+  P c_StatsKey : String
+  P c_InventoryKey : String
+  P c_AppearanceKey : String
+  P field_CompilerControlled_Static_Changed_1_Character_0 : Changed`1
+  P field_CompilerControlled_Static_ChangedDelegate_1_Character_0 : ChangedDelegate`1
+  P field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Character_0 : NetworkBehaviourCallbacks`1
+  P Attributes : AttributeManager
+  P StatusEffects : StatusEffectManager
+  P Geometry : CharacterGeometry
+  P Equipment : EquipmentManager
+  P Inventory : InventoryComponent
+  P OnMovingPlatform : NetworkOnMovingPlatform
+  P CullHandler : CharacterCullHandler
+  P InteractionMoveset : InteractionMoveset
+  P CharacterAppearance : CharacterAppearance
+  P CurrentHealth : Single
+  P MaxHealth : Single
+  P InCutscene : Boolean
+  P ProefficiencyGainMultiplier : Single
+  P IsDead : Boolean
+  P MountedObject : NetworkObject
+  P _NetIsDead : NetworkBool
+  P _NetInCutscene : NetworkBool
+  P Faction : Faction
+  P ItemInfo : ItemInfo
+  P TeamId : Int32
+  P FriendlyDamageFromPlayer : Boolean
+  P AttackTarget : IAttackTarget
+  P _NetworkAppearance : Appearance
+  P NetworkObject : NetworkObject
+  P HasAuthority : Boolean
+  P Authority : PlayerRef
+  P ThreatScore : Single
+  P TargetContext : IAttackTarget
+  P SSSGame.Combat.IDamageReceiver.gameObject : GameObject
+  P SSSGame.Combat.IAttackTarget.transform : Transform
+  M add_OnDead(Action`1 value) : Void
+  M remove_OnDead(Action`1 value) : Void
+  M add_OnHealthChange(Action`1 value) : Void
+  M remove_OnHealthChange(Action`1 value) : Void
+  M add_OnMaxHealthChange(Action`1 value) : Void
+  M remove_OnMaxHealthChange(Action`1 value) : Void
+  M add_OnTakeDamage(Action`1 value) : Void
+  M remove_OnTakeDamage(Action`1 value) : Void
+  M add_OnContextsChanged(Action value) : Void
+  M remove_OnContextsChanged(Action value) : Void
+  M Spawned() : Void
+  M Despawned(NetworkRunner runner, Boolean hasState) : Void
+  M Awake() : Void
+  M Start() : Void
+  M Update() : Void
+  M _MeasureVelocity() : Void
+  M IsStationary(Single delay) : Boolean
+  M _OnCombatDamageDealt(DamageData obj) : Void
+  M _OnTakeDamage(DamageData obj) : Void
+  M _SendAttackingEvent(DamageData obj) : Void
+  M _SendAttackedEvent(DamageData obj) : Void
+  M onCurrentApperanceChanged(Appearance obj) : Void
+  M _onNetworkAppearanceChanged(Changed`1 changed) : Void
+  M Rpc_SendAttackedEvent(PlayerRef authority, HitInfo hitInfo) : Void
+  M Rpc_SendAttackingEvent(PlayerRef authority, HitInfo hitInfo) : Void
+  M Rpc_SendTootEvent(Int32 tootItemInfo, Boolean heavy) : Void
+  M Rpc_StopTootEvent(Boolean heavy) : Void
+  M _ShouldTootHeavy() : Boolean
+  M _ShouldTootLight() : Boolean
+  M _GetTootCounterHeavy() : Int32
+  M _GetTootCounterLight() : Int32
+  M _TootRoutine(TootConfig tootConfig, AudioSource audioSourcePrefab, Int32 initialTootId, Func`1 shouldToot, Func`1 getcurrentTootId) : IEnumerator
+  M GetDamageTakenHistory() : DamageHistory
+  M GetInteractionAgent() : IInteractionAgent
+  M GetMeleeManager() : MeleeManager
+  M GetRangedManager() : RangedManager
+  M HaltStaminaRegen(Single& time) : Void
+  M DrainStamina(Single value, DrainStaminaUsage usage) : Void
+  M CheckParryReaction(DamageData damageData) : Void
+  M Toot(TootItemInfo tootInfo, Boolean heavy) : Boolean
+  M StopToot(Boolean heavy) : Void
+  M TakeDamage(DamageData damage) : Void
+  M CanBeKnockbacked() : Boolean
+  M GetStatusEffectManager() : StatusEffectManager
+  M GetAttributeManager() : AttributeManager
+  M GetDescription() : String
+  M ApplyRebornPenalty() : Void
+  M SpawnDeathLoot() : Void
+  M _OnDeadChanged() : Void
+  M _OnNetDeadChanged(Changed`1 changed) : Void
+  M _OnNetInCutsceneChanged(Changed`1 changed) : Void
+  M _DeadArmorDamage(Single totalArmor, Single durabilityDamage) : Void
+  M _DealDurabilityDamage(EquipmentItem equipment, Single& durabilityDamage, Single& durabilityRemaining) : Void
+  M _InitializeAttributes() : Void
+  M _ApplyDeathPenalty() : Void
+  M _OnWoodHarvesterChanged() : Void
+  M _OnStoneHarvesterChanged() : Void
+  M _OnSkinHarvesterChanged() : Void
+  M _OnCrafterChanged() : Void
+  M _OnHealthChanged() : Void
+  M _OnVitalityChange() : Void
+  M _OnHealthLow() : Void
+  M _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _OnItemUnquipped(EquipmentItem obj) : Void
+  M _OnItemEquipped(EquipmentItem obj) : Void
+  M _CreateCharacterRemains(Boolean diedInCombat, Color markerColor) : Boolean
+  M _LogDeath(Boolean diedInCombat) : Void
+  M GetFocusPoint() : Vector3
+  M GetFollowPoint() : Vector3
+  M GetAttackPoint(Vector3& attackerPos) : Vector3
+  M HasStatusEffect(StatusEffectModifierTable sEffect) : Boolean
+  M GetTargetRadius() : Single
+  M IsViable() : Boolean
+  M IsAlive() : Boolean
+  M IsAggressive() : Boolean
+  M IsFighting() : Boolean
+  M IsPlayer() : Boolean
+  M IsStunned() : Boolean
+  M IsDefensive() : Boolean
+  M IsEvasive() : Boolean
+  M IsAggressiveAtRange(Single& maximumRange) : Boolean
+  M IsStealthy() : Boolean
+  M IsKnockedDown() : Boolean
+  M GetTargetName() : String
+  M GetTargetVelocity() : Vector3
+  M GetDamageDealtHistory() : DamageHistory
+  M AddTargetContext(TargetContext context) : Void
+  M RemoveTargetContext(TargetContext context) : Void
+  M GetTargetContext(IAttackTarget otherTarget) : IAttackTarget
+  M AddContextZone(ContextZone contextZone) : Void
+  M RemoveContextZone(ContextZone contextZone) : Void
+  M IsInContextZone() : Boolean
+  M GetCurrentContextZones() : List`1
+  M GetTransform() : Transform
+  M GetContextZonesOfType(List`1& contextZones) : Boolean
+  M GetName() : String
+  M add_OnNameChanged(Action`1 value) : Void
+  M remove_OnNameChanged(Action`1 value) : Void
+  M add_OnSpawned(Action`1 value) : Void
+  M remove_OnSpawned(Action`1 value) : Void
+  M add_OnDespawned(Action`1 value) : Void
+  M remove_OnDespawned(Action`1 value) : Void
+  M Deserialize(DataObject source) : Boolean
+  M Serialize(DataObject destination) : DataObject
+  M SSSGame_Combat_IAttackTarget_GetAttackPoint(Vector3& attackerPos) : Vector3
+  M SSSGame_IStaminaUser_HaltStaminaRegen(Single& time) : Void
+  M __InitializeAttributes_b__193_0() : Single
+  M __InitializeAttributes_b__193_1(Single currentValue, Single min, Single max, Single deltaTime) : Single
+  M __InitializeAttributes_b__193_3() : Single
+  M __CreateCharacterRemains_b__205_0(StatusEffectModifierTable se) : Boolean
+  M CopyBackingFieldsToState(Boolean ) : Void
+  M CopyStateToBackingFields() : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+  M Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+
+### SandSailorStudio.Inventory.InventoryComponent  (base=MonoBehaviour)
+  P items : ItemCollection
+  P startItems : ItemInfoList
+  P initialized : Boolean
+  P _setup : Boolean
+  M GetItemCollection() : ItemCollection
+  M Awake() : Void
+  M Start() : Void
+  M OnDestroy() : Void
+  M _AddStartingItems() : Void
+  M Deserialize(DataObject source) : Boolean
+  M Serialize(DataObject destination) : DataObject
+
+### SandSailorStudio.Inventory.ItemCollection  (base=Object)
+  P canAddItems : Boolean
+  P canRemoveItems : Boolean
+  P OnItemAdded : ItemEventHandler
+  P OnItemRemoved : ItemEventHandler
+  P OnContainerAdded : ContainerEventHandler
+  P OnContainerRemoved : ContainerEventHandler
+  P _inventoryManager : ItemDatabaseManager
+  P _flags : InventoryFlags
+  P _name : String
+  P _owner : GameObject
+  P _GetSurplusFunc_k__BackingField : Func`1
+  P _HasStateOwnership_k__BackingField : Boolean
+  P _containers : List`1
+  P _items : Dictionary`2
+  P _ownedItemsManifest : ItemManifest
+  P _itemEntryBuffer : List`1
+  P c_ContainersKey : String
+  P Owner : GameObject
+  P OwnedItems : ItemManifest
+  P GetSurplusFunc : Func`1
+  P HasStateOwnership : Boolean
+  M add_OnItemAdded(ItemEventHandler value) : Void
+  M remove_OnItemAdded(ItemEventHandler value) : Void
+  M add_OnItemRemoved(ItemEventHandler value) : Void
+  M remove_OnItemRemoved(ItemEventHandler value) : Void
+  M add_OnContainerAdded(ContainerEventHandler value) : Void
+  M remove_OnContainerAdded(ContainerEventHandler value) : Void
+  M add_OnContainerRemoved(ContainerEventHandler value) : Void
+  M remove_OnContainerRemoved(ContainerEventHandler value) : Void
+  M Setup(GameObject owner, String name) : Void
+  M AddContainer(ItemContainer container) : Void
+  M _ContainerAddProcess(Item itm) : Void
+  M RemoveContainer(ItemContainer container) : Void
+  M _ContainerRemoveProcess(Item itm) : Void
+  M FindLargestMatchingContainer(ItemInfo infoToStore, Boolean includeHidden) : ItemContainer
+  M FindContainer(ItemContainerType type, Boolean includeHidden) : ItemContainer
+  M FindContainer(Int32 id) : ItemContainer
+  M FindContainer(String& name) : ItemContainer
+  M FindContainer(Func`2 predicate, Boolean includeHidden) : ItemContainer
+  M GetContainers() : IReadOnlyList`1
+  M GetFreeContainer(ItemInfo itemInfo, Boolean includeHidden) : ItemContainer
+  M GetMatchingContainers(ItemInfo item, List`1 containers, Boolean includeHidden) : Int32
+  M GetMatchingContainers(ItemInfo item, Boolean includeHidden) : List`1
+  M HasMatchingContainer(ItemInfo itemInfo, Boolean includeHidden) : Boolean
+  M GetTotalRemainingCapacity(ItemInfo itemInfo, Boolean includeHidden) : Int32
+  M GetMaximumStorageCapacity(ItemInfo itemInfo, Boolean includeHidden) : Int32
+  M GetTotalRemainingCapacity(ItemInfo itemInfo) : Int32
+  M RemoveAllItems(IItemFilter itemFilter, Boolean includeHidden) : Void
+  M IsPersistent() : Boolean
+  M GetFlags() : InventoryFlags
+  M Reset() : Void
+  M List() : Void
+  M GetFirstItem(Int32 id) : Item
+  M GetFirstItem(Int32 id) : T
+  M GetFirstItem(ItemInfo itemInfo) : Item
+  M GetFirstItem(Predicate`1 predicate) : Item
+  M GetLastItem(Predicate`1 predicate) : Item
+  M GetFirstItem(ItemInfo itemInfo) : T
+  M GetItems(ItemInfo itemInfo) : List`1
+  M GetItemsList(List`1 itemList, Predicate`1 predicate) : Void
+  M GetItemsList(ItemInfo itemInfo, List`1 itemList, Predicate`1 predicate) : Void
+  M GetItemsList(IItemFilter itemFilter, List`1 itemList, Predicate`1 predicate) : Void
+  M GetItems(IItemFilter itemFilter) : List`1
+  M GetItemInfos() : List`1
+  M FindItemInContainers(Func`2 predicate, Boolean includeHidden) : Item
+  M GetFirstItem(IItemFilter filter) : Item
+  M GetItemQuantity(ItemInfo itemInfo) : Int32
+  M GetItemsQuantity(IItemFilter filter) : Int32
+  M FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter) : Void
+  M ContainsItemManifest(ItemManifest itemManifest) : Int32
+  M GetTotalItemsQuantity() : Int32
+  M OverlapsItemManifest(ItemManifest itemManifest) : Boolean
+  M RemoveOwnedItemManifest(ItemManifest itemManifest) : Void
+  M GetCategoryItems(ItemCategoryInfo categoryInfo) : List`1
+  M GetCategoryItemsCount(ItemCategoryInfo categoryInfo) : Int32
+  M GetHighestTierOfCategory(ItemCategoryInfo categoryInfo) : Int32
+  M HasCategoryItems(ItemCategoryInfo categoryInfo) : Boolean
+  M HasItem(ItemInfo itemInfo) : Boolean
+  M HasItem(IItemFilter itemFilter) : Boolean
+  M IsEmpty() : Boolean
+  M GetAllItems() : List`1
+  M GetAllItems(IItemFilter itemFilter) : List`1
+  M GetAllItems() : List`1
+  M AddItems(Item item, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+  M AddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+  M RequestAddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container) : AddItemRequest
+  M RequestAddItems(Item item, Int32 quantity, ItemContainer container) : AddItemRequest
+  M SubmitRequest(AddItemRequest request, List`1 addedItems) : Void
+  M AddItems(ItemInfo itemInfo, Int32 count) : Int32
+  M AddItems(Item item, Int32 count) : Int32
+  M RemoveItems(Item item, Int32 quantity) : Int32
+  M RemoveItems(ItemInfo itemInfo, Int32 quantity) : Int32
+  M RemovePercentageOfEveryItem(Single percentage) : Void
+  M GetContainersFillRatio(Predicate`1 predicate) : Single
+  M _ItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _ItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _CreateAddItemRequest(Item item, Int32 quantity, ItemContainer container, Boolean includeHidden) : AddItemRequest
+  M _AddItem(Item item, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+  M GetFormalName() : String
+  M Deserialize(DataObject source) : Boolean
+  M Serialize(DataObject destination) : DataObject
+
+### SSSGame.StorageInteraction  (base=Interaction)
+  P storageType : StorageInteractionType
+  P showPreviewAddon : Boolean
+  P showCapacityBar : Boolean
+  P storageContainer : ItemContainerComponent
+  P openStructureOrder : InteractionOrder
+  P openMilitiaOrder : InteractionOrder
+  P villagerOrder : InteractionOrder
+  P villagerAbortOrder : InteractionOrder
+  P storageEvents : StorageEvents
+  P showFullMessages : Boolean
+  P showEmptyMessages : Boolean
+  P depositByStackCount : Boolean
+  P withdrawBySingleUnit : Boolean
+  P _onItemAdded : Action`2
+  P _onItemRemoved : Action`2
+  P _hasSwitchedInteractable : Boolean
+  P _worldInstance : WorldItemInstance
+  P _interactionArea : IInteractionArea
+  P _container : ItemContainer
+  P Container : ItemContainer
+  M add_OnItemAdded(Action`2 value) : Void
+  M remove_OnItemAdded(Action`2 value) : Void
+  M add_OnItemRemoved(Action`2 value) : Void
+  M remove_OnItemRemoved(Action`2 value) : Void
+  M GetInteractionArea() : IInteractionArea
+  M GetContainerComponent() : ItemContainerComponent
+  M _container_OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _container_OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+  M _OnStartSession(InteractionSession session) : Void
+  M Awake() : Void
+  M OnDisable() : Void
+  M _OnFinishSession(InteractionSession s, InteractionSessionState reason) : Void
+  M Check(ItemInfo itemInfo) : Boolean
+  M SetWorldInstance(WorldItemInstance instance) : Void
+  M OnWorldInstanceDataChanged(WorldItemInstance instance) : Void
+
+### SandSailorStudio.Inventory.ItemManifest  (base=Object)
+  P _items : Dictionary`2
+  P _totalItemQuantity : Int32
+  P s_infoList : List`1
+  P c_itemsKey : String
+  M CreateFromBlueprint(BlueprintInfo bpInfo) : ItemManifest
+  M CreateFromItemObject(ItemInfo info) : ItemManifest
+  M CreateFromComponents(ItemInfo info, Boolean includeChanceComponent) : ItemManifest
+  M CreateFromFilter(ItemCollection collection, IItemFilter filter) : ItemManifest
+  M CreateFromContainer(ItemContainer container) : ItemManifest
+  M FillItem(ItemInfo item, ItemCollection inventory) : Void
+  M Fill(ItemManifest other, IItemFilter itemFilter) : Void
+  M FillUpToMax(ItemManifest other, ItemManifest max, IItemFilter itemFilter) : Void
+  M FillUpToMax(ItemManifest other, ItemManifest max1, ItemManifest max2, IItemFilter itemFilter) : Void
+  M FillMax(ItemManifest other, IItemFilter itemFilter) : Void
+  M FillExcluded(ItemManifest other, IItemFilter itemFilter) : Void
+  M Fill(ItemManifest other, Int32 multiplier, IItemFilter itemFilter) : Void
+  M Fill(ItemSelection selection, ItemCollection collection) : Void
+  M FillRemainingCapacity(ItemManifest other, Func`2 remainingCapacityFunc) : Void
+  M AddParts(BlueprintInfo bpInfo) : Void
+  M AddInfoList(ItemInfoList infoList, Int32 count) : Void
+  M AddItem(ItemInfo item, Int32 quantity) : Void
+  M RemoveAll(ItemInfo item) : Void
+  M RemoveAll(IItemFilter itemFilter) : Void
+  M RemoveItem(ItemInfo item, Int32 quantity) : Void
+  M Multiply(Int32 amount) : Void
+  M Multiply(Single ammount) : Void
+  M GetQuantity(ItemInfo item) : Int32
+  M GetItemsQuantity(IItemFilter filter) : Int32
+  M GetTotalQuantity() : Int32
+  M Clear() : Void
+  M GetItemInfoCount() : Int32
+  M ContainsKeys(ItemManifest itemManifest, IItemFilter itemFilter) : Boolean
+  M Contains(ItemManifest itemManifest) : Int32
+  M RemoveFromManifest(ItemManifest otherManifest) : Void
+  M Overlaps(ItemManifest itemManifest) : Boolean
+  M HasItem(IItemFilter itemFilter) : Boolean
+  M Transfer(ItemCollection source, ItemCollection destination, Boolean copy) : Void
+  M Transfer(ItemCollection from, ItemContainer to) : Void
+  M Transfer(ItemContainer from, ItemCollection to) : Void
+  M SpawnItemsInArea(Bounds bounds, Boolean snapToTerrain, Single spawnChance) : Void
+  M GetItems() : List`1
+  M GetTopQuantity(ItemInfo& topItem, IItemFilter itemFilter) : Int32
+  M GetItems(List`1 itemInfoQuantities) : Void
+  M GetItemsList() : List`1
+  M PopulateItemsList(List`1 list) : Void
+  M Check(ItemInfo itemInfo) : Boolean
+  M WriteSnapshot(BinaryWriter writer) : Void
+  M WriteSnapshot(BinaryWriter writer, Int32 maxItemInfoCount) : Void
+  M ReadSnapshot(BinaryReader reader) : Void
+  M Deserialize(DataObject source) : Boolean
+  M Serialize(DataObject destination) : DataObject

@@ -1,0 +1,261 @@
+﻿
+### SSSGame.Settlement  (base=MonoBehaviour)
+  P c_DefaultOutpostId : Int32
+  P EventsChannel : SettlementEvents
+  P title : String
+  P globalMaxSearchRange : Single
+  P searchRangeLimitForVehicles : Single
+  P debugBorderGradient : Gradient
+  P debugDrawBorder : Boolean
+  P debugDrawAllCells : Boolean
+  P debugDrawBounds : Boolean
+  P _Buildstation_k__BackingField : Buildstation
+  P settlementTemplateFallback : SettlementTemplate
+  P terraformingFieldTemplate : StructureTemplate
+  P borderRadius : Int32
+  P OnAddStructure : Action`1
+  P OnActivateStructure : Action`1
+  P OnRemoveStructure : Action`1
+  P OnStructureDeath : Action`1
+  P OnResourceOutletAdded : Action`1
+  P OnResourceOutletRemoved : Action`1
+  P OnAddOutpost : Action`1
+  P OnRemoveOutpost : Action`1
+  P OnOutpostDataChanged : Action`1
+  P _structures : List`1
+  P _settlementCore : Structure
+  P _outposts : List`1
+  P _defaultOutpost : DefaultOutpostComponent
+  P _nextOutpostId : Int32
+  P _genericStorageSites : List`1
+  P _petHosts : List`1
+  P _diningStations : List`1
+  P _outletSites : List`1
+  P _healingOutlets : List`1
+  P _warmthSites : List`1
+  P _religionSites : List`1
+  P _traps : List`1
+  P _harbors : List`1
+  P _searchManifest : ItemManifest
+  P _settlementResourcesManifestCache : ItemManifest
+  P _startingRadius : Single
+  P _borderDistance : Single
+  P _borderDistanceSq : Single
+  P _buildHistory : HashSet`1
+  P _totalStructureCount : Dictionary`2
+  P _newStructureTemplates : Dictionary`2
+  P _structuresNeedingNewId : List`1
+  P _templateIdCache : Dictionary`2
+  P _maxSqDistance : Single
+  P _sqDistance : Single
+  P _minRequests : Int32
+  P _maxRequestsBeforeBail : Int32
+  P _ignoreSurplusLimits : Boolean
+  P _interaction : Interaction
+  P _itemFilter : IItemFilter
+  P _itemToDeposit : ItemInfo
+  P _searchOrigin : Vector3
+  P _wdm : WorldDataManager
+  P _um : UnderwaterManager
+  P _setMan : SettlementManager
+  P _diningOutlet : DiningOutlet
+  P _template : SettlementTemplate
+  P _trashFilter : TrashcanFilter
+  P _settlementBoundsDirty : Boolean
+  P _lastSettlementBoundsDistance : Int32
+  P _visitedNodesCache : HashSet`1
+  P _validInvasionsCells : List`1
+  P _settlementBoundsCache : Bounds
+  P _lastCorePosition : Vector3
+  P _settlementID : Int32
+  P c_maxSqDistBetweenLessReqInteractions : Single
+  P c_maxSqDistToLessReqInteractions : Single
+  P c_MaxResourcesSnapshots : Int32
+  P c_ResourcesSnapshotsPerDay : Int32
+  P _lastGeneratedSnapshot : SettlementSnapshot
+  P _resourcesSnapShots : List`1
+  P _nextSnapshotMoment : Single
+  P c_StructuresKey : String
+  P c_BuildstationKey : String
+  P c_BuildHistoryKey : String
+  P c_NewStructureUpgradesKey : String
+  P c_StructuresCount : String
+  P c_LastCorePosition : String
+  P c_DefaultOutpost : String
+  P c_ResourcesSnapshots : String
+  P IsEstablished : Boolean
+  P StartingRadius : Single
+  P Manager : SettlementManager
+  P Buildstation : Buildstation
+  P Template : SettlementTemplate
+  P LastSettlementCorePos : Vector3
+  P LastgeneratedSnapshot : SettlementSnapshot
+  P NextSnapshotMoment : Single
+  M Awake() : Void
+  M GetBorderDistance() : Single
+  M GetBorderDistanceSq() : Single
+  M CreateStructure(StructureTemplate s, Placement p, Structure parent, Boolean isUpgrade, Boolean spawnedByTool, Int32 priorityFlags, Boolean wasUpgraded, Boolean spawnedByAutoBuilder) : Structure
+  M OnDrawGizmosSelected() : Void
+  M Initialize(Structure structure) : Void
+  M GetTotalBuiltStructuresCount() : Int32
+  M GetBuiltStructuresCount(StructureTemplate template) : Int32
+  M RemoveStructure(Structure s) : Void
+  M AddStructure(Structure s) : Void
+  M ActivateStructure(Structure s) : Void
+  M GetStructures() : List`1
+  M RegisterTrap(Trap trap) : Void
+  M UnregisterTrap(Trap trap) : Void
+  M RegisterOutlet(ResourceOutlet ro) : Void
+  M RegisterOutlet(HealingOutlet ho) : Void
+  M RegisterDiningStation(DiningStation diningStation) : Void
+  M UnregisterDiningStation(DiningStation diningStation) : Void
+  M RegisterStorageSite(IResourceStorageSite rss) : Void
+  M UnregisterStorageSite(IResourceStorageSite rss) : Void
+  M RegisterPetHost(IPetHost petHost) : Void
+  M UnregisterPetHost(IPetHost petHost) : Void
+  M FindPetHost(Predicate`1 predicate) : IPetHost
+  M UnregisterOutlet(ResourceOutlet ro) : Void
+  M UnregisterOutlet(HealingOutlet ho) : Void
+  M RegisterOutlet(WarmthOutlet wo) : Void
+  M UnregisterOutlet(WarmthOutlet wo) : Void
+  M RegisterOutlet(ReligionOutlet ro) : Void
+  M UnregisterOutlet(ReligionOutlet ro) : Void
+  M RegisterHarbor(HarboringStation harbor) : Void
+  M UnregisterHarbor(HarboringStation harbor) : Void
+  M FindWarmthOutlet(Predicate`1 predicate) : WarmthOutlet
+  M FindHealingOutlet(Predicate`1 predicate) : HealingOutlet
+  M GetOutpostData(Int32& id) : IOutpostDataHolder
+  M FindOverlappingOutpost(Vector3& searchOrigin, Single& range, Boolean& includeDefaultOutpost) : IOutpostDataHolder
+  M FindClosestOutpost(Vector3& searchOrigin, Single& range, Boolean& includeDefaultOutpost) : IOutpostDataHolder
+  M IsAnyHarborInRange(Vector3& origin, Single& range, HarboringStation& harbor) : Boolean
+  M FindReligionOutlet(Predicate`1 predicate) : ReligionOutlet
+  M FindClosestReligionOutlet(Vector3& pos, Single& range, Predicate`1 extraPredicate) : ReligionOutlet
+  M CheckBuildHistory(StructureTemplate st, Boolean includeUpgrades) : Boolean
+  M GetOutpostsCount(Boolean includeDefault) : Int32
+  M PopulateOutpostsList(List`1 outposts, Boolean includeDefault) : Void
+  M GetNextOutpostId() : Int32
+  M IncrementOutpostId(OutpostStructure outpost) : Void
+  M RegisterOutpost(OutpostStructure outpostStructure) : Void
+  M UnregisterOutpost(OutpostStructure outpostStructure) : Void
+  M _OnOutpostDataChanged(IOutpostDataHolder obj) : Void
+  M GetSettlementCore() : Structure
+  M IndexOfStructure(Structure structure) : Int32
+  M GetStructure(Int32 structureID) : Structure
+  M FindStructure(Int32& templateId, Int32& uniqueId) : Structure
+  M FindStructure(Func`2 predicate) : Structure
+  M FindStructures(Func`2 predicate) : List`1
+  M FindStructures(Func`2 predicate, List`1 result) : Int32
+  M FindResourceOutlet(Func`2 predicate) : ResourceOutlet
+  M AddStructureToIdFixingList(Structure structure) : Void
+  M FixDuplicateStructureIds() : Void
+  M CheckForDuplicateStructureId(Structure existingStructure) : Boolean
+  M TryRegisterUniqueTemplateId(Int32& templateId, Int32& id) : Boolean
+  M CheckUniqueness(StructureTemplate template, Boolean checkUpgrades) : Boolean
+  M GetStorageSites() : IReadOnlyList`1
+  M GetResourceOutlets() : IReadOnlyList`1
+  M FindClosestStructure(Vector3 agentPos, Single maxRange, Predicate`1 predicate) : Structure
+  M FindStructuresInRange(Vector3& agentPos, Single& maxRange, List`1 result, Predicate`1 predicate) : Int32
+  M FindDiningOutlet(IItemFilter foodItemFilter, Vector3& searchOrigin, Item& cannaryItem, Single& maxRange, Predicate`1 predicateResourceSite) : DiningOutlet
+  M _FindDiningOutletPredicate(DiningOutlet diningOutlet) : Boolean
+  M FindTrashcanToDeposit(ItemInfo itemInfo, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage) : Interaction
+  M GetTrashFilter() : TrashcanFilter
+  M FindStorageToDeposit(ItemInfo itemInfo, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Boolean ignoreStorageLimits) : Interaction
+  M FindItemStorage(List`1 resourceStorageList, IItemFilter itemFilter, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits) : Interaction
+  M FindItemStorage(IItemFilter itemFilter, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits) : Interaction
+  M FindItemStorage(Homestead includedHomestead, IItemFilter itemFilter, Vector3 agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits) : Interaction
+  M QuerySettlementResources() : ItemManifest
+  M _FindStorageInteractionToDepositPredicate(StorageInteraction si) : Boolean
+  M _FindStorageInteractionPredicate(StorageInteraction si) : Boolean
+  M _FindGatherInteractionPredicate(GatherInteraction gi) : Boolean
+  M _ShouldKeepNewInteraction(Single& newSqDist, Int32& newReqCount, Single& distFromOldInteraction) : Boolean
+  M CalculateSettlementBounds(Bounds& bounds, Int32 overrideMaxBorder) : Boolean
+  M GetBorderCellsAtDistance(Int32 distance, List`1& cellNodes, Single minElevation, Boolean includeCellsWithStructures) : Boolean
+  M GetRandomBorderCellsAtDistance(Int32 minDistance, Int32 maxDistance, Int32 count, List`1& cellNodes, Single minElevation) : Boolean
+  M GetSuitableInvasionPosition(Int32 overrideMaxBorder) : Vector3
+  M _ValidateSpawnPositionCell(Vector3 pos) : Boolean
+  M _FloodFillNonSpawnable(Single coordX, Single coordZ, Int32 neighborDistance, Int32 maxDistance, HashSet`1& visited) : Void
+  M _CellHasCloserStrucuture(Vector3 pos, Single cellWorldX, Single cellWorldY, Single& sqDist, Structure& structure, Predicate`1 predicate) : Boolean
+  M _GetStructuresInCell(Vector3 pos, Single maxSqDist, Single& cellWorldX, Single& cellWorldY, List`1 structures, Predicate`1 predicate) : Int32
+  M _OnCellInvalidateSpawnsUpdated(PathfindingCellContainer cellContainer) : Void
+  M FillStorages() : Void
+  M TurnOffStorageDisplays() : Void
+  M TurnOffInteriors() : Void
+  M TurnOffLights() : Void
+  M FillHouses() : Void
+  M FillTraps() : Void
+  M _PerformResourcesSnapShot() : Void
+  M GenerateSnapshot(Boolean saveLastGenerated) : SettlementSnapshot
+  M GetResourcesSnapshots() : List`1
+  M _OnWeatherUpdate(WeatherEventData evData) : Void
+  M WriteJoinData(BinaryWriter writer) : Void
+  M ReadJoinData(BinaryReader reader) : Void
+  M Validate(StructureTemplate template, Placement placement, PlacementValidity& validity) : Boolean
+  M Deserialize(DataObject source) : Boolean
+  M Serialize(DataObject root) : DataObject
+
+### SandSailorStudio.Inventory.ItemInfoList  (base=ScriptableObject)
+  P itemInfoList : List`1
+  M Check(ItemInfo itemInfo) : Boolean
+
+### SandSailorStudio.Inventory.ItemInfoQuantity  (base=Object)
+  P itemInfo : ItemInfo
+  P quantity : Int32
+
+### SandSailorStudio.Inventory.ItemStorageClass  (base=ScriptableObject)
+
+### SandSailorStudio.Inventory.ItemInfo  (base=AssetNode)
+  P id : Int32
+  P databaseIndex : UInt16
+  P category : ItemCategoryInfo
+  P unique : Boolean
+  P stackSize : Int32
+  P showTier : Boolean
+  P tier : Int32
+  P localizedName : String
+  P localizedDescription : String
+  P localizedLore : String
+  P icon : Sprite
+  P previewImage : Sprite
+  P colors : ColorTableConfig
+  P spawnObject : GameObject
+  P spawnHeight : Single
+  P storageClass : ItemStorageClass
+  P processes : Il2CppReferenceArray`1
+  P components : Il2CppReferenceArray`1
+  P attributes : Il2CppReferenceArray`1
+  P networkedInventoryAttributes : Il2CppReferenceArray`1
+  P _cachedComponentsTable : Dictionary`2
+  P _cachedComponents : List`1
+  P _cachedAttributes : Dictionary`2
+  P s_itemInfoList : List`1
+  P _durabAttrData : AttributeData
+  P _decayRateAttrData : AttributeData
+  P _localized : Boolean
+  P Name : String
+  P Description : String
+  P Lore : String
+  P Localized : Boolean
+  M Configure() : Void
+  M CreateItem() : Item
+  M IsTierRelevant() : Boolean
+  M CanJoin(ItemInfo targetItemInfo) : Boolean
+  M CanBeAcquired(ItemCollection container) : Boolean
+  M FindAttribute(Int32& attrId) : AttributeData
+  M HasComponent(ItemInfo info, Int32& quantity) : Int32
+  M _HasComponentUncached(ItemInfo info, Int32& quantity) : Int32
+  M HasComponent(IItemFilter itemFilter) : Int32
+  M _HasComponentUncached(IItemFilter itemFilter) : Int32
+  M GetItemFilter() : IItemFilter
+  M GetFullComponentList(List`1 componentList) : Void
+  M _GetFullComponentUncached(List`1 componentList) : Void
+  M GetFullComponentList() : List`1
+  M SpawnObject(ItemObjectSpawnContext& context, Int32& quantity, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) : GameObject
+  M SpawnObject(ItemObjectSpawnContext& context, Item item, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) : GameObject
+  M _Spawn(GameObject spawnable, ItemObjectSpawnContext context, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Item item, Int32 itemQuantity, Boolean sampleTerrain) : GameObject
+  M Loc(String keyToken, Il2CppStringArray interpStrings) : String
+  M GetKey(String token) : String
+  M GetLocalizationStrings() : Dictionary`2
+  M ContainerTypeFilter(ItemContainer container) : Boolean
+  M ContainerCapacityFilter(ItemContainer container) : Boolean
+  M ItemTypeFilter(Item item) : Boolean
+  M Loc(String keyToken, String[] interpStrings) : String

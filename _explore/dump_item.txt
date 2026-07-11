@@ -1,0 +1,14 @@
+﻿
+### SSSGame.Network.NetworkExtendedInventory/Item  (base=ValueType)
+  F id : Int32
+  F attribute0 : Byte
+  F attribute1 : Byte
+  F attribute2 : Byte
+  F attribute3 : Byte
+  F attribute4 : Byte
+  F attribute5 : Byte
+  F attribute6 : Byte
+  F attribute7 : Byte
+  P Item : Byte
+  M Equals(Item other) : Boolean
+  M BoxIl2CppObject() : Object

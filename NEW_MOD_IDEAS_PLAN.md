@@ -398,7 +398,7 @@ off-window confinement in item 2, so it's the mechanism, not an open risk):**
 
 ---
 
-## 13. Outhouse composter — repurpose the Outhouse as a compost bin (new mod, research 2026-07-10)
+## 13. Outhouse composter — repurpose the Outhouse as a compost bin (Phase 0 COMPLETE 2026-07-11; Phase 1 IMPLEMENTED as OuthouseComposterMod v0.2.0 ⚠️ PENDING in-game confirmation)
 
 **Goal:** throw vegetables/seeds (and other food) into the Outhouse's storage; after they rot they
 become **compost** usable on farm plots. The compost-bin fantasy WITHOUT new assets (author
@@ -515,6 +515,15 @@ The mod is plumbing between two existing systems, not a new mechanic.
   `attributes`) only matter for Phase 3 — the Phase 1 timer sidesteps them entirely.
 - Co-op: all writes host-gated; stack scaling is the only axis exposed in co-op; capacity growth
   hidden/disabled there (network-struct evidence above).
+
+**Addendum: Phase 0 & Phase 1 implementation complete (2026-07-11)**
+
+Phase 0 (diagnostic) confirmed in-game: all diagnostics fired correctly across three iterations (v0.1.0→v0.1.2). Phase 1 feature built into **OuthouseComposterMod v0.2.0** with design locked per the user's direction: per-category independent repeating REAL-TIME timers (food ratio 1:1 @ 5 min, seeds 20:1 @ 10 min defaults, full-ratio-or-skip, output item 'Compost' added to the same grid, host/solo-gated, timers reset on load). Original Phase 1 sketch's "DaysToCompost in-game-days timer" was replaced by real-time minutes per the user's design; grid-growth/stack-scaling (old Phase 2) remains unbuilt.
+
+Key findings from OuthouseComposter v0.2.0 diagnostics and implementation:
+- **Container acceptance is NOT storage-class-based alone:** despite identical ItemStorageClass assets, acceptance per-item via per-item condition (mechanism unidentified). Patching `ItemContainer.CanStoreItemType` with scoped postfixes works. See docs/architecture.md "Storage acceptance / the Outhouse container" for full ground truth (ItemStorageClass empty SO tag, stackSize semantics unresolved, Outhouse unique containerType 'Storage_SmallItems_Outhouse', capacity=20, no Fusion backing observed, Compost list: ['Spoiled Food', 'Compost', 'Crawler Slime', 'Slag']).
+- **API surface:** `CanStoreItemType`, `Check`, `HasSpace`, `GetStackSize`, `AddItems`, `RemoveItem` (ItemEventContext.Default), `GetItems` (read-only), `GetAcceptedItemTypes`; player inventory: `PlayerCharacter.Spawned` → `Character.Inventory` → `InventoryComponent.GetItemCollection()` → `ItemCollection.GetItemInfos()`.
+- **Dead-end (IL2CPP interop):** non-generic `GameObject.GetComponents(System.Type)` throws MissingMethodException and escapes try/catch per-call; per-node singular `GetComponent<T>()` walk is required. Base-typed `GetComponent<T>()` DOES return derived instances (confirmed via probing).
 
 ---
 

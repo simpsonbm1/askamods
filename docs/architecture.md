@@ -612,6 +612,21 @@ SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via Ite
 **Fishing/bait (the trigger for the above — mod cancelled, game does it natively)**
 `SSSGame.FishingStation : ResourceStorage : Workstation`; bait = `SSSGame.BaitItem : EquipmentItem` (category `VillagerFishingInteractionConfig.BaitCategInfo`); the "no bait" complaint is `FishingComplainQuest : CrafterComplainQuest`. **Villagers self-craft bait from warehouse ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory `fisher-bait-native`).
 
+**Storage acceptance / the Outhouse container (OuthouseComposter groundwork, confirmed in-game 2026-07-11)**
+**Container acceptance is NOT storage-class-based alone.** Pointer-verified in-game: every SmallItem-class item (Fibers, Jotun Blood, Feathers, Gray Mushrooms, Raw Red Meat, Compost) carries the IDENTICAL `ItemStorageClass` asset (same native pointer) that the Outhouse containerType lists — yet the Outhouse container accepts ONLY 'Compost' (`CanStoreItemType`/`Check` true, `GetStackSize`=10). `ItemContainer.CanStoreItemType(ItemInfo)` applies a per-item condition beyond class membership (mechanism unidentified; OuthouseComposterMod v0.2.0 overrides it with scoped postfixes rather than reverse-engineering it). `SSSGame.StorageInteraction.Check(ItemInfo)` (the UI-level gate) always mirrors `container.Check` — patching the container level is sufficient.
+
+**`ItemStorageClass` is an EMPTY ScriptableObject** — a pure name tag; `ItemContainerType.storageClasses` entries are `StorageClassData { storageClass, stackSize }`. ⚠️ `stackSize` is NOT the visible stack cap (Outhouse entry has stackSize=1 yet Compost stacks to 10 there) — semantics unresolved.
+
+**Outhouse ground truth:** a generic `Structure`, display name AND `DefaultName` both exactly 'Outhouse'. Its `ItemContainerComponent` (`.container : ItemContainer`) sits on child node **'crapContainer'**; `StorageInteraction` on node 'ActiveInteractions'. containerType **'Storage_SmallItems_Outhouse' is UNIQUE to the Outhouse** (52 containerTypes scanned across 199 structures). capacity=20 (4×5 UI grid), `IsHidden`=False, `NoActionTargets`=False, `canAddItems`=True. NO `NetworkSimpleResourceStorage_N` Fusion backing observed on it (only `NetworkPositionYRotation` at the root).
+
+**Compost ground truth:** `FarmingStation.composts` == `FarmCropInteraction.compatibleComposts` == ['Spoiled Food', 'Compost', 'Crawler Slime', 'Slag']. The vanilla Outhouse stores 'Spoiled Food' — which is itself a valid compost item, i.e. vanilla already implements a rot→outhouse→farm loop; the mod adds fresh food/seed → 'Compost' conversion.
+
+**Useful ItemContainer API surface** (Cecil 2026-07-11, exercised in-game): `CanStoreItemType(ItemInfo)`, `Check(ItemInfo)`, `HasSpace(ItemInfo, Int32)`, `GetStackSize(ItemInfo)`, `GetEmptySlots()`, `AddItems(ItemInfo, Int32) : Int32`, `RemoveItem(Item, Int32, ItemEventContext)` — **`ItemEventContext` is an ENUM** (pass `ItemEventContext.Default`), `GetItems() : IReadOnlyList<Item>` (through the compile-time reference only the indexer is visible — bound iteration by `capacity`), `canAddItems`, `containerType`, `GetAcceptedItemTypes()`.
+
+**Player inventory recipe (confirmed in-game):** capture the local player via `PlayerCharacter.Spawned` postfix gated on `HasAuthority` (GroundItemVacuum pattern), then `Character.Inventory : InventoryComponent` → `.GetItemCollection() : ItemCollection` → `.GetItemInfos() : Il2Cpp List<ItemInfo>`. Item classification: `ItemInfo.storageClass` (asset name, e.g. seeds = 'SeedItem') and `ItemInfo.category : ItemCategoryInfo` with display name property **`.Name` (capital N)**.
+
+**Dead-end:** non-generic `GameObject.GetComponents(System.Type)` throws MissingMethodException through the interop trampoline (same family as plural generics / FindObjectsByType) — AND when it threw it escaped an enclosing per-call try/catch and aborted the whole calling dump method, so don't assume a caught probe: just never call it. Confirmed in-game 2026-07-11.
+
 ---
 
 ## Cooking Station Pipeline
