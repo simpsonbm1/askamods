@@ -235,10 +235,19 @@ In-game hour = `dayLength / 24`.
 ```
 BiomeItemAvailabilityData
   .itemDescriptors  (List)       ← the BiomeItemDescriptors this countdown controls
-  .remainingDays  (Int32)        ← days remaining before replenish
+  .remainingDays  (Int32)        ← days remaining before replenish; arms to Lifespan on availability evaluation,
+                                    decrements per day, parks at −1; does NOT re-arm on instance consumption
   .ReplenishOnAvailable  (bool)  ← if true, calls Replenish() when remainingDays hits 0
-  ._OnNewDay()                   ← called each day; decrements remainingDays
+  ._OnNewDay()                   ← called each day; decrements remainingDays (confirmed in-game 2026-07-11)
 ```
+
+**Seasonal/weather availability gating (WeatherManager) — confirmed in-game 2026-07-10/11**
+- **Structure:** `WeatherManager._descriptors : Dictionary<ItemInfo, BiomeItemAvailabilityData>` holds ~22 entries per world (mushrooms, crops, berries, driftwood, nests, etc.). Each entry carries an `AvailabilityProcess` ScriptableObject (process-global, NOT per-world — edit persists across world reloads). The process ANDs four condition lists: Season/Time/Other/ProgressingWeather. Evaluated on weather/season changes.
+- **Vanilla mushroom gating (confirmed deterministically in-game 2026-07-10/11):** Grey Mushrooms (id 16793609): Season[Spring,Summer,Autumn] + Other[IsRaining mandatory]; Yellow Mushrooms (id 16793610): Season[Autumn] + Other[IsRaining mandatory]; plain Mushrooms (id 16793608): ungated (both Season and Other condition lists empty). The v1.4.7 TreeRespawnMod mushroom feature clears these gates to remove seasonal/rain culling.
+- **Grey↔Gray plant/yield pairing:** the weather table registers the PLANT ItemInfo named "Grey Mushrooms"; world gather nodes' YIELD is a distinct ItemInfo named "Gray Mushrooms" (both spellings are literal `ItemInfo.Name` strings, NOT localization). Name-based substring filters are locale-safe as far as observed, but plant vs yield items can differ in id and gating.
+- **Census recipe (v1.5.8):** read `BiomeItemAvailabilityData.itemDescriptors` (interop List via Count+indexer) → per descriptor read `IsAvailable`/`IsHarvestable`/`._instances` → per `BiomeItemInstance` read `.Active`/`.Destroyed`/`.GetQuantity()`. Instance lists reflect the currently-streamed region.
+- **Dormant replenish cycle:** with gates cleared, `remainingDays` parks at −1 and the game's own replenish countdown goes dormant (no availability transitions). Un-gating must be paired with a node-respawn mechanism (TreeRespawnMod's `[GatherRespawn]` config provides the restore engine).
+- **`AvailabilityProcess.CanRun` observation (2026-07-11):** reads False when all condition lists are empty (seen on both cleared and vanilla-empty processes) — semantics unconfirmed, observation only.
 
 **Vegetation / resource classes**
 ```

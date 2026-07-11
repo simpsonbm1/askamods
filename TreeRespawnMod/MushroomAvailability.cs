@@ -34,10 +34,22 @@ namespace TreeRespawnMod;
 //
 // Because the SOs are process-global assets (not per-world native objects), caching wrappers/originals of
 // them across world sessions is safe — the "never cache per-world wrappers" gotcha does not apply here.
+//
+// v1.5.7 — CONVERGENT re-sweep, fixing a registration race. Log-proven 2026-07-10: descriptor entries and
+// their AvailabilityProcess condition lists populate GRADUALLY during world load — a fresh-process sweep
+// caught plain "Mushrooms" reading Season[0]/Other[0] (nothing to clear) even though its vanilla data is
+// Season[3] + Other[1] (IsRaining), so it escaped the once-per-world clear and stayed vanilla-gated
+// (rain-bound, winter-culled) for the whole session. Fix: MaybeApply() now keeps re-sweeping every 10s for
+// the rest of the session instead of latching after one sweep. This is safe because clearing is naturally
+// idempotent (an already-empty list clears to a no-op), and originals are only snapshotted from a read that
+// actually found something (seasonBefore+otherBefore > 0) so a raced-empty read can never be recorded as
+// the vanilla data.
 internal static class MushroomAvailability
 {
-    private static bool _appliedThisWorld;
+    private static bool _firstSweepDone;
     private static float _firstSeenTime = -1f;
+    private static float _nextSweepAt = -1f;   // realtime timestamp of the next periodic re-sweep
+    private const float ResweepIntervalSeconds = 10f;
 
     // Snapshot of each matched process's ORIGINAL condition lists, keyed by item name (case-insensitive),
     // taken once before its first clear. Preserved across worlds on purpose (the SO edits are global).
@@ -50,23 +62,40 @@ internal static class MushroomAvailability
         public readonly List<OtherCondition> Others = new();
     }
 
-    // Called from DayTracker.ClearTransientState() on every world switch / quit-to-menu so the once-per-world
-    // apply re-arms. Keeps _originals (they must outlive world switches — the edits are process-global).
+    // Called from DayTracker.ClearTransientState() on every world switch / quit-to-menu so the first-sweep
+    // gate re-arms. Keeps _originals (they must outlive world switches — the edits are process-global).
     internal static void ResetForWorld()
     {
-        _appliedThisWorld = false;
+        _firstSweepDone = false;
         _firstSeenTime = -1f;
+        _nextSweepAt = -1f;
     }
 
     // Called every frame from DayTracker.Update(). Waits ~5s after WeatherManager first reports registered
-    // descriptors (same readiness the diagnostic uses, so late-registering mushrooms are all present), then
-    // applies once per world. Cheap no-op afterwards; not host-gated — it's a local SO edit, and in co-op the
-    // host's copy is what drives biome spawning (client edits are harmless).
+    // descriptors (same readiness the diagnostic uses, so most mushrooms are already present), does the
+    // first full sweep, then keeps re-sweeping every 10s for the rest of the session — see the v1.5.7 note
+    // above for why the single-sweep latch missed late-registering descriptors. Not host-gated — it's a
+    // local SO edit, and in co-op the host's copy is what drives biome spawning (client edits are harmless).
     internal static void MaybeApply()
     {
-        if (_appliedThisWorld) return;
-        if (!Plugin.MushroomIgnoreRain.Value && !Plugin.MushroomIgnoreSeason.Value) { _appliedThisWorld = true; return; }
+        // No latch when both toggles are off — two cheap bool reads per frame, and it keeps the
+        // logic simple. (Config isn't live-reloaded in this mod, so this is belt-and-braces.)
+        if (!Plugin.MushroomIgnoreRain.Value && !Plugin.MushroomIgnoreSeason.Value) return;
 
+        if (_firstSweepDone)
+        {
+            // Convergent phase: cheap timestamp gate, then a full re-sweep. Entries that registered
+            // (or had their condition lists populated) AFTER the first sweep get caught here.
+            if (Time.realtimeSinceStartup < _nextSweepAt) return;
+            _nextSweepAt = Time.realtimeSinceStartup + ResweepIntervalSeconds;
+            var wmLate = MushroomDiag.GetWeatherManager();
+            if (wmLate == null) return;
+            Apply(wmLate, firstSweep: false);
+            return;
+        }
+
+        // First-sweep readiness (unchanged from v1.4.7): WeatherManager resolved, >=1 descriptor
+        // registered, then a 5s settle.
         var wm = MushroomDiag.GetWeatherManager();
         if (wm == null) return;
 
@@ -77,13 +106,14 @@ internal static class MushroomAvailability
         if (_firstSeenTime < 0f) { _firstSeenTime = Time.realtimeSinceStartup; return; }
         if (Time.realtimeSinceStartup - _firstSeenTime < 5f) return;
 
-        _appliedThisWorld = true;   // latch before applying so a throw can't cause per-frame re-attempts
-        Apply(wm);
+        _firstSweepDone = true;   // latch before applying so a throw can't cause per-frame re-attempts
+        _nextSweepAt = Time.realtimeSinceStartup + ResweepIntervalSeconds;
+        Apply(wm, firstSweep: true);
     }
 
     // One full sweep of the descriptor table: match mushrooms by name, snapshot originals once, clear the
     // gate list(s) the config asks for. Everything guarded — a throw on one entry must not abort the sweep.
-    internal static void Apply(WeatherManager wm)
+    internal static void Apply(WeatherManager wm, bool firstSweep)
     {
         var log = Plugin.Logger;
         if (wm == null) return;
@@ -109,45 +139,69 @@ internal static class MushroomAvailability
                     if (!MatchesFilter(name, filter)) continue;
                     matched++;
 
+                    string idStr = "";
+                    try { idStr = " (id " + item.id + ")"; } catch { }
+
                     AvailabilityProcess? proc = null;
                     try { if (data != null) proc = data.availabilityProcess; } catch { }
-                    if (proc == null) { log.LogWarning($"[MushroomAvailability] \"{name}\": no availabilityProcess — skipped."); continue; }
-
-                    // Snapshot the vanilla lists ONCE per item (double-apply / per-world re-run safety).
-                    if (!_originals.ContainsKey(name)) SnapshotOriginals(name, proc);
+                    if (proc == null) { log.LogWarning($"[MushroomAvailability] \"{name}\"{idStr}: no availabilityProcess — skipped."); continue; }
 
                     int seasonBefore = SafeCount(() => proc.SeasonAvailabilityConditions.Count);
                     int otherBefore  = SafeCount(() => proc.OtherAvailabilityConditions.Count);
+
+                    // Snapshot the vanilla lists ONCE per item (double-apply / per-world re-run safety),
+                    // and only from a populated read — a raced-empty read must not be recorded as the
+                    // vanilla originals.
+                    if ((seasonBefore + otherBefore) > 0 && !_originals.ContainsKey(name)) SnapshotOriginals(name, proc);
 
                     bool did = false;
                     if (ignoreRain && otherBefore > 0)
                     {
                         try { proc.OtherAvailabilityConditions.Clear(); did = true; }
-                        catch (Exception e) { log.LogWarning($"[MushroomAvailability] \"{name}\": clearing Other failed ({e.GetType().Name})."); }
+                        catch (Exception e) { log.LogWarning($"[MushroomAvailability] \"{name}\"{idStr}: clearing Other failed ({e.GetType().Name})."); }
                     }
                     if (ignoreSeason && seasonBefore > 0)
                     {
                         try { proc.SeasonAvailabilityConditions.Clear(); did = true; }
-                        catch (Exception e) { log.LogWarning($"[MushroomAvailability] \"{name}\": clearing Season failed ({e.GetType().Name})."); }
+                        catch (Exception e) { log.LogWarning($"[MushroomAvailability] \"{name}\"{idStr}: clearing Season failed ({e.GetType().Name})."); }
                     }
                     if (did) edited++;
 
-                    log.LogInfo(
-                        $"[MushroomAvailability] \"{name}\" — rain gate {(ignoreRain ? $"cleared (was {otherBefore})" : "kept")}, " +
-                        $"season gate {(ignoreSeason ? $"cleared (was {seasonBefore})" : "kept")}.");
+                    if (firstSweep)
+                    {
+                        log.LogInfo(
+                            $"[MushroomAvailability] \"{name}\"{idStr} — rain gate {(ignoreRain ? $"cleared (was {otherBefore})" : "kept")}, " +
+                            $"season gate {(ignoreSeason ? $"cleared (was {seasonBefore})" : "kept")}.");
+                    }
+                    else if (did)
+                    {
+                        // Fire-verification marker for the v1.5.7 race fix: a late sweep caught an entry
+                        // that was empty/unregistered at an earlier sweep.
+                        log.LogInfo(
+                            $"[MushroomAvailability] LATE clear: \"{name}\"{idStr} — rain gate {(ignoreRain ? $"cleared (was {otherBefore})" : "kept")}, " +
+                            $"season gate {(ignoreSeason ? $"cleared (was {seasonBefore})" : "kept")} — entry was empty/unregistered at an earlier sweep (registration race).");
+                    }
                 }
                 catch (Exception e) { log.LogWarning("[MushroomAvailability] entry skipped: " + e.GetType().Name); }
             }
         }
         catch (Exception e) { log.LogError("[MushroomAvailability] sweep failed: " + e); }
 
-        log.LogInfo(
-            $"[MushroomAvailability] applied — matched {matched} item(s) for filter \"{filter}\", edited {edited} " +
-            $"(IgnoreRain={ignoreRain}, IgnoreSeason={ignoreSeason}). Mushrooms should now read IsAvailable=True (F8 to verify).");
-        if (matched == 0)
-            log.LogWarning(
-                "[MushroomAvailability] No descriptor matched the ItemNames filter — mushrooms may not be registered yet, " +
-                "or the filter doesn't match their names. Check the F8 diagnostic dump for the exact item names.");
+        if (firstSweep)
+        {
+            log.LogInfo(
+                $"[MushroomAvailability] applied — matched {matched} item(s) for filter \"{filter}\", edited {edited} " +
+                $"(IgnoreRain={ignoreRain}, IgnoreSeason={ignoreSeason}). Watching for late-registering descriptors every 10s for the rest of the session (F8 to verify).");
+            if (matched == 0)
+                log.LogWarning(
+                    "[MushroomAvailability] No descriptor matched the ItemNames filter — mushrooms may not be registered yet, " +
+                    "or the filter doesn't match their names. Check the F8 diagnostic dump for the exact item names.");
+        }
+        else if (edited > 0)
+        {
+            // A late sweep that clears nothing logs nothing at all — it runs every 10s and must not spam.
+            log.LogInfo($"[MushroomAvailability] late sweep — cleared {edited} additional item(s) (matched {matched} for filter \"{filter}\").");
+        }
     }
 
     // Capture the current (vanilla) contents of both gate lists before we touch them.

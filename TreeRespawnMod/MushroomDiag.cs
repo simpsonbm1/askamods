@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using SSSGame;
@@ -23,6 +24,12 @@ namespace TreeRespawnMod;
 // own evaluators (CheckAll / IsAvailable) so we can SEE — in-game, per season/weather — whether wild
 // mushrooms are actually gated here. It writes NOTHING; it only reads. Nothing is confirmed until we
 // read this in a live world (see NEW_MOD_IDEAS_PLAN.md → "Mushrooms year-round / rain-independent").
+//
+// v1.5.8 — added a read-only mushroom world-instance CENSUS to the dump: walks
+// data.itemDescriptors -> BiomeItemDescriptor._instances and counts instances (active/destroyed) and
+// per-instance Active/Destroyed/GetQuantity() state, plus a KnownNodes cross-check tally of mushroom
+// gather nodes the mod has itself streamed-in this session. Lets an F8-before/F8-after comparison
+// across accelerated in-game days show whether the mushroom population holds steady or drains.
 internal static class MushroomDiag
 {
     private static bool _autoDumpDone;
@@ -163,6 +170,9 @@ internal static class MushroomDiag
                     }
                     else sb.Append("\n    process: <null>");
 
+                    if (isMushroom && data != null)
+                        sb.Append("\n    census: ").Append(CensusLine(data));
+
                     log.LogInfo(sb.ToString());
                 }
                 catch (Exception e)
@@ -175,6 +185,35 @@ internal static class MushroomDiag
         {
             log.LogError("[MushroomDiag] enumerate failed: " + e);
         }
+
+        // Cross-check from the mod's own session data: gather nodes seen streamed-in this session whose
+        // yield item matches "Mushroom" (Plugin.KnownNodes accumulates per world; cleared on world switch).
+        try
+        {
+            var tally = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in Plugin.KnownNodes)
+            {
+                if (kvp.Value.kind != NodeKind.Gather) continue;
+                var n = kvp.Value.itemName ?? "";
+                if (n.IndexOf("Mushroom", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                tally.TryGetValue(n, out int c); tally[n] = c + 1;
+            }
+            if (tally.Count == 0)
+                log.LogInfo("[MushroomDiag] mod-known mushroom gather nodes this session (KnownNodes): none seen yet");
+            else
+            {
+                var sb2 = new StringBuilder("[MushroomDiag] mod-known mushroom gather nodes this session (KnownNodes): ");
+                bool first = true;
+                foreach (var kvp in tally)
+                {
+                    if (!first) sb2.Append(", ");
+                    sb2.Append('"').Append(kvp.Key).Append("\"=").Append(kvp.Value);
+                    first = false;
+                }
+                log.LogInfo(sb2.ToString());
+            }
+        }
+        catch (Exception e) { log.LogWarning("[MushroomDiag] KnownNodes tally failed: " + e.GetType().Name); }
 
         log.LogInfo($"[MushroomDiag] ===== end dump — {mushrooms} mushroom entr(y/ies), {scanned} descriptor(s) scanned =====");
         if (mushrooms == 0)
@@ -273,5 +312,63 @@ internal static class MushroomDiag
         }
         catch { return "(err)"; }
         return sb.ToString();
+    }
+
+    // Read-only census over data.itemDescriptors -> BiomeItemDescriptor._instances: how many world
+    // instances currently back this item, and their state. IL2CPP note: access interop List fields
+    // via .Count + indexer (the file's existing pattern) — do not foreach them.
+    private static string CensusLine(BiomeItemAvailabilityData data)
+    {
+        try
+        {
+            var descs = data.itemDescriptors;
+            if (descs == null) return "itemDescriptors=<null>";
+            int dn;
+            try { dn = descs.Count; } catch { return "itemDescriptors=<unreadable>"; }
+
+            int totalInst = 0, active = 0, destroyed = 0, stocked = 0, qtySum = 0, unreadable = 0;
+            var perDesc = new StringBuilder();
+            for (int d = 0; d < dn; d++)
+            {
+                int di = 0; bool dAvail = false, dHarv = false;
+                try
+                {
+                    var desc = descs[d];
+                    if (desc == null) { perDesc.Append(" desc[").Append(d).Append("]=<null>;"); continue; }
+                    try { dAvail = desc.IsAvailable; } catch { }
+                    try { dHarv = desc.IsHarvestable; } catch { }
+                    var inst = desc._instances;
+                    int n = 0;
+                    try { n = inst != null ? inst.Count : 0; } catch { }
+                    di = n;
+                    for (int i = 0; i < n; i++)
+                    {
+                        try
+                        {
+                            var bi = inst![i];
+                            if (bi == null) { unreadable++; continue; }
+                            totalInst++;
+                            bool isDestroyed = false, isActive = false;
+                            try { isDestroyed = bi.Destroyed; } catch { }
+                            try { isActive = bi.Active; } catch { }
+                            if (isDestroyed) destroyed++;
+                            if (isActive) active++;
+                            int q = 0;
+                            try { q = bi.GetQuantity(); } catch { }
+                            if (q > 0) { stocked++; qtySum += q; }
+                        }
+                        catch { unreadable++; }
+                    }
+                }
+                catch { perDesc.Append(" desc[").Append(d).Append("]=<err>;"); continue; }
+                perDesc.Append(" desc[").Append(d).Append("]: avail=").Append(dAvail)
+                       .Append(" harv=").Append(dHarv).Append(" instances=").Append(di).Append(';');
+            }
+            string head = dn + " descriptor(s), instances=" + totalInst + " (active=" + active
+                        + ", destroyed=" + destroyed + "), stocked=" + stocked + " qtySum=" + qtySum
+                        + (unreadable > 0 ? " unreadable=" + unreadable : "");
+            return head + (dn > 0 ? " |" + perDesc : "");
+        }
+        catch (Exception e) { return "err:" + e.GetType().Name; }
     }
 }
