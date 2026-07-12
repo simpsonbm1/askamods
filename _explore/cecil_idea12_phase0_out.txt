@@ -1,0 +1,995 @@
+﻿===== 1. Enum WorkstationTaskPriority values =====
+TYPE: SSSGame.WorkstationTaskPriority (isEnum=True)
+  High = 0
+  Med = 1
+  Low = 2
+  None = 3
+
+===== 2. Methods anywhere named *Task* with Add/Create/Remove/Set (task lifecycle) =====
+NetworkDebugStart/_StartClients_d__58 :: Void set__clientTasks_5__2(List`1 )
+NetworkDebugStart/_StartClients_d__58 :: Void set__clientsStartTask_5__3(Task )
+NetworkDebugStart/_StartWithClients_d__54 :: Void set__serverTask_5__3(Task )
+Controls :: Void set_m_Interactions_VillagerAbortTask(InputAction )
+SSSGame.CookingComplainQuest/CookingComplainQuestData :: Void set__noTaskComplaint(GenericMessageComplaint )
+SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData :: Void set__noTaskComplaint(GenericMessageComplaint )
+SSSGame.Homestead :: Void add_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.Homestead :: Void remove_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.Homestead :: Void add_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.Homestead :: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.Homestead :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Homestead :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Homestead :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Homestead :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Homestead :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Homestead :: Action`2 get_OnTaskAdded()
+SSSGame.Homestead :: Void set_OnTaskAdded(Action`2 )
+SSSGame.Homestead :: Action`2 get_OnTaskRemoved()
+SSSGame.Homestead :: Void set_OnTaskRemoved(Action`2 )
+SSSGame.Homestead :: Void set_TaskDataType(TaskDataComponents )
+SSSGame.Homestead :: Void set_TasksCreator(Boolean )
+SSSGame.Homestead :: Void set__taskAgents(List`1 )
+SSSGame.Homestead :: Void set__taskDatas(List`1 )
+SSSGame.Homestead :: Void set__taskDispatchers(List`1 )
+SSSGame.PlayerParty :: Void add_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.PlayerParty :: Void remove_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.PlayerParty :: Void add_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.PlayerParty :: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.PlayerParty :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.PlayerParty :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.PlayerParty :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.PlayerParty :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.PlayerParty :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.PlayerParty :: Action`2 get_OnTaskAdded()
+SSSGame.PlayerParty :: Void set_OnTaskAdded(Action`2 )
+SSSGame.PlayerParty :: Action`2 get_OnTaskRemoved()
+SSSGame.PlayerParty :: Void set_OnTaskRemoved(Action`2 )
+SSSGame.PlayerParty :: Void set_TaskDataType(TaskDataComponents )
+SSSGame.PlayerParty :: Void set_TasksCreator(Boolean )
+SSSGame.Workstation :: Void add_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.Workstation :: Void remove_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.Workstation :: Void add_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.Workstation :: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.Workstation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Workstation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Workstation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Workstation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Workstation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Workstation :: Void CreateTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.Workstation :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.Workstation :: Void AddToTaskDatas(Villager villagerToAdd) [virtual]
+SSSGame.Workstation :: Void RemoveFromTaskDatas(Villager villagerToRemove) [virtual]
+SSSGame.Workstation :: Action`2 get_OnTaskAdded()
+SSSGame.Workstation :: Void set_OnTaskAdded(Action`2 )
+SSSGame.Workstation :: Action`2 get_OnTaskRemoved()
+SSSGame.Workstation :: Void set_OnTaskRemoved(Action`2 )
+SSSGame.Workstation :: Void set_TaskDataType(TaskDataComponents )
+SSSGame.Workstation :: Void set_TasksCreator(Boolean )
+SSSGame.Workstation :: Void set__taskDispatchers(List`1 )
+SSSGame.Workstation :: Void set__taskAgents(List`1 )
+SSSGame.Workstation :: Void set__taskDatas(List`1 )
+SSSGame.Workstation :: Void set__syncTaskOperations(Boolean )
+SSSGame.Workstation/WorkstationStationEvents :: Void set_c_BuilderPinnedTaskRefresh(Int32 ) [static]
+SSSGame.Workstation/WorkstationStationEvents :: Void set_c_AddComplaint_NoGatherTask(Int32 ) [static]
+SSSGame.Workstation/WorkstationStationEvents :: Void set_c_RemoveComplaint_NoGatherTask(Int32 ) [static]
+SSSGame.BuildPart :: Task CreateTask()
+SSSGame.IFilterTaskStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.Buildstation :: Void AddBuiltinTaskDatas() [virtual]
+SSSGame.Buildstation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Buildstation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Buildstation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Buildstation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Buildstation :: Void set_doNotAddToWorkOutsideTask(Boolean )
+SSSGame.Buildstation :: Void set_buildingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_repairingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_terraformingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_paintingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_lightkeepingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_firekeepingTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set_outsideWorkTaskIcon(Sprite )
+SSSGame.Buildstation :: Void set__buildTaskData(BuildStationTaskData )
+SSSGame.Buildstation :: Void set__repairTaskData(BuildStationTaskData )
+SSSGame.Buildstation :: Void set__terraformTaskData(BuildStationTaskData )
+SSSGame.Buildstation :: Void set__paintTaskData(BuildStationTaskData )
+SSSGame.Buildstation :: Void set__lightkeepingTaskData(LightKeepingTaskData )
+SSSGame.Buildstation :: Void set__firekeepingTaskData(LightKeepingTaskData )
+SSSGame.Buildstation :: Void set__ousideWorkTaskData(BuildStationTaskData )
+SSSGame.Buildstation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.Buildstation :: Void set_c_taskPriority(String ) [static]
+SSSGame.Buildstation :: Void set_c_taskQuantity(String ) [static]
+SSSGame.Buildstation :: Void set_c_tasks(Il2CppStringArray )
+SSSGame.Buildstation :: Void set_c_buildTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_repairTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_terraformingTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_lightKeepingTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_fireKeepingTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_paintTask(String ) [static]
+SSSGame.Buildstation :: Void set_c_outsideWorkTask(String ) [static]
+SSSGame.DefensiveStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.DefensiveStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.DefensiveStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.PatrolStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.PatrolStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.PatrolStation :: Void CreateTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.PatrolStation :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.PatrolStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.PatrolStation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.PatrolStation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.PatrolStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.PatrolStation :: Void set_c_taskDataArray(String ) [static]
+SSSGame.PatrolStation :: Void set_c_taskDataMarkers(String ) [static]
+SSSGame.PatrolStation :: Void set_c_taskDataVillagers(String ) [static]
+SSSGame.PatrolStation :: Void set_c_taskDataName(String ) [static]
+SSSGame.Bloomstation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Bloomstation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Bloomstation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Bloomstation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.Bloomstation :: Void set_c_taskDataArrayKey(String ) [static]
+SSSGame.BoatBuildingStation :: Void AddBuiltinTaskDatas() [virtual]
+SSSGame.BoatBuildingStation :: Void set_addFirekeepTask(Boolean )
+SSSGame.CampBuildingStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CampBuildingStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CharcoalStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CharcoalStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CharcoalStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.CharcoalStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.CharcoalStation :: Void set__firekeepingTaskData(FiltersTaskData )
+SSSGame.CharcoalStation :: Void set_pyrekeepTaskIcon(Sprite )
+SSSGame.CharcoalStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.CookingStation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.CookingStation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.CookingStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CookingStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CookingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.CookingStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.CookingStation :: Void set__fillerFoodTaskData(FiltersTaskData )
+SSSGame.CookingStation :: Void set__firekeepingTaskData(FiltersTaskData )
+SSSGame.CookingStation :: Void set_firekeepTaskIcon(Sprite )
+SSSGame.CookingStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.CookingStation :: Void set_c_taskDataItem(String ) [static]
+SSSGame.CookingStation :: Void set_c_taskDataCount(String ) [static]
+SSSGame.CookingStation :: Void set_c_taskDataPriority(String ) [static]
+SSSGame.CookingStation :: Void set_c_taskDataArray(String ) [static]
+SSSGame.CookingStation :: Void set_c_taskDataVillagers(String ) [static]
+SSSGame.CookingStation/CookingProject :: Void set_taskData(WorkstationTaskData )
+SSSGame.CraftingStation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.CraftingStation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.CraftingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.CraftingStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CraftingStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.CraftingStation :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.CraftingStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.CraftingStation :: Void set_c_taskDataArray(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataItem(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataCount(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataPriority(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataVillagers(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataDye(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskDataDyeIdx(String ) [static]
+SSSGame.CraftingStation :: Void set_c_taskRefurbish(String ) [static]
+SSSGame.CraftingStation/StudyProject :: Void set_taskData(CraftingStationTaskData )
+SSSGame.CraftingStation/CraftingProject :: Void set_taskData(CraftingStationTaskData )
+SSSGame.ForestryStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.ForestryStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.HarboringStation :: Void AddBuiltinTaskDatas() [virtual]
+SSSGame.HarboringStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.HarboringStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.HarboringStation :: Void AddToTaskDatas(Villager villagerToAdd) [virtual]
+SSSGame.HarboringStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.HarboringStation :: Void set_haulTaskIcon(Sprite )
+SSSGame.HarboringStation :: Void set_harvestTaskIcon(Sprite )
+SSSGame.HarboringStation :: Void set__haulingTaskData(BuildStationTaskData )
+SSSGame.HarboringStation :: Void set__harvestTaskData(BuildStationTaskData )
+SSSGame.HealingStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.HealingStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.HealingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.HealingStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.HealingStation :: Void set_firekeepingTaskIcon(Sprite )
+SSSGame.HealingStation :: Void set__firekeepingTaskData(FiltersTaskData )
+SSSGame.HealingStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.Praystation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Praystation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.Praystation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Praystation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.Praystation :: Void set__firekeepingTaskData(FiltersTaskData )
+SSSGame.Praystation :: Void set_firekeepTaskIcon(Sprite )
+SSSGame.Praystation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.FarmingStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.FarmingStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.FarmingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.FarmingStation :: Void CreateTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.FarmingStation :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.FarmingStation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.FarmingStation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.FarmingStation :: Void set__registeredToTaskManager(Boolean )
+SSSGame.FarmingStation :: Void set_c_taskDataArrayKey(String ) [static]
+SSSGame.FarmingStation :: Void set_c_taskQuantityKey(String ) [static]
+SSSGame.FarmingStation :: Void set_c_taskPriorityKey(String ) [static]
+SSSGame.FarmingStation :: Void set_c_taskVillagersKey(String ) [static]
+SSSGame.FishingStation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.FishingStation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.FishingStation :: Void CreateTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.FishingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.FishingStation :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.FishingStation :: Void set__tasksCopies(Dictionary`2 )
+SSSGame.PreferencesManager :: Void RemoveTasksPreset(TasksPreset& preset)
+SSSGame.PreferencesManager :: Boolean CreateTasksPresetDataForStructure(String presetName, Structure targetStructure)
+SSSGame.PreferencesManager :: Void DeleteTasksPresetData(String presetName)
+SSSGame.PreferencesManager :: Void set_TasksConfigurationPresets(List`1 )
+SSSGame.PreferencesManager :: Void set__tasksPresetsData(Dictionary`2 )
+SSSGame.PreferencesManager :: Void set_c_tasksPresetsKey(String ) [static]
+SSSGame.PreferencesManager :: Void set_c_taskPresetNameKey(String ) [static]
+SSSGame.PreferencesManager :: Void set_c_taskRequiredTemplateIDKey(String ) [static]
+SSSGame.PreferencesManager :: Void set_c_taskPresetDataKey(String ) [static]
+SSSGame.GameState_Play/__PlayStart_d__64 :: Void set__loadInitTask_5__17(Task`1 )
+SSSGame.VillagerCaveWallInteractionConfig :: Void set_toolRequirementTaskDescription(String )
+SSSGame.VillagerHarvestInteractionConfig :: Void set_toolRequirementTaskDescription(String )
+SSSGame.WorkstationInteraction :: Void set_taskDispatcher(TaskDispatcher )
+SSSGame.WorkstationInteraction :: Void set_TaskTabOrder(InteractionOrder )
+SSSGame.AnimalPen :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.AnimalPen :: Void set_slaughterTaskKey(String )
+SSSGame.AnimalPen :: Void set_slaughterTaskIcon(Sprite )
+SSSGame.AnimalPen :: Void set__slaughterTaskData(AnimalSlaughterTaskData )
+SSSGame.AnimalPen :: Void set_c_taskDataItem(String ) [static]
+SSSGame.AnimalPen :: Void set_c_taskDataCount(String ) [static]
+SSSGame.AnimalPen :: Void set_c_taskDataPriority(String ) [static]
+SSSGame.AnimalPen :: Void set_c_taskDataArray(String ) [static]
+SSSGame.AnimalPen :: Void set_c_taskDataVillagers(String ) [static]
+SSSGame.Kennel :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Kennel :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.Kennel :: Void set_feedingPriorityTaskKey(String )
+SSSGame.Kennel :: Void set_feedingPriorityTaskIcon(Sprite )
+SSSGame.Kennel :: Void set__feedingPrioritiesTaskData(FiltersTaskData )
+SSSGame.Kennel :: Void set_c_feedingTaskData(String ) [static]
+SSSGame.Villager :: Void set__taskRunner(TaskRunner )
+SSSGame.DependendTaskStorageSupply :: Void set_taskItemInfo(ItemInfo )
+SSSGame.StorageSupply :: Void set_taskContainer(NetworkTaskContainer )
+SSSGame.StorageSupply :: Void set_taskDescriptionPrefix(String )
+SSSGame.StorageSupply :: Void set_taskMaxQuota(Int32 )
+SSSGame.StorageSupply :: Void set_defaultTaskPriority(WorkstationTaskPriority )
+SSSGame.StorageSupply :: Void set_hideTasksForUndiscoveredItems(Boolean )
+SSSGame.CaveResourceStorage :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.DiningStation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.DiningStation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.DiningStation :: Void CreateTaskDispatcherData(ITaskDispatcher taskDispatcher) [virtual]
+SSSGame.DiningStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.DiningStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.DiningStation :: Void set_firekeepingTaskIcon(Sprite )
+SSSGame.DiningStation :: Void set_refuelForFilterTask(RefuelInteraction )
+SSSGame.DiningStation :: Void set__firekeepingTaskData(FiltersTaskData )
+SSSGame.HuntingStation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.HuntingStation :: FiltersTaskData CreateFilterTask(Int32 taskId) [virtual]
+SSSGame.HuntingStation :: Void set_c_uniqueTaskData(String ) [static]
+SSSGame.HuntingStation :: Void set__uniqueTaskIcon(Sprite )
+SSSGame.HuntingStation :: Void set__uniqueTaskName(String )
+SSSGame.HuntingStation :: Void set__uniqueTaskFilterItems(List`1 )
+SSSGame.HuntingStation :: Void set__uniqueTaskData(HunterFiltersTaskData )
+SSSGame.HuntingStation/SpawnerOfInterest :: Void set_taskPriority(Int32 )
+SSSGame.Marketplace :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Marketplace :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Marketplace :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.Marketplace :: Void set__fallbackTaskId(Int32 )
+SSSGame.Marketplace :: Void set__registeredToTaskManager(Boolean )
+SSSGame.Marketplace :: Void set_c_tasksArray(String ) [static]
+SSSGame.Marketplace/TradeRoute :: Void set_taskData(TradeRouteTaskData )
+SSSGame.ResourceStorage :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.ResourceStorage :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.ResourceStorage :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.ResourceStorage :: Void CreateTaskDispatcherData(ITaskDispatcher taskDispatcher) [virtual]
+SSSGame.ResourceStorage :: Void CreateOrUpdateTasksFromStorageSupply(StorageSupply storageSupply, List`1 taskAgentsToVillagers, Boolean shouldAddForChildrenTasks)
+SSSGame.ResourceStorage :: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+SSSGame.ResourceStorage :: Void set_hasTasksOnChildren(Boolean )
+SSSGame.ResourceStorage :: Void set__registeredToTaskManager(Boolean )
+SSSGame.ResourceStorage :: Void set_c_taskDataArray(String ) [static]
+SSSGame.ResourceStorage :: Void set_c_taskPriority(String ) [static]
+SSSGame.ResourceStorage :: Void set_c_taskQuantity(String ) [static]
+SSSGame.ResourceStorage :: Void set_c_taskQuantityRatio(String ) [static]
+SSSGame.ResourceStorage :: Void set_c_taskVillagers(String ) [static]
+SSSGame.SettlementLog :: Void set_c_LogDatasKey(String ) [static]
+SSSGame.PatrolPointTaskPanel :: Void set__currentTaskData(WorkstationTaskData )
+SSSGame.WorkstationTaskPanel :: Void set_c_DefaultMaxTaskQuantity(Int32 ) [static]
+SSSGame.WorkstationTaskPanel :: Void set__currentTaskData(WorkstationTaskData )
+SSSGame.WorkstationTaskPanel :: Void set__currentTaskDataFlags(TaskDataComponents )
+SSSGame.WorkstationTaskPanel :: Void set_bgStudyTaskColor(Color )
+SSSGame.WorkstationTaskPanel :: Void set__taskMaxQuantity(Int32 )
+SSSGame.WorkstationTaskPanel :: Void set__taskQuantityMultiplier(Int32 )
+SSSGame.WorkstationTaskPanel :: Void set__multiplyTaskQuantity(Boolean )
+SSSGame.SettlementIssueTrackerWidget :: Void set__tasksFilter(MultiCategoryItemFilter )
+SSSGame.MainMenu :: Void set__prepareForMultiplayerTask(Task )
+SSSGame.MainMenu/__PrepareForMultiplayerTask_d__74 :: Void set__privilegeCheckTask_5__2(Task`1 )
+SSSGame.Vegetation.VegetationDataField :: Void set_c_tasked(UInt32 ) [static]
+SSSGame.LiveOps.PlayfabManager :: Void set_c_ev_set_cooking_task(String ) [static]
+SSSGame.LiveOps.PlayfabManager :: Void set_c_ev_set_crafting_task(String ) [static]
+SSSGame.LiveOps.PlayfabManager :: Void set_c_param_task_item(String ) [static]
+SSSGame.Network.NetworkPreferencesManager :: Void AddTasksPreset(String presetName, Structure targetStructure)
+SSSGame.Network.NetworkPreferencesManager :: Boolean AddTaskPresetFromDeserialization(String presetName, Int32 requiredTemplateID, String& newPresetName)
+SSSGame.Network.NetworkPreferencesManager :: Void Rpc_CreateAndAddTasksPreset(NetworkTasksPreset preset, NetworkId targetStructureID)
+SSSGame.Network.NetworkPreferencesManager :: Void RemoveTaskPreset(String presetName)
+SSSGame.Network.NetworkPreferencesManager :: Void Rpc_RemoveTaskPreset(String presetName)
+SSSGame.Network.NetworkPreferencesManager :: Void Rpc_LoadTasksPreset(NetworkTasksPreset preset, NetworkId targetStructureID)
+SSSGame.Network.NetworkPreferencesManager :: Void set_tasksPresetNameMaxSize(Int32 ) [static]
+SSSGame.Network.NetworkPreferencesManager :: Void set_taskPresetsMaxSize(Int32 ) [static]
+SSSGame.Network.NetworkPreferencesManager :: Void set___TaskPresets(Il2CppReferenceArray`1 )
+SSSGame.Network.NetworkSession :: Void set__currentTask(Task )
+SSSGame.Network.NetworkSession/__RunOnCurrentRegion_d__128 :: Void set_connectionTask(ConnectingTask )
+SSSGame.Network.NetworkSession/__RunOnCurrentRegion_d__128 :: Void set__authenticationTask_5__2(Task`1 )
+SSSGame.Network.NetworkSessionListTabPage :: Void set__sortSessionListTask(Task )
+SSSGame.Network.NetworkBloomStation :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkBoatBuildingStation_2 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkBoatBuildingStation_4 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkBuildstation :: Void Rpc_ChangeTaskVillagersInCharge(Int32 taskIndex, Il2CppStructArray`1 newVillagersInCharge)
+SSSGame.Network.NetworkBuildstation :: Void Rpc_ChangeTaskFilters(Int32 taskIndex, Int32 newFilters) [virtual]
+SSSGame.Network.NetworkBuildstation :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCompositeResourceStorage :: Void set___NetworkTasks_k__BackingField(NetworkArray`1 )
+SSSGame.Network.NetworkCompositeResourceStorage/__c__DisplayClass10_0 :: Void set_taskContainer(NetworkTaskContainer )
+SSSGame.Network.NetworkCompositeResourceStorage/__c__DisplayClass10_0 :: Void set_containerTaskIndex(Int32 )
+SSSGame.Network.NetworkCookingStation :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkCookingStation :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkCookingStation_24 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCookingStation_32 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCookingStation_4 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCookingStation_9 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCraftingStation :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkCraftingStation :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkCraftingStation :: Void Rpc_ChangeTaskRefurbishOption(Int32 taskIndex, NetworkBool refurbishOption)
+SSSGame.Network.NetworkCraftingStation :: Void Rpc_ChangeTaskDyeingOption(Int32 taskIndex, Int32 dyeIndex)
+SSSGame.Network.NetworkCraftingStation_128 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCraftingStation_32 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkCraftingStation_8 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFarmingStation :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkFarmingStation :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkFarmingStation_48 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFarmingStation_64 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask`1 :: Void Rpc_ChangeTaskFilters(Int32 taskIndex, Il2CppStructArray`1 newFilters)
+SSSGame.Network.NetworkFilterTask`1 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_1_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask`1 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_1_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask`1 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_1_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFilterTask_12 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask_12 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_12_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask_12 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_12_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask_12 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_12_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFilterTask_16 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask_16 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_16_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask_16 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_16_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask_16 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_16_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFilterTask_20 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask_20 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_20_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask_20 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_20_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask_20 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_20_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFilterTask_24 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask_24 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_24_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask_24 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_24_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask_24 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_24_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFilterTask_8 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkFilterTask_8 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkFilterTask_8_0(Changed`1 ) [static]
+SSSGame.Network.NetworkFilterTask_8 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFilterTask_8_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkFilterTask_8 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFilterTask_8_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkFishingStation :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkForester :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkForester :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkForester_10 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkForester_15 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkMarketplace :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkMarketplace :: Void Rpc_ChangeTaskData(Int32 taskId, NetworkTask networkTask)
+SSSGame.Network.NetworkMarketplace :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkMarketplace :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkPatrolStation :: Void Rpc_AddTask(NetworkTask networkTask, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkPatrolStation :: Void Rpc_ChangeTask(Int32 taskId, NetworkTask networkTask)
+SSSGame.Network.NetworkPatrolStation :: Void Rpc_RemoveTaskData(NetworkTask networkTask) [virtual]
+SSSGame.Network.NetworkPatrolStation :: Void OnAfterTaskAgentAdded(Villager villagerToAdd) [virtual]
+SSSGame.Network.NetworkPatrolStation :: Void OnBeforeTaskAgentRemoved(Int32 villagerToRemoveIndex) [virtual]
+SSSGame.Network.NetworkPatrolStation :: Void set___NetworkTasks(Il2CppReferenceArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_12 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_2 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_22 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_3 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_4 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_42 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_45 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_5 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSimpleResourceStorage_8 :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSlaughterTask :: Void set___NetworkTasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkSlaughterTask :: Void set_field_CompilerControlled_Static_Changed_1_NetworkSlaughterTask_0(Changed`1 ) [static]
+SSSGame.Network.NetworkSlaughterTask :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkSlaughterTask_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkSlaughterTask :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkSlaughterTask_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkWorkstation`1 :: Void OnAfterTaskAgentAdded(Villager villagerToAdd) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void OnBeforeTaskAgentRemoved(Int32 villagerToRemoveIndex) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void OnTaskAdded(WorkstationTaskData task) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_AddTask(TaskType task, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void OnTaskRemoved(WorkstationTaskData task, Int32 taskIndex) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_RemoveTaskData(TaskType networkTask) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ReorderTasks(Int32 startIndex, Int32 endIndex)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeTaskPriority(Int32 taskIndex, Int32 newPriority)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeTaskVillagersInCharge(Int32 taskIndex, Il2CppStructArray`1 newVillagersInCharge)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeTaskQuantity(Int32 taskIndex, Int32 newQuantity)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeAllTasksQ(NetworkBehaviourId containerId, Int32 amount)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeAllTasksPriorities(NetworkBehaviourId containerId, Int32 amount)
+SSSGame.Network.NetworkWorkstation`1 :: Void Rpc_ChangeTaskFilters(Int32 taskIndex, Int32 newFilters) [virtual]
+SSSGame.Network.NetworkWorkstation`1 :: Void set__taskMinRange(Int32 )
+SSSGame.Network.NetworkWorkstation`1 :: Void set__taskMaxRange(Int32 )
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass34_0 :: Void set_previousTasks(NetworkArray`1 )
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass34_1 :: Void set_previousTaskIndex(Int32 )
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass34_1 :: Boolean get_taskRemoved()
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass34_1 :: Void set_taskRemoved(Boolean )
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass34_1 :: Void set_field_Public___c__DisplayClass34_0_TaskType_0(__c__DisplayClass34_0 )
+SSSGame.Network.NetworkWorkstation`1/__c__DisplayClass39_0 :: Void set_networkTask(TaskType )
+SSSGame.Network.INetworkWorkstation :: Void OnAfterTaskAgentAdded(Villager villagerToAdd) [virtual]
+SSSGame.Network.INetworkWorkstation :: Void OnBeforeTaskAgentRemoved(Int32 villagerToRemoveIndex) [virtual]
+SSSGame.Network.INetworkWorkstation :: Void OnTaskAdded(WorkstationTaskData task) [virtual]
+SSSGame.Network.INetworkWorkstation :: Void OnTaskRemoved(WorkstationTaskData task, Int32 taskIndex) [virtual]
+SSSGame.Network.NetworkTaskAgent :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgent_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgent :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgent_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgent :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgent_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents :: Void OnAfterTaskAgentAdded(List`1 agents, ITaskAgent agentToAdd)
+SSSGame.Network.NetworkTaskAgents :: Void OnBeforeTaskAgentRemoved(List`1 agents, Int32 agentToRemoveIndex)
+SSSGame.Network.NetworkTaskAgents :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_2 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_2_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_2 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_2_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_2 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_2_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_3 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_3_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_3 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_3_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_3 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_3_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_4 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_4_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_4 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_4_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_4 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_4_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_6 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_6_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_6 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_6_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_6 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_6_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_8 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskAgents_8_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_8 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskAgents_8_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskAgents_8 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskAgents_8_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer :: Void set__OnTasksChanged(Action`1 )
+SSSGame.Network.NetworkTaskContainer :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_1 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_1 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_1_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_1 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_1_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_1 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_1_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_10 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_10 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_10_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_10 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_10_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_10 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_10_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_17 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_17 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_17_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_17 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_17_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_17 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_17_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_2 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_2 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_2_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_2 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_2_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_2 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_2_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_50 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_50 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_50_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_50 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_50_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_50 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_50_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_65 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_65 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_65_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_65 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_65_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_65 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_65_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_7 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_7 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_7_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_7 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_7_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_7 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_7_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_80 :: Void set__Tasks(Il2CppStructArray`1 )
+SSSGame.Network.NetworkTaskContainer_80 :: Void set_field_CompilerControlled_Static_Changed_1_NetworkTaskContainer_80_0(Changed`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_80 :: Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkTaskContainer_80_0(ChangedDelegate`1 ) [static]
+SSSGame.Network.NetworkTaskContainer_80 :: Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkTaskContainer_80_0(NetworkBehaviourCallbacks`1 ) [static]
+SSSGame.Water.SailingShip :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.Water.SailingShip :: Void set__registeredToTaskManager(Boolean )
+SSSGame.UI.WorkstationInteractionConfig :: Void set_tasksPageText(String )
+SSSGame.UI.WorkstationInteractionConfig :: Void set_tasksPageIcon(Sprite )
+SSSGame.UI.CreateItemsTabPage :: Void set_newCreateTaskPage(CreateOrEditTaskPage )
+SSSGame.UI.CreateItemsTabPage :: Void set_createTaskPage(CreateTaskTabPage )
+SSSGame.UI.CreateItemsTabPage :: Void set__createItemsTask(Task )
+SSSGame.UI.CreateItemsTabPage :: Void set__cancelTaskRequested(Boolean )
+SSSGame.UI.ExpeditionPanel :: Void set__taskFoodQuantity(Single )
+SSSGame.UI.ExpeditionPanel :: Void set__taskWaterQuantity(Single )
+SSSGame.UI.FarmCropPainterPanel :: Void CreateTaskDatas(Boolean dontCloseMenu)
+SSSGame.UI.FarmCropPainterPanel :: Void set_taskButton(FarmCropTaskPanel )
+SSSGame.UI.FarmCropPainterPanel :: Void set_CreateTaskDatasButton(Button )
+SSSGame.UI.FarmCropPainterPanel :: Void set__taskPanels(List`1 )
+SSSGame.UI.ItemManifestDisplayer :: Void set__showResourcesTask(Task )
+SSSGame.UI.JournalSubcategPanel :: Void set__createButtonsTask(Task )
+SSSGame.UI.JournalSubcategPanel :: Void set__cancelTasksRequested(Boolean )
+SSSGame.UI.LoadoutSelectionPanel :: Void set__taskAgent(ITaskAgent )
+SSSGame.UI.PetPanel :: Void set_settlementTaskPanel(TaskPanel )
+SSSGame.UI.PetPanel :: Void set_resolutionTaskPanel(ResolutionTaskPanel )
+SSSGame.UI.ResolutionTaskPanel :: Void set_taskPrefab(TaskPanel )
+SSSGame.UI.ResolutionTaskPanel :: Void set__activeTasks(List`1 )
+SSSGame.UI.StructurePanel :: Void set_useTasks(Boolean )
+SSSGame.UI.StructurePanel :: Void set_openTasksButton(Button )
+SSSGame.UI.TaskDataPanel :: Void add_OnTaskValidityChanged(Action`1 value)
+SSSGame.UI.TaskDataPanel :: Void remove_OnTaskValidityChanged(Action`1 value)
+SSSGame.UI.TaskDataPanel :: Void SetCurrentTask(WorkstationTaskData task, IWorkstation workstation)
+SSSGame.UI.TaskDataPanel :: Boolean CreateTaskDataFromPanel(WorkstationTaskData& newData)
+SSSGame.UI.TaskDataPanel :: Void OnTaskDataAddedToWorkstation(WorkstationTaskData taskData)
+SSSGame.UI.TaskDataPanel :: Void set__updateTaskDinamically(Boolean )
+SSSGame.UI.TaskDataPanel :: Void set_listenForTaskDataChanges(Boolean )
+SSSGame.UI.TaskDataPanel :: Void set__taskVillagersLimit(Int32 )
+SSSGame.UI.TaskDataPanel :: Void set__showOnlyTaskVillagers(Boolean )
+SSSGame.UI.TaskDataPanel :: Void set__taskItemPrefab(GameObject )
+SSSGame.UI.TaskDataPanel :: Void set__bgStudyTaskColor(Color )
+SSSGame.UI.TaskDataPanel :: Void set_OnTaskValidityChanged(Action`1 )
+SSSGame.UI.TaskDataPanel :: Void set__currentTaskData(WorkstationTaskData )
+SSSGame.UI.TaskDataPanel :: Void set__currentTaskAvailability(Boolean )
+SSSGame.UI.TaskDataPanel :: Void set__lockedFromCurrentTask(List`1 )
+SSSGame.UI.TaskDataPanel :: Void set__selectedForTaskVillagers(List`1 )
+SSSGame.UI.TaskDataPanel/__c__DisplayClass144_0 :: Void set_taskPanel(PatrolPointTaskPanel )
+SSSGame.UI.VehicleSelectionPanel :: Void set__taskAgent(ITaskAgent )
+SSSGame.UI.VillagerPanel :: Void set_settlementTaskPanel(TaskPanel )
+SSSGame.UI.VillagerPanel :: Void set_resolutionTaskPanel(ResolutionTaskPanel )
+SSSGame.UI.CreateOrEditTaskPage :: Void set_taskDataPanel(TaskDataPanel )
+SSSGame.UI.CreateOrEditTaskPage :: Void set_taskListGroup(TabGroup )
+SSSGame.UI.CreateTaskTabPage :: Void SetCurrentTaskView(WorkstationTaskData workstationTaskData)
+SSSGame.UI.CreateTaskTabPage :: Void _OnWorkstationTaskRemoved(IWorkstation workstation, WorkstationTaskData taskData)
+SSSGame.UI.CreateTaskTabPage :: Void set_TaskListGroup(TabGroup )
+SSSGame.UI.CreateTaskTabPage :: Void set_pinnedTasksContainer(GameObject )
+SSSGame.UI.CreateTaskTabPage :: Void set__currentTaskView(WorkstationTaskData )
+SSSGame.UI.CreateTaskTabPage :: Void set__currentTaskDataFlags(TaskDataComponents )
+SSSGame.UI.CreateTaskTabPage :: Void set_SelectedForTaskVillagers(List`1 )
+SSSGame.UI.CreateTaskTabPage :: Void set__lockedFromCurrentTask(List`1 )
+SSSGame.UI.CreateTaskTabPage/__c__DisplayClass119_0 :: Void set_taskPanel(PatrolPointTaskPanel )
+SSSGame.UI.FarmCropCellTabPage :: Void set_taskDataInfo(IconTextPairComponent )
+SSSGame.UI.SettlementIssuesTabPage :: Void set__cancelTasksRequested(Boolean )
+SSSGame.UI.SettlementIssuesTabPage :: Void set__currentStructuresTasks(List`1 )
+SSSGame.UI.SettlementResoucesTabPage :: Void set__showResourcesTask(Task )
+SSSGame.UI.SettlementResoucesTabPage :: Void set__cancelTaskRequested(Boolean )
+SSSGame.UI.UnlockedItemsTabPage :: Void set__createSubcategTasks(List`1 )
+SSSGame.UI.VillagersListDisplayer :: Void set__cancelTaskRequested(Boolean )
+SSSGame.UI.VillagersListDisplayer :: Void set__sortingTask(Task )
+SSSGame.UI.VillagersListDisplayer :: Void set__createVillagersTask(Task )
+SSSGame.UI.ChatMenu/__WorkRoutine_d__85 :: Void set__task_5__2(Task`1 )
+SSSGame.UI.PetMenu :: Void set__createSubcategTasks(List`1 )
+SSSGame.UI.WorkstationMenu :: Void _OnTasksPresetEntryDeleted(SelectActionMenu menu, SelectActionMenuEntry entry)
+SSSGame.UI.WorkstationMenu :: Boolean AddTaskDataToWorkstation(WorkstationTaskData dataToAdd)
+SSSGame.UI.WorkstationMenu :: Void RemoveTaskFromWorkstation(WorkstationTaskData dataToRemove)
+SSSGame.UI.WorkstationMenu :: Void CreateTaskDataPanel(WorkstationTaskData dataToAdd)
+SSSGame.UI.WorkstationMenu :: Void set_taskTabButtonName(String )
+SSSGame.UI.WorkstationMenu :: Void set_taskTabTitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_taskTabSubtitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_buildstationTaskTabButtonName(String )
+SSSGame.UI.WorkstationMenu :: Void set_buildstationTaskTabTitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_buildstationTaskTabSubtitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_craftingStationTaskTabButtonName(String )
+SSSGame.UI.WorkstationMenu :: Void set_craftingTaskTabTitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_craftingTaskTabSubtitleName(String )
+SSSGame.UI.WorkstationMenu :: Void set_TaskTabButton(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_AddTaskButton(GameObject )
+SSSGame.UI.WorkstationMenu :: Void set_TaskPanelPrefab(TaskDataPanel )
+SSSGame.UI.WorkstationMenu :: Void set_TaskPanelPrefabTradeRoute(TaskDataPanel )
+SSSGame.UI.WorkstationMenu :: Void set_TaskPanelPrefabPatrolRoute(TaskDataPanel )
+SSSGame.UI.WorkstationMenu :: Void set_TaskPanelPrefabFirekeeping(TaskDataPanel )
+SSSGame.UI.WorkstationMenu :: Void set_TaskPanelHolder(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_PinnedTasksContainer(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_AdjustAllTasksPrioritiesPanel(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_UndiscoveredTasksTipRect(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_taskList(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set_predefTaskListPanel(PredefinedTaskListPanel )
+SSSGame.UI.WorkstationMenu :: Void set_saveTaskPresetButton(Button )
+SSSGame.UI.WorkstationMenu :: Void set_loadTaskPresetButton(Button )
+SSSGame.UI.WorkstationMenu :: Void set_setAllTasksQuantitiesInputField(IncreaseDecreasePanel )
+SSSGame.UI.WorkstationMenu :: Void set_tasksChildrenDisplayer(StructureChildrenDisplayer )
+SSSGame.UI.WorkstationMenu :: Void set_taskPageInvalidOverlay(RectTransform )
+SSSGame.UI.WorkstationMenu :: Void set__taskPanels(List`1 )
+SSSGame.UI.WorkstationMenu :: Void set__taskRanges(Vector2Int )
+SSSGame.UI.WorkstationMenu :: Void set__taskPresetOperationTargetStructure(Structure )
+SSSGame.UI.WorkstationMenu/WorkstationMenuParameters :: Void set_currentTaskDispatcher(ITaskDispatcher )
+SSSGame.AI.BuildstationQuest :: Void set_c_TaskPinnedCoefficient(Single ) [static]
+SSSGame.AI.BuildstationQuest :: Void set_c_TaskPriorityCoefficient(Single ) [static]
+SSSGame.AI.BuildstationQuest :: Void set_c_TaskInternalPriorityCoefficient(Single ) [static]
+SSSGame.AI.Complaint :: Void set_c_cooking_needTask(String ) [static]
+SSSGame.AI.Complaint :: Void set_c_crafting_needTask(String ) [static]
+SSSGame.AI.Complaint :: Void set_c_market_needTask(String ) [static]
+SSSGame.AI.Complaint :: Void set_c_farming_noTask(String ) [static]
+SSSGame.AI.Complaint :: Void set_c_gather_noTasks(String ) [static]
+SSSGame.AI.PatrolQuest :: Void set_PatrolTask(PatrolTaskData value)
+SSSGame.AI.PatrolQuest :: Void set_c_taskPriorityIncrement(Single ) [static]
+SSSGame.AI.PatrolQuest :: Void set__PatrolTask_k__BackingField(PatrolTaskData )
+SSSGame.AI.QuestRunner :: Void set__taskAgent(ITaskAgent )
+SSSGame.AI.TaskQuest :: Void set_taskDispatcher(ITaskDispatcher )
+SSSGame.AI.TaskQuest/TaskQuestData :: Void set_dynamicTask(DynamicTask )
+SSSGame.AI.TaskStep :: Void set_task(DynamicTask )
+SSSGame.AI.TaskStepGroup :: Void set_task(DynamicTask )
+SSSGame.AI.TaskRunner :: Void set_OnActiveTaskChanged(Action`1 )
+SSSGame.AI.TaskRunner :: Void set__runningTask(Task )
+SSSGame.AI.TaskRunner :: Void set__taskSlots(List`1 )
+SSSGame.AI.TaskRunner/TaskSlot :: Void set_tasks(PriorityStack`1 )
+SSSGame.AI.TradeRouteTaskData :: Void set_taskId(Int32 )
+SSSGame.AI.FiltersTaskData :: Void set_c_taskFilterItemPriority(String ) [static]
+SSSGame.AI.FiltersTaskData :: Void set_c_taskItemFilter(String ) [static]
+SSSGame.AI.LightKeepingTaskData :: Void set_c_taskFuelPriority(String ) [static]
+SSSGame.AI.BuildStationTaskData :: Void set_taskType(TaskType )
+SSSGame.AI.PatrolTaskData :: Void set_taskId(Int32 )
+SSSGame.AI.WorkstationTaskData :: Void set_pinnedTask(Boolean )
+SSSGame.AI.FarmingStationComplainQuest/FarmingStationComplainData :: Void _OnTaskRemoved(IWorkstation workstation, WorkstationTaskData data)
+SSSGame.AI.FarmingStationComplainQuest/FarmingStationComplainData :: Void _OnTaskAdded(IWorkstation workstation, WorkstationTaskData data)
+SSSGame.AI.FarmingStationComplainQuest/FarmingStationComplainData :: Void set__noTasks(GenericMessageComplaint )
+SSSGame.AI.IWorkstation :: Void add_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.AI.IWorkstation :: Void remove_OnTaskAdded(Action`2 value) [virtual]
+SSSGame.AI.IWorkstation :: Void add_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.AI.IWorkstation :: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+SSSGame.AI.IWorkstation :: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+SSSGame.AI.IWorkstation :: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.AI.IWorkstation :: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+SSSGame.AI.IWorkstation :: Void AddTaskData(WorkstationTaskData data) [virtual]
+SSSGame.AI.IWorkstation :: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+SSSGame.AI.MarketComplainQuest/MarketComplainQuestData :: Void set__noTask(GenericMessageComplaint )
+SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData :: Void set__noTasks(Boolean )
+SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData :: Void set__noGatherTaskComplaint(GenericMessageComplaint )
+SSSGame.AI.FSM.AITaskController :: Void set_taskAgentBehaviour(MonoBehaviour )
+SSSGame.AI.FSM.FSM_TradeRouteFetch/ActionData :: Void set_resourceStorageToCheckTasks(ResourceStorage )
+
+===== 3. Full method surface: WorkstationTaskData =====
+TYPE: SSSGame.AI.WorkstationTaskData base=Il2CppSystem.Object
+  P: itemInfoQuantity : ItemInfoQuantity
+  P: VillagersInCharge : List`1
+  P: priority : Int32
+  P: isRemovable : Boolean
+  P: shouldUpdateFromNetwork : Boolean
+  P: pinnedTask : Boolean
+  P: onDataChanged : Action
+  M: Void .cctor() [static]
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers)
+  M: Void .ctor(Int32 quantity, List`1 villagers)
+  M: Void .ctor(List`1 villagers)
+  M: Void .ctor()
+  M: Void SetPriority(Int32 value)
+  M: Boolean CheckDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+===== 4. NetworkWorkstation generic: all Rpc_* and task methods =====
+TYPE: SSSGame.Network.NetworkWorkstation`1 base=SSSGame.Network.NetworkComponent
+  NetworkArray`1 get__NetworkTasks() [virtual]
+  Void _OnProxyTasksChanged(Changed`1 changed) [static]
+  Void OnAfterTaskAgentAdded(Villager villagerToAdd) [virtual]
+  Void OnBeforeTaskAgentRemoved(Int32 villagerToRemoveIndex) [virtual]
+  Void OnTaskAdded(WorkstationTaskData task) [virtual]
+  Void Rpc_AddTask(TaskType task, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+  Void OnTaskRemoved(WorkstationTaskData task, Int32 taskIndex) [virtual]
+  Void Rpc_RemoveTaskData(TaskType networkTask) [virtual]
+  Void OnTaskChanged(WorkstationTaskData task) [virtual]
+  Void OnTasksReordered(Int32 startIndex, Int32 endIndex) [virtual]
+  Void Rpc_ReorderTasks(Int32 startIndex, Int32 endIndex)
+  Void OnTaskPriorityChanged(WorkstationTaskData task) [virtual]
+  Void Rpc_ChangeTaskPriority(Int32 taskIndex, Int32 newPriority)
+  Void OnTaskVillagersInChargeChanged(WorkstationTaskData task) [virtual]
+  Void Rpc_ChangeTaskVillagersInCharge(Int32 taskIndex, Il2CppStructArray`1 newVillagersInCharge)
+  Void OnTaskQuantityChanged(WorkstationTaskData task) [virtual]
+  Void Rpc_ChangeTaskQuantity(Int32 taskIndex, Int32 newQuantity)
+  Void OnAllTasksQuantityChanged(NetworkBehaviourId containerId, Int32 amount) [virtual]
+  Void Rpc_ChangeAllTasksQ(NetworkBehaviourId containerId, Int32 amount)
+  Void OnAllTasksPriorityChanged(NetworkBehaviourId containerId, Int32 amount) [virtual]
+  Void Rpc_ChangeAllTasksPriorities(NetworkBehaviourId containerId, Int32 amount)
+  Int32 _GetCurrentNumberOfTasks()
+  Void HostUpdateTasks() [virtual]
+  Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  Void _ResetRemainingNetworkTasks(Int32 firstTaskToResetIndex) [virtual]
+  Void _OnNetworkTasksChanged(NetworkArray`1& previousTasks)
+  Void _ProxyRemoveOldTasks(NetworkArray`1 previousTasks)
+  Void _ProxyRemoveOldTask(NetworkArray`1 previousTasks, Int32 taskToRemoveIndex)
+  Void ProxyUpdateTasks() [virtual]
+  Void _ProxyUpdateTask(Int32 networkTaskIndex)
+  Void _ExecuteForEachNetworkTask(NetworkArray`1& networkTasks, Predicate`1 toExecute)
+  WorkstationTaskData _FindTaskCorrespondingToNetworkTask(TaskType networkTask)
+  Boolean _TryGetNetworkTaskFromTask(WorkstationTaskData task, TaskType& networkTask) [virtual]
+  WorkstationTaskData _CreateTaskFromNetworkTask(Int32 networkTaskIndex) [virtual]
+  Void _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) [virtual]
+  Int32 _GetNetworkFilterFromTask(WorkstationTaskData task, Int32 sectionStartingIndex, Int32 bitsPerFilterItemType)
+  Void _UpdateTaskFromNetworkFilter(WorkstationTaskData task, Int32 networkFilter, Int32 sectionStartingIndex, Int32 bitsPerFilterItemType)
+  Void OnTaskFiltersChanged(WorkstationTaskData task) [virtual]
+  Void _OnProxyTaskFiltersChanged(WorkstationTaskData task) [virtual]
+  Void Rpc_ChangeTaskFilters(Int32 taskIndex, Int32 newFilters) [virtual]
+  Boolean _ProxyUpdateTasks_b__36_0(Int32 taskIndex)
+  Int32 get__taskMinRange()
+  Void set__taskMinRange(Int32 )
+  Int32 get__taskMaxRange()
+  Void set__taskMaxRange(Int32 )
+TYPE: SSSGame.Network.NetworkWorkstationEquipmentColor base=Fusion.NetworkBehaviour
+  Void Rpc_HostUpdateNetworkColors(Int32 equipHandleIndex, Byte targetDyeIndex)
+  Void Rpc_HostUpdateNetworkColors(Il2CppStructArray`1 packedColorData)
+
+===== 5. WorkstationMenu + TaskDataPanel task-related methods =====
+TYPE: SSSGame.UI.WorkstationMenu
+  Void add_OnVillagerSelected(Action`1 value)
+  Void _SaveCreatePageDropdownPreferences()
+  Void _OnCurrentWorkstationAddTask(IWorkstation workstation, WorkstationTaskData data)
+  Void _OnCurrentWorkstationRemoveTask(IWorkstation workstation, WorkstationTaskData data)
+  Void _RefreshAddTaskButtonVisibility()
+  Void BtnCreateTradeRoute()
+  Void BtnCreatePatrolRoute()
+  Void _onMilitiaVillagerPanelCreated(VillagerPanel vp)
+  Void _OnPartyVillagerPanelCreated(VillagerPanel vp)
+  Void _PrepareTaskPageVisuals()
+  Void _SaveCurrentTaskPreset()
+  Void _LoadTaskPreset(Boolean addOnlyMatchingPresets)
+  Void SaveCurrentTaskPreset(Structure targetStructure)
+  Void LoadTaskPreset(Structure targetStructure, Boolean addOnlyMatchingTemplates)
+  Void _OnSaveCurrentTasksPreset()
+  Void _OnLoadTasksPreset()
+  Void _OnTasksPresetEntryDeleted(SelectActionMenu menu, SelectActionMenuEntry entry)
+  Boolean _ValidateSelectedTasksPresetEntry(SelectActionMenuEntry entry)
+  Void _onTasksPresetLoadConfirmed(ConfirmActionMenu menu)
+  Void _OnAllTasksQuantitiesChanged(Int32 value)
+  Void _OnVillagerWhitelistPanelCreated(VillagerPanel vp)
+  String _GetNoTaskMessageForWorkstation(IWorkstation ws)
+  Void _CreateTaskPanels()
+  Int32 _TaskPanelItemInfoComparison(TaskDataPanel x, TaskDataPanel y)
+  Void _UpdateWorkstationTasks(Boolean shouldUpdateFromNetwork)
+  Boolean AddTaskDataToWorkstation(WorkstationTaskData dataToAdd)
+  Void RemoveTaskFromWorkstation(WorkstationTaskData dataToRemove)
+  Void IncreaseAllTasksPriorities()
+  Void DecreaseAllTasksPriorities()
+  Void CreateTaskDataPanel(WorkstationTaskData dataToAdd)
+  Void IncreaseTaskPriority(TaskDataPanel wtp)
+  Void DecreaseTaskPriority(TaskDataPanel wtp)
+  Void OnTaskPanelsReorder(Int32 startIndex, Int32 endIndex, Int32 siblingOffset)
+  Void __SaveCurrentTaskPreset_b__174_0(ConfirmActionMenu menu)
+  GameObject get_addonsButton()
+  Void set_addonsButton(GameObject )
+  String get_taskTabButtonName()
+  Void set_taskTabButtonName(String )
+  String get_taskTabTitleName()
+  Void set_taskTabTitleName(String )
+  String get_taskTabSubtitleName()
+  Void set_taskTabSubtitleName(String )
+  String get_buildstationTaskTabButtonName()
+  Void set_buildstationTaskTabButtonName(String )
+  String get_buildstationTaskTabTitleName()
+  Void set_buildstationTaskTabTitleName(String )
+  String get_buildstationTaskTabSubtitleName()
+  Void set_buildstationTaskTabSubtitleName(String )
+  String get_craftingStationTaskTabButtonName()
+  Void set_craftingStationTaskTabButtonName(String )
+  String get_craftingTaskTabTitleName()
+  Void set_craftingTaskTabTitleName(String )
+  String get_craftingTaskTabSubtitleName()
+  Void set_craftingTaskTabSubtitleName(String )
+  RectTransform get_TaskTabButton()
+  Void set_TaskTabButton(RectTransform )
+  GameObject get_AddTaskButton()
+  Void set_AddTaskButton(GameObject )
+  TaskDataPanel get_TaskPanelPrefab()
+  Void set_TaskPanelPrefab(TaskDataPanel )
+  TaskDataPanel get_TaskPanelPrefabTradeRoute()
+  Void set_TaskPanelPrefabTradeRoute(TaskDataPanel )
+  TaskDataPanel get_TaskPanelPrefabPatrolRoute()
+  Void set_TaskPanelPrefabPatrolRoute(TaskDataPanel )
+  TaskDataPanel get_TaskPanelPrefabFirekeeping()
+  Void set_TaskPanelPrefabFirekeeping(TaskDataPanel )
+  RectTransform get_TaskPanelHolder()
+  Void set_TaskPanelHolder(RectTransform )
+  RectTransform get_PinnedTasksContainer()
+  Void set_PinnedTasksContainer(RectTransform )
+  RectTransform get_AdjustAllTasksPrioritiesPanel()
+  Void set_AdjustAllTasksPrioritiesPanel(RectTransform )
+  RectTransform get_UndiscoveredTasksTipRect()
+  Void set_UndiscoveredTasksTipRect(RectTransform )
+  RectTransform get_taskList()
+  Void set_taskList(RectTransform )
+  PredefinedTaskListPanel get_predefTaskListPanel()
+  Void set_predefTaskListPanel(PredefinedTaskListPanel )
+  Button get_saveTaskPresetButton()
+  Void set_saveTaskPresetButton(Button )
+  Button get_loadTaskPresetButton()
+  Void set_loadTaskPresetButton(Button )
+  IncreaseDecreasePanel get_setAllTasksQuantitiesInputField()
+  Void set_setAllTasksQuantitiesInputField(IncreaseDecreasePanel )
+  Button get_addAllWhitelistButton()
+  Void set_addAllWhitelistButton(Button )
+  StructureChildrenDisplayer get_tasksChildrenDisplayer()
+  Void set_tasksChildrenDisplayer(StructureChildrenDisplayer )
+  RectTransform get_taskPageInvalidOverlay()
+  Void set_taskPageInvalidOverlay(RectTransform )
+  List`1 get__taskPanels()
+  Void set__taskPanels(List`1 )
+  List`1 get__pinnedPanels()
+  Void set__pinnedPanels(List`1 )
+  Vector2Int get__taskRanges()
+  Void set__taskRanges(Vector2Int )
+  Structure get__taskPresetOperationTargetStructure()
+  Void set__taskPresetOperationTargetStructure(Structure )
+TYPE: SSSGame.UI.TaskDataPanel
+  IncreaseDecreasePanel get_PriorityAdjustmentPanel()
+  IncreaseDecreasePanel get_QuantityPanel()
+  Void add_OnTaskValidityChanged(Action`1 value)
+  Void remove_OnTaskValidityChanged(Action`1 value)
+  WorkstationTaskData GetCurrentTaskData()
+  Void SetCurrentTask(WorkstationTaskData task, IWorkstation workstation)
+  Void SaveCurrentTask(Boolean checkDirty)
+  Boolean CreateTaskDataFromPanel(WorkstationTaskData& newData)
+  Void OnTaskDataAddedToWorkstation(WorkstationTaskData taskData)
+  Void _OnTaskDataChanged()
+  Void _UpdateCurrentTaskDataQuantity()
+  Void _UpdateCurrentFilterTask()
+  Void _SetSpecificTaskDetails(WorkstationTaskData taskData)
+  Void _SetPriority(WorkstationTaskData taskData)
+  Boolean _CheckTaskItemAvailability(ItemInfo item)
+  Void _AddMessage(String& text)
+  Void _SetQuantity(WorkstationTaskData task, ItemInfo item)
+  Void _onQuantityChanged(Int32 value)
+  Void _onVillagerPanelCreated(VillagerPanel vp)
+  Void _RefreshLockedFromTaskVillagers(WorkstationTaskData currentTask)
+  Void _RefreshFilterItemPriority(WorkstationTaskData task)
+  Void _onFilterItemPriorityValueChanged(Int32 index, Boolean firstTimeSetup)
+  Void _SelectAddPatrolPoint()
+  Void _ConfirmAddPatrolPoint(ConfirmActionMenu menu)
+  Void _OnTradeItemQuantityChange(ConfirmActionMenu menu, SelectActionMenuEntry entry)
+  Void _SendTaskAvailabilityEvent(Boolean status)
+  Boolean get__updateTaskDinamically()
+  Void set__updateTaskDinamically(Boolean )
+  Boolean get_listenForTaskDataChanges()
+  Void set_listenForTaskDataChanges(Boolean )
+  GameObject get__quantityDiv()
+  Void set__quantityDiv(GameObject )
+  IncreaseDecreasePanel get__quantityControlPanel()
+  Void set__quantityControlPanel(IncreaseDecreasePanel )
+  TMP_Text get__quantityDivTitle()
+  Void set__quantityDivTitle(TMP_Text )
+  Int32 get__taskVillagersLimit()
+  Void set__taskVillagersLimit(Int32 )
+  Boolean get__showOnlyTaskVillagers()
+  Void set__showOnlyTaskVillagers(Boolean )
+  ArrayPaintPanel get__filterItemsPriorityPanel()
+  Void set__filterItemsPriorityPanel(ArrayPaintPanel )
+  Button get__patrolRouteAdd()
+  Void set__patrolRouteAdd(Button )
+  IncreaseDecreasePanel get__priorityAdjustmentPanel()
+  Void set__priorityAdjustmentPanel(IncreaseDecreasePanel )
+  TMP_Text get__priorityLabel()
+  Void set__priorityLabel(TMP_Text )
+  TMP_Text get__additionalDescriptionText()
+  Void set__additionalDescriptionText(TMP_Text )
+  GameObject get__taskItemPrefab()
+  Void set__taskItemPrefab(GameObject )
+  Color get__bgStudyTaskColor()
+  Void set__bgStudyTaskColor(Color )
+  Action`1 get_OnTaskValidityChanged()
+  Void set_OnTaskValidityChanged(Action`1 )
+  WorkstationTaskData get__currentTaskData()
+  Void set__currentTaskData(WorkstationTaskData )
+  Boolean get__currentTaskAvailability()
+  Void set__currentTaskAvailability(Boolean )
+  DyeingBlueprintInfo get__dyeingBpInfo()
+  Void set__dyeingBpInfo(DyeingBlueprintInfo )
+  List`1 get__lockedFromCurrentTask()
+  Void set__lockedFromCurrentTask(List`1 )
+  List`1 get__selectedForTaskVillagers()
+  Void set__selectedForTaskVillagers(List`1 )
+  ItemInfoQuantity get__tradeQuantity()
+  Void set__tradeQuantity(ItemInfoQuantity )
+
+===== 6. Types referencing WorkstationTaskPriority in fields/props/method sigs =====
+SSSGame.WorkstationTaskPriority: F:High; F:Med; F:Low; F:None
+SSSGame.StorageSupply: P:defaultTaskPriority; M:get_defaultTaskPriority->ret; M:set_defaultTaskPriority()
+
+===== 7. VillagerSocial complaint methods (virtual flags = inline risk signal) =====
+  Void add_OnComplainChange(Action value)
+  Void remove_OnComplainChange(Action value)
+  Int32 get_ImportantComplaintsCount()
+  Void set_ImportantComplaintsCount(Int32 value)
+  Int32 get_NotificationComplaintsCount()
+  Void set_NotificationComplaintsCount(Int32 value)
+  Int32 get_MenuNotificationComplaintsCount()
+  Void set_MenuNotificationComplaintsCount(Int32 value)
+  Void Rpc_RequestAllComplaints(PlayerRef player)
+  Void Rpc_ResponseAllComplaints(PlayerRef target, Il2CppStructArray`1 bytes)
+  Void Rpc_AddComplaint(Il2CppStructArray`1 bytes)
+  Void Rpc_RemoveComplaint(Int32 complaintId)
+  Int32 GetComplaintTypeId(Complaint complaint) [static]
+  Complaint CreateComplaintFromId(Int32& id) [static]
+  Void AddComplaint(Complaint complaint)
+  Void _AddComplaintInternal(Complaint complaint)
+  Void RemoveComplaint(Int32 id)
+  Void _RemoveComplaintInternal(Int32& id)
+  ComplainQuest GetComplainQuest()
+  Void _OnComplainQuestChange()
+  Void _Rpc_RequestAllComplaints_b__72_0(BinaryWriter writer)
+  Void _Rpc_ResponseAllComplaints_b__73_0(BinaryReader reader)
+  Void _Rpc_AddComplaint_b__74_0(BinaryReader reader)
+  Action get_OnComplainChange()
+  Void set_OnComplainChange(Action )
+  Int32 get__ImportantComplaintsCount_k__BackingField()
+  Void set__ImportantComplaintsCount_k__BackingField(Int32 )
+  Int32 get__NotificationComplaintsCount_k__BackingField()
+  Void set__NotificationComplaintsCount_k__BackingField(Int32 )
+  Int32 get__MenuNotificationComplaintsCount_k__BackingField()
+  Void set__MenuNotificationComplaintsCount_k__BackingField(Int32 )
+  vFSMBehaviour get_complainFSMBehaviour()
+  Void set_complainFSMBehaviour(vFSMBehaviour )
+  ComplainQuest get__complainQuest()
+  Void set__complainQuest(ComplainQuest )
+  Int32 get__complaintOrder()
+  Void set__complaintOrder(Int32 )
+  Dictionary`2 get__activeComplaintDialogues()
+  Void set__activeComplaintDialogues(Dictionary`2 )
+  List`1 get_complaints()
+  Void set_complaints(List`1 )
+
+===== 8. CraftBlueprint vs CraftBlueprintInfo member surface =====
+TYPE: SSSGame.CraftBlueprint base=SandSailorStudio.Inventory.Blueprint
+  M: Void .cctor() [static]
+  M: Void Activate() [virtual]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+TYPE: SSSGame.CraftBlueprintInfo base=SandSailorStudio.Inventory.BlueprintInfo
+  P: craftVolume : Single
+  P: interaction : CraftInteraction
+  P: blueprintConditionsRules : List`1
+  P: availableInTrialVersion : Boolean
+  P: showUnlockNotification : Boolean
+  P: _knowledgeManager : NetworkKnowledgeManager
+  M: Void .cctor() [static]
+  M: Item CreateItem() [virtual]
+  M: Boolean IsUnlocked() [virtual]
+  M: List`1 GetAllBlueprintConditionsRules() [virtual]
+  M: ItemInfo GetItemInfo() [virtual]
+  M: Boolean UnlockableInTrialMode() [virtual]
+  M: Void OnUnlock(BlueprintConditionsDatabase database) [virtual]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+===== 9. Workstation base: taskDatas surface (AddToTaskDatas etc.) =====
+  P: OnTaskAdded : Action`2
+  P: OnTaskRemoved : Action`2
+  P: TaskDataType : TaskDataComponents
+  P: TasksCreator : Boolean
+  P: _taskDispatchers : List`1
+  P: _taskAgents : List`1
+  P: _taskDatas : List`1
+  P: _syncTaskOperations : Boolean
+  M: Void add_OnTaskAdded(Action`2 value) [virtual]
+  M: Void remove_OnTaskAdded(Action`2 value) [virtual]
+  M: Void add_OnTaskRemoved(Action`2 value) [virtual]
+  M: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+  M: Boolean CanCreateTasks() [virtual]
+  M: TaskDataComponents GetTaskDataFlags() [virtual]
+  M: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+  M: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent) [virtual]
+  M: ITaskAgent FindTaskAgent(Predicate`1 predicate) [virtual]
+  M: ITaskDispatcher FindTaskDispatcher(Predicate`1 predicate) [virtual]
+  M: List`1 FindTaskDispatchers(Predicate`1 predicate)
+  M: Int32 GetTaskDataCount()
+  M: List`1 GetWorkstationTaskDatas() [virtual]
+  M: List`1 GetWorkstationTaskAgents()
+  M: Void AddTaskData(WorkstationTaskData data) [virtual]
+  M: Void InvokeAddTaskData(WorkstationTaskData taskData)
+  M: Void InvokeRemoveTaskData(WorkstationTaskData taskData)
+  M: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+  M: Void ClearTaskDatas() [virtual]
+  M: Boolean CheckForDuplicateTaskData(WorkstationTaskData newData) [virtual]
+  M: Void RefreshTaskDataPriorities() [virtual]
+  M: DataObject SerializeTaskData(DataObject destination) [virtual]
+  M: Boolean DeserializeTaskData(DataObject source) [virtual]
+  M: Void CheckUndiscoveredTasks(Int32& undiscoveredTasksFound, String& discoveryTip) [virtual]
+  M: DataObject SerializeTaskDataForRecreation(DataObject destination) [virtual]
+  M: Boolean DeserializeTaskDataForRecreation(DataObject source) [virtual]
+  M: DataObject SerializeTasksPreset(Structure targetStructure) [virtual]
+  M: Boolean DeserializeTasksPresetData(DataObject tasksPresetData, Structure targetStructure) [virtual]
+  M: Void CreateTaskDispatcherData(ITaskDispatcher td) [virtual]
+  M: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virtual]
+  M: Void AddToTaskDatas(Villager villagerToAdd) [virtual]
+  M: Boolean _CanAddVillagerToTaskData(Villager villagerToAdd, WorkstationTaskData taskData) [virtual]
+  M: Void _OnBeforeRemoveFromTaskData(Villager villagerToRemove, WorkstationTaskData taskData) [virtual]
+  M: Void RemoveFromTaskDatas(Villager villagerToRemove) [virtual]
+  M: Action`2 get_OnTaskAdded()
+  M: Void set_OnTaskAdded(Action`2 )
+  M: Action`2 get_OnTaskRemoved()
+  M: Void set_OnTaskRemoved(Action`2 )
+  M: TaskDataComponents get_TaskDataType()
+  M: Void set_TaskDataType(TaskDataComponents )
+  M: Boolean get_TasksCreator()
+  M: Void set_TasksCreator(Boolean )
+  M: List`1 get__taskDispatchers()
+  M: Void set__taskDispatchers(List`1 )
+  M: List`1 get__taskAgents()
+  M: Void set__taskAgents(List`1 )
+  M: List`1 get__taskDatas()
+  M: Void set__taskDatas(List`1 )
+  M: Boolean get__syncTaskOperations()
+  M: Void set__syncTaskOperations(Boolean )

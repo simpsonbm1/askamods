@@ -622,28 +622,36 @@ same surface symptom ("the village is short on X").
   cross-assembly chain walk, build-verified).
 
 ### Workstation task priority machinery (idea-12 groundwork)
-**Task data + priority (confirmed in-game 2026-07-09):**
+**Task data + priority (confirmed in-game 2026-07-09; Cecil-verified 2026-07-12):**
 - **`WorkstationTaskData` structure:** `itemInfoQuantity : ItemInfoQuantity` (item + quota),
   `priority : Int32`, `pinnedTask : Boolean`, `VillagersInCharge : List`, `onDataChanged : Action`,
   `GetQuantityRange()`. Priority is SERIALIZED into saves (key names per station type:
   `c_taskDataPriority` on CraftingStation/CookingStation/AnimalPen; `c_taskPriority` on
   Buildstation/ResourceStorage; `c_taskPriorityKey` on FarmingStation) — a modified priority
-  PERSISTS across save/reload.
-- **Native co-op priority update path:** UI
-  `WorkstationMenu.IncreaseTaskPriority/DecreaseTaskPriority(TaskDataPanel)` →
-  `TaskDataPanel._SetPriority(WorkstationTaskData)` →
-  **`NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32, Int32)`** +
-  `OnTaskPriorityChanged(WorkstationTaskData)` callback (exact arg signatures ⚠️ unverified, but the
-  RPC exists and fires).
-- **Task-priority tiers/types:** `WorkstationTaskPriority` enum exists (seen on
-  `StorageSupply.defaultTaskPriority`) — [likely] the High/Medium/Low tier used by gathering
-  stations (woodcutter, forager, stonecutter). Crafting stations use an integer `priority : Int32`
-  for a ranked list.
-- **Item → producer lookup:** `CraftingStation.KnowsBlueprintForItem(ItemInfo, out CraftBlueprint)`
-  — check if a station can craft an item. Also exists: `_outsourcedQuests`/`_outsourcedBlueprints`
-  dictionaries and `GetPersonalFetchDepth(Villager, ItemInfo, out minDepth, out topPriority)` on
-  CraftingStation (fetch-chain plumbing, unexplored). `BuildstationQuest.c_TaskPriorityCoefficient :
-  Single` hints priority feeds quest-priority math.
+  PERSISTS across save/reload. In-game all observed live task priority ints were 0 (defaults).
+- **Full task RPC surface on `SSSGame.Network.NetworkWorkstation<T>`** (Cecil-verified
+  2026-07-12): `Rpc_AddTask(TaskType, Il2CppStructArray villagersInChargeIDs)` (native
+  add-task RPC exists), `Rpc_RemoveTaskData`, `Rpc_ChangeTaskPriority(Int32 taskIndex, Int32
+  newPriority)` (args confirmed), `Rpc_ChangeTaskQuantity(taskIndex, newQuantity)`,
+  `Rpc_ChangeTaskFilters(taskIndex, newFilters)` (bit-packed), `Rpc_ReorderTasks`,
+  `Rpc_ChangeAllTasksPriorities/Q`. Virtual capture callbacks: `OnTaskAdded/Removed/Changed/
+  PriorityChanged/QuantityChanged/FiltersChanged(WorkstationTaskData)`. Concrete subclasses per
+  station (NetworkCraftingStation, NetworkCookingStation, etc.) each with nested blittable
+  `NetworkTask` struct (itemID:UInt16, quantity, priority:Byte, villagersInCharge:Byte mask) +
+  `_TryGetNetworkTaskFromTask`/`_CreateTaskFromNetworkTask` converters both ways.
+- **Task-data hierarchy constructible:** `WorkstationTaskData(.ctor(ItemInfo, qty, villagers,
+  removable))`, `CraftingStationTaskData(…, CraftingStation)`, `BuildStationTaskData`,
+  `FiltersTaskData(IFilterTaskStation, taskId)`. UI add path:
+  `WorkstationMenu.AddTaskDataToWorkstation(WorkstationTaskData):bool` →
+  `Workstation.AddTaskData` [virtual] + `CheckForDuplicateTaskData`; host sync via
+  `HostUpdateTasks()`→NetworkArray. Native task PRESET system exists
+  (`SerializeTasksPreset`/`DeserializeTasksPresetData`, menu save/load preset).
+- **Gathering "tier" machinery (Cecil-verified 2026-07-12):** `SSSGame.AI.FiltersTaskData :
+  WorkstationTaskData` — per-item Int32 priorities (`_filterItemPriorityList`/`GetFilterItemPriority
+  (ItemInfo)`), enum `WorkstationTaskPriority { High=0, Med=1, Low=2, None=3 }` (only
+  StorageSupply.defaultTaskPriority references it). Stations implement `IFilterTaskStation.
+  CreateFilterTask(taskId)` (Cooking filler-food, Charcoal, Hunting, Kennel, Dining, …).
+  Tier-set over network = `Rpc_ChangeTaskFilters`.
 
 **Two priority mechanisms + the vanilla starvation loop (confirmed in-game 2026-07-09):**
 1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL
@@ -713,31 +721,48 @@ Mechanism:
   settlement walk (docs/mods/tree-respawn.md → Well water refill).
 
 ### Villager Complaint / Issue System (idea-12 groundwork)
-**Structured complaint events for "villager needs X" (confirmed via Cecil dump 2026-07-09):**
-- **`SSSGame.AI.Complaint`** (Il2CppSystem.Object-derived) is the typed system behind villager barks/exclamation-point statuses — **NOT text parsing**.
+**Structured complaint events for "villager needs X" (confirmed via Cecil 2026-07-09; in-game
+2026-07-12):**
+- **`SSSGame.VillagerSocial`** (NOT `SSSGame.AI`) is a `Fusion.NetworkBehaviour` carrying the
+  villager complaint list and tracking. **NOT text parsing** — every complaint is a strong-typed
+  event with direct payloads.
 - **Per-villager complaint tracking:** `VillagerSocial.complaints : List<Complaint>`,
-  `AddComplaint(Complaint)`/`_AddComplaintInternal(Complaint)` (candidate Harmony postfix for
-  capture), `Rpc_AddComplaint(Complaint)`/`Rpc_RemoveComplaint(Complaint)`, `OnComplainChange :
-  Action` (do NOT subscribe — IL2CPP Action gotcha; patch the add method or poll instead),
+  `AddComplaint(Complaint)`/`_AddComplaintInternal(Complaint)` are NON-virtual **and the Harmony
+  postfix FIRES in-game** (confirmed in-game 2026-07-12: 2,938 captures, 4 test runs, thousands per
+  session; the AOT-inline risk is RESOLVED for this method — TryCast payload logging works).
+  `Rpc_AddComplaint(Il2CppStructArray<byte>)` / `RemoveComplaint(Int32)` for network RPC;
   `ImportantComplaintsCount`/`NotificationComplaintsCount`/`MenuNotificationComplaintsCount`
   counters.
-- **Per-complaint alert tiers:** boolean flags `important`/`notification`/`forcedMenuNotification` control UI alert level.
-- **Typed complaint payloads carry the missing resource/item directly:** `ItemComplaint.itemInfo :
-  ItemInfo`, `ItemManifestComplaint.itemManifest : ItemManifest` (+ `maxItemCount`),
-  `ItemCategoryComplaint.itemCategory`, `ComplexCategoryComplaint` (itemA, itemB, category),
-  `LoadoutsComplaint.missingItems : List<ItemInfo>`, `StructureComplaint._structure`. **No text
-  parsing needed — every missing item is a strong-typed object.**
-- **~120 named complaint format keys** cover every station type: `c_defender_needAmmo_format`,
-  `c_buildstation_noSupplies_format(Single)`, `c_crafting_noPartsFound_format`,
-  `c_farming_noSeeds_format`, `c_item_needItem_format`, etc.
-- **Settlement-wide issue aggregation:** `SettlementIssueTrackerWidget` (UI widget tracking maps of
-  marker/storage-full/mine-exhausted/no-crafting-station/no-production/farm complaints across all
-  villagers) + `SettlementIssuesTabPage`.
+- **Complaints are a LEVEL signal, not an edge** — the game re-ADDs the same complaint every
+  ~50–100 ms while its condition holds (confirmed in-game 2026-07-12). Each re-complaint gets a
+  FRESH id (~3 s cycle observed). **Tracking identity must be villager+type+payload, never the id.**
+  Measured hold durations: chronic storage/supply complaints 40–160 s; healthy-save transients
+  0.2–1.4 s; invasion alarm 'complaint.alarm' EXACTLY 60.0 s per villager; AttackTargetComplaint
+  0.3–6.4 s.
+- **Per-complaint alert tiers:** boolean flags `important`/`notification`/`forcedMenuNotification`
+  control UI alert level. **Typed complaint payloads carry the missing resource/item directly:**
+  `SSSGame.AI.GenericMessageComplaint` (carries `message : String` — ~120 named key constants as
+  static String properties on `SSSGame.AI.Complaint`, incl.
+  `c_combat_feelUnsafeToWork`/`c_combat_feelUnsafeAtHome`), `SSSGame.AI.StorageFullComplaint`
+  (message 'complaint.cooking_storageFull', etc.), `SSSGame.AI.AttackTargetComplaint`,
+  `SSSGame.AI.FailedObjectiveComplaint` (carries `_objective : SSSGame.Objective` with
+  `GetDescriptionKey()`), `ItemManifestComplaint` (carries `ItemManifest`), and base
+  `ItemComplaint.itemInfo`, `ItemCategoryComplaint.itemCategory`, etc. **No text parsing needed.**
+- **Settlement-wide issue aggregation (confirmed in-game 2026-07-12):** `SettlementIssueTrackerWidget`
+  is a SINGLETON (`Instance`, FindAnyObjectByType fallback works when null) with POLLABLE maps:
+  `_storageFullComplaintsMap<Workstation,int>` (storage-full count per station, cycles 0→5 and
+  back as haulers drain), `_markersComplaintsMap`, `_noProductionComplaints<ItemInfo,String>`
+  (item not produced + "who needs it" string, e.g. 'Builder's Post'→'Roadmakers '), `_noCrafting
+  StationComplaintsHashSet`, `_mineExhaustedComplaintsMap`, `_farmComplaints`. Plus public push
+  methods: `AddStorageFullComplaint(Workstation)` etc. (safe patch targets, no
+  inventory-family params). Enumeration (foreach over Il2Cpp Dictionary/HashSet) works at runtime
+  (confirmed in-game 2026-07-12, SupplyChainMod v0.1.3).
 - **Per-station complaint quests:** every workstation type owns a typed complain quest
   (`CrafterComplainQuest`, `BuildstationComplainQuest`, `CookingComplainQuest`,
   `ForesterComplaintQuest`, …) + `complainBehaviour : vFSMBehaviour`; quest priority tier
   `QuestPriority` has `c_ComplainHigh`/`c_WorkstationComplain`/`c_ComplainLow`.
-- **Subclass identification:** `TryCast<T>(Complaint)` works on Il2CppSystem.Object-derived complaint types (confirmed pattern from QuestData precedent).
+- **Subclass identification:** `TryCast<T>(Complaint)` works on Il2CppSystem.Object-derived types
+  (confirmed pattern).
 
 ---
 
@@ -859,6 +884,26 @@ off a live item, by category via `ItemCategoryInfo`, or from a blueprint's `GetI
 ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't
 build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory
 `fisher-bait-native`).
+
+### Blueprint lookup / BOM access (idea-12 Phase 0, confirmed in-game 2026-07-12)
+**Reading station recipes and ingredient manifests:**
+- **`CraftingStation._knownBlueprints : Dict<Int32,CraftBlueprint>`** populates (137 on a
+  Workshop-tier station); per-table `CraftInteraction._localBlueprints : Dict<Int32,CraftBlueprintInfo>`
+  also populates (112/12/2 across CraftInteraction/AnvilInteraction/CarpenterInteraction). Recipe
+  manifests read cleanly via `ItemManifest.CreateFromBlueprint(CraftBlueprintInfo)` — e.g. '10x
+  Wood Arrow' = Stick x3 + Feathers x5; 'Iron Bar' = Hot Iron Bloom x4; 'Wood Post' = Hardwood
+  Log x1. **Idea-12's blueprint→station/BOM cache should be built by ITERATING these dictionaries
+  directly.**
+- **DEAD-END: `KnowsBlueprintForItem` (BOTH station- and table-level) returns false + null even
+  when the same table's `_localBlueprints` demonstrably contains the item's blueprint** (confirmed
+  in-game 2026-07-12: AnvilInteraction has Iron Bar id=16809986; KnowsBlueprintForItem('Iron
+  Bar')=false on all 3 tables + station despite pointer-identity match with blueprint.GetItemInfo()
+  returning the same native instance). **Semantics unknown — do NOT use it for item→blueprint
+  lookup; iterate the dictionaries instead.**
+- **Composition-scan cost reference (confirmed in-game 2026-07-12):** per-station inventory read
+  via `ItemCollection.GetItemInfos()` + `GetItemQuantity()`, rolling 0.2–5.1 ms per station, full
+  31-station pass ≈ 6–20 ms, 61-station pass ≈ 10.8 ms, no degradation under invasion. No
+  SupplyChainMod exceptions across any test run.
 
 **Storage acceptance / the Outhouse container (OuthouseComposter groundwork, confirmed in-game 2026-07-11)**
 **Container acceptance is NOT storage-class-based alone.** Pointer-verified in-game: every

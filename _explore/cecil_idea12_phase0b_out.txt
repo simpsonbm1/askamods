@@ -1,0 +1,360 @@
+﻿===== A. FiltersTaskData + CraftingStationTaskData full surface =====
+TYPE: SSSGame.AI.FiltersTaskData base=SSSGame.AI.WorkstationTaskData
+  P: c_taskFilterItemPriority : System.String
+  P: c_taskItemFilter : System.String
+  P: _workstation : SSSGame.IFilterTaskStation
+  P: _filterItemPriorityList : Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo>
+  P: _itemFilter : Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Int32>
+  P: TaskID : System.Int32
+  P: FilterItemPriorityList : Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo>
+  P: FilterItemAvailabilities : Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Int32>
+  M: Void .cctor() [static]
+  M: Void .ctor(IFilterTaskStation workstation, Int32 taskId)
+  M: Void InitializeFilterItems() [virtual]
+  M: Void OnAfterFiltersChanged() [virtual]
+  M: List`1 GetStationFilterItems() [virtual]
+  M: Int32 GetFilterItemPriority(ItemInfo itemFilterInfo) [virtual]
+  M: Sprite GetTaskIcon() [virtual]
+  M: String GetTaskName() [virtual]
+  M: DataObject Serialize(DataObject data) [virtual]
+  M: Boolean Deserialize(DataObject tdObj) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Boolean GetFilterItemValidation(Int32 filterItemIndex, String& tooltipData) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.AI.CraftingStationTaskData base=SSSGame.AI.WorkstationTaskData
+  P: dyeingBlueprint : SSSGame.DyeingBlueprint
+  P: craftingStation : SSSGame.CraftingStation
+  P: refurbishOption : System.Boolean
+  P: _quantityRange : UnityEngine.Vector2Int
+  M: Void .cctor() [static]
+  M: Void .ctor(List`1 villagers, CraftingStation craftingStation)
+  M: Void .ctor(Int32 quantity, List`1 villagers, CraftingStation craftingStation)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, CraftingStation craftingStation)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable, CraftingStation craftingStation)
+  M: Void _RefreshQuantityRange()
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.AI.BuildStationTaskData base=SSSGame.AI.WorkstationTaskData
+  P: buildStation : SSSGame.Buildstation
+  P: taskType : SSSGame.Buildstation/TaskType
+  M: Void .cctor() [static]
+  M: Void .ctor(Buildstation buildStation, TaskType taskType, List`1 villagers)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable)
+  M: Sprite GetTaskIcon() [virtual]
+  M: String GetTaskName() [virtual]
+  M: DataObject Serialize(DataObject data) [virtual]
+  M: Boolean Deserialize(DataObject data)
+  M: Boolean _Deserialize(DataObject data) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+===== B. Types deriving from NetworkWorkstation (concrete instantiations + TaskType arg) =====
+SSSGame.Network.NetworkBloomStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkBloomStation/NetworkTask>
+SSSGame.Network.NetworkBoatBuildingStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkBoatBuildingStation/NetworkTask>
+SSSGame.Network.NetworkBuildstation  :  NetworkWorkstation`1<SSSGame.Network.NetworkBuildstation/NetworkTask>
+SSSGame.Network.NetworkCompositeResourceStorage  :  NetworkWorkstation`1<SSSGame.Network.NetworkCompositeResourceStorage/NetworkTask>
+SSSGame.Network.NetworkCookingStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+SSSGame.Network.NetworkCraftingStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkCraftingStation/NetworkTask>
+SSSGame.Network.NetworkFarmingStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkFarmingStation/NetworkTask>
+SSSGame.Network.NetworkFilterTask`1  :  NetworkWorkstation`1<TaskType>
+SSSGame.Network.NetworkFishingStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkFishingStation/NetworkTask>
+SSSGame.Network.NetworkForester  :  NetworkWorkstation`1<SSSGame.Network.NetworkForester/NetworkTask>
+SSSGame.Network.NetworkMarketplace  :  NetworkWorkstation`1<SSSGame.Network.NetworkMarketplace/NetworkTask>
+SSSGame.Network.NetworkPatrolStation  :  NetworkWorkstation`1<SSSGame.Network.NetworkPatrolStation/NetworkTask>
+SSSGame.Network.NetworkSimpleResourceStorage  :  NetworkWorkstation`1<SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask>
+SSSGame.Network.NetworkSlaughterTask  :  NetworkWorkstation`1<SSSGame.Network.NetworkSlaughterTask/NetworkTask>
+
+===== C. The network task structs themselves (fields = what Rpc_AddTask needs) =====
+STRUCT: SSSGame.Network.NetworkBloomStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemID : System.IntPtr
+  F: NativeFieldInfoPtr_quantity : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemID : System.UInt16
+  F: quantity : System.Byte
+
+STRUCT: SSSGame.Network.NetworkBoatBuildingStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_type : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: type : System.Byte
+  F: villagersInCharge : System.Byte
+
+STRUCT: SSSGame.Network.NetworkBuildstation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr__lightScheduleAndTaskTypeBuffer : System.IntPtr
+  F: NativeFieldInfoPtr_filter : System.IntPtr
+  F: NativeFieldInfoPtr__VillagersInCharge : System.IntPtr
+  F: NativeMethodInfoPtr_get_Type_Public_get_Byte_0 : System.IntPtr
+  F: NativeMethodInfoPtr_set_Type_Public_set_Void_Byte_0 : System.IntPtr
+  F: NativeMethodInfoPtr_get_LightSchedule_Public_get_Int32_0 : System.IntPtr
+  F: NativeMethodInfoPtr_set_LightSchedule_Public_set_Void_Int32_0 : System.IntPtr
+  F: NativeMethodInfoPtr_get_VillagersInCharge_Public_get_NetworkArray_1_BitSet256_0 : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: _lightScheduleAndTaskTypeBuffer : System.Int32
+  F: filter : System.Int32
+  F: _VillagersInCharge : Fusion.CodeGen.ValueTypePrivateSealedINetworkStructDaIn_1_2In_3_4_5In_60
+  P: Type : System.Byte
+  P: LightSchedule : System.Int32
+  P: VillagersInCharge : Fusion.NetworkArray`1<Fusion.BitSet256>
+
+STRUCT: SSSGame.Network.NetworkCompositeResourceStorage/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+
+STRUCT: SSSGame.Network.NetworkCookingStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemID : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeFieldInfoPtr_quantity : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemID : System.UInt16
+  F: villagersInCharge : System.Byte
+  F: quantity : System.Byte
+
+STRUCT: SSSGame.Network.NetworkCraftingStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemID : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeFieldInfoPtr_dyeIndex : System.IntPtr
+  F: NativeFieldInfoPtr_itemQuantity : System.IntPtr
+  F: NativeFieldInfoPtr_propertiesMask : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemID : System.UInt16
+  F: villagersInCharge : System.Byte
+  F: dyeIndex : System.SByte
+  F: itemQuantity : System.Int16
+  F: propertiesMask : System.Byte
+
+STRUCT: SSSGame.Network.NetworkFarmingStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemIDs : System.IntPtr
+  F: NativeFieldInfoPtr_farmCropID : System.IntPtr
+  F: NativeFieldInfoPtr_cellIndex : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemIDs : System.UInt16
+  F: farmCropID : System.Byte
+  F: cellIndex : System.Byte
+
+STRUCT: SSSGame.Network.NetworkFishingStation/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemID : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeFieldInfoPtr_priority : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemID : System.UInt16
+  F: villagersInCharge : System.Byte
+  F: priority : System.Byte
+
+STRUCT: SSSGame.Network.NetworkForester/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemIDs : System.IntPtr
+  F: NativeFieldInfoPtr_cellIndex : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemIDs : System.UInt16
+  F: cellIndex : System.Byte
+
+STRUCT: SSSGame.Network.NetworkMarketplace/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_source : System.IntPtr
+  F: NativeFieldInfoPtr_target : System.IntPtr
+  F: NativeFieldInfoPtr_cart : System.IntPtr
+  F: NativeFieldInfoPtr_id : System.IntPtr
+  F: NativeFieldInfoPtr_priority : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeFieldInfoPtr_manifest : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: source : Fusion.NetworkId
+  F: target : Fusion.NetworkId
+  F: cart : Fusion.NetworkId
+  F: id : System.UInt16
+  F: priority : System.Byte
+  F: villagersInCharge : System.Byte
+  F: manifest : SSSGame.Network.NetworkMarketplace/NetworkManifest
+
+STRUCT: SSSGame.Network.NetworkPatrolStation/NetworkTask (isValueType=False) base=Il2CppSystem.ValueType
+  F: NativeFieldInfoPtr_buffer : System.IntPtr
+  F: NativeFieldInfoPtr_name : System.IntPtr
+  F: NativeFieldInfoPtr___PatrolPoints : System.IntPtr
+  F: NativeMethodInfoPtr_get__PatrolPoints_Public_get_NetworkArray_1_NetworkPatrolPoint_0 : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  P: buffer : SSSGame.Network.NetworkPatrolStation/NetworkTaskBuffer
+  P: name : Fusion.NetworkString`1<Fusion._16>
+  P: __PatrolPoints : Fusion.CodeGen.ValueTypePrivateSealedINetworkStructDaIn_1_2In_3_4_5In_62
+  P: _PatrolPoints : Fusion.NetworkArray`1<SSSGame.Network.NetworkPatrolStation/NetworkPatrolPoint>
+
+STRUCT: SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_itemID : System.IntPtr
+  F: NativeFieldInfoPtr_quantity : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeFieldInfoPtr_priority : System.IntPtr
+  F: NativeFieldInfoPtr_storageIndex : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: itemID : System.UInt16
+  F: quantity : System.Int16
+  F: villagersInCharge : System.Byte
+  F: priority : System.Byte
+  F: storageIndex : System.Byte
+
+STRUCT: SSSGame.Network.NetworkSlaughterTask/NetworkTask (isValueType=True) base=System.ValueType
+  F: NativeFieldInfoPtr_quantity : System.IntPtr
+  F: NativeFieldInfoPtr_villagersInCharge : System.IntPtr
+  F: NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : System.IntPtr
+  F: quantity : System.Int16
+  F: villagersInCharge : System.Byte
+
+===== D. IWorkstation interface surface (what WorkstationMenu drives) =====
+TYPE: SSSGame.AI.IWorkstation
+  M: Void .cctor() [static]
+  M: Il2CppReferenceArray`1 get_NetworkWorkstations() [virtual]
+  M: List`1 get_BoundWorkstations() [virtual]
+  M: Boolean get_IsVikingWorkstation() [virtual]
+  M: Void add_OnWorkstationChanged(Action`1 value) [virtual]
+  M: Void remove_OnWorkstationChanged(Action`1 value) [virtual]
+  M: Void add_OnTaskAdded(Action`2 value) [virtual]
+  M: Void remove_OnTaskAdded(Action`2 value) [virtual]
+  M: Void add_OnTaskRemoved(Action`2 value) [virtual]
+  M: Void remove_OnTaskRemoved(Action`2 value) [virtual]
+  M: TaskDataComponents GetTaskDataFlags() [virtual]
+  M: Boolean CanCreateTasks() [virtual]
+  M: GameObject GetGameObject() [virtual]
+  M: String GetName() [virtual]
+  M: Boolean SetTaskAgent(ITaskAgent agent) [virtual]
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent) [virtual]
+  M: ITaskAgent FindTaskAgent(Predicate`1 predicate) [virtual]
+  M: Int32 GetAgentsCount() [virtual]
+  M: Int32 GetAgentsCapacity() [virtual]
+  M: Boolean AddTaskDispatcher(ITaskDispatcher td) [virtual]
+  M: Void RemoveTaskDispatcher(ITaskDispatcher td) [virtual]
+  M: ITaskDispatcher FindTaskDispatcher(Predicate`1 predicate) [virtual]
+  M: List`1 GetAssignedVillagers() [virtual]
+  M: List`1 GetWorkstationTaskDatas() [virtual]
+  M: Void AddTaskData(WorkstationTaskData data) [virtual]
+  M: Void RemoveTaskData(WorkstationTaskData data) [virtual]
+  M: Void ClearTaskDatas() [virtual]
+  M: Void RefreshTaskDataPriorities() [virtual]
+  M: Structure GetStructure() [virtual]
+  M: Boolean CheckForDuplicateTaskData(WorkstationTaskData workstationTaskData) [virtual]
+  M: Void OnBeforeBoundWorkstationSerialization() [virtual]
+  M: Void ReplaceBoundWorkstation(DataObject source, IWorkstation toReplace, IWorkstation replacement) [virtual]
+  M: DataObject SerializeTaskData(DataObject destination) [virtual]
+  M: DataObject SerializeTaskDataForRecreation(DataObject destination) [virtual]
+  M: Boolean DeserializeTaskData(DataObject source) [virtual]
+  M: Boolean DeserializeTaskDataForRecreation(DataObject source) [virtual]
+  M: Sprite GetJobIcon() [virtual]
+  M: Color GetJobColor() [virtual]
+  M: Void CheckUndiscoveredTasks(Int32& undiscoveredTasksFound, String& discoveryTip) [virtual]
+  M: Boolean IsFuelNeededByVillager(ItemInfo itemInfo, Villager villager) [virtual]
+  M: Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager) [virtual]
+  M: ItemCollection GetInventory() [virtual]
+  M: DataObject SerializeTasksPreset(Structure targetStructure) [virtual]
+  M: Boolean DeserializeTasksPresetData(DataObject tasksPresetData, Structure targetStructure) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+===== E. SettlementIssueTrackerWidget surface (no-production maps) =====
+TYPE: SSSGame.SettlementIssueTrackerWidget base=SSSGame.HUDWidget
+  P: c_UnhappyThreshold : System.Single
+  P: _Instance_k__BackingField : SSSGame.SettlementIssueTrackerWidget
+  P: c_LowHpThreshold : System.Single
+  P: IssuesButtonPrompt : UnityEngine.GameObject
+  P: IssuesHighlight : UnityEngine.RectTransform
+  P: WaterSuppliesTemplates : Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate>
+  P: FoodProductionTemplates : Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate>
+  P: WarmthOutletTemplates : Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate>
+  P: StructuresAndVillagersCheckRate : System.Single
+  P: coreTemplate : SSSGame.NodeTemplate
+  P: homelessVillagersIssueIcon : UnityEngine.Sprite
+  P: waterSupplyIssueIcon : UnityEngine.Sprite
+  P: warmthIssueIcon : UnityEngine.Sprite
+  P: foodIssueIcon : UnityEngine.Sprite
+  P: immigrationIssueIcon : UnityEngine.Sprite
+  P: unhappyVillagersIssueIcon : UnityEngine.Sprite
+  P: sufferingVillagersIssueIcon : UnityEngine.Sprite
+  P: unrepairedStructuresIssueIcon : UnityEngine.Sprite
+  P: undefendedStructuresIssueIcon : UnityEngine.Sprite
+  P: unwalledStructuresIssueIcon : UnityEngine.Sprite
+  P: sockIssueConfigurations : Il2CppSystem.Collections.Generic.List`1<SSSGame.SettlementIssueTrackerWidget/StockIssueConfiguration>
+  P: _outpostStockIssues : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,Il2CppSystem.Collections.Generic.List`1<SSSGame.SettlementIssueTrackerWidget/SettlementStockIssue>>
+  P: _HasWaterSupplyIssues_k__BackingField : System.Boolean
+  P: _HasWarmthIssues_k__BackingField : System.Boolean
+  P: _HasFoodProductionIssues_k__BackingField : System.Boolean
+  P: _HasHomelessVillagers_k__BackingField : System.Boolean
+  P: _HasImmigrationIssues_k__BackingField : System.Boolean
+  P: _UnrepairedBuildingPercentage_k__BackingField : System.Single
+  P: _UndefendedBuildingsPercentage_k__BackingField : System.Single
+  P: _UnhappyVillagersCount_k__BackingField : System.Int32
+  P: _SufferingVillagersCount_k__BackingField : System.Int32
+  P: _GastronomicallyDissatisfiedVillagers_k__BackingField : System.Int32
+  P: _OverrideNoIssues_k__BackingField : System.Boolean
+  P: _UnwalledBuildingsPercentage_k__BackingField : System.Single
+  P: _settlementManager : SSSGame.SettlementManager
+  P: _populationManager : SSSGame.PopulationManager
+  P: _settingsManager : SSSGame.SettingsManager
+  P: _markersComplaintsMap : Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.Workstation,Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,System.Int32>>
+  P: _storageFullComplaintsMap : Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.Workstation,System.Int32>
+  P: _mineExhaustedComplaintsMap : Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.Workstation,System.Int32>
+  P: _noCraftingStationComplaints : Il2CppSystem.Collections.Generic.HashSet`1<SandSailorStudio.Inventory.ItemInfo>
+  P: _maxCraftingStationTier : System.Int32
+  P: _noProductionComplaints : Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,System.String>
+  P: _farmComplaints : Il2CppSystem.Collections.Generic.List`1<SSSGame.FarmingStation>
+  P: _checkTimer : System.Single
+  P: _tasksFilter : SandSailorStudio.Inventory.Utils.MultiCategoryItemFilter
+  P: _stringBuilder : Il2CppSystem.Text.StringBuilder
+  P: _genericSettlementIssues : Il2CppSystem.Collections.Generic.List`1<SSSGame.SettlementIssueTrackerWidget/SettlementIssue>
+  P: _allShips : Il2CppSystem.Collections.Generic.List`1<SSSGame.Water.SailingShip>
+  P: _outposts : Il2CppSystem.Collections.Generic.List`1<SSSGame.IOutpostDataHolder>
+  P: _lastResourecesQueryManifests : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Inventory.ItemManifest>
+  P: c_StockIssuesArrayKey : System.String
+  P: c_OutpostIdKey : System.String
+  P: c_IssueID : System.String
+  P: c_IssueData : System.String
+  P: Instance : SSSGame.SettlementIssueTrackerWidget
+  P: SettlementManager : SSSGame.SettlementManager
+  P: PopulationManager : SSSGame.PopulationManager
+  P: SettingsManager : SSSGame.SettingsManager
+  P: HasGeneralIssues : System.Boolean
+  P: HasWaterSupplyIssues : System.Boolean
+  P: HasWarmthIssues : System.Boolean
+  P: HasFoodProductionIssues : System.Boolean
+  P: HasHomelessVillagers : System.Boolean
+  P: HasImmigrationIssues : System.Boolean
+  P: UnrepairedBuildingPercentage : System.Single
+  P: UndefendedBuildingsPercentage : System.Single
+  P: UnhappyVillagersCount : System.Int32
+  P: SufferingVillagersCount : System.Int32
+  P: GastronomicallyDissatisfiedVillagers : System.Int32
+  P: OverrideNoIssues : System.Boolean
+  P: MaxCraftingStationTier : System.Int32
+  P: UnwalledBuildingsPercentage : System.Single
+  P: LastQueryResources : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Inventory.ItemManifest>
+  M: Void .cctor() [static]
+  M: Void Activate() [virtual]
+  M: Void Run() [virtual]
+  M: Void Deactivate() [virtual]
+  M: Void _OnOutpostRemoved(OutpostStructure structure)
+  M: Void _OnOutpostAdded(OutpostStructure structure)
+  M: Void _AddIssuesForOutpost(Int32 outpostId)
+  M: Boolean _CheckHomelessVillager(Villager v)
+  M: Boolean _CheckUnhappyVillager(Villager v)
+  M: Boolean _CheckSufferingVillager(Villager v)
+  M: Boolean _CheckFoodIntakeVillager(Villager v)
+  M: Void _RefreshNoIssuesOverride()
+  M: Void _CheckStockIssues()
+  M: Void _LookForVillagerIssues()
+  M: Void _CheckImmigration()
+  M: Boolean _ComponentIsVillagerOutlet(IStructureComponent cmp) [static]
+  M: Void _OnUpcomingVillagerDataChanged(UpcomingVillagerData obj)
+  M: Void _LookForStructuresIssues()
+  M: Void _HandleHighlight()
+  M: Boolean TryGetOutpostStockIssue(Int32 outpostID, ItemTableConfig config, Int32 tierFilter, SettlementStockIssue& issue)
+  M: IEnumerator`1 GetGenericIssues()
+  M: IEnumerator`1 GetMarkersComplaints()
+  M: IEnumerator`1 GetStorageFullComplaints()
+  M: IEnumerator`1 GetMineExhaustedComplaints()
+  M: IEnumerator`1 GetCraftingStationComplaints()
+  M: IEnumerator`1 GetProductionComplaints()
+  M: IEnumerator`1 GetFarmingStationComplaints()
+  M: IEnumerator`1 GetAllSailingShips()
+  M: Void CheckAll()
+  M: Void AddStorageFullComplaint(Workstation workstation)
+  M: Void AddMarkerComplaint(Workstation workstation, HarvestMarkerComplaint complaint)
+  M: Void AddMineExhaustedComplain(Workstation workstation)
+  M: Void RemoveStorageFullComplaint(Workstation workstation)
+  M: Void RemoveMarkerComplaint(Workstation workstation, HarvestMarkerComplaint complaint)
+  M: Void RemoveMineIsFullComplain(Workstation workstation)
+  M: DataObject SerializeStockIssues(DataObject root)
+  M: Boolean DeserializeStockIssues(DataObject root)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)

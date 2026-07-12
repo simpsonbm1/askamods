@@ -388,6 +388,30 @@ Redirect chains are shallow by construction (~depth 2 — they bottom out at cap
 scope contract assigns to the player); a redirect that can't resolve becomes an alert. Never
 escalate or re-fire a boost whose precondition still fails.
 
+*Case study — genuine gatherer starvation (co-op save, Phase 0 run 4, confirmed in-game
+2026-07-12):* two dedicated ore miners cannot keep pace with iron consumption — Improved
+Bloomery 4 sat at Coal x75 / Iron Ore x6 (composition sweep) while a bloomery worker complained
+`ItemManifestComplaint: Iron Ore x4 + Metal Scraps x4`. No lever fixes this: the bottleneck is
+real gathering capacity, not misallocation. Design requirements derived:
+1. **Distinguish misallocation from capacity deficit.** Detection is metabolic-plane derivatives:
+   sustained negative net rate (consumption > intake) for the item across N sweeps while the
+   upstream gatherer lever is already at max — or a would-be gatherer boost fails preconditions.
+2. **In capacity deficit, boost at most ONCE, measure, then stop and ALERT.** If the net rate
+   doesn't improve after one boost cycle, mark the chain capacity-limited, revert, alert the
+   player ("iron consumption exceeds intake; miners already maxed — add miners/mine or reduce
+   consumers"), and cool down before re-evaluating. Winner-take-all (F3c) makes repeat-boosting
+   an ineffective lever actively harmful — it monopolizes the miner on an unmeetable quota.
+   Alert-only is the v1 behavior; demand-side throttling (deprioritizing the starved consumer)
+   is a possible later refinement, not in scope initially.
+3. **Complaint identity must be villager+type+payload, not the complaint id** — the game issues
+   a FRESH id per re-complaint (observed: Heavy Pelt/Pelt complainants re-complained every ~3 s,
+   ids incrementing 4→28), so id-keyed tracking makes a chronic need look like hundreds of
+   transients. Hold-time accumulates across re-issues of the same identity.
+4. **Controller ignore-list (non-supply keys, from field data):** feelUnsafe*, villager_homeless
+   (sub-second churn blips), villager_jobless (≈ the builder pool — unassigned villagers park on
+   the Buildstation), napTime/foodSafe/waterSafe/warmthSafe/restSafe transients, AttackTarget
+   noise; `complaint.alarm` (held exactly 60 s) is the actuation-lockout signal, not demand.
+
 *Performance contract (the stack is already CPU-bound — architecture.md "Mod-side frame hitches"):*
 nothing per-frame. Controller tick every 5–10 s under a stopwatch budget (~2 ms), yielding
 leftover work to the next tick (DVN cohort pattern). Static data cached ONCE at world load
@@ -399,13 +423,9 @@ Sizing reference: reactive + metabolic is an order of magnitude lighter than DVN
 all-villager ticks (worst cohort 28 ms).
 
 *Phasing (each phase ships alone and burns down one unknown):*
-- **Phase 0 — flow diagnostics (read-only):** log complaints as they arrive w/ TryCast payloads
-  (verifies AddComplaint fires, not inlined); log task datas (priority ints / tiers / quotas) on
-  both station kinds; capture the no-production complaint class + payload (the "villagers are not
-  producing X that Y workers need" alert); test whether storage-full fires for a byproduct clog
-  and whether ANYTHING fires for dead inventory; dump `CraftBlueprint` ingredient structure (BOM
-  feasibility); find the native add-task UI path/RPC via Cecil; prototype the composition sweep
-  and measure its real cost.
+- **Phase 0 — flow diagnostics (read-only), SHIPPED as SupplyChainMod v0.1.3** — all Phase 0
+  unknowns answered in-game 2026-07-12; findings absorbed into `docs/architecture.md`
+  (`docs/mods/supply-chain.md` for the diagnostic mod itself).
 - **Phase 1 — crafting priority bumps** (boost/revert/duty-cycle + ledger; solo/host).
 - **Phase 2 — storage drain management** (warehouse allotment quota/priority; fixes the byproduct
   clog; the metabolic plane comes online here).
@@ -420,12 +440,20 @@ all-villager ticks (worst cohort 28 ms).
 - Deferred idea from v1, unchanged status: "priority softening" (patch task-selection into
   weighted/round-robin) — deeper + riskier; duty-cycling achieves most of it externally.
 
-*Open unknowns (Phase 0 targets):* priority Int32 rank-vs-index semantics; `Rpc_ChangeTaskPriority`
-args; the gathering tier-set RPC; the native add-task path + whether mod-created tasks serialize
-like player ones; the no-production complaint class + payload; complaint add/remove cadence
-(hysteresis tuning); AddComplaint AOT-inlining; `NetworkWorkstation<T>` base-chain reachability
-from station wrappers; TryCast on complaint subclasses in practice; `CraftBlueprint` ingredient
-access; whether storage-full fires for byproduct clogs / anything fires for dead inventory.
+*Open unknowns (Phase 0 ANSWERED in-game 2026-07-12):*
+**Answered:** `Rpc_ChangeTaskPriority` args (taskIndex, newPriority); gathering tier mechanism
+(FiltersTaskData filters + Rpc_ChangeTaskFilters); native add-task path exists (Rpc_AddTask +
+WorkstationMenu.AddTaskDataToWorkstation); no-production complaint payload (SettlementIssueTrackerWidget
+map ItemInfo→needed-by string); storage-full fires (typed StorageFullComplaint + widget map);
+complaint cadence (level signal, re-add ~50–100 ms, fresh id ~3 s, chronic 40–160 s vs transient
+<2 s, alarm 60 s); AddComplaint not inlined; complaint TryCast works; CraftBlueprint ingredient
+access (via _localBlueprints + CreateFromBlueprint; KnowsBlueprintForItem is a dead-end); sweep
+cost measured (6–20 ms per 31 stations, 10.8 ms per 61 stations).
+
+**Still open:** priority Int32 rank-vs-index semantics (all live priorities were 0 in-game);
+whether mod-created tasks serialize like player ones; dead-inventory native alert (untested; sweep-only
+detection assumed per design); `NetworkWorkstation<T>` base-chain reachability from station
+wrappers (unexercised — Phase 0 never touched the network classes at runtime).
 
 *Sequencing dependency:* do NOT start building while the stack's hitching investigation is open —
 land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,
