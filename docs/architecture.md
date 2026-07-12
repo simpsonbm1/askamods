@@ -772,6 +772,18 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses
   the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply
   stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+- **Storage-flow failure modes (confirmed in-game 2026-07-12, co-op save)** — two ways a station
+  stalls even when materials are plentiful (motivating cases for the idea-12 supply-chain mod):
+  1. **Byproduct clog:** the hunting hut's storage saturated with bone fragments while the
+     warehouse's own allotment for fragments was ALSO full → haulers stopped draining → hunters
+     had nowhere to deposit meat and stopped hunting → settlement-wide food shortage despite
+     healthy production capacity. Vanilla mitigation: cap the byproduct's count in the station
+     storage. General lesson: the fix for a clog is often boosting the DRAIN (the warehouse's
+     collect task/quota for the clogging item), not any producer.
+  2. **Dead inventory:** the cooking house had no task consuming raw vegetables → foods WITH tasks
+     were eaten first, then storage filled with task-less raw food → same intake clog. ⚠️ Whether
+     any native complaint fires in this state is unverified (the failure was noticed via the food
+     shortage, not an alert).
 
 ---
 

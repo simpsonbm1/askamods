@@ -212,20 +212,40 @@ window, highlight the overlapping hours in the schedule panel and show e.g.
 
 ---
 
-## 12. Demand-driven crafting prioritization — new mod (planned, fully plausible — research 2026-07-09)
+## 12. Demand-driven supply-chain autopilot — new mod (planned; design v2 2026-07-12)
 
-**Goal:** automatically adjust recipe priorities based on downstream demand — e.g. armorsmith
-missing iron plates → plates jump the metalworker's queue; archers need arrows → arrows jump for
-craftspeople; conflict resolution TBD.
+**Goal:** keep a settlement's whole supply chain running without micromanagement. The player's
+manually-set tasks/quotas are the demand declaration ("keep this many on hand") and the player owns
+total storage CAPACITY (villagers never build storage — hard non-goal); within that cap the mod
+manages THROUGHPUT: adjusts crafting-task priorities to meet downstream demand, creates missing
+crafting tasks for items that are called for but not being made, manages storage quotas/priorities
+so materials flow without upstream clogs, and adjusts gathering tiers to feed it all. The
+supply-chain health chain being serviced: (1) right materials collected in the right quantity →
+(2) enough storage available for the needed materials → (3) tasks exist for everything that needs
+producing → (4) in-demand products outrank low-demand ones → (5) finished products have storage
+room to reach their consumers. Each question decomposes into sub-checks at implementation time —
+handled structurally by the actuation-preconditions rule in F4, not enumerated upfront.
 
-**Source:** Nexus discussion on DynamicVillagerNeedsMod (2026-07-09), user suggested as a SEPARATE
-MOD (not baked into DVN). Captures the "optimize villager labor" spirit but via a different lever:
-instead of schedule/rest/needs automation, tune the recipe *dispatch* priority to match the game's
-current bottleneck.
+**Source:** Nexus discussion on DynamicVillagerNeedsMod (2026-07-09; user suggested a SEPARATE mod,
+not baked into DVN). Design sessions: 2026-07-09 (F1–F3 machinery research + a boost-only design)
+and 2026-07-12 (scope expanded to full supply-chain management after two in-game storage-flow
+failures — design v2 below supersedes the boost-only synthesis).
 
-**Verdict:** fully plausible — every link confirmed native and structured (no guessing needed).
+**Verdict:** actuation is plausible — three levers (priority, quota, task-existence), each against
+Cecil-confirmed machinery. The real risk is the CONTROLLER: closed-loop control over a
+winner-take-all scheduler with four interacting actuators WILL oscillate unless the discipline
+rules below are load-bearing.
 
-**Core machinery:**
+**Motivating failure modes (confirmed in-game 2026-07-12).** A station stalls three ways:
+- **missing input** — native complaints cover this (F1);
+- **blocked output/byproduct** — hunting hut saturated with bone fragments while the warehouse's
+  fragment allotment was also full → haulers stopped draining → hunters stalled → food shortage;
+- **dead inventory** — cooking house filled with raw vegetables no cooking task consumed; foods
+  WITH tasks were eaten first, then intake clogged. ⚠️ unverified whether ANY native complaint
+  fires here (noticed via the shortage, not an alert).
+Full detail: `docs/architecture.md` → Settlement Hauling → "Storage-flow failure modes".
+
+**Core machinery (research 2026-07-09):**
 
 **F1 — Villager complaint system [Cecil, 2026-07-09].** `SSSGame.AI.Complaint`
 (Il2CppSystem.Object-derived) is a typed, structured system behind villager
@@ -281,31 +301,135 @@ carrying output away keep the quota unmet, so the top task never completes (inte
 design). Type mapping [Cecil-corroborated]: rank = `WorkstationTaskData.priority : Int32` (one-step
 UI moves); quota = `itemInfoQuantity`; tier = [likely] `WorkstationTaskPriority`.
 
-**F4 — Idea-12 approach design (session synthesis, 2026-07-09; no code, nothing built).** Chain:
-complaint event → missing ItemInfo → find station(s) with an EXISTING matching task (never create
-tasks — user scope guard) → temporary priority boost through the game's own RPC → revert. Design
-decisions: (1) transient boost is the feature (winner-take-all makes "drop everything briefly"
-work); REVERT is the safety-critical core AND the normal termination path (hauler drain means a
-boost never self-terminates at the station; only complaint-clear or window-expiry end it); (2)
-stranded-boost risk: since priorities persist in saves, Phase 1 needs a mod-side per-world store of
-original priorities restored at world load + a hard max-boost-duration; (3) duty-cycling (boost N
-minutes → restore → cooldown → re-boost if complaint persists) = soft-priority behavior without
-patching game code; (4) same-station conflicts (e.g. archers need arrows + farmer needs hoes from
-one workshop): per-station micro-scheduler — ONE active boost, queue ordered by
-`Complaint.important` then FIFO, time-slice rotation until all clear; optional later:
-shortest-job-first via demand quantities (manifest/loadout complaints carry counts); (5) TWO
-bump/revert flavors needed: rank-move (crafting) vs tier-set (gathering) — Phase 0 checks whether
-Rpc_ChangeTaskPriority serves both; (6) QUOTA is a second candidate lever — a demand-derived
-temporary quota could make boosts self-limiting; (7) stretch/maybe-separate-mod: "priority
-softening" — patch the task-selection logic into weighted/round-robin — deeper+riskier, duty-cycle
-achieves most of it externally. Phasing: Phase 0 read-only diagnostics (log complaints as they
-arrive w/ payloads; log task datas incl. priority ints/tiers/quotas on both station kinds; locate
-the task-selection method; verify AddComplaint patch fires, TryCast subclasses, Rpc args) → Phase 1
-auto-bump w/ duty-cycle + revert + per-world originals store (solo/host) → Phase 2 config polish
-(which complaint classes act, window/cooldown, magnitude). Open unknowns list: priority Int32
-rank-vs-index semantics; Rpc_ChangeTaskPriority args; complaint add/remove cadence (hysteresis
-tuning); AddComplaint AOT-inlining; NetworkWorkstation<T> base-chain reachability from station
-wrappers; TryCast in practice.
+**F4 — Design v2 (2026-07-12; no code, nothing built).**
+
+*Scope contract (replaces the original "never create tasks" guard):*
+- **Pinned tasks (`WorkstationTaskData.pinnedTask` — [likely] the native "don't touch" flag) and
+  player-created tasks are SACROSANCT** — never edited, never deleted. The player's task list and
+  quotas ARE the demand declaration the mod services.
+- The mod only (a) temporarily boosts priorities/quotas with guaranteed revert, and (b) creates
+  its own tasks — through the native add-task path only, and only for blueprints the station
+  already knows (`CraftingStation.KnowsBlueprintForItem` ⇒ tech gating for free). Everything it
+  does is recorded in the ledger (below). Dropping the old guard is justified because the game
+  itself computes "item needed but no task exists" (the no-production / no-crafting-station maps
+  in `SettlementIssueTrackerWidget`, F1) — the mod completes a loop the game already surfaces.
+- Player owns capacity; mod owns throughput within it.
+- **Inter-settlement market automation is OUT of scope** — transport latency wrecks the control
+  loop (a boost whose effect lands minutes later, after a courier walk, invites oscillation and
+  double-ordering). Stretch goal instead: a REPORT-only cross-settlement surplus/deficit pairing
+  ("A has surplus X, B has a standing X deficit") — nearly free once per-settlement controllers
+  exist, and the player sets the market task manually.
+
+*Controller architecture:*
+- **Per-settlement controllers, created LAZILY.** Every captured complaint/task/station event
+  arrives on an instance that knows its owning settlement — look up or spin up that settlement's
+  controller on first contact. Never enumerate settlements (`SettlementManager.settlements` stays
+  null — universal gotcha); lazy creation also handles settlements founded mid-session. One shared
+  scheduler round-robins all controllers (never N independent loops). All state keyed by stable
+  IDs, never interop wrapper refs; everything drops on world-leave (`NoteWorldLeft` pattern).
+- **Two planes** (the load-bearing structural decision):
+  - **Reactive plane — push-based.** Harmony postfix on `AddComplaint` (+ task-change events)
+    queues work; the controller tick drains it. Handles ACUTE failures. A storage-full complaint
+    dirty-flags the station for a composition scan: the event says WHERE to look, the scan says
+    WHAT is wrong (e.g. "full, but full of bones").
+  - **Metabolic plane — a rolling composition sweep,** ~1 station per tick, full settlement
+    coverage every 2–5 min, snapshotting per-item stack counts. The ONLY source for chronic
+    problems: silent saturation (dead inventory fires no event) and ratio/rebalance decisions
+    ("hunter hut should be 20% bones / 80% meat"), which need DERIVATIVES — fill/consumption
+    rates from successive snapshots; no event can yield a trend. Polling is also FORCED here:
+    patching methods with inventory-family params is a fatal native crash (universal gotcha,
+    VillagerAmmo), so no event-driven path to item movement exists at all.
+  - Snapshot store: ring buffer of the last K sweeps per station, stable-ID-keyed, dropped on
+    world-leave (bounded memory).
+- **Anti-oscillation discipline:** ONE arbiter per settlement — no independent per-feature logic
+  (else: boost arrows → arrows flood storage → drain-boost → arrow complaint returns → re-boost,
+  forever). Every actuator duty-cycled: boost N minutes → restore → cooldown → re-boost only if
+  the complaint persists (revert is BOTH the safety core and the normal termination — hauler
+  drain means a boost never self-terminates at the station). Hysteresis on all triggers.
+  Same-station conflicts: ONE active boost per station, queue ordered by `Complaint.important`
+  then FIFO, time-slice rotation until clear; optional later: shortest-job-first via demand
+  quantities (manifest/loadout complaints carry counts).
+- **Ledger (safety-critical — build BEFORE any actuation ships):** priorities persist in saves
+  and mod-created tasks presumably do too, so a crash mid-management strands them. Per-world
+  store of every original priority/quota plus every mod-created task (tagged as ours), restored
+  or swept at world load, plus a hard max-boost-duration.
+
+*Actuation levers (all through the game's own RPC paths, host/solo-gated):*
+- **Priority**: rank-move on crafting stations (`Rpc_ChangeTaskPriority`) and tier-set on
+  gathering stations (High/Med/Low — RPC unknown, Phase 0 target). Two flavors, per F3.
+- **Quota** (`itemInfoQuantity`): first-class, and PRIMARY for warehouse allotments — the
+  bone-fragment clog resolves by boosting the WAREHOUSE's collect task/quota for the clogging
+  item. Demand chains run backwards through storage: the right boost target is often the hauler
+  draining a clog, not any producer. Demand-derived temporary quotas also make boosts
+  self-limiting.
+- **Task creation** (native add path only): from no-production complaints; possibly also from
+  derivable dead-inventory ("vegetables present + soup blueprint known + no soup task") even if
+  the game never complains — Phase 0 tests whether the native alert fires there. Detection→alert
+  ships before auto-create.
+- Fallback if native-quota drain-boosting proves insufficient: the Mod 6 haul gate
+  (`ResourceStorage.CanCreateStorageTaskForItemInfo`, `DYNAMIC_HAULING_HANDOFF.md`) is a
+  confirmed chokepoint on the same pipeline — native-RPC route first.
+
+*Actuation preconditions (generative rule — every lever fires only after its preconditions pass):*
+each of the five chain questions decomposes into sub-checks at implementation time; rather than
+enumerating them all upfront, the rule is: **before firing any actuator, verify the action can
+take effect**, evaluated against the metabolic plane's snapshots (already on hand — no extra
+scanning). Winner-take-all (F3c) makes this SAFETY-critical, not cosmetic: a precondition-blocked
+boost actively harms — the monopolized worker idles on an impossible task instead of doing
+anything useful. A failed precondition either REDIRECTS to the blocking problem or ALERTS when the
+blocker is player-owned. Examples:
+- boost a gatherer tier for item X → precondition: the station has intake room for X. Blocked by a
+  byproduct → redirect to the drain lever (warehouse collect quota for the clogger), fire the
+  original boost only once room exists. Blocked by genuine capacity → player-owned, alert.
+- bump a crafting task → precondition: its inputs are present locally or haulable from somewhere
+  in the settlement; missing inputs mean the real problem is upstream (redirect), not priority.
+- create a task → station knows the blueprint AND has output room AND ingredients are obtainable.
+Redirect chains are shallow by construction (~depth 2 — they bottom out at capacity, which the
+scope contract assigns to the player); a redirect that can't resolve becomes an alert. Never
+escalate or re-fire a boost whose precondition still fails.
+
+*Performance contract (the stack is already CPU-bound — architecture.md "Mod-side frame hitches"):*
+nothing per-frame. Controller tick every 5–10 s under a stopwatch budget (~2 ms), yielding
+leftover work to the next tick (DVN cohort pattern). Static data cached ONCE at world load
+(blueprint→station map via `KnowsBlueprintForItem`, recipe ingredient lists, station rosters),
+invalidated on build/unlock events + world-leave. Composition scans read stack counts, never
+per-item enumeration; dirty-flagged stations scanned promptly, everything else only via the slow
+sweep. `[Perf]` instrumentation from Phase 0 so the cost is a measured number, not a suspicion.
+Sizing reference: reactive + metabolic is an order of magnitude lighter than DVN's 10 s
+all-villager ticks (worst cohort 28 ms).
+
+*Phasing (each phase ships alone and burns down one unknown):*
+- **Phase 0 — flow diagnostics (read-only):** log complaints as they arrive w/ TryCast payloads
+  (verifies AddComplaint fires, not inlined); log task datas (priority ints / tiers / quotas) on
+  both station kinds; capture the no-production complaint class + payload (the "villagers are not
+  producing X that Y workers need" alert); test whether storage-full fires for a byproduct clog
+  and whether ANYTHING fires for dead inventory; dump `CraftBlueprint` ingredient structure (BOM
+  feasibility); find the native add-task UI path/RPC via Cecil; prototype the composition sweep
+  and measure its real cost.
+- **Phase 1 — crafting priority bumps** (boost/revert/duty-cycle + ledger; solo/host).
+- **Phase 2 — storage drain management** (warehouse allotment quota/priority; fixes the byproduct
+  clog; the metabolic plane comes online here).
+- **Phase 3 — gathering tiers** (the second bump flavor).
+- **Phase 4 — task creation** (requires the ledger hardened + the add-task RPC verified;
+  dead-inventory detection→alert at minimum, auto-create where derivable).
+- **Phase 5 — declared stock targets + BOM planner (optional endgame):** recursive ingredient
+  decomposition from player-declared "keep N on hand" targets. Only if reactive mode leaves gaps —
+  the complaint system already propagates demand implicitly (a missing downstream item eventually
+  surfaces upstream complaints on its own). Recompute on slow sweep / config change only.
+- **Stretch (post-Phase 2):** cross-settlement surplus/deficit report (see scope contract).
+- Deferred idea from v1, unchanged status: "priority softening" (patch task-selection into
+  weighted/round-robin) — deeper + riskier; duty-cycling achieves most of it externally.
+
+*Open unknowns (Phase 0 targets):* priority Int32 rank-vs-index semantics; `Rpc_ChangeTaskPriority`
+args; the gathering tier-set RPC; the native add-task path + whether mod-created tasks serialize
+like player ones; the no-production complaint class + payload; complaint add/remove cadence
+(hysteresis tuning); AddComplaint AOT-inlining; `NetworkWorkstation<T>` base-chain reachability
+from station wrappers; TryCast on complaint subclasses in practice; `CraftBlueprint` ingredient
+access; whether storage-full fires for byproduct clogs / anything fires for dead inventory.
+
+*Sequencing dependency:* do NOT start building while the stack's hitching investigation is open —
+land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,
+so this mod starts against a known-clean performance baseline.
 
 ---
 
