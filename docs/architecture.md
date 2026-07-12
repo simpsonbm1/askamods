@@ -107,6 +107,7 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   networked object), `HasStateAuthority`, and `HasInputAuthority` as public properties. Authority-check
   any networked object directly via `x.Runner.IsServer || x.Runner.IsSharedModeMasterClient` (build +
   runtime verified 2026-07-09, TimeWarpMod).
+- **DO NOT Harmony-patch `RangedManager._OnAmmoRemoved` or other methods with inventory-family parameter types** (`Item`, `ItemCollection`, `ItemEventContext`). The patch mechanism resolves target method parameter types at Harmony setup time (during plugin load), forcing too-early il2cpp class-init on those inventory types — native class constructors fail, crashing via `coreclr.dll+0x1d1fdd` (fatal CLR exit) with no managed exception before any `try/catch`. Reproduced 3× (2026-07-11, VillagerAmmoMod v0.1.0/v0.1.1, crash dumps `%LOCALAPPDATA%\CrashDumps\Aska.exe.{11360,42548,30908}.dmp`; minidump stack shows `SandSailorStudio.Inventory.Item..cctor` in the native frames). Contrast: OuthouseComposterMod patches methods taking `ItemContainer` + `ItemInfo` params safely (no Item/ItemCollection/ItemEventContext in signatures) — supports the inventory-family hypothesis. **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix, PARAMETERLESS binding) + polling, never detour a method with inventory-family parameters. Full evidence and recipe in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → Dead-end section.
 
 ---
 
@@ -1095,6 +1096,53 @@ for the full lever-by-lever log). **These are facts now, with dead-ends called o
   there the instant the remembered enemy reads dead, independent of getter polling. Together with the
   clamp above this closed VillagerFightBackMod's "inconsistent return-to-work (seconds vs. ~a minute)"
   bug. (confirmed in-game 2026-07-03, v1.0.27 — see [`docs/mods/villager-fight-back.md`](mods/villager-fight-back.md))
+
+## Villager Ranged Combat / Ammo System (VillagerAmmoMod evidence, confirmed in-game 2026-07-11)
+
+**Ammo is a real item stack** on each villager's equipped quiver, not an abstract counter. The mod that
+keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is fully documented in
+[`docs/mods/villager-ammo.md`](mods/villager-ammo.md) — this section covers the game API.
+
+### Core types
+- `SSSGame.Combat.RangedManager` (NetworkBehaviour) — base class for all ranged shooters (player and
+  villagers). Derived: `PlayerRangedManager`, `RiderRangedManager`. Villagers use the base class.
+  - `IsPlayer : bool` — **clean villager-only gate** (true for player, false for villagers).
+  - `HasAuthority : bool` — network authority.
+  - `State : RangedManager.AimState` — enum: None=0, StandBy=1, Aim=2, Fire=3, Reload=4. State
+    transitions as the villager aims and fires (proven by the polling pattern in VillagerAmmoMod).
+  - `CurrentRangedAmmo : RangedAmmo` — the equipped-quiver component holding the actual arrow stack.
+  - `Awake()` — patchable as PARAMETERLESS postfix (confirmed in-game, used by VillagerAmmoMod for
+    one-time instance capture into a registry).
+- `SSSGame.Combat.RangedAmmo` (MonoBehaviour) — the equipped-quiver: `_itemContainer : ItemContainer`
+  (the arrow stack), `RealAmmoCount : int` (stack size).
+  - **`_OnAmmoRemoved`/`_OnAmmoAdded` event handlers — UNPATCHABLE** (documented dead-end — any
+    Harmony patch on `_OnAmmoRemoved` fatally crashes during plugin load; see the universal gotchas).
+- `SandSailorStudio.Inventory.ItemContainer` — inventory backing store for the ammo.
+  - `GetItem(int) : Item` — fetch stack.
+  - `AddItems(ItemInfo, int) : int` — refund path (returns count actually added). Calling this on an
+    ammo container adds arrows to the stack; re-entrancy-safe (fires `_OnAmmoAdded`, not `_OnAmmoRemoved`).
+- `ItemEventContext` (enum: Default=0, SameInventoryTransfer=1) — NOT a consumption discriminator
+  (confirmed in-game 2026-07-11); doesn't distinguish shooting from manual withdrawal.
+
+### Villager shooting pipeline
+- `SSSGame.AI.FSM.FSM_Training` — archery-range training FSM: villager aims/fires repeatedly during
+  training sessions; `timeLimitsToShoot`, `c_checkLoadoutTime`, complaint `ComplainLoadoutNotFulfilled`
+  (training requires bow + arrows as equipped loadout).
+- `SSSGame.TrainingOutlet : StructureTaskDispatcher` — the archery-range building.
+  - `assignedVillager` — the villager trained there.
+- `FSM_RangedCombat` — real combat FSM for defenders/hunters/villagers in combat.
+- Arrow consumption: `RangedManager.Shoot()` / animation-driven `_OnAnimEvent` fires when the villager
+  releases an arrow → **1 arrow removed from `RangedAmmo._itemContainer`** → `_OnAmmoRemoved` fires (but
+  don't patch it — fatal dead-end) → stack size updates → complaint triggers if empty.
+- `Complaint.c_defender_needAmmo_format` — the out-of-ammo complaint (only when stack is empty and the
+  villager is in a combat/training role).
+
+### Stuck-ammo recovery (vanilla litter risk)
+- `SandSailorStudio.Inventory.AmmoItemInfo` — ammo item asset type: `recoverableSpawnObject`,
+  `SpawnRecoverableObject(...)` — fired arrows can spawn as recoverable stuck-arrow pickups.
+- `ProjectileTargetHelper._RegisterStuckAmmo(GameObject, AmmoItem)` — registers stuck arrows for the
+  partial-recovery loop (the vanilla system recovers some arrows from targets, but is incomplete — litter
+  can accumulate; use GroundItemVacuumMod to clean up if refunding leads to many stuck arrows).
 
 ## Worldgen / World Streaming
 How the world loads around the player, and how to make distant tiles stream **without moving the player**.

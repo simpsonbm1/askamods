@@ -1,4 +1,4 @@
-# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09; ideas 13–14 added 2026-07-10)
+# New Mod Ideas — Approaches (research 2026-07-03; ideas 7–8 added 2026-07-06; idea 10 added 2026-07-07; idea 11 added 2026-07-08; idea 12 added 2026-07-09; ideas 13–14 added 2026-07-10; idea 15 added 2026-07-11)
 
 Status legend: everything here is **⚠️ pending in-game verification** unless marked otherwise.
 All type/member signatures below were confirmed from the interop binaries via Mono.Cecil
@@ -599,6 +599,94 @@ TerrainLevelerMod code.
 - **Home:** either a TerrainLevelerMod feature (all plumbing already lives there, same Nexus audience
   asking) or a tiny standalone RockRemoverMod (for users who want rock cleanup without the bulldozer).
   Default lean: TerrainLeveler extension reusing the shipped `SpellsManager`/AOE code; user decides.
+
+---
+
+## 15. Unlimited villager ammo — archery range (and optionally all villager ranged) (research 2026-07-11)
+
+**Status: SHIPPED as VillagerAmmoMod v0.1.3, confirmed in-game 2026-07-11.** Implemented via the polling approach (the recommended refill-on-remove approach 1 turned out to be a fatal dead-end — any patch on `_OnAmmoRemoved` crashes the game during plugin load due to inventory-family class-init). Full details in [`docs/mods/villager-ammo.md`](docs/mods/villager-ammo.md).
+
+**Goal:** villagers assigned to the archery range burn through arrows fast; make their ammo
+effectively non-diminishing (they still carry a visible arrow stack — it just never runs dry), or at
+minimum stop the constant arrow-crafting treadmill.
+
+**Verdict: fully plausible — the ammo count is a real item stack in an `ItemContainer`, and the
+game exposes both the removal notification and the add machinery needed to keep it topped up.**
+All findings below are Cecil metadata (interop dump, 2026-07-11); no method bodies read yet — the
+exact decrement call site is the one unnamed link (⚠️, Phase 0 resolves it).
+
+**Confirmed API surface (Cecil, 2026-07-11):**
+- `SSSGame.Combat.RangedAmmo` (MonoBehaviour) — the equipped-quiver component: `_itemContainer :
+  ItemContainer`, `_ammoCount : Int32`, `RealAmmoCount`/`DisplayedAmmoCount`, and item-event hooks
+  `_OnItemAdded/_OnItemRemoved(ItemCollection, Item, Int32, ItemEventContext)`. Ammo count is
+  **backed by an actual arrow item stack**, not an abstract counter — exactly what the user
+  expected ("they'd still need a stack of arrows on them").
+- `SSSGame.Combat.RangedManager` (NetworkBehaviour) — the **shared base** used by shooters;
+  derived: `PlayerRangedManager`, `RiderRangedManager` (villagers presumably run the base class —
+  ⚠️ confirm in Phase 0 census). Key members: `CurrentRangedAmmo : RangedAmmo`, `Shoot()`,
+  `_OnAnimEvent(String)` (shoot/reload driven by animation events, `c_ShootEventName`),
+  `_OnAmmoAdded/_OnAmmoRemoved(ItemCollection, Item, Int32, ItemEventContext)`,
+  **`IsPlayer : Boolean`** (clean villager-only gate), `HasAuthority`, `State : AimState`.
+  It's a NetworkBehaviour → capture instances from `Awake`/`Start` postfix into a static list,
+  NEVER patch `CopyBackingFieldsToState` (documented hang), drop cache on world-leave
+  (`NoteWorldLeft` pattern).
+- Villager-side drivers: `SSSGame.AI.FSM.FSM_Training` (archery-range FSM: `timeLimitsToShoot`,
+  `c_checkLoadoutTime`, `ComplainLoadoutNotFulfilled` — training has a bow+arrows loadout
+  requirement) hosted by `SSSGame.TrainingOutlet : StructureTaskDispatcher` (`assignedVillager`,
+  `_trainingQuest`); real combat uses `FSM_RangedCombat`. `Complaint.c_defender_needAmmo_format`
+  = the out-of-ammo complaint (defenders/patrols) — a top-up also suppresses that.
+- Add/remove machinery for the top-up: `ItemContainer.AddItems(ItemInfo, Int32)` /
+  `AddItems(Item, Int32)` / `ItemCollection.AddItems(...)` + networked-request variants
+  `ItemCollection.RequestAddItems(...)`; removal side `ItemContainer.RemoveItem(Item, Int32,
+  ItemEventContext)` / `ItemCollection.RemoveItems(...)`.
+- `SandSailorStudio.Inventory.AmmoItemInfo` has `recoverableSpawnObject` +
+  `SpawnRecoverableObject(...)`, and `ProjectileTargetHelper._RegisterStuckAmmo(GameObject,
+  AmmoItem)` — shot arrows can spawn as recoverable stuck arrows (the vanilla partial-recovery
+  loop; also the litter risk below).
+
+**Causal chain (villager at range):** `TrainingOutlet` quest → `FSM_Training.OnStateUpdate` drives
+aim/shoot → animation event → `RangedManager._OnAnimEvent`/`Shoot()` → projectile spawned + **1
+arrow removed from `RangedAmmo._itemContainer`** (⚠️ exact decrement site unread — interop bodies
+are trampolines; it's inside the native `Shoot`/reload path) → `_OnAmmoRemoved` fires, count/display
+update → stack empties → loadout complaint.
+
+**Approaches (both keep a real stack on the villager):**
+1. **Refill-on-remove (recommended):** Harmony postfix on `RangedManager._OnAmmoRemoved` — when it
+   fires with `IsPlayer == false` (and config gate), re-add the same `Item`/count to the same
+   collection via the game's own `AddItems`. Decrement-site knowledge not needed — it catches the
+   removal wherever it originates. Re-entrancy safe on paper (adding fires `_OnAmmoAdded`, not
+   `_OnAmmoRemoved`) — verify. **Must be scoped so it only refunds shots**, not inventory
+   management (villager depositing arrows to storage / player taking arrows off the villager would
+   otherwise dupe): gate on aim state (`State`/`_aimState` = drawn/shooting) or on the villager
+   being in `FSM_Training`/`FSM_RangedCombat`; Phase 0 tells us which signal is reliable.
+2. **Periodic top-up poller (fallback, zero patch-semantics risk):** TorchFuel pattern — throttled
+   `Update()` walks captured villager `RangedManager`s; where `CurrentRangedAmmo.RealAmmoCount <
+   TargetCount`, `AddItems(ammoInfo, deficit)`. Simpler and immune to the inlining trap, but the
+   dupe-on-deposit window is wider (anything that drains the stack gets refilled, not just shots).
+3. **Synergy fallback if both feel cheaty:** idea 3 (crafting output multiplier) on arrow
+   blueprints — more arrows per craft, vanilla consumption untouched.
+
+**Approach (phased):**
+- **Phase 0 (read-only diagnostics, default true):** log-only postfixes on
+  `_OnAmmoRemoved`/`_OnAmmoAdded` + a villager `RangedManager` census (actual runtime type,
+  `IsPlayer` value, aim state at removal time, per-shot count, `ItemEventContext` content if it
+  distinguishes consumption from transfer) while a villager trains. Also observe whether training
+  shots spawn recoverable stuck arrows.
+- **Phase 1:** villager-only refill-on-remove behind `[VillagerAmmo] Enabled` +
+  `TrainingOnly` (archery range only; membership via `TrainingOutlet.assignedVillager` or active
+  FSM) vs. all villager ranged (defenders/patrols too — also kills the needAmmo complaint).
+  Player never affected (`IsPlayer` gate).
+
+**⚠️ verify / risks:**
+- Exact decrement site + whether villagers' shooter component is base `RangedManager` (Phase 0).
+- **Dupe scoping** is the main correctness risk — refund only consumption (see approach 1 gating).
+- **Arrow litter:** with recoverable stuck arrows, infinite shooting could carpet the range;
+  if training shots spawn recoverables, either accept (GroundItemVacuumMod cleans up) or
+  optionally suppress spawns while refill is active.
+- **Co-op:** item add/remove is networked state — gate writes on `HasAuthority` / host, prefer
+  `RequestAddItems` if a client path is ever wanted (default: host-only, like everything else).
+- Fire-verify both patches (inlining gotcha); `_OnAmmoRemoved` is delegate-dispatched (subscribed
+  as an item-collection event) so it should be patchable, but prove it with a log line.
 
 ---
 
