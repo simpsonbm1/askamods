@@ -13,6 +13,9 @@ using UnityEngine;
 
 namespace VillagerAmmoMod;
 
+// v1.0.0 (Nexus ship polish): EnableDiagnostics now defaults false (was true during dev); the
+// periodic stuck-arrow cull summary log is gated to diagnostics-or-nonzero so a no-op cleanup
+// pass stays silent (see AmmoTracker.RunTargetCleanupCore).
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -95,8 +98,8 @@ public class Plugin : BasePlugin
             "A detected ammo drop is still refunded if the villager was seen aiming/firing/reloading within this many seconds, even though the poll caught them back in StandBy - closes the poll-race leak where a shot's ammo drop is only observed after the aim cycle has already returned to StandBy. Drops outside this window are treated as deliberate withdrawals. Only meaningful while RefundOnlyWhenShooting is true.");
 
         EnableDiagnostics = Config.Bind(
-            "VillagerAmmo", "EnableDiagnostics", true,
-            "Verbose logging of ammo consumption/refunds seen by the mod's polling loop (consumption detected by polling ammo counts ~2x/second, not by an event patch). Defaults to true until the mod's behavior is verified in-game; set false afterward to keep logs clean.");
+            "VillagerAmmo", "EnableDiagnostics", false,
+            "Verbose diagnostic logging (per-refund/per-adopt lines, capture and census logs). Shipped default false - flip to true when troubleshooting.");
 
         TargetCleanupEnabled = Config.Bind(
             "TargetCleanup", "TargetCleanupEnabled", true,

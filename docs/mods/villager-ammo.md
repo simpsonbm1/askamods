@@ -1,8 +1,15 @@
-# Mod 24: VillagerAmmoMod — COMPLETE (v0.2.3)
+# Mod 24: VillagerAmmoMod — COMPLETE (v1.0.0, shipped to Nexus 2026-07-12)
 
 **Goal:** villagers assigned to the archery range and other ranged combat roles (defenders, hunters)
 never run out of arrows. Ammo consumed during shooting is refunded in place, so the carried arrow
 stack holds level. The player's own arrows are unaffected (villager-only gate).
+
+## v1.0.0 — Nexus ship polish (2026-07-12)
+`EnableDiagnostics` default flipped true → false (project ship rule; description updated to shipped
+wording). The periodic `culled N/M stuck arrows near T target(s)` cleanup-summary log (previously
+always-on INFO, pre-Nexus fire-verification) is now gated `diagnostics OR removed > 0` — real culls
+still log, edge-case zero-removal passes stay silent unless diagnostics on. No behavior changes
+beyond the config default and that log gate.
 
 ## v0.2.2–v0.2.3 — [Perf] stopwatches + target filtering + cfg reload cadence (2026-07-12)
 v0.2.2 added Stopwatch instrumentation on poll and cleanup passes; cfg reload cadence 5s→30s (perf
@@ -64,8 +71,8 @@ once the count ≥ `StuckArrowThreshold` (10). Culled via `WorldItemObject.Remov
   targets are also culled; loose arrows away from targets untouched)
 - `TargetArrowRadius`=15 (meters from a target center to cull arrows)
 
-**Diagnostic log levels** (always-on, pre-Nexus):
-- `[VillagerAmmo] culled N/M stuck arrows near T target(s)` — periodic summary (INFO level)
+**Diagnostic log levels:**
+- `[VillagerAmmo] culled N/M stuck arrows near T target(s)` — periodic summary (INFO level, diagnostics-or-nonzero-gated since v1.0.0)
 - `[VillagerAmmo] released stuck arrows: {before} -> {after}` — secondary ReleaseAllStuckObjects pass,
   if any (WARNING level on hits)
 
@@ -176,7 +183,7 @@ All findings Cecil-verified 2026-07-11; in-game-confirmed where the mod exercise
 - `General/RefundOnlyWhenShooting` (default **true** — refund only during aim/fire/reload cycles,
   not on withdrawal)
 - `General/RecentShootingWindowSeconds` (default **3.0** — grace window for post-aim drops)
-- `General/EnableDiagnostics` (default **true** — pre-ship default; flip to false before Nexus upload)
+- `General/EnableDiagnostics` (default **false** since v1.0.0 — shipped; flip to true when troubleshooting)
 
 **Diagnostic log lines** (when `EnableDiagnostics=true`):
 - `[VillagerAmmo] RangedManager.Awake captured…` — once per instance at world load (confirms registry).
@@ -184,7 +191,7 @@ All findings Cecil-verified 2026-07-11; in-game-confirmed where the mod exercise
 - `[VillagerAmmo] drop of N adopted (state=State, lastShooting age=X.Xs)` — on deliberate withdrawal
   (diagnostic: why it wasn't refunded).
 
-## Pre-ship caveats (⚠️ pending in-game exercise)
+## Known unexercised paths (⚠️ still pending in-game exercise)
 
 **Two code paths remain unexercised in-game (known unknowns):**
 1. **Manual arrow withdrawal from an idle villager** (removing arrows from a villager's inventory
@@ -195,11 +202,9 @@ All findings Cecil-verified 2026-07-11; in-game-confirmed where the mod exercise
    without setting `IsPlayer` — **requires explicit confirmation** that player's arrows still deplete
    normally.
 
-**Decision pending:** `EnableDiagnostics` currently defaults **true** per project rule (saves config
-re-edit cycles pre-launch). Flip to **false** before any Nexus upload to avoid spamming user logs.
+## Version history (2026-07-11/12)
 
-## Version history (all 2026-07-11)
-
+- **v1.0.0** (2026-07-12): Nexus ship polish — diagnostics default off, cull summary log gated.
 - **v0.1.0:** event-patch design via `_OnAmmoRemoved` postfix (bindings: ItemCollection, Item, int,
   ItemEventContext) — **hard-crash at plugin load**, native AV `coreclr.dll+0x1d1fdd`.
 - **v0.1.1:** same event-patch, reduced bindings (only `__instance`, int count) — **hard-crash at

@@ -380,7 +380,10 @@ public class AmmoTracker : MonoBehaviour
                     Plugin.Logger.LogWarning($"[VillagerAmmo] failed to remove stuck arrow: {ex}");
                 }
             }
-            Plugin.Logger.LogInfo($"[VillagerAmmo] culled {removed}/{candidates.Count} stuck arrows near {matchedTargetCount} target(s).");
+            // v1.0.0: gated to diagnostics-or-nonzero - a no-op pass (removed == 0) stays silent
+            // unless EnableDiagnostics is on, but any real cull still logs.
+            if (diag || removed > 0)
+                Plugin.Logger.LogInfo($"[VillagerAmmo] culled {removed}/{candidates.Count} stuck arrows near {matchedTargetCount} target(s).");
         }
 
         // 6. Secondary sweep: original ReleaseAllStuckObjects() path (unchanged logic), diagnostics
