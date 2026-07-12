@@ -214,15 +214,40 @@ public class MineRefreshTracker : MonoBehaviour
         }
 
         Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Proximity check passed. Checking host/server authority.");
-        if (Plugin.LocalPlayer.NetworkObject == null || Plugin.LocalPlayer.NetworkObject.Runner == null || 
-            (!Plugin.LocalPlayer.NetworkObject.Runner.IsServer && !Plugin.LocalPlayer.NetworkObject.Runner.IsSharedModeMasterClient))
+        string authorityVerdict;
+        if (Plugin.ForceAllowRefresh.Value)
         {
-            Plugin.Logger.LogWarning("[MineRefreshMod] Refresh blocked: Client requested, but only the host can execute the refresh.");
-            ShowMessage("Only the host/server can refresh the mine!");
-            return;
+            authorityVerdict = "ForceAllowRefresh config override (multiplayer refresh results may not sync to other players)";
         }
-
-        Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] Host authority confirmed. Executing refresh.");
+        else
+        {
+            var netObj = Plugin.LocalPlayer.NetworkObject;
+            var runner = netObj == null ? null : netObj.Runner;
+            if (runner == null)
+            {
+                authorityVerdict = "no network runner on local player - assuming offline/solo session";
+            }
+            else if (runner.IsServer || runner.IsSharedModeMasterClient || runner.IsSinglePlayer)
+            {
+                authorityVerdict = "host/server authority confirmed";
+            }
+            else
+            {
+                string flags;
+                try
+                {
+                    flags = $"GameMode={runner.GameMode}, Mode={runner.Mode}, IsServer={runner.IsServer}, IsClient={runner.IsClient}, IsSharedModeMasterClient={runner.IsSharedModeMasterClient}, IsSinglePlayer={runner.IsSinglePlayer}, IsSceneMaster={runner.IsSceneMaster}, IsConnectedToServer={runner.IsConnectedToServer}";
+                }
+                catch (Exception ex)
+                {
+                    flags = $"(flag read failed: {ex.Message})";
+                }
+                Plugin.Logger.LogWarning($"[MineRefreshMod] Refresh blocked: this game client is not the session host. Diagnostics: {flags}");
+                ShowMessage("Refresh blocked: not the session host (dedicated server?). Set ForceAllowRefresh=true in the mod config to override.");
+                return;
+            }
+        }
+        Plugin.Logger.LogInfo($"[MineRefreshMod] Refresh authorized: {authorityVerdict}.");
         int volumesRefreshed = 0;
         int nodesUncollapsed = 0;
         int itemsSpawned = 0;

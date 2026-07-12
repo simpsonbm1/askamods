@@ -108,7 +108,10 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   inherits from `Fusion.SimulationBehaviour`, which exposes `Runner` (the Fusion runner), `Object` (this
   networked object), `HasStateAuthority`, and `HasInputAuthority` as public properties. Authority-check
   any networked object directly via `x.Runner.IsServer || x.Runner.IsSharedModeMasterClient` (build +
-  runtime verified 2026-07-09, TimeWarpMod).
+  runtime verified 2026-07-09, TimeWarpMod). Additional `Fusion.NetworkRunner` public properties
+  verified usable through interop (compiled + built cleanly, runtime-verified 2026-07-12,
+  MineRefreshMod v1.3.3, confirmed in-game): `IsSinglePlayer`, `GameMode`, `Mode`, `IsClient`,
+  `IsSceneMaster`, `IsConnectedToServer`.
 - **DO NOT Harmony-patch `RangedManager._OnAmmoRemoved` or other methods with inventory-family
   parameter types** (`Item`, `ItemCollection`, `ItemEventContext`). The patch mechanism resolves
   target method parameter types at Harmony setup time (during plugin load), forcing too-early il2cpp
@@ -1750,6 +1753,14 @@ Used by Mod 9 (SeedScoutMod) — full recipe in
   `CaveNode`) structured using `SandSailorStudio.Procedural.LSystemNode`. You can recursively
   traverse the entire mine system starting from the entrance node using the `connections` list on
   `LSystemNode`.
+- **Cave subsystem types are NOT Fusion NetworkBehaviours** (Cecil-verified 2026-07-12): Base
+  chains via Mono.Cecil interop inspection: `SSSGame.CaveNode` → `SandSailorStudio.Procedural.
+  LSystemNode` → `UnityEngine.MonoBehaviour`; `SSSGame.CaveEntrance : CaveNode` (same chain);
+  `SSSGame.DigVolume`, `SSSGame.CavesManager`, `SSSGame.CaveItemSpawner` → `UnityEngine.
+  MonoBehaviour`; `SSSGame.DigData` → `Il2CppSystem.Object` (plain persistence object, syncs via
+  SetDirty/storage, not Fusion). **Consequence:** no object-level `HasStateAuthority` exists for
+  cave writes — cave state is local + persisted DigData, and the host gate on mine refresh is a
+  divergence-avoidance convention, not a Fusion-authority requirement.
 - **Hallway State (`DigData`)**:
   - Each `CaveNode` stores the excavation progress of its mineable walls in a `SSSGame.DigData`
     object, accessed via `node.PersistentData.GetDigData(node.index, DataAccessMode.FETCH)`.

@@ -19,6 +19,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TriggerOnlyNearEntrance = null!;
     internal static ConfigEntry<float> MaxEntranceDistance = null!;
     internal static ConfigEntry<bool> RespawnItems = null!;
+    internal static ConfigEntry<bool> ForceAllowRefresh = null!;
 
     internal static readonly System.Collections.Generic.List<Character> ActiveCharacters = new();
     internal static CavesManager? GameCavesManager;
@@ -57,6 +58,12 @@ public class Plugin : BasePlugin
             key: "RespawnItems",
             defaultValue: true,
             description: "If true, also run the mine's native item spawners to regenerate loose resources (iron deposits, mushrooms, chests) inside the mine.");
+
+        ForceAllowRefresh = Config.Bind(
+            section: "General",
+            key: "ForceAllowRefresh",
+            defaultValue: false,
+            description: "If true, skips the host/server authority check entirely and always allows the refresh. Intended for dedicated-server players or anyone wrongly blocked by the host check. WARNING: in multiplayer, a refresh forced from a non-host client may not sync to other players.");
 
         // Register our custom Mono class into IL2CPP
         ClassInjector.RegisterTypeInIl2Cpp<MineRefreshTracker>();

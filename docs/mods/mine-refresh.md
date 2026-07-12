@@ -1,6 +1,17 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.2)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.3)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
+
+**v1.3.3 — Authority gate rework (confirmed in-game 2026-07-12)**
+Reworked the authority gate following a Nexus bug report (user pdp2010, self-hosted co-op).
+The old gate conflated three conditions into one misleading block. The new gate in
+`MineRefreshTracker` evaluates 4 steps: (1) if `[General] ForceAllowRefresh` is true, skips
+authority entirely (logs warning about co-op sync risk); (2) null NetworkObject/Runner → auto-
+allowed as offline/solo session; (3) allowed if `Runner.IsServer || Runner.IsSharedModeMasterClient
+|| Runner.IsSinglePlayer`; (4) otherwise blocked, logging full runner diagnostics (GameMode, Mode,
+IsServer, IsClient, IsSharedModeMasterClient, IsSinglePlayer, IsSceneMaster, IsConnectedToServer)
+and pointing at `ForceAllowRefresh` escape hatch. Solo in-game test confirms refresh works; log
+shows "[MineRefreshMod] Refresh authorized: host/server authority confirmed."
 
 **v1.3.2 — Typing guard (confirmed in-game 2026-07-10)**
 Trigger key now ignored while a game text field is focused. Confirmed: hotkey works again after the rename window closes.
@@ -17,7 +28,13 @@ and solved.
   local `Plugin.ActiveCharacters` list. If any player or worker (excluding the player triggering the
   refresh) is within `SafetyRadius` (default: 25m) of *any* hallway/node in the target mine, the
   refresh is blocked, and their name is displayed in-game to prevent trapping them.
-- **Host-Only Execution**: The refresh is gated on server authority (`Plugin.LocalPlayer.NetworkObject.Runner.IsServer == true`) to prevent multiplayer desyncs.
+- **Authority Gate (v1.3.3)**: The refresh uses a 4-step authority check to handle all session
+  types safely: (1) if `[General] ForceAllowRefresh` is enabled, skip the authority gate entirely
+  (logs a warning about potential co-op sync issues); (2) if NetworkObject or Runner is null, treat
+  as offline/solo and allow; (3) allow if `Runner.IsServer || Runner.IsSharedModeMasterClient ||
+  Runner.IsSinglePlayer`; (4) otherwise block with full runner diagnostics and a pointer to the
+  `ForceAllowRefresh` config escape hatch. This replaces the v1.3.2 simple IsServer check, which
+  wrongly blocked offline sessions and missed IsSinglePlayer.
 - **Recursive Cave Traversal**: Recursively traverses the mine tree starting from the `CaveEntrance`
   (which inherits from `CaveNode`) using the `connections` list on
   `SandSailorStudio.Procedural.LSystemNode`.
@@ -79,3 +96,16 @@ and solved.
 - `General/TriggerOnlyNearEntrance` (bool, default: `true`): Restrict trigger to mine entrances.
 - `General/MaxEntranceDistance` (float, default: `20.0`): Maximum distance from entrance allowed.
 - `General/RespawnItems` (bool, default: `true`): Respawn chests, loose ore, and mushrooms.
+- `General/ForceAllowRefresh` (bool, default: `false`): If true, skip the authority gate entirely
+  (refreshes even on non-host clients in co-op). Logs a warning about potential sync issues —
+  use this only if the host gate is blocking you incorrectly.
+
+**Nexus Reporter Status**
+- **pdp2010** (self-hosted co-op, v1.3.2): Got "Only the host/server can refresh the mine!"
+  despite being the host, blocking refresh entirely. Stated he IS the host; dedicated-server
+  hypothesis ruled out (2026-07-12). v1.3.3 reworked the authority gate to evaluate 4 steps
+  instead of conflating conditions — should fix this. Remaining hypotheses for his v1.3.2 block:
+  null NetworkObject/Runner on his host (now auto-allowed in v1.3.3 step 2), or his runner lacks
+  both IsServer and IsSharedModeMasterClient flags (possibly invite flow makes host join as client
+  with IsSceneMaster). v1.3.3's step 4 logs full runner diagnostics to reveal his actual state;
+  awaiting feedback. Workaround: set `[General] ForceAllowRefresh = true`.
