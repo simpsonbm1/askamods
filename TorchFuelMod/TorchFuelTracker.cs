@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using SSSGame;
 using SSSGame.Weather;
 using UnityEngine;
@@ -16,6 +17,16 @@ public class TorchFuelTracker : MonoBehaviour
         if (_timer < Plugin.CheckIntervalSeconds.Value) return;
         _timer = 0f;
 
+        var sw = Stopwatch.StartNew();
+        RunCheck();
+        sw.Stop();
+        double ms = sw.Elapsed.TotalMilliseconds;
+        if (ms > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][TorchFuel] check took {ms:F1} ms");
+    }
+
+    private void RunCheck()
+    {
         bool preventExtinguish = Plugin.PreventRainExtinguish.Value;
         bool autoRelight = Plugin.AutoRelightAfterRain.Value;
 

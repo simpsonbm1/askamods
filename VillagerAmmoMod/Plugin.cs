@@ -31,6 +31,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> CleanupCheckSeconds = null!;
     internal static ConfigEntry<string> ArrowCategoryMatch = null!;
     internal static ConfigEntry<float> TargetArrowRadius = null!;
+    internal static ConfigEntry<string> TargetNameMatch = null!;
 
     // --- live state ---
     // v0.1.2: NO patches on ammo-event methods (see Patches/AmmoPatches.cs header for why). Instead
@@ -71,6 +72,10 @@ public class Plugin : BasePlugin
     internal static readonly Dictionary<IntPtr, ItemInfo> InfoCache = new();
 
     internal static PlayerCharacter? LocalPlayer;
+
+    // v0.2.2: one-time-per-world-session helper census (diagnostics-gated), reset on world-leave
+    // in PlayerDespawnedPatch alongside the other per-world state.
+    internal static bool CensusDone = false;
 
     public override void Load()
     {
@@ -113,6 +118,10 @@ public class Plugin : BasePlugin
             "TargetCleanup", "TargetArrowRadius", 15f,
             "Only arrows within this many meters of a shooting target are culled - loose arrows elsewhere (e.g. a stack you dropped at base) are never touched. Note: arrows YOU shoot into the range targets will also be culled.");
 
+        TargetNameMatch = Config.Bind(
+            "TargetCleanup", "TargetNameMatch", "ArcheryTarget,TrainingDummy",
+            "Comma-separated, case-insensitive substrings. A captured ProjectileTargetHelper is only used as an arrow-cull center (radius check for TargetArrowRadius) when its GameObject name OR its ancestor path (up to 4 parents) matches one of these. Without this filter the cull was accidentally town-wide: an in-game census found captured helpers also sit on villagers and creatures, not just archery targets/dummies (112 helpers = 6 archery targets + 6 training dummies + 79 villagers + skeletons/animals/harvest nodes).");
+
         ClassInjector.RegisterTypeInIl2Cpp<AmmoTracker>();
 
         var go = new GameObject("VillagerAmmoMod_Tracker");
@@ -122,6 +131,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}");
+        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}, TargetNameMatch={TargetNameMatch.Value}");
     }
 }

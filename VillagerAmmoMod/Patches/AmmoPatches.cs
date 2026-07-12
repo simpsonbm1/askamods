@@ -175,7 +175,8 @@ internal static class PlayerDespawnedPatch
                 Plugin.Baselines.Clear();
                 Plugin.LastShootingSeen.Clear();
                 Plugin.InfoCache.Clear();
-                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, tracked ground items, baselines, last-shooting-seen, and info cache dropped.");
+                Plugin.CensusDone = false;
+                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, tracked ground items, baselines, last-shooting-seen, info cache dropped, census reset.");
             }
         }
         catch (Exception ex)

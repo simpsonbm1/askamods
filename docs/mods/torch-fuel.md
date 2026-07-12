@@ -74,6 +74,12 @@ so the mechanic *requires* fuel to deplete; pinning it removes the controllable 
   `Bloomstation.Spawned()` → `.kiln` (NEVER `KilnInteraction.Initialize` — that boot-crashes, see the
   architecture coal dead-end). Left unbuilt for now.
 
+## v1.2.5 — [Perf] stopwatch instrumentation (2026-07-12)
+Added Stopwatch on the fuel-check pass (every `CheckIntervalSeconds`, default 5 s). Measured in-game
+(2026-07-12): check pass ≤3.7 ms, healthy profile. No behavioral changes; diagnostic marker fires only
+when a check completes (always-on, not diagnostics-gated, pre-Nexus). Supports the 2026-07-11/12 perf
+arc (see docs/architecture.md → Mod-side frame hitches); TorchFuel confirmed as low-cost mod.
+
 ## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
 Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no
 structure named "Furnace"/"Smelter" in the game at all, and the smelting building — the **Kiln**

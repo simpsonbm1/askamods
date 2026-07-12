@@ -1,8 +1,11 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.5.8)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.6.1)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries, etc.)
 after configurable in-game days — plus, since v1.4.x, a configurable refill rate for **constructed
 wells** (Water Well / Rain Collector buildings).
+
+**v1.6.0–v1.6.1 — Perf hardening (⚠️ pending in-game confirmation)**
+Addressed the dominant hitch source in the 2026-07-11/12 perf arc (see docs/architecture.md → Mod-side frame hitches): TreeRespawn's ~1 Hz service tick cost 27–52 ms per second. v1.6.0: cheap-first reordering in the tree loop (BlockedPositions → due-check → only then pointer-trust/Destroyed/stump-cancel/structure interop); stump-harvested cancel moved AFTER the due-check (semantics preserved, the cancel only matters at respawn execution); due-entry full-work sliced to 8/tick/queue with rotating cursors. v1.6.1: WellRefill.Tick moved to its OWN 30s accumulator (`RunWellRefillTick`); `ServiceInterval` 1s→3s (respawn timing is day-gated so no observable latency); separate `trees`/`gather` stopwatch attribution. Instrumentation (v1.5.9) fired in-game; effect pending confirmation.
 
 **v1.5.7/v1.5.8 — Mushroom availability verified end-to-end (confirmed in-game 2026-07-11)**
 v1.5.7 introduces convergent re-sweep hardening (re-sweeps every 10 s); v1.5.8 adds an F8 diagnostic dump with per-mushroom instance census (Active/Destroyed/Qty counts). Two full TimeWarp-accelerated soaks confirmed the feature working end-to-end with zero errors; see the Mushroom availability section below for the corrected ground truth and the two-soak verification.

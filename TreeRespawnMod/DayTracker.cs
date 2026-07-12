@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
 using SSSGame;
@@ -12,7 +13,14 @@ public class DayTracker : MonoBehaviour
 {
     private int _worldCheck;
     private float _serviceTimer;
-    private const float ServiceInterval = 1f;
+    // v1.6.1 — respawns are gated on in-game DAYS (RespawnDays), so sub-second/1s polling of the
+    // pending-respawn queues bought nothing but tick cost. 3s adds no observable latency.
+    private const float ServiceInterval = 3f;
+    private float _wellTimer;
+    // Well charges are per-in-game-DAY (WellChargesPerDay); a 1Hz service tick was far more often
+    // than needed. 30s is generous and cuts WellRefill.Tick's structure-hierarchy walk to 1/30th
+    // the call rate (measured as the dominant TreeRespawn service cost — v1.6.1).
+    private const float WellRefillInterval = 30f;
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
     private static DateTime _lastWeatherWarn = DateTime.MinValue;
 
@@ -27,12 +35,23 @@ public class DayTracker : MonoBehaviour
     // Shared by trees and gather (a tree and a gather node never share a 0.1m-rounded position).
     private static readonly Dictionary<string, DateTime> _lastHandlerAttempt = new();
 
+    // v1.6.0 — rotating slice cursors for the DUE-entry expensive path (pointer-trust/Destroyed/
+    // structure/live checks + Replenish). The due-check itself (one interop call) still runs for
+    // EVERY pending entry every tick — only the expensive follow-up work for entries that ARE due
+    // is capped per tick, so a large backlog can't blow out a single service pass. Respawns are
+    // day-gated, so an entry waiting an extra tick or two for its turn is immaterial.
+    private const int DueSliceSize = 8;
+    private static int _treeDueSkip;
+    private static int _gatherDueSkip;
+
     // Called on world switch (Plugin.OnWorldChanged) — posKeys collide across worlds, so a stale
     // cooldown from world A must not delay (or leak into) world B.
     internal static void ClearTransientState()
     {
         _lastHandlerAttempt.Clear();
         _worldServiceStart = null;
+        _treeDueSkip = 0;
+        _gatherDueSkip = 0;
         WellRefill.ClearTransientState();
         MushroomDiag.ResetForWorld();
         MushroomAvailability.ResetForWorld();
@@ -140,21 +159,69 @@ public class DayTracker : MonoBehaviour
             }
         }
 
-        // Throttle the heavy servicing (well refill + respawn-queue iteration) to ~1 Hz. Respawns are
-        // gated on in-game DAYS and well refill on charges-per-DAY, so sub-second polling is wasted work.
-        // The world-id poll, mushroom apply, and hotkey checks above stay per-frame (cheap / input-sensitive).
+        // Well refill (v1.6.1) — its own slower accumulator, independent of the respawn-queue
+        // service tick below. Charges are per-day, so 30s cadence is generous.
+        _wellTimer += Time.deltaTime;
+        if (_wellTimer >= WellRefillInterval)
+        {
+            _wellTimer = 0f;
+            RunWellRefillTick();
+        }
+
+        // Throttle the heavy servicing (respawn-queue iteration) to ~1/3 Hz. Respawns are gated on
+        // in-game DAYS, so sub-second polling is wasted work. The world-id poll, mushroom apply, and
+        // hotkey checks above stay per-frame (cheap / input-sensitive).
         _serviceTimer += Time.deltaTime;
         if (_serviceTimer < ServiceInterval) return;
         _serviceTimer = 0f;
 
-        // Well refill (v1.4.0) — independent of the pending-respawn queues, so it must run before
-        // the early-out below. Host-gated by the same server-weather check the queues use; a
-        // client (or the main menu) simply skips it.
+        RunServiceTick();
+    }
+
+    // Well refill on its own timer (v1.6.1) — extracted from RunServiceTickCore so it can run on a
+    // slower 30s cadence than the 3s respawn-queue service tick. Gating, try/catch, and the
+    // [Perf][TreeRespawn] well stopwatch are unchanged from the original inline version.
+    private void RunWellRefillTick()
+    {
         if (Plugin.WellChargesPerDay.Value > 0f && Plugin.TryGetServerWeather(out var wellWs, out _))
         {
+            var wellSw = Stopwatch.StartNew();
             try { WellRefill.Tick(wellWs!); }
             catch (Exception e) { Plugin.Logger.LogError($"[TreeRespawnMod] [well] tick failed: {e}"); }
+            finally
+            {
+                wellSw.Stop();
+                double wellMs = wellSw.Elapsed.TotalMilliseconds;
+                if (wellMs > 2.0)
+                    Plugin.Logger.LogInfo($"[Perf][TreeRespawn] well took {wellMs:F1} ms");
+            }
         }
+    }
+
+    // The ~1/3Hz heavy servicing pass: tree/gather respawn-queue iteration (well refill runs on its
+    // own separate 30s accumulator — RunWellRefillTick). Extracted from Update() so the Stopwatch
+    // wrap (below) covers every early-return path.
+    private void RunServiceTick()
+    {
+        var sw = Stopwatch.StartNew();
+        int treeCount = Plugin.PendingRespawns.Count;
+        int gatherCount = Plugin.PendingGatherRespawns.Count;
+        try
+        {
+            RunServiceTickCore();
+        }
+        finally
+        {
+            sw.Stop();
+            double ms = sw.Elapsed.TotalMilliseconds;
+            if (ms > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][TreeRespawn] service took {ms:F1} ms (trees={treeCount}, gather={gatherCount})");
+        }
+    }
+
+    private void RunServiceTickCore()
+    {
+        // Well refill moved to its own 30s accumulator (v1.6.1) — see RunWellRefillTick / Update().
 
         if (Plugin.PendingRespawns.Count == 0 && Plugin.PendingGatherRespawns.Count == 0) return;
 
@@ -186,7 +253,9 @@ public class DayTracker : MonoBehaviour
         // trusting it (pooled wrappers are reused for OTHER nodes once a chunk unloads — v1.2.19
         // finding), never drop an entry unless the replenish verifiably took, and service unloaded
         // stumps through the data handler instead of waiting for the player to walk back.
+        var treeSw = Stopwatch.StartNew(); // v1.6.1 — attribution split from the overall service stopwatch
         var toRemove = new List<string>();
+        int treeDueIndex = 0;
         foreach (var kvp in Plugin.PendingRespawns)
         {
             string posKey = kvp.Key;
@@ -201,6 +270,25 @@ public class DayTracker : MonoBehaviour
                 toRemove.Add(posKey);
                 continue;
             }
+
+            // Cheap-first ordering (v1.6.0): the due-check runs for EVERY entry and pays exactly one
+            // interop call, so the not-due majority never reaches the pointer-trust/Destroyed reads
+            // below (measured 27-52ms/tick @ 23 trees + 88 gather — per-entry interop reads on
+            // entries that weren't even due yet were THE hitch source). NetworkedCurrentGameTime
+            // itself can't be hoisted into once-per-tick managed subtraction — its unit is opaque
+            // outside GetTimeDifferenceFromCurrentGameTimeInSeconds (WellRefill's v1.4.2→v1.4.3
+            // dead-end; see docs/mods/tree-respawn.md) — so this stays a per-entry interop call.
+            float elapsedDays =
+                ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
+            if (elapsedDays < threshold) continue;
+
+            // Due — everything past this point is the expensive part (pointer-trust/Destroyed/
+            // structure/live checks + Replenish), sliced to DueSliceSize per tick via a rotating
+            // cursor so a large backlog can't blow out one service pass. The stump-harvested cancel
+            // check below used to run BEFORE the due check; moved here is fine — the cancel only
+            // matters at the moment a respawn would execute, which is exactly now.
+            int treeDueIdx = treeDueIndex++;
+            if (treeDueIdx < _treeDueSkip || treeDueIdx >= _treeDueSkip + DueSliceSize) continue;
 
             bool haveWid = Plugin.TreeWid.TryGetValue(posKey, out var wid);
             Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
@@ -229,10 +317,6 @@ public class DayTracker : MonoBehaviour
                     $"[TreeRespawnMod] Stump harvested — cancelled respawn at {posKey}");
                 continue;
             }
-
-            float elapsedDays =
-                ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeFelled) / dayLength;
-            if (elapsedDays < threshold) continue;
 
             // Backstop for clears we never observed (the build system auto-cleared the stump, or this is a
             // pre-fix entry): if a structure now occupies this spot, permanently block instead of respawning
@@ -309,10 +393,25 @@ public class DayTracker : MonoBehaviour
             }
         }
 
+        // Rotating cursor upkeep (v1.6.0): if this tick's due-entry count fits within the current
+        // slice window, we've caught up — reset to 0 for next tick. Otherwise advance the window so
+        // the next batch gets serviced next tick.
+        if (treeDueIndex <= _treeDueSkip + DueSliceSize)
+            _treeDueSkip = 0;
+        else
+            _treeDueSkip += DueSliceSize;
+
+        treeSw.Stop();
+        double treeMs = treeSw.Elapsed.TotalMilliseconds;
+        if (treeMs > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][TreeRespawn] trees took {treeMs:F1} ms (n={Plugin.PendingRespawns.Count})");
+
         // ── Gather resources (reeds, etc.) ────────────────────────────────────────────────────
         // No cancel condition of any kind — gather nodes ALWAYS renew on their timers (only trees
         // have a legitimate "intentionally cleared" state, via stump clearing).
+        var gatherSw = Stopwatch.StartNew(); // v1.6.1 — attribution split from the overall service stopwatch
         var toRemoveGather = new List<string>();
+        int gatherDueIndex = 0;
         foreach (var kvp in Plugin.PendingGatherRespawns)
         {
             string posKey = kvp.Key;
@@ -326,9 +425,14 @@ public class DayTracker : MonoBehaviour
                 continue;
             }
 
+            // Cheap-first ordering (v1.6.0) — same shape as the tree loop above: the due-check runs
+            // for every entry (one interop call), the expensive live/Replenish path below is sliced.
             float elapsedDays =
                 ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(gameTimeExhausted) / dayLength;
             if (elapsedDays < gatherThreshold) continue;
+
+            int gatherDueIdx = gatherDueIndex++;
+            if (gatherDueIdx < _gatherDueSkip || gatherDueIdx >= _gatherDueSkip + DueSliceSize) continue;
 
             bool haveWid = Plugin.GatherWid.TryGetValue(posKey, out var wid);
             Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
@@ -418,6 +522,17 @@ public class DayTracker : MonoBehaviour
                 overdueGatherNotLoaded.Add($"{posKey}({elapsedDays:F1}d,{itemName})");
             }
         }
+
+        // Rotating cursor upkeep (v1.6.0) — same scheme as the tree loop above.
+        if (gatherDueIndex <= _gatherDueSkip + DueSliceSize)
+            _gatherDueSkip = 0;
+        else
+            _gatherDueSkip += DueSliceSize;
+
+        gatherSw.Stop();
+        double gatherMs = gatherSw.Elapsed.TotalMilliseconds;
+        if (gatherMs > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][TreeRespawn] gather took {gatherMs:F1} ms (n={Plugin.PendingGatherRespawns.Count})");
 
         // Throttled summary: entries past their threshold that currently have NO servicing route
         // (no wid + not streamed in, or RefillUnloadedGatherNodes off). Combined tree+gather under

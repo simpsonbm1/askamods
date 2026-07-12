@@ -1,8 +1,14 @@
-# Mod 19: GroundItemVacuumMod — COMPLETE (v1.1.1)
+# Mod 19: GroundItemVacuumMod — COMPLETE (v1.1.2)
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey (or timer) to reduce ground clutter. Confirmed in-game 2026-07-07: removes
 the debris cleanly with only a minor ~2-frame hitch on ~1165 removals, no crash.
+
+## v1.1.2 — [Perf] cfg reload cadence optimization (2026-07-12)
+Config hot-reload cadence changed from 5s to 30s (matching the update cycle across several mods in
+the 2026-07-11/12 perf arc). Hotkey and config edits now take effect within 30 seconds instead of 5,
+a negligible user-experience impact but a modest reduction in per-frame churn. See docs/architecture.md
+→ Mod-side frame hitches for the full perf arc context. No behavioral changes.
 
 ## v1.1.1 — Typing guard (confirmed in-game 2026-07-10)
 Vacuum hotkey now ignored while a game text field (structure-rename, etc.) is focused. Confirmed: keyboard mashing in rename window triggers nothing; hotkeys work again after the window closes.

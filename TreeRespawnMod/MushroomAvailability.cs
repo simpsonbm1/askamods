@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 using SSSGame;
 using SSSGame.Weather;
@@ -90,7 +91,12 @@ internal static class MushroomAvailability
             _nextSweepAt = Time.realtimeSinceStartup + ResweepIntervalSeconds;
             var wmLate = MushroomDiag.GetWeatherManager();
             if (wmLate == null) return;
+            var reswSw = Stopwatch.StartNew();
             Apply(wmLate, firstSweep: false);
+            reswSw.Stop();
+            double reswMs = reswSw.Elapsed.TotalMilliseconds;
+            if (reswMs > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][TreeRespawn] mushroom-resweep took {reswMs:F1} ms");
             return;
         }
 

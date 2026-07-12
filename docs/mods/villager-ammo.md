@@ -1,8 +1,14 @@
-# Mod 24: VillagerAmmoMod — COMPLETE (v0.2.1)
+# Mod 24: VillagerAmmoMod — COMPLETE (v0.2.3)
 
 **Goal:** villagers assigned to the archery range and other ranged combat roles (defenders, hunters)
 never run out of arrows. Ammo consumed during shooting is refunded in place, so the carried arrow
 stack holds level. The player's own arrows are unaffected (villager-only gate).
+
+## v0.2.2–v0.2.3 — [Perf] stopwatches + target filtering + cfg reload cadence (2026-07-12)
+v0.2.2 added Stopwatch instrumentation on poll and cleanup passes; cfg reload cadence 5s→30s (perf
+arc coordination across mods); one-time-per-world-session target-helper census (logs `[VillagerAmmo][census] target: '<name>' path='<4-ancestor chain>'`, diagnostics-gated, reset on world-leave). Census finding: 112 captured ProjectileTargetHelpers = 6 ArcheryTarget + 6 TrainingDummy + **79 villagers** + 5 skeletons + 1 boss (CharacterRagnar) + wild/tame animals + harvest nodes — ProjectileTargetHelper component rides on characters/creatures/harvestables too (arrows stick in anything), so v0.2.1's cull was effectively town-wide.
+
+v0.2.3 adds target **filtering** via new `[TargetCleanup] TargetNameMatch` config (default "ArcheryTarget,TrainingDummy"; case-insensitive substrings matched against GameObject name; parsed each cleanup pass so config edits apply next tick); census lines now append `matched=` so the user can verify filtering. The native ReleaseAllStuckObjects sweep remains unfiltered as a secondary pass (per-helper, currently no-op). Cleanup pass now logs `culled N/M stuck arrows near T target(s)` (fire-verification, always-on). Confirmed in-game 2026-07-12: `culled 74/74 stuck arrows near 12 target(s)` — range stays clean (~70–90 arrows/min accumulate) while town-wide arrows untouched. Perf data: poll ≤20 ms rare, 60s cleanup avg 7.7 ms (see docs/architecture.md → Mod-side frame hitches).
 
 ## v0.2.1 — Ground-item cull for persisted stuck arrows (confirmed in-game 2026-07-11)
 

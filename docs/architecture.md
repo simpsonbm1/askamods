@@ -124,6 +124,42 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
 
 **Diagnostic:** use `bisect-plugins.ps1` to bisect a live-plugin performance/crash regression (disable all, re-enable one by one). Baseline vanilla framerate check: `doorstop_config.ini enabled=false`.
 
+## Mod-side frame hitches: measurement + findings (2026-07-11/12)
+
+Continuation of the 2026-07-07 per-frame throttling work. Frame hitches (stutters every few seconds)
+persisted on top of a 40–50 FPS CPU-bound baseline (i7-13900K; DLSS changes nothing), predating
+2026-07-11. Two measurement sessions using **uniform Stopwatch instrumentation** across all mods'
+periodic passes — `[Perf][<Mod>] <pass> took X.X ms` logged ONLY when exceeding 2 ms — pinpointed
+the sources:
+
+**Method (reusable recipe for future diagnostics):** grep `[Perf]` from `LogOutput.log` after ~10 min
+of play, group by (mod, pass) with count/avg/max. Example entry: `[Perf][TreeRespawn] service-tick took 42.1 ms (count=1)`.
+
+**Findings (all confirmed in-game from [Perf] lines):**
+
+- **TreeRespawn's ~1 Hz service tick = dominant hitch source.** Session 1: trees queue ≈ 23–88 pending
+  entries, ~0.27 ms/entry of per-entry interop reads = 27–52 ms nearly every second. Session 2
+  attribution via separate stopwatches: **`WellRefill.Tick` alone = avg 29.2 / max 57.4 ms** inside
+  every service tick (structure-hierarchy walking). Well charges are per-in-game-day, so 1 Hz was pure
+  waste. **Fix (v1.6.1, ⚠️ pending in-game confirmation):** cheap-first due-check + 8-per-tick cull in
+  the tree loop; WellRefill.Tick moved to its own 30s cadence (respawn timing is day-gated, no
+  observable latency loss).
+- **DynamicVillagerNeedsMod:** tick avg 5.8 / max ~44–48 ms. Sub-attribution: `tick.cohorts`
+  (RefreshCohorts) avg 4.7 / max 28 ms — already 10s-gated via `_cohortTimer` (a round-3 plan to
+  "throttle to 5s" was rejected as it would DOUBLE frequency); `tick.villagers` avg 8.6 / max 21.6 ms,
+  occasional.
+- **VillagerAmmoMod:** poll ≤20 ms rare; 60s cleanup avg 7.7 ms. **TorchFuelMod:** 5s check ≤3.7 ms
+  (healthy). Config hot-reload pile-up (several mods re-reading cfg every 5s on independent timers) was
+  coordinated to 30s across TreeRespawn, VillagerAmmo, DVN, GroundItemVacuum, and SeedScout (no
+  single-mod time-saving, but small cumulative reduction in churn; never proven as a hitch source).
+- **Rule-of-thumb for budgeting:** a queue entry costing 2–3 interop reads ≈ 0.27 ms; a
+  structure-hierarchy walk ≈ 29 ms — plan per-frame work accordingly.
+- **Status:** rounds 1–2 fixes verified as insufficient in-game (user felt no improvement, led to the
+  well-refill attribution); **round 3 fixes (TreeRespawn v1.6.1 cadence + WellRefill decoupling,
+  VillagerAmmo v0.2.2–0.2.3 targeting + config throttle, DVN v1.9.6–v1.9.7 instrumentation/throttle,
+  TorchFuel v1.2.5 instrumentation, GroundItemVacuum v1.1.2 throttle) — ⚠️ PENDING in-game
+  confirmation.**
+
 ## Configuration & Live Reload (universal)
 
 **BepInEx does NOT re-read edited .cfg files (confirmed in-game 2026-07-10):** `ConfigEntry.Value` reflects only in-memory state; when the user edits `BepInEx/config/com.modname.cfg` in a text editor mid-session, the changes are visible to the OS but not to the running process. To pick up file edits at runtime, call `ConfigFile.Reload()` (or `Plugin.Cfg?.Reload()`) periodically in `Update()` — the GroundItemVacuum/SeedScout/DynamicVillagerNeedsMod 5 s pattern does this at the top of `Update()` BEFORE the Enabled gate, so even toggling `Enabled=true` from the config file takes effect immediately. Single-run config parses (e.g. key bindings read once at startup) do NOT need live reload — only values that change behavior per-session need the polling.

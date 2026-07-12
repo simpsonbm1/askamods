@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Il2CppInterop.Runtime;
@@ -202,10 +203,11 @@ public class NeedsController : MonoBehaviour
         // v1.9.3 live config pickup: BepInEx does NOT re-read an edited cfg file on its own — .Value
         // only reflects in-memory state, so a mid-session file edit (e.g. fixing a
         // ManualScheduleStations entry after checking the stations.txt list) is invisible without an
-        // explicit Reload(). Same 5 s pattern as GroundItemVacuum/SeedScout. Runs before the Enabled
-        // gate so even a disabled mod picks up an Enabled=true edit.
+        // explicit Reload(). Same pattern as GroundItemVacuum/SeedScout, slowed to 30 s (perf-diagnostic
+        // round) — a config edit now takes up to 30s to apply mid-session. Runs before the Enabled gate
+        // so even a disabled mod picks up an Enabled=true edit.
         _cfgReloadTimer += Time.deltaTime;
-        if (_cfgReloadTimer >= 5f)
+        if (_cfgReloadTimer >= 30f)
         {
             _cfgReloadTimer = 0f;
             try { Plugin.Cfg?.Reload(); } catch { }
@@ -242,9 +244,16 @@ public class NeedsController : MonoBehaviour
         // control loop below would otherwise collapse it to. Still advances the same 5s/10s accumulators.
         if (!enabledCtl)
         {
+            var obsSw = Stopwatch.StartNew();
             ObserveTick(tracked, dt);
+            obsSw.Stop();
+            double obsMs = obsSw.Elapsed.TotalMilliseconds;
+            if (obsMs > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][DVN] observe-tick took {obsMs:F1} ms (n={tracked.Count})");
             return;
         }
+
+        var tickSw = Stopwatch.StartNew();
 
         float sleepBelow = Plugin.SleepWhenRestBelowHours.Value;
         float wakeAbove = Plugin.WakeWhenRestAboveHours.Value;
@@ -303,7 +312,20 @@ public class NeedsController : MonoBehaviour
         bool cohortTick = _cohortTimer >= 10f;
         if (cohortTick) _cohortTimer = 0f;
         if (manualMode && !_cohortsComputed) cohortTick = true;
-        if (cohortTick && (msDiag || manualMode)) RefreshCohorts(tracked, msDiag);
+        // v1.9.7 perf attribution: name the phases inside the ~4 Hz control tick so a future outlier
+        // (e.g. the observed one-off 47.6 ms spike) can be pinned to cohort/station-file work vs. the
+        // per-villager loop instead of just the total. RefreshCohorts also does the station-rule
+        // matching + stations.txt file I/O (ParseStationRules/WriteStationsFileIfChanged), so this one
+        // wrap covers both named phases from the same call.
+        if (cohortTick && (msDiag || manualMode))
+        {
+            var cohortSw = Stopwatch.StartNew();
+            RefreshCohorts(tracked, msDiag);
+            cohortSw.Stop();
+            double cohortMs = cohortSw.Elapsed.TotalMilliseconds;
+            if (cohortMs > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][DVN] tick.cohorts took {cohortMs:F1} ms");
+        }
 
         // Food/water re-check cadence: every FoodRecheckIntervalSeconds, re-arm hungry villagers' survival
         // quests so they pick up newly-restocked food instead of parking at an empty store (see RecheckConsumeNeeds).
@@ -313,6 +335,7 @@ public class NeedsController : MonoBehaviour
         bool recheckNow = recheckInterval > 0f && _recheckTimer >= recheckInterval;
         if (recheckNow) _recheckTimer = 0f;
 
+        var villagersSw = Stopwatch.StartNew();
         for (int i = tracked.Count - 1; i >= 0; i--)
         {
             var surv = tracked[i];
@@ -571,6 +594,15 @@ public class NeedsController : MonoBehaviour
                 tracked.RemoveAt(i);
             }
         }
+        villagersSw.Stop();
+        double villagersMs = villagersSw.Elapsed.TotalMilliseconds;
+        if (villagersMs > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][DVN] tick.villagers took {villagersMs:F1} ms (n={tracked.Count})");
+
+        tickSw.Stop();
+        double tickMs = tickSw.Elapsed.TotalMilliseconds;
+        if (tickMs > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][DVN] tick took {tickMs:F1} ms (n={tracked.Count})");
     }
 
     // Enabled=false + ManualScheduleDiagnostics=true observe-only tick: same 4 Hz cadence and the same

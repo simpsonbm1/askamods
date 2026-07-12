@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>VillagerAmmoMod</AssemblyName>
     <RootNamespace>VillagerAmmoMod</RootNamespace>
-    <Version>0.2.1</Version>
+    <Version>0.2.3</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

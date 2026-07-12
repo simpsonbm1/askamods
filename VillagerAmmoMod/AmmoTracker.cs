@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using SandSailorStudio.Inventory;
 using SSSGame;
@@ -26,7 +27,7 @@ public class AmmoTracker : MonoBehaviour
     private void Update()
     {
         _cfgReloadTimer += Time.deltaTime;
-        if (_cfgReloadTimer >= 5f)
+        if (_cfgReloadTimer >= 30f)
         {
             _cfgReloadTimer = 0f;
             try { Plugin.Cfg?.Reload(); } catch { }
@@ -52,6 +53,8 @@ public class AmmoTracker : MonoBehaviour
             Plugin.Registry.CopyTo(snapshot);
         }
 
+        var pollSw = Stopwatch.StartNew();
+
         bool diag = Plugin.EnableDiagnostics.Value;
         if (diag && !_pollActiveLogged)
         {
@@ -73,6 +76,11 @@ public class AmmoTracker : MonoBehaviour
                 Plugin.LastShootingSeen.Remove(mgr);
             }
         }
+
+        pollSw.Stop();
+        double pollMs = pollSw.Elapsed.TotalMilliseconds;
+        if (pollMs > 2.0)
+            Plugin.Logger.LogInfo($"[Perf][VillagerAmmo] poll took {pollMs:F1} ms (n={snapshot.Length})");
     }
 
     private void ProcessManager(RangedManager mgr, bool diag)
@@ -202,6 +210,24 @@ public class AmmoTracker : MonoBehaviour
     // the original ReleaseAllStuckObjects() sweep as a secondary pass for whatever DOES register.
     private void RunTargetCleanup()
     {
+        var sw = Stopwatch.StartNew();
+        int itemSnapshotLen = 0;
+        int targetSnapshotLen = 0;
+        try
+        {
+            RunTargetCleanupCore(ref itemSnapshotLen, ref targetSnapshotLen);
+        }
+        finally
+        {
+            sw.Stop();
+            double ms = sw.Elapsed.TotalMilliseconds;
+            if (ms > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][VillagerAmmo] cleanup took {ms:F1} ms (items={itemSnapshotLen}, targets={targetSnapshotLen})");
+        }
+    }
+
+    private void RunTargetCleanupCore(ref int itemSnapshotLen, ref int targetSnapshotLen)
+    {
         bool diag = Plugin.EnableDiagnostics.Value;
         int threshold = Plugin.StuckArrowThreshold.Value;
 
@@ -219,9 +245,47 @@ public class AmmoTracker : MonoBehaviour
             targetSnapshot = new ProjectileTargetHelper[Plugin.TargetRegistry.Count];
             Plugin.TargetRegistry.CopyTo(targetSnapshot);
         }
+        targetSnapshotLen = targetSnapshot.Length;
 
+        // v0.2.3: TargetNameMatch scoping - captured ProjectileTargetHelpers sit on far more than
+        // just archery targets/dummies (v0.2.2 census: 112 helpers = 6 archery targets + 6 training
+        // dummies + 79 villagers + skeletons/animals/harvest nodes), which made the arrow cull below
+        // accidentally town-wide. Parsed fresh each pass (cheap - short comma list) so a mid-session
+        // config edit takes effect on the next CleanupCheckSeconds tick.
+        string[] nameMatchTokens = ParseNameMatchTokens();
+
+        // v0.2.2: one-time-per-world-session census of what the tracked ProjectileTargetHelpers
+        // actually sit on (archery targets vs dummies vs creatures vs structures), so a later
+        // version can scope the arrow cull correctly. Diagnostics-gated, ~100 lines once per session.
+        // Unfiltered by design (it's the diagnostic) - each line now also reports the same matcher's
+        // verdict so a bad TargetNameMatch config is visible directly in the census.
+        if (diag && !Plugin.CensusDone && targetSnapshot.Length > 0)
+        {
+            Plugin.CensusDone = true;
+            foreach (var helper in targetSnapshot)
+            {
+                try
+                {
+                    if (helper == null) continue;
+                    var go = helper.gameObject;
+                    string path = BuildParentChain(go.transform, 4);
+                    bool matched = MatchesTargetName(go, nameMatchTokens);
+                    Plugin.Logger.LogInfo($"[VillagerAmmo][census] target: '{go.name}' path='{path}' matched={matched}");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogWarning($"[VillagerAmmo][census] error: {ex}");
+                }
+            }
+        }
+
+        // liveTargets keeps EVERY live helper (feeds the unfiltered secondary ReleaseAllStuckObjects()
+        // sweep below - a per-helper native call, not a radius cull, so it's unaffected by scoping).
+        // targetPositions/matchedTargetCount are scoped to TargetNameMatch - these are the cull centers
+        // for the ground-item radius check further down, which is what was accidentally town-wide.
         var liveTargets = new List<ProjectileTargetHelper>(targetSnapshot.Length);
         var targetPositions = new List<Vector3>(targetSnapshot.Length);
+        int matchedTargetCount = 0;
         foreach (var helper in targetSnapshot)
         {
             try
@@ -231,8 +295,12 @@ public class AmmoTracker : MonoBehaviour
                     lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper!); }
                     continue;
                 }
-                targetPositions.Add(helper.transform.position);
                 liveTargets.Add(helper);
+                if (MatchesTargetName(helper.gameObject, nameMatchTokens))
+                {
+                    targetPositions.Add(helper.transform.position);
+                    matchedTargetCount++;
+                }
             }
             catch (Exception ex)
             {
@@ -248,6 +316,7 @@ public class AmmoTracker : MonoBehaviour
             itemSnapshot = new DynamicItemObject[Plugin.TrackedGroundItems.Count];
             Plugin.TrackedGroundItems.CopyTo(itemSnapshot);
         }
+        itemSnapshotLen = itemSnapshot.Length;
 
         string categoryMatch = Plugin.ArrowCategoryMatch.Value ?? "Arrows";
         float radius = Plugin.TargetArrowRadius.Value;
@@ -311,7 +380,7 @@ public class AmmoTracker : MonoBehaviour
                     Plugin.Logger.LogWarning($"[VillagerAmmo] failed to remove stuck arrow: {ex}");
                 }
             }
-            Plugin.Logger.LogInfo($"[VillagerAmmo] culled {removed}/{candidates.Count} stuck arrows near {liveTargets.Count} target(s).");
+            Plugin.Logger.LogInfo($"[VillagerAmmo] culled {removed}/{candidates.Count} stuck arrows near {matchedTargetCount} target(s).");
         }
 
         // 6. Secondary sweep: original ReleaseAllStuckObjects() path (unchanged logic), diagnostics
@@ -380,5 +449,60 @@ public class AmmoTracker : MonoBehaviour
             try { c = c.parent; } catch { break; }
         }
         return sb.ToString();
+    }
+
+    // v0.2.3: parse TargetNameMatch's comma-separated substrings, trimmed, empties dropped.
+    private static string[] ParseNameMatchTokens()
+    {
+        string raw = Plugin.TargetNameMatch.Value ?? "";
+        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<string>();
+        var parts = raw.Split(',');
+        var list = new List<string>(parts.Length);
+        foreach (var part in parts)
+        {
+            string t = part.Trim();
+            if (t.Length > 0) list.Add(t);
+        }
+        return list.ToArray();
+    }
+
+    // v0.2.3: true if the helper's own GameObject name OR its ancestor path (up to 4 parents)
+    // contains any configured token (case-insensitive). Empty token list matches nothing (a blank
+    // TargetNameMatch disables the cull entirely rather than reverting to town-wide).
+    private static bool MatchesTargetName(GameObject go, string[] tokens)
+    {
+        if (tokens.Length == 0) return false;
+
+        string name = "";
+        try { name = go.name ?? ""; } catch { }
+        foreach (var tok in tokens)
+            if (name.IndexOf(tok, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+
+        string path = BuildParentChain(go.transform, 4);
+        foreach (var tok in tokens)
+            if (path.IndexOf(tok, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+
+        return false;
+    }
+
+    // Up to maxDepth ancestor GameObject names, outermost first / innermost (direct parent) last.
+    // No positions - names only, per-ancestor try/catch.
+    private static string BuildParentChain(Transform t, int maxDepth)
+    {
+        var names = new List<string>();
+        try
+        {
+            var cur = t.parent;
+            int depth = 0;
+            while (cur != null && depth < maxDepth)
+            {
+                try { names.Add(cur.name); } catch { }
+                cur = cur.parent;
+                depth++;
+            }
+        }
+        catch { }
+        names.Reverse();
+        return string.Join("/", names);
     }
 }

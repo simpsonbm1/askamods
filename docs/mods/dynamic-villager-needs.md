@@ -1,9 +1,13 @@
-# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.9.5)
+# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.9.7)
 
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours)
 with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real
 food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without reducing
 happiness.** Villager-only; the player is never touched.
+
+**v1.9.6–v1.9.7 — [Perf] sub-phase stopwatches + cfg reload cadence (2026-07-12)**
+v1.9.6 added separate Stopwatch tracking for `tick.cohorts` and `tick.villagers` sub-phases; v1.9.7
+analysis from the 2026-07-11/12 perf arc (see docs/architecture.md → Mod-side frame hitches): `tick.cohorts` (RefreshCohorts) avg 4.7 / max 28 ms, already 10s-gated via `_cohortTimer`; `tick.villagers` avg 8.6 / max 21.6 ms. Config hot-reload cadence 5s→30s (single-pass optimization across several mods). Tick avg 5.8 / max ~44–48 ms; no behavioral changes.
 
 **v1.9.5 — Typing guard (confirmed in-game 2026-07-10)**
 BuilderDiag F9 hotkey now guarded for consistency with other mods' input handlers. Confirmed: hotkeys work again after the rename window closes.

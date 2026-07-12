@@ -45,12 +45,13 @@ public class VacuumTracker : MonoBehaviour
 
     private void Update()
     {
-        // Live config pickup: BepInEx does NOT re-read an edited cfg on its own — reload it every
-        // few seconds so DryRun/filters/radius/hotkey can be changed mid-session without a
+        // Live config pickup: BepInEx does NOT re-read an edited cfg on its own — reload it
+        // periodically so DryRun/filters/radius/hotkey can be changed mid-session without a
         // relaunch (SeedScout pattern). Every other setting is already read fresh at sweep time,
-        // so the hotkey is the only value that needs explicit re-application.
+        // so the hotkey is the only value that needs explicit re-application. Slowed to 30s (perf-
+        // diagnostic round) — hotkey rebinding now picks up within 30s instead of 5s.
         _cfgReloadTimer += Time.deltaTime;
-        if (_cfgReloadTimer >= 5f)
+        if (_cfgReloadTimer >= 30f)
         {
             _cfgReloadTimer = 0f;
             try { Plugin.Cfg?.Reload(); } catch { }
