@@ -1,75 +1,68 @@
-# Mod 3: HealthRegenMod — COMPLETE
+# Mod 3: HealthRegenMod — COMPLETE (v1.3.1)
 
-**Goal:** Regenerate player HP (default 1/sec) after 10s (configurable) without taking damage.
+**Goal:** out-of-combat HP regeneration for the player AND all villagers/soldiers, each side with
+its own configurable rate.
 
 **Game subsystem:** [Player Character vs. Creature](../architecture.md#player-character-vs-creature)
 — the reason this patches `PlayerCharacter` (not `Creature`) lives there, along with the
 `FindObjectsByType` / `TryCast` interop dead-ends this mod ran into.
 
-**Working approach:**
+## Working approach
+
+### Shared detection + heal logic (player and villager passes)
 - No damage-pipeline patch needed — `PlayerCharacter`/`Character` already maintain
   `GetDamageTakenHistory().LastDamageTime` internally on every hit; poll it instead of patching
-  `TakeDamage`
-- Postfix patches on `PlayerCharacter.Spawned()` and `PlayerCharacter.Despawned()` capture/release
-  `Plugin.LocalPlayer`, gated on `HasAuthority` to pick out this client's own avatar (other players'
-  characters are visible locally too, with `HasAuthority == false`)
-- `RegenTracker` (registered `MonoBehaviour`, `Update()` polling, same pattern as `DayTracker`)
-  watches `Plugin.LocalPlayer`; reset tracking whenever the reference changes (covers spawn/respawn)
-- "Out of combat" detection: track `LastDamageTime`; if it hasn't changed since the previous frame,
-  accumulate `Time.deltaTime` into a seconds-since-last-hit counter; once that counter clears
-  `OutOfCombatSeconds`, regen kicks in
-- Regen is **discrete tick** based: a separate `_secondsSinceLastTick` accumulator adds
-  `HealPerTick` HP every `SecondsPerTick` seconds (a `while` loop drains the accumulator so it
-  catches up if a frame is long), clamped to `MaxHealth`. Tick timer resets on hit / death / player
-  change so the first tick can't fire early. `SecondsPerTick = 0` falls back to smooth/continuous
-  regen (`HealPerTick` treated as HP/sec, the original pre-2026-06-20 behavior)
-- Config: `HealthRegen/HealPerTick` (float, default 1.0), `HealthRegen/SecondsPerTick` (float,
-  default 1.0; 0 = continuous), `HealthRegen/OutOfCombatSeconds` (float, default 10.0). Default 1
-  HP/1s matches the old average rate, just in 1-HP steps
-- Confirmed working in-game: regen kicked in ~10s after spawning at half health; taking damage mid-regen paused it, then it resumed ~10s after the last hit
+  `TakeDamage`.
+- "Out of combat" detection: if `LastDamageTime` hasn't changed since the previous check,
+  accumulate elapsed time; once the counter clears `OutOfCombatSeconds`, regen kicks in.
+- Regen is **discrete tick** based: a `_secondsSinceLastTick` accumulator adds `HealPerTick` HP
+  every `SecondsPerTick` seconds (a `while` loop drains the accumulator if a frame is long),
+  clamped to `MaxHealth`. Tick timer resets on hit / death / target change so the first tick can't
+  fire early. `SecondsPerTick = 0` = smooth/continuous regen (`HealPerTick` treated as HP/sec).
+- Perf: the whole mod's `Update()` is gated to every 4th frame (`(Time.frameCount & 3) != 0`) with
+  `Time.deltaTime` accumulated across skipped frames, per the project throttle convention
+  (confirmed in-game framerate recovery 2026-07-07).
 
-## v1.2.0 — Villager/Soldier Regen (CONFIRMED IN-GAME 2026-07-08)
+### Player pass
+- Postfix patches on `PlayerCharacter.Spawned()`/`Despawned()` capture/release `Plugin.LocalPlayer`,
+  gated on `HasAuthority` (other players' avatars are visible locally with `HasAuthority == false`).
+- `RegenTracker` (registered MonoBehaviour, `Update()` polling — the DayTracker pattern) watches
+  `Plugin.LocalPlayer`; tracking resets whenever the reference changes (covers spawn/respawn).
+- Confirmed in-game: regen kicked in ~10 s after spawning at half health; damage mid-regen paused
+  it, then it resumed ~10 s after the last hit.
 
-**Feature:** Extends passive out-of-combat health regen to all villagers and soldiers (gear-flagged `Villager` instances — no separate Soldier/Guard class).
+### Villager pass (confirmed in-game 2026-07-08)
+- Villagers tracked via `Villager.Spawned()`/`Despawned(NetworkRunner, bool)` postfixes into a
+  static list (the DynamicVillagerNeeds pattern: add on spawn guarded by Contains, remove on
+  despawn, prune nulls in the tick loop; per-villager state in a `Dictionary<Villager, VState>`
+  cleared on despawn).
+- Same detection + heal logic as the player, per villager, reading the separate `[VillagerRegen]`
+  rate keys (independent of the player's since v1.3.0 — confirmed in-game 2026-07-08: villagers
+  heal at their own configured rate while the player heals at the `[HealthRegen]` rate).
+- All villager health writes gated on `villager.HasAuthority` (host-authoritative in co-op;
+  clients skip writes).
+- **`Character.CurrentHealth` writes DO stick on villagers** (confirmed in-game 2026-07-08 — a
+  hurt villager's health bar visibly ticked upward; no `CharacterSurvival._healthVAttr` fallback
+  needed). Soldiers/warriors are just `Villager`s with `IsWarrior == true` — no separate handling
+  (binary-confirmed via Cecil, 2026-07-08).
 
-**Implementation:**
-- Villagers tracked via `Villager.Spawned()`/`Despawned(NetworkRunner, bool)` Harmony postfixes into
-  a static list (the DynamicVillagerNeeds pattern: add on spawn guarded by Contains, remove on
-  despawn, prune `== null` entries in the tick loop; per-villager state in a `Dictionary<Villager,
-  VState>` cleared via `RegenTracker.ForgetVillager` on despawn).
-- Same detection + heal logic as the player, per villager: poll
-  `GetDamageTakenHistory().LastDamageTime`, accumulate seconds-since-hit, then discrete-tick or
-  continuous heal clamped to `MaxHealth`. Reuses the **SAME three config values** as the player
-  (`HealPerTick`, `SecondsPerTick`, `OutOfCombatSeconds`).
-- All villager health writes gated on `villager.HasAuthority` (host-authoritative in co-op; clients skip writes).
-- New config: `[VillagerRegen] ApplyToVillagers` (bool, default true) and `[VillagerRegen]
-  DebugLogging` (bool, default true until in-game verified per the diagnostics rule — flip to false
-  + version bump once confirmed). Debug logs: villager registered / regen started / regen
-  interrupted.
+## Config
 
-**Performance:** The whole mod's `Update()` (player pass included — previously every frame) is now
-gated to every 4th frame (`(Time.frameCount & 3) != 0` first line) with `Time.deltaTime` accumulated
-across skipped frames and fed as dt, per the project throttle convention (confirmed in-game
-framerate recovery 2026-07-07 on all per-frame-work mods).
+- `[HealthRegen]` (player): `HealPerTick` (float, default 1.0), `SecondsPerTick` (float, default
+  1.0; 0 = continuous), `OutOfCombatSeconds` (float, default 10.0).
+- `[VillagerRegen]`: `ApplyToVillagers` (bool, default true); `HealPerTick` / `SecondsPerTick` /
+  `OutOfCombatSeconds` (floats, defaults 1.0 / 1.0 / 10.0 — identical to the player defaults, so
+  behavior is unchanged until tuned; same `SecondsPerTick = 0` semantics); `DebugLogging` (bool,
+  default **false** since v1.3.1 — shipped; logs villager registered / regen started / regen
+  interrupted when on).
 
-**Resolved in-game (2026-07-08):** `Character.CurrentHealth` writes DO stick on villagers — a hurt
-villager's health bar visibly ticked upward out of combat, so the `CharacterSurvival._healthVAttr`
-fallback was **not** needed. Soldiers/warriors are just `Villager`s with `IsWarrior == true` — no
-separate handling needed (binary-confirmed via Cecil, 2026-07-08).
+## Version history
 
-## v1.3.x — Separate villager regen rates (v1.3.0 config split; v1.3.1 ships)
-
-**Feature:** Villager regen rates are now **independent of the player's**. Previously the villager
-pass reused the player's `[HealthRegen]` HealPerTick/SecondsPerTick/OutOfCombatSeconds; now it reads
-its own `[VillagerRegen]` keys. Confirmed in-game 2026-07-08 (villagers heal at their own configured
-rate while the player heals at the separate `[HealthRegen]` rate).
-
-- New config in the `[VillagerRegen]` section: `HealPerTick`, `SecondsPerTick`, `OutOfCombatSeconds`
-  (float; defaults **1.0 / 1.0 / 10.0** — identical to the player defaults, so behavior is unchanged
-  until tuned). `SecondsPerTick = 0` = continuous (HealPerTick treated as HP/sec), same semantics as
-  the player side.
-- `RegenTracker.UpdateVillagers` now reads `Plugin.VillagerHealPerTick` /
-  `Plugin.VillagerSecondsPerTick` / `Plugin.VillagerOutOfCombatSeconds` instead of the player entries.
-  The player pass (`UpdatePlayer`) is unchanged and still reads `[HealthRegen]`.
-- **v1.3.1** flips `[VillagerRegen] DebugLogging` default `true` → `false` (mod verified; per the
-  diagnostics rule). Existing configs keep their written value; only fresh installs get `false`.
+- **v1.0.x–v1.1.x:** player-only regen, discrete-tick model (originally continuous;
+  pre-2026-06-20 behavior survives as `SecondsPerTick = 0`).
+- **v1.2.0** (2026-07-08): villager/soldier regen added, sharing the player's rate keys; every-4th-
+  frame throttle for the whole mod.
+- **v1.3.0** (2026-07-08): villager rates split into their own `[VillagerRegen]` keys, confirmed
+  in-game.
+- **v1.3.1**: `DebugLogging` default flipped to false (verified; diagnostics rule). Existing
+  configs keep their written value.

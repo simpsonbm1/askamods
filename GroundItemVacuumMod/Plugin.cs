@@ -84,12 +84,12 @@ public class Plugin : BasePlugin
             "If greater than 0, automatically run a sweep this often (in minutes) using the same settings (respects DryRun, Radius, exclusions, HostOnly). 0 = off. Opt-in.");
 
         Diagnostics = Config.Bind(
-            "General", "Diagnostics", true,
-            "Verbose logging: per-sweep breakdown of ground items by name and category to the BepInEx log. Default true while the mod is being verified; set false once you're happy to keep logs clean.");
+            "General", "Diagnostics", false,
+            "Verbose logging: per-sweep breakdown of ground items by name and category to the BepInEx log. Shipped default false - flip to true when tuning filters or troubleshooting.");
 
         TraceEachItem = Config.Bind(
-            "General", "TraceEachItem", true,
-            "Debug: log each item step-by-step during a sweep so that if the game hard-crashes, the LAST log line pinpoints the exact item and step. Verbose (many lines per sweep). Default true while verifying; set false once confirmed stable.");
+            "General", "TraceEachItem", false,
+            "Debug: log each item step-by-step during a sweep so a hard-crash log pinpoints the failing item/step. Very verbose. Shipped default false - only enable when investigating a crash.");
 
         ClassInjector.RegisterTypeInIl2Cpp<VacuumTracker>();
 

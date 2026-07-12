@@ -1,51 +1,8 @@
-# Mod 25: OuthouseComposterMod — COMPLETE (v1.0.0)
+# Mod 25: OuthouseComposterMod — COMPLETE (v1.0.0, on Nexus as "Outhouse Composter")
 
 **Goal:** food and seeds thrown into the Outhouse structure's storage convert into Compost over
 in-game time. Origin: `NEW_MOD_IDEAS_PLAN.md` idea 13, Phase 1. Phases 2–3 (bigger grid, native-decay
-conversion) remain unbuilt.
-
-## v1.0.0 — Ship polish (2026-07-12)
-
-**Status: COMPLETE, confirmed in-game 2026-07-12.** Diagnostic config `EnableDiagnostics` defaults
-false (shipped ready for Nexus). All features from v0.4.0 finalized.
-
-## v0.4.0 — Simultaneous conversion mode (2026-07-12)
-
-**Status: simultaneous mode confirmed in-game 2026-07-12.** Adds parallel per-slot conversion
-alongside the default sequential mode. With `SimultaneousConversion=false` (default): one conversion
-per timer fire per outhouse, draining the first matching slot(s) in container slot order, pooling
-across slots (observed in-game as a top-left-first, down-the-column-then-right drain). With
-`SimultaneousConversion=true`: every occupied food/seed slot evaluated independently per fire; each
-slot holding ≥ ratio converts once (ratio consumed from that slot, +1 Compost), all in the same fire,
-stopping early if the container fills. **NO cross-slot pooling in simultaneous mode** — the config
-description carries this warning. Simultaneous mode tested in-game 2026-07-12: food 1:1 @ 5 game-hours,
-seeds 20:1 @ 10 game-hours, split `FoodStackSize=10`/`SeedStackSize=200` worked as expected.
-
-## v0.3.0 — In-game-clock timers (2026-07-12)
-
-**Status: confirmed in-game 2026-07-12.** Replaced real-time (DateTime.UtcNow) timers with in-game
-clock timers (v0.2.0 had real-time, which made TimeWarp testing impossible). Timers now run on
-`WeatherSystem.NetworkedCurrentGameTime`, elapsed measured via
-`GetTimeDifferenceFromCurrentGameTimeInSeconds(anchor)` (the raw value is opaque-units — the
-TreeRespawn WellRefill pattern). Per-outhouse food + seed timers; threshold = GameHours ×
-dayLength/24. A timer arms when its pool first becomes non-empty; every fire re-arms regardless of
-whether a conversion happened; below-ratio pool skips the cycle. TimeWarp fast-forward accelerates
-composting. **Limitation: timers are NOT persisted across save/load** (restart on world load).
-
-## v0.2.0 — Real-time converter (never confirmed in-game)
-
-**Status: built 2026-07-11; superseded by v0.3.0 (in-game clock).** Real-time timers (DateTime.UtcNow)
-proved unworkable for testing with TimeWarp — replaced by in-game-clock timers in v0.3.0. Not
-recommended to ship.
-
-## v0.1.0–v0.1.2 — Phase 0 diagnostics (2026-07-11)
-
-**Status: diagnostics confirmed in-game 2026-07-11.** Container uniqueness probe and acceptance-gate
-pointer analysis confirmed the Outhouse container's unique identifier (`Storage_SmallItems_Outhouse`
-asset name) and that every SmallItem-class raw food/seed shares the IDENTICAL storageClass native
-pointer as the outhouse containerType's own entry (and as Compost, which it accepts). The game's
-acceptance gate applies a per-item condition beyond storage-class membership — not reverse-engineered,
-just overridden per container by the mod.
+conversion) remain unbuilt. All shipped features confirmed in-game 2026-07-12.
 
 ## Game subsystem: Storage acceptance — the Outhouse container
 
@@ -71,14 +28,15 @@ All findings confirmed in-game 2026-07-11 (OuthouseComposterMod diagnostics + ma
   cache. `GetStackSize` returns 0 natively for forced inputs → overridden per kind
   (FoodStackSize/SeedStackSize).
 
-## Working mechanism (v0.3.0–v1.0.0 — in-game-clock timers, simultaneous conversion mode option)
+## Working mechanism
 
 ### Acceptance override (Patches/AcceptancePatches.cs)
 Four independent Harmony postfixes on `SandSailorStudio.Inventory.ItemContainer`:
-- `CanStoreItemType(ItemInfo, out Int32)` — force true for food/seeds in outhouse
-- `Check(ItemInfo, Int32)` — force true for food/seeds in outhouse
-- `HasSpace()` — force true for outhouse
-- `GetStackSize(ItemInfo)` — return FoodStackSize or SeedStackSize override instead of native 0
+- `CanStoreItemType(ItemInfo)` — force true for food/seeds in the outhouse
+- `Check(ItemInfo)` — force true for food/seeds in the outhouse
+- `HasSpace(ItemInfo, int)` — force true only when the container still has an empty slot (does not
+  count partial stacks — a documented simplification)
+- `GetStackSize(ItemInfo)` — return the FoodStackSize/SeedStackSize override instead of native 0
 
 Scoped via pointer-keyed identity cache (`Storage_SmallItems_Outhouse` unique asset name → native
 pointer → per-world cache in OuthouseGate). Each patch logs a once-ever "patch alive"
@@ -128,7 +86,7 @@ Both modes confirmed in-game 2026-07-12.
 `FarmingStation.composts` (singular `FindAnyObjectByType` works) is queried for the compost ItemInfo.
 Fallback to name-scan of outhouse contents if not found. Conversions wait until resolved.
 
-## Config (`com.askamods.oouthousecomposter.cfg`)
+## Config (`com.askamods.outhousecomposter.cfg`)
 
 **[Composter] section:**
 - `AcceptFood=true`

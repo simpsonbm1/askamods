@@ -1,125 +1,102 @@
-# Mod 4: TorchFuelMod — COMPLETE
+# Mod 4: TorchFuelMod — COMPLETE (v1.2.5)
 
-**Goal:** Torches (placed for base lighting/decoration) should never run out of fuel/resin.
+**Goal:** torches (placed for base lighting/decoration) never run out of fuel/resin; optional rain
+protection and coverage of built-in building fires.
 
 **Game subsystem:** [Torch / Fire-Fuel System](../architecture.md#torch--fire-fuel-system) — the
-`FireStructure` API, the `Rpc_AddFuel` network-safe path, and why filtering must be by structure name.
+`FireStructure` API, the `Rpc_AddFuel` network-safe path, why filtering must be by structure name,
+and the coal/kiln + cave-sconce dead-ends in full.
 
-**Working approach:**
-- Postfix patch on `FireStructure.Initialize(Structure ownerStructure)` — fires for every
-  fire-capable structure; filter by `ownerStructure.DefaultName`/`StructureName` containing a
-  configured substring (default `"Torch"`) so campfires/forges/kilns/cooking stations (which also
-  use `FireStructure`) are untouched
-- Matched instances are added to `Plugin.TrackedFireStructures` (plain `List<FireStructure>`)
-- `TorchFuelTracker` (registered `MonoBehaviour`, `Update()` polling, same pattern as
-  `DayTracker`/`RegenTracker`) checks the list every `CheckIntervalSeconds` (default 5.0); for any
-  tracked structure with `CurrentFuelVolume < MaxFuelVolume`, calls `Rpc_AddFuel(MaxFuelVolume -
-  CurrentFuelVolume)` to top it off exactly to max (never overfuels, so it can't trigger the
-  "overfire/blazing" state)
-- Using the existing `Rpc_AddFuel` RPC (rather than setting `CurrentFuelVolume` directly) was a
-  deliberate choice — it's the same network-safe path the game uses for manual resin refueling, so
-  it works correctly in co-op regardless of which client/host has the mod installed
-- Dead/despawned entries (`!fire.IsSpawned` or null) are pruned from the tracked list each tick
-- Config: `TorchFuel/TargetStructureNames` (string, default `"Torch"`, comma list, case-insensitive
-  substring match), `TorchFuel/CheckIntervalSeconds` (float, default 5.0)
-- Confirmed working in-game: fuel visibly ticks down for a few seconds then jumps back to max on the
-  next check interval; tracked 4 "Flimsy Torch" structures correctly on load
+## Working approach
 
-## v1.1.0 — built-in / composite-building fires (tavern campfire) + diagnostics
-Free-standing torches matched the `"Torch"` name filter; **fires built into buildings did not**,
-because their owning `Structure` is the building (e.g. `StructureName == "Tavern"`), not a torch.
-Three changes:
-- **`FireStructurePatch` now also matches the fire's own GameObject name**, not just the owner
-  structure's `DefaultName`/`StructureName` — catches fires whose owner is a building but whose
-  object is still named like a torch/fire.
-- **New `LightOutletPatch`** (postfix on `LightOutlet.Initialize(Structure)`) + config
-  **`KeepAllLightSources`** (bool, default `false`). When on, it tracks `LightOutlet.fireStructure`
-  for *every* light-emitting fire regardless of name — the name-free way to catch the tavern
-  campfire, braziers, etc. `LightOutlet` is the light-duty dispatcher present on lighting fires but
-  **not** on cooking stations/forges/kilns (those use `CookingOutlet`/`WarmthOutlet`), so crafting
-  fires stay untouched.
-- **New `LogAllFireStructures`** (bool, default `false`) diagnostic: logs every `FireStructure` and
-  `LightOutlet` as it loads (`[TorchFuelMod][diag] …` with owner `DefaultName`/`StructureName` +
-  GameObject name) so a specific fire's exact name can be found and added to `TargetStructureNames`.
-  Leave off for normal play.
-- All tracking now funnels through `Plugin.TrackFireStructure(fire, label)` (dedupe + single log site).
-- ⚠️ Built-in-fire fix is in-game-test pending; the interop facts behind it are confirmed (see architecture.md torch section).
+- **Capture:** postfix on `FireStructure.Initialize(Structure ownerStructure)` — fires for every
+  fire-capable structure. A fire is tracked when EITHER the owner structure's
+  `DefaultName`/`StructureName` OR the fire's own GameObject name contains a `TargetStructureNames`
+  substring (the GameObject-name match catches fires whose owner is a whole building, e.g. a
+  torch mounted on a tavern). Campfires/forges/kilns/cooking stations also use `FireStructure`, so
+  the name filter is what keeps them untouched by default.
+- **Name-free alternative (`KeepAllLightSources`, default off):** postfix on
+  `LightOutlet.Initialize(Structure)` tracks `LightOutlet.fireStructure` for *every* light-emitting
+  fire regardless of name — catches the tavern campfire, braziers, etc. `LightOutlet` is present on
+  lighting fires but NOT on cooking stations/forges/kilns (those use `CookingOutlet`/
+  `WarmthOutlet`), so crafting fires stay untouched. ⚠️ in-game confirmation for the built-in-fire
+  coverage was never explicitly recorded.
+- **Top-off:** all tracking funnels through `Plugin.TrackFireStructure(fire, label)` (dedupe +
+  single log site) into `Plugin.TrackedFireStructures`; `TorchFuelTracker` (registered
+  MonoBehaviour, `Update()` polling — the DayTracker pattern) checks the list every
+  `CheckIntervalSeconds`; any tracked structure with `CurrentFuelVolume < MaxFuelVolume` gets
+  `Rpc_AddFuel(max - current)` — exactly to max, never overfueling (so the "overfire/blazing"
+  state can't trigger). `Rpc_AddFuel` (not a direct `CurrentFuelVolume` write) is the same
+  network-safe path manual resin refueling uses, so co-op works regardless of which client hosts.
+- Dead/despawned entries (`!fire.IsSpawned` or null) are pruned each tick.
+- Confirmed in-game: fuel ticks down for a few seconds then jumps back to max on the next check;
+  perf check pass ≤3.7 ms (2026-07-12, healthy).
 
-## v1.2.0–1.2.1 burnable-building diagnostic — REVERTED in v1.2.2 (broke game launch)
-Goal was a toggle for *any* burnable smithing/coal building. The first step — a read-only diagnostic
-(`LogBurnableBuildings`) that postfix-patched `Initialize(Structure)` on `KilnInteraction`,
-`BellowsInteraction`, `ForgeInteraction`, `CharcoalStation`, `Bloomstation` — **broke the game**:
-v1.2.0 hard-froze during BepInEx chainloader; v1.2.1 (name guard + dropped `GetFuelCount()`) stopped the
-freeze but the game still wouldn't finish opening, with `Il2CppInterop … Handle is not initialized … (il2cpp
--> managed) Initialize(...)` trampoline errors. **Cause:** patching `Initialize` on these MonoBehaviour
-`Interaction` types fails to marshal `__instance` at boot-prefab init — in the glue, before the patch body —
-so the original `Initialize` never completes and boot stalls. Full write-up + the general rule are in
-architecture.md (universal interop gotchas + torch-section coal dead-end). **v1.2.2 removed the diagnostic
-and the `LogBurnableBuildings` config entirely**, returning the mod to its proven-safe patch surface
-(`FireStructure.Initialize` + `LightOutlet.Initialize` only).
+## Config (`[TorchFuel]`)
 
-**Safe way to discover the smithing/coal buildings instead:** turn on the existing **`LogAllFireStructures`**
-flag. The forge fire, the bloomery (via its **bellows** `FireStructure`), and the charcoal pyre all carry a
-`FireStructure`, so its already-safe `Initialize` patch logs each with the owner Structure's display name —
-no new patch needed. (The kiln's `_fuelVAttr` coal reservoir has no FireStructure, but the bloomery's name
-still surfaces via the bellows fire.) For the eventual "keep the kiln fueled" feature, capture instances via
-the NetworkBehaviour `Bloomstation.Spawned()` (Fusion lifecycle) and read its `.kiln`, **never** patch
-`KilnInteraction.Initialize`.
+- `TargetStructureNames` (string, default `"Torch"`) — comma list, case-insensitive substring match
+  vs owner structure names AND the fire's GameObject name. `Fire` also matches `Small Fireplace`
+  and the `Cooking Hut` fire.
+- `CheckIntervalSeconds` (float, default `5.0`) — top-off cadence (real seconds).
+- `PreventRainExtinguish` (bool, default `false`) — matched torches ignore weather entirely.
+- `AutoRelightAfterRain` (bool, default `false`) — re-light matched torches when rain stops (no
+  effect if `PreventRainExtinguish` is on).
+- `KeepAllLightSources` (bool, default `false`) — see working approach.
+- `LogAllFireStructures` (bool, default `false`) — diagnostic: log every `FireStructure` and
+  `LightOutlet` as it loads (owner names + GameObject name) to discover a specific fire's exact
+  name. Also reveals the smithing/coal buildings (forge, bloomery-bellows, charcoal pyre all carry
+  a `FireStructure`). Leave off for normal play.
 
-### Confirmed smithing/coal building NAMES (in-game via LogAllFireStructures, 2026-06-25)
-Each carries a `FireStructure` caught by the safe `FireStructure.Initialize` patch, so each is keepable via
-the plain `TargetStructureNames` list — **no new code**:
+## Smithing/coal fires — confirmed names + the Bloomery warning
+
+Confirmed in-game via `LogAllFireStructures` (2026-06-25); each carries a `FireStructure`, so each
+is keepable via the plain `TargetStructureNames` list — no new code:
 
 | In-game display name | FireStructure GameObject | Building |
 |---|---|---|
-| `Bloomery` / `Improved Bloomery` | `KilnInteractionArea_dmgRec` | the smelter (the user's original "furnace" — there is NO "Furnace") |
+| `Bloomery` / `Improved Bloomery` | `KilnInteractionArea_dmgRec` | the smelter (there is NO "Furnace") |
 | `Metalworker` / `Improved Metalworker` | `StorageArea_Forge` | the forge |
 | `Coal Maker` | `PyreInteractionArea` | the coalmaker (charcoal pyre) |
 
-So the working config for "keep smithing/coal fires fueled" is just
-`TargetStructureNames = Torch, Camp, Fire, Bloomery, Metalworker, Coal Maker` (substring match, so `Bloomery`
-catches `Improved Bloomery` too). Note `Fire` also matches `Small Fireplace` and the `Cooking Hut` fire.
+- **Forge (`Metalworker`) and `Coal Maker` are confirmed FINE force-fueled** (user-verified).
+- 🛑 **Do NOT force-fuel the `Bloomery` — it breaks the smelt (confirmed in-game 2026-06-25).**
+  The bloomery's temperature mini-game requires fuel to *deplete* (heat is a function of the fuel
+  ratio: `fuelRatioToPower` curve + burn-rate attrs); pinning fuel at max locks the heat output and
+  no amount of bellows-pumping reaches the bake range — zero bloom produced. The config description
+  warns against it. A future "fueled bloomery" would have to top up the kiln's `_fuelVAttr` only
+  when low (mimicking a villager coal delivery), capturing the kiln via `Bloomstation.Spawned()` →
+  `.kiln` — NEVER via `KilnInteraction.Initialize` (boot-crash; see Dead-ends). Left unbuilt.
 
-🛑 **CONFIRMED (in-game 2026-06-25) — do NOT force-fuel the `Bloomery`; it breaks the smelt.** Adding
-`Bloomery` to the list and pinning its FireStructure fuel to max **breaks the bloomery's temperature
-mini-game**: normally a villager pumps the bellows to hold TEMP in the correct band to convert ore → bloom,
-but with fuel locked at ~100% the heat output is stuck and **no amount of pumping gets TEMP into the bake
-range — zero bloom is produced.** The kiln's heat is a function of the fuel *ratio* (the `KilnInteraction`
-`fuelRatioToPower` AnimationCurve + `_fuelBurnRateAttr`/`airIntakeToBurnRate`/`bakeTemperatureInterval`),
-so the mechanic *requires* fuel to deplete; pinning it removes the controllable range. **Fix applied: removed
-`Bloomery` from the default list** (v1.2.4) and the config description now warns against it.
-- **The forge (`Metalworker`) and `Coal Maker` are confirmed FINE force-fueled** (user-verified) — kept in
-  the list. So this is a Bloomery-specific interaction, not a general crafting-fire problem.
-- **To investigate next session (if we still want a fueled bloomery):** the goal isn't "pin fuel high" — it's
-  "remove the coal *delivery* chore without breaking heat control." Likely needs feeding the kiln's `_fuelVAttr`
-  only when it's actually *low* (mimicking a coal top-up the villager would do) rather than pinning it at max,
-  or topping a different reservoir than the one feeding `fuelRatioToPower`. Capture the kiln via the safe
-  `Bloomstation.Spawned()` → `.kiln` (NEVER `KilnInteraction.Initialize` — that boot-crashes, see the
-  architecture coal dead-end). Left unbuilt for now.
+## NOT covered (separate systems)
 
-## v1.2.5 — [Perf] stopwatch instrumentation (2026-07-12)
-Added Stopwatch on the fuel-check pass (every `CheckIntervalSeconds`, default 5 s). Measured in-game
-(2026-07-12): check pass ≤3.7 ms, healthy profile. No behavioral changes; diagnostic marker fires only
-when a check completes (always-on, not diagnostics-gated, pre-Nexus). Supports the 2026-07-11/12 perf
-arc (see docs/architecture.md → Mod-side frame hitches); TorchFuel confirmed as low-cost mod.
+- **Coal-burning buildings (Kiln / smelting):** the Kiln (`SSSGame.KilnInteraction`) is not a
+  `FireStructure` — its fuel is `_fuelVAttr` burned from coal items in an `ItemContainer`, no
+  `CurrentFuelVolume`/`Rpc_AddFuel`. Adding "Furnace"/"Smelter"/"Kiln" to the name list does
+  nothing (no such structure names). Keeping a kiln fueled is a new sub-feature; co-op replication
+  unverified. Full breakdown: architecture.md torch section.
+- **Cave wall sconces:** `SSSGame.CaveTorchOutlet` — an equipment-item mechanism (torch
+  `EquipmentItemInfo` burning by durability, replaced via villager `LightkeepingQuest`), no fuel
+  volume at all. This mod cannot keep them lit; a future feature would block durability decay or
+  auto-re-equip. Full breakdown: architecture.md torch section.
 
-## NOT covered: coal-burning buildings (Kiln / smelting) — separate fuel system
-Adding `"Furnace"`/`"Smelter"`/`"Kiln"` to `TargetStructureNames` does **nothing**. There is no
-structure named "Furnace"/"Smelter" in the game at all, and the smelting building — the **Kiln**
-(`SSSGame.KilnInteraction`) — is **not a `FireStructure`** (it's a `MonoBehaviour` `Interaction`, not
-even a `NetworkBehaviour`), so it never reaches the `FireStructure.Initialize` patch and has no
-`CurrentFuelVolume`/`Rpc_AddFuel`. Its fuel is `_fuelVAttr` (a writable `VariableAttribute`) burned
-from **coal items** in an `ItemContainer` — a different mechanic end-to-end. Keeping a kiln fueled is a
-**new sub-feature** (pin `_fuelVAttr` to max, or refill its coal container), captured at
-`KilnInteraction.Initialize(Structure)` with its own tracker list; **co-op replication is unverified**
-(no `Rpc_AddFuel` equivalent, plain MonoBehaviour — solo/host safe, co-op clients open). Full breakdown:
-architecture.md torch section "DEAD-END — coal-burning buildings". Confirmed via interop dump 2026-06-25;
-matches the user's in-game report that `"furnace"` in the name list has no effect.
+## Dead-ends (do not retry)
 
-## NOT covered: cave wall sconces (separate system)
-Torches stuck into **cave wall sconces** are **`SSSGame.CaveTorchOutlet`**, not `FireStructure` — an
-*equipment-item* mechanism (a torch `EquipmentItemInfo` that burns by **durability** and is replaced
-by a villager `LightkeepingQuest`), with **no fuel volume / no `Rpc_AddFuel`**. This mod's fuel
-top-off cannot keep them lit. See the architecture.md torch section "DEAD-END — cave wall sconces"
-for the full breakdown; a future feature would have to block the equipped torch's durability decay
-or auto-re-equip it — a different approach from this mod.
+- **Patching `Initialize(Structure)` on `Interaction` MonoBehaviours** (`KilnInteraction`,
+  `BellowsInteraction`, `ForgeInteraction`, `CharcoalStation`, `Bloomstation`) — v1.2.0/v1.2.1
+  broke game launch: `__instance` fails to marshal at boot-prefab init (`Handle is not
+  initialized`, in the glue before the patch body), so the original `Initialize` never completes
+  and boot stalls. v1.2.2 removed the diagnostic entirely, returning to the proven-safe surface
+  (`FireStructure.Initialize` + `LightOutlet.Initialize` only). This is the project-wide
+  "don't patch Interaction lifecycle methods" gotcha; full write-up in architecture.md.
+  Safe discovery alternative: `LogAllFireStructures` (see config).
+
+## Version history
+
+- **v1.0.x:** name-filtered `FireStructure` top-off via `Rpc_AddFuel`, confirmed in-game.
+- **v1.1.0:** GameObject-name matching + `LightOutlet`/`KeepAllLightSources` (built-in building
+  fires) + `LogAllFireStructures` diagnostic.
+- **v1.2.0–v1.2.2:** burnable-building diagnostic attempt — broke game launch; fully reverted in
+  v1.2.2 (see Dead-ends).
+- **v1.2.4:** Bloomery removed from the recommended fuel list after the smelt-breaking finding.
+- **v1.2.5** (2026-07-12): perf stopwatch on the check pass (≤3.7 ms measured — low-cost mod;
+  part of the 2026-07-11/12 perf arc, see architecture.md → Mod-side frame hitches).

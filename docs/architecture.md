@@ -649,7 +649,8 @@ same surface symptom ("the village is short on X").
 1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL
    inventory. Worker fills rank 1's quota locally, moves to rank 2, snaps BACK to earlier ranks if
    their quota drops below the local count.
-2. **Gathering stations** (woodcutter, forager, stonecutter, …): use High/Medium/Low TIERS per eligible resource + quota — all Highs satisfied → Mediums → Lows.
+2. **Gathering stations** (woodcutter, forager, stonecutter, …): use High/Medium/Low TIERS per
+   eligible resource + quota — all Highs satisfied → Mediums → Lows.
 3. **Priority is effectively WINNER-TAKE-ALL**, not a soft weight: one task set higher monopolizes
    the worker (a woodcutter with only long-hardwood-stick=High did nothing else; a warehouse with
    one raised Collect-priority let everything else run dry).
@@ -1310,7 +1311,8 @@ Villager.__NetworkedSchedule  (Int64) — current packed schedule; snapshot for 
 Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehaviorType (ScheduleType)
 ```
 
-**Schedule clock + packed-field ground truth (confirmed in-game 2026-07-09, DynamicVillagerNeeds v1.3.1–v1.3.3 diagnostic runs, TimeWarp-accelerated 10x/36x):**
+**Schedule clock + packed-field ground truth (confirmed in-game 2026-07-09, DynamicVillagerNeeds
+v1.3.1–v1.3.3 diagnostic runs, TimeWarp-accelerated 10x/36x):**
 - **`WeatherSystem.Instance.TimeOfDay` is the wall clock** — linear `float` 0..24, wraps cleanly at
   midnight, tracks TimeWarp's independent readout. Current schedule hour =
   `Mathf.FloorToInt(TimeOfDay)`, and **schedule slot k == clock hour k, zero offset** (a painted

@@ -88,10 +88,11 @@ public class Plugin : BasePlugin
         TimerDiagnostics = Config.Bind(
             section: "VillagerFightBack",
             key: "TimerDiagnostics",
-            defaultValue: true,
+            defaultValue: false,
             description: "Log combat-timer events: vanilla re-arm clamps, the end-of-combat zero-out, and " +
                          "a short post-combat watch showing which quest the villager runs after a fight. " +
-                         "Defaults ON while the v1.0.27 timer fix is being verified in-game.");
+                         "Shipped default false - flip to true if a villager ever gets stuck in combat " +
+                         "again (the log will name the quest holding her).");
 
         ParseTokens();
         Config.SettingChanged += (_, __) => ParseTokens();

@@ -1,4 +1,8 @@
-# Mod 21: DenRespawnMod — COMPLETE (v1.2.2; shipped 2026-07-09 — map-pin Shift+click revive + pin recolor, timed auto-respawn day rule, defeat-day reload persistence, natural-respawn suppression all confirmed in-game; stale-registry timer guard v1.2.1 ⚠️ pending in-game confirmation)
+# Mod 21: DenRespawnMod — COMPLETE (v1.2.2, shipped 2026-07-09)
+
+**Status:** map-pin Shift+click revive + pin recolor, timed auto-respawn day rule, defeat-day
+reload persistence, and natural-respawn suppression all confirmed in-game (2026-07-09). The
+v1.2.1 stale-registry timer guard is ⚠️ still pending in-game confirmation (has never fired).
 
 **Goal:** Refresh/revive defeated monster and beast dens (wulfar, bear, skeleton, etc.) back to life
 via a configurable hotkey, bringing them back into the creature-spawning rotation.
