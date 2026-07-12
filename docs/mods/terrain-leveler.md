@@ -184,4 +184,4 @@ sessions chased that crash at the wrong layer (marker/distance tethers anchored 
 `firstMarker`, raycast-skip approaches that broke the visible preview) before mapping two recurring WER
 crash offsets to the real cause — the `BitSet256` network-state overflow — and fixing it at the source
 (`ChangeGridSize`). See `TerrainLevelerMod/DRAG_CRASH_PLAN.md` for the full investigation and
-`TerrainLevelerMod/TERRAIN_DRAG_HANDOFF.md` for the (superseded) earlier theories, kept for the record.
+`docs/archive/TERRAIN_DRAG_HANDOFF.md` for the (superseded) earlier theories, kept for the record.

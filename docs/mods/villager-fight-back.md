@@ -1,6 +1,8 @@
 # Mod 7: VillagerFightBackMod — COMPLETE (Verified In-Game, v1.0.27)
 
-**Goal:** Let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies** instead of fleeing — e.g., Wisps, which anything can kill — while still fleeing from genuinely dangerous attackers (draugar, wolves, ...). Villager-only; the player is never touched.
+**Goal:** Let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies**
+instead of fleeing — e.g., Wisps, which anything can kill — while still fleeing from genuinely
+dangerous attackers (draugar, wolves, ...). Villager-only; the player is never touched.
 
 **Game subsystem:** [Villager Combat / Fight-vs-Flee System](../architecture.md#villager-combat--fight-vs-flee-system)
 
@@ -9,18 +11,29 @@ The solution requires two axes: redirecting the combat behavior FSM and resolvin
 
 1. **FSM Behaviour Swap (`UseNaturalCombatBehaviour`)**
    - **Harmony Patch:** Postfix `CombatQuest.GetFSMBehavior(QuestData)`.
-   - **Mechanism:** A villager has two combat FSMs: `fleeCombatBehaviour` (runs/kites) and `naturalCombatBehaviour` (stands & fights). `FleeCombatQuest` runs the flee behavior by default. When a whitelisted enemy is encountered, this patch overrides the return to use `naturalCombatBehaviour` instead.
-   - **Pointer Safety:** Standard C# `as` casting (`var cqd = questData as CombatQuest.CombatQuestData`) and `Plugin.PtrOf(cqd) == IntPtr.Zero` checks are used to prevent native IL2CPP `TryCast` wrapper crashes on uninitialized assets during startup.
+   - **Mechanism:** A villager has two combat FSMs: `fleeCombatBehaviour` (runs/kites) and
+     `naturalCombatBehaviour` (stands & fights). `FleeCombatQuest` runs the flee behavior by
+     default. When a whitelisted enemy is encountered, this patch overrides the return to use
+     `naturalCombatBehaviour` instead.
+   - **Pointer Safety:** Standard C# `as` casting (`var cqd = questData as
+     CombatQuest.CombatQuestData`) and `Plugin.PtrOf(cqd) == IntPtr.Zero` checks are used to prevent
+     native IL2CPP `TryCast` wrapper crashes on uninitialized assets during startup.
 
 2. **Quest Arbitration & Work Suspension (`SuspendWorkWhileEngaged`)**
    - **Harmony Patch:** Postfix `QuestRunner.Update`.
-   - **Mechanism:** In gameplay, an active work quest (e.g. `TerraformingQuest`) out-prioritizes combat, causing villagers to oscillate and try to run back to their job markers. To solve this, when a villager is actively engaged with a whitelisted enemy, we suspend/remove their active work quest via the game's `QuestRunner.RemoveQuest` (making them effectively idle, so the combat quest takes over fully).
+   - **Mechanism:** In gameplay, an active work quest (e.g. `TerraformingQuest`) out-prioritizes
+     combat, causing villagers to oscillate and try to run back to their job markers. To solve this,
+     when a villager is actively engaged with a whitelisted enemy, we suspend/remove their active
+     work quest via the game's `QuestRunner.RemoveQuest` (making them effectively idle, so the
+     combat quest takes over fully).
    - Once the enemy is dead or gone, we restore the suspended work quests using `QuestRunner.AddQuest`.
 
 3. **Fast Combat Drop (`KeepCombatAlive` / Exit)**
    - **Harmony Patch:** Postfix `FleeCombatQuestData.ShouldFight` (getter).
    - **Mechanism:** Keeps the combat timer topped up to a tight `8f` seconds (rather than `60f` seconds) during the fight to bridge any frame gaps.
-   - **Instant Exit:** The moment the target dies (`!decisionTarget.IsAlive()`), we set `_combatTimeRemaining = 0f` to drop combat instantly, prompting the QuestRunner to restore work quests and return the villager to their job in under a second.
+   - **Instant Exit:** The moment the target dies (`!decisionTarget.IsAlive()`), we set
+     `_combatTimeRemaining = 0f` to drop combat instantly, prompting the QuestRunner to restore work
+     quests and return the villager to their job in under a second.
 
 ---
 
@@ -35,9 +48,11 @@ The solution requires two axes: redirecting the combat behavior FSM and resolvin
 ---
 
 ## Verified In-Game Findings (2026-06-27)
-1. **Wisp:** `IAttackTarget.GetTargetName() == "Wisp"`, Faction is `Undead`. Whitelisting "Wisp" targets them precisely without affecting Draugar (which are also `Undead`).
+1. **Wisp:** `IAttackTarget.GetTargetName() == "Wisp"`, Faction is `Undead`. Whitelisting "Wisp"
+   targets them precisely without affecting Draugar (which are also `Undead`).
 2. **Attacking:** Standard villagers using `naturalCombatBehaviour` swing their weapons/fists and successfully kill Wisps.
-3. **Resuming Jobs:** Once the combat timer is reset upon Wisp death, the suspended work quest is restored and building/terraforming tasks are resumed within seconds.
+3. **Resuming Jobs:** Once the combat timer is reset upon Wisp death, the suspended work quest is
+   restored and building/terraforming tasks are resumed within seconds.
 4. **Fleeing Threats:** Villagers still correctly flee from wolves and draugar since they are not on the whitelist.
 
 ---
@@ -87,10 +102,18 @@ with the post-combat watch confirming a clean priority handoff `FleeCombatQuest(
 
 ## v1.0.28–1.0.29 — per-frame cost reduction (confirmed in-game 2026-07-07)
 
-**Problem:** `QuestRunner.Update` postfix patches one villager per frame in a settlement, summing to ~15–16 Hz of patch invocations for a medium settlement. Entry cost (trampoline, instance marshaling) was the bottleneck even with a cheap body.
+**Problem:** `QuestRunner.Update` postfix patches one villager per frame in a settlement, summing to
+~15–16 Hz of patch invocations for a medium settlement. Entry cost (trampoline, instance marshaling)
+was the bottleneck even with a cheap body.
 
-**v1.0.28:** added per-villager throttle via `Dict<IntPtr, (CombatQuest, DateTime)>` keyed by `Plugin.PtrOf(runner)`, running the patch body only once per villager per second (~1 Hz per villager = 15 Hz total for 15 villagers, but spread across the frame).
+**v1.0.28:** added per-villager throttle via `Dict<IntPtr, (CombatQuest, DateTime)>` keyed by
+`Plugin.PtrOf(runner)`, running the patch body only once per villager per second (~1 Hz per villager
+= 15 Hz total for 15 villagers, but spread across the frame).
 
-**v1.0.29:** added global frame-gate `if ((Time.frameCount & 3) != 0) return;` as the **first line** of the postfix — skips the entire trampoline cost on 75% of invocations, recovering ~75% of the per-frame entry cost (~75% of ~5ms = ~3.75ms recovered). The per-villager dict cache is retained for actual work.
+**v1.0.29:** added global frame-gate `if ((Time.frameCount & 3) != 0) return;` as the **first line**
+of the postfix — skips the entire trampoline cost on 75% of invocations, recovering ~75% of the
+per-frame entry cost (~75% of ~5ms = ~3.75ms recovered). The per-villager dict cache is retained for
+actual work.
 
-**Confirmed in-game (2026-07-07):** per-frame FPS cost fell ~75%; combined throttle (frame-gate + per-villager limit) brought `QuestRunner.Update` patch from dominant (~25% of frame) to negligible.
+**Confirmed in-game (2026-07-07):** per-frame FPS cost fell ~75%; combined throttle (frame-gate +
+per-villager limit) brought `QuestRunner.Update` patch from dominant (~25% of frame) to negligible.

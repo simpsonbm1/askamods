@@ -93,8 +93,10 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   (confirmed in-game 2026-07-01 — a scan over `List<ItemInfo>` found zero templates that demonstrably
   existed). Identify by asset `name`/`id`, or read the native class via
   `IL2CPP.il2cpp_object_get_class(obj.Pointer)` + `il2cpp_class_get_name`, then construct the derived
-  wrapper with the generated `new T(IntPtr)` ctor. This **supersedes** the old belief that plain C#
-  casts work on interop types.
+  wrapper with the generated `new T(IntPtr)` ctor. Scope note: an `as` cast DOES work when the
+  wrapper was already materialized as the derived type (e.g. elements of a correctly-typed API like
+  `CavesManager.GetAllCaves()` — `node as CaveNode` is fine there); it lies exactly when the object
+  was materialized under a base declared type. When in doubt, check the native class name.
 - **The IL2CPP AOT compiler inlines small/single-caller methods constantly — a Harmony patch on an
   inlined method silently never fires.** Confirmed victims: `TerraformingGrid.TryLevelTile`/
   `MarkCellInteracted`, `BuildItemsTabPage.ShowPage` (private, 1 caller), `InventoryComponent.
@@ -107,22 +109,55 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   networked object), `HasStateAuthority`, and `HasInputAuthority` as public properties. Authority-check
   any networked object directly via `x.Runner.IsServer || x.Runner.IsSharedModeMasterClient` (build +
   runtime verified 2026-07-09, TimeWarpMod).
-- **DO NOT Harmony-patch `RangedManager._OnAmmoRemoved` or other methods with inventory-family parameter types** (`Item`, `ItemCollection`, `ItemEventContext`). The patch mechanism resolves target method parameter types at Harmony setup time (during plugin load), forcing too-early il2cpp class-init on those inventory types — native class constructors fail, crashing via `coreclr.dll+0x1d1fdd` (fatal CLR exit) with no managed exception before any `try/catch`. Reproduced 3× (2026-07-11, VillagerAmmoMod v0.1.0/v0.1.1, crash dumps `%LOCALAPPDATA%\CrashDumps\Aska.exe.{11360,42548,30908}.dmp`; minidump stack shows `SandSailorStudio.Inventory.Item..cctor` in the native frames). Contrast: OuthouseComposterMod patches methods taking `ItemContainer` + `ItemInfo` params safely (no Item/ItemCollection/ItemEventContext in signatures) — supports the inventory-family hypothesis. **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix, PARAMETERLESS binding) + polling, never detour a method with inventory-family parameters. Full evidence and recipe in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → Dead-end section.
+- **DO NOT Harmony-patch `RangedManager._OnAmmoRemoved` or other methods with inventory-family
+  parameter types** (`Item`, `ItemCollection`, `ItemEventContext`). The patch mechanism resolves
+  target method parameter types at Harmony setup time (during plugin load), forcing too-early il2cpp
+  class-init on those inventory types — native class constructors fail, crashing via
+  `coreclr.dll+0x1d1fdd` (fatal CLR exit) with no managed exception before any `try/catch`.
+  Reproduced 3× (2026-07-11, VillagerAmmoMod v0.1.0/v0.1.1, crash dumps
+  `%LOCALAPPDATA%\CrashDumps\Aska.exe.{11360,42548,30908}.dmp`; minidump stack shows
+  `SandSailorStudio.Inventory.Item..cctor` in the native frames). Contrast: OuthouseComposterMod
+  patches methods taking `ItemContainer` + `ItemInfo` params safely (no
+  Item/ItemCollection/ItemEventContext in signatures) — supports the inventory-family hypothesis.
+  **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix,
+  PARAMETERLESS binding) + polling, never detour a method with inventory-family parameters. Full
+  evidence and recipe in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → Dead-end section.
 
 ---
 
 ## Per-frame cost & throttling (universal)
 
-**Finding (confirmed in-game 2026-07-07):** ~16 mods each doing per-frame work summed to a **cumulative ~22–25 ms/frame main-thread stall**, halving FPS (23–27 fps loaded vs. 53–67 plugins-off). No single mod dominated — only disabling ALL recovered the full FPS. Throttling each mod's per-frame work to a few Hz recovered ~full FPS (45–60 fps post-throttle ≈ plugin overhead eliminated).
+**Finding (confirmed in-game 2026-07-07):** ~16 mods each doing per-frame work summed to a
+**cumulative ~22–25 ms/frame main-thread stall**, halving FPS (23–27 fps loaded vs. 53–67
+plugins-off). No single mod dominated — only disabling ALL recovered the full FPS. Throttling each
+mod's per-frame work to a few Hz recovered ~full FPS (45–60 fps post-throttle ≈ plugin overhead
+eliminated).
 
 **Anti-patterns hit (and fixes shipped):**
 
-- **`FindAnyObjectByType<T>()` every frame in `Update()` (a full-scene search).** Gate to ~1 Hz: cache the result, set a timer, re-search only every ~1 second. (ZeroTaskWorkersMod v1.0.1, TaskUnlockerMod v1.2.2 — both were doing this on every frame to check if the world was loaded; moved the world gate outside the per-frame loop.)
-- **Unthrottled per-frame loop over a settlement-sized collection** (villagers, pending respawns). Gate to a few Hz; process one (or a batched slice) per frame if you must scan. (DynamicVillagerNeedsMod v1.2.0 — was looping all villagers every frame; now gated to every 4 frames = 15 Hz at 60 FPS.)
-- **Harmony patch on a per-frame-per-entity method** (e.g. `QuestRunner.Update`, ticked per villager every frame). A throttled patch BODY still pays the trampoline + entry cost on every invocation. Add a cheap `if ((Time.frameCount & N) != 0) return;` gate as the **FIRST line** to skip most invocations before any interop. (VillagerFightBackMod v1.0.29 — frame-gated the QuestRunner.Update postfix to 4 Hz, recovering ~75% of its per-frame cost; the v1.0.28 per-villager throttle via dictionary caching halved it further.)
-- **Correctness pattern: throttled `Update()` doing rate/time math.** Do NOT early-return on skipped frames — that starves internal `+= Time.deltaTime` timers and breaks time accounting. Instead, accumulate the real elapsed time (`Time.deltaTime * skipped_count`) and feed THAT as `dt` on the frames you do process. (DynamicVillagerNeedsMod v1.2.0, SeedScoutMod v1.3.1 — both accumulate across skipped ticks and apply only on processing ticks.)
+- **`FindAnyObjectByType<T>()` every frame in `Update()` (a full-scene search).** Gate to ~1 Hz:
+  cache the result, set a timer, re-search only every ~1 second. (ZeroTaskWorkersMod v1.0.1,
+  TaskUnlockerMod v1.2.2 — both were doing this on every frame to check if the world was loaded;
+  moved the world gate outside the per-frame loop.)
+- **Unthrottled per-frame loop over a settlement-sized collection** (villagers, pending respawns).
+  Gate to a few Hz; process one (or a batched slice) per frame if you must scan.
+  (DynamicVillagerNeedsMod v1.2.0 — was looping all villagers every frame; now gated to every 4
+  frames = 15 Hz at 60 FPS.)
+- **Harmony patch on a per-frame-per-entity method** (e.g. `QuestRunner.Update`, ticked per villager
+  every frame). A throttled patch BODY still pays the trampoline + entry cost on every invocation.
+  Add a cheap `if ((Time.frameCount & N) != 0) return;` gate as the **FIRST line** to skip most
+  invocations before any interop. (VillagerFightBackMod v1.0.29 — frame-gated the QuestRunner.Update
+  postfix to 4 Hz, recovering ~75% of its per-frame cost; the v1.0.28 per-villager throttle via
+  dictionary caching halved it further.)
+- **Correctness pattern: throttled `Update()` doing rate/time math.** Do NOT early-return on skipped
+  frames — that starves internal `+= Time.deltaTime` timers and breaks time accounting. Instead,
+  accumulate the real elapsed time (`Time.deltaTime * skipped_count`) and feed THAT as `dt` on the
+  frames you do process. (DynamicVillagerNeedsMod v1.2.0, SeedScoutMod v1.3.1 — both accumulate
+  across skipped ticks and apply only on processing ticks.)
 
-**Diagnostic:** use `bisect-plugins.ps1` to bisect a live-plugin performance/crash regression (disable all, re-enable one by one). Baseline vanilla framerate check: `doorstop_config.ini enabled=false`.
+**Diagnostic:** use `bisect-plugins.ps1` to bisect a live-plugin performance/crash regression
+(disable all, re-enable one by one). Baseline vanilla framerate check: `doorstop_config.ini
+enabled=false`.
 
 ## Mod-side frame hitches: measurement + findings (2026-07-11/12)
 
@@ -162,9 +197,28 @@ of play, group by (mod, pass) with count/avg/max. Example entry: `[Perf][TreeRes
 
 ## Configuration & Live Reload (universal)
 
-**BepInEx does NOT re-read edited .cfg files (confirmed in-game 2026-07-10):** `ConfigEntry.Value` reflects only in-memory state; when the user edits `BepInEx/config/com.modname.cfg` in a text editor mid-session, the changes are visible to the OS but not to the running process. To pick up file edits at runtime, call `ConfigFile.Reload()` (or `Plugin.Cfg?.Reload()`) periodically in `Update()` — the GroundItemVacuum/SeedScout/DynamicVillagerNeedsMod 5 s pattern does this at the top of `Update()` BEFORE the Enabled gate, so even toggling `Enabled=true` from the config file takes effect immediately. Single-run config parses (e.g. key bindings read once at startup) do NOT need live reload — only values that change behavior per-session need the polling.
+**BepInEx does NOT re-read edited .cfg files (confirmed in-game 2026-07-10):** `ConfigEntry.Value`
+reflects only in-memory state; when the user edits `BepInEx/config/com.modname.cfg` in a text editor
+mid-session, the changes are visible to the OS but not to the running process. To pick up file edits
+at runtime, call `ConfigFile.Reload()` (or `Plugin.Cfg?.Reload()`) periodically in `Update()` — the
+GroundItemVacuum/SeedScout/DynamicVillagerNeedsMod 5 s pattern does this at the top of `Update()`
+BEFORE the Enabled gate, so even toggling `Enabled=true` from the config file takes effect
+immediately. Single-run config parses (e.g. key bindings read once at startup) do NOT need live
+reload — only values that change behavior per-session need the polling.
 
-**Typed-hotkey leak (FIXED, confirmed in-game 2026-07-10):** typing in the game's structure-rename and other text fields delivered keystrokes to `Input.GetKeyDown`, firing every mod hotkey bound to a letter while the player typed, creating unwanted mod actions mid-rename (observed 2026-07-10, pre-fix). **Recipe:** each affected mod gained a self-contained `IsTextInputFocused()` helper (interop: `UnityEngine.EventSystems.EventSystem` + `UnityEngine.UI.InputField` + `TMPro.TMP_InputField` live in `interop\UnityEngine.UI.dll` + `interop\Unity.TextMeshPro.dll` respectively; pair with `unity-libs\UnityEngine.UIModule.dll` + `UnityEngine.TextRenderingModule.dll` in csproj if needed) — checks `EventSystem.current?.currentSelectedGameObject` for a `TMPro.TMP_InputField` or legacy `UnityEngine.UI.InputField` component — and gates ONLY the hotkey block on it (config reloads/auto-timers untouched). Confirmed: rename field registers as the EventSystem's selected object; hovering other UI controls moves selection off it and re-enables hotkeys; keyboard mashing in a rename window triggers nothing; hotkeys work again after the window closes.
+**Typed-hotkey leak (FIXED, confirmed in-game 2026-07-10):** typing in the game's structure-rename
+and other text fields delivered keystrokes to `Input.GetKeyDown`, firing every mod hotkey bound to a
+letter while the player typed, creating unwanted mod actions mid-rename (observed 2026-07-10,
+pre-fix). **Recipe:** each affected mod gained a self-contained `IsTextInputFocused()` helper
+(interop: `UnityEngine.EventSystems.EventSystem` + `UnityEngine.UI.InputField` +
+`TMPro.TMP_InputField` live in `interop\UnityEngine.UI.dll` + `interop\Unity.TextMeshPro.dll`
+respectively; pair with `unity-libs\UnityEngine.UIModule.dll` +
+`UnityEngine.TextRenderingModule.dll` in csproj if needed) — checks
+`EventSystem.current?.currentSelectedGameObject` for a `TMPro.TMP_InputField` or legacy
+`UnityEngine.UI.InputField` component — and gates ONLY the hotkey block on it (config
+reloads/auto-timers untouched). Confirmed: rename field registers as the EventSystem's selected
+object; hovering other UI controls moves selection off it and re-enables hotkeys; keyboard mashing
+in a rename window triggers nothing; hotkeys work again after the window closes.
 
 ---
 
@@ -197,7 +251,8 @@ Other useful classes:
 - `Invector.vDamage` — `damageValue` (int), `reducedDamage` (bool)
 
 ### Dead ends (don't retry)
-- `SSSGame.Combat.Projectile.Shoot()` — IL2CPP trampoline crash (mixed ref value-type + nullable object params). Don't patch it; patch `Creature.TakeDamage` instead.
+- `SSSGame.Combat.Projectile.Shoot()` — IL2CPP trampoline crash (mixed ref value-type + nullable
+  object params). Don't patch it; patch `Creature.TakeDamage` instead.
 - `RangedManager.OnProjectileDamage()` — post-damage *notification*; modifying `result` here only changes the UI damage numbers, not actual HP.
 - `Creature.TakeDamage` / `Character.TakeDamage` via the **Invector** path — never fired. The live path is `SSSGame.Creature.TakeDamage`.
 - `vBowControl.OnInstantiateProjectile`, `vProjectileControl.Start()` — ASKA doesn't use these Invector hooks.
@@ -236,10 +291,16 @@ on `PlayerCharacter.Spawned()`/`Despawned()` (gated on `HasAuthority`) is the si
 the local avatar.
 
 **Villagers (soldiers/warriors — binary-confirmed via Cecil, 2026-07-08):**
-- `SSSGame.Villager : SSSGame.Character` — villagers are on the Character hierarchy, NOT Creature. They share the exact health surface the player uses: `CurrentHealth` (get+set), `MaxHealth`, `IsDead`, `HasAuthority`, `GetDamageTakenHistory().LastDamageTime`.
-- The ONLY subclasses of `Character` are `PlayerCharacter` and `Villager`; `Villager` has no subclasses and there is no Soldier/Guard class — warriors/soldiers are gear-flagged `Villager`s (`Villager.IsWarrior`).
+- `SSSGame.Villager : SSSGame.Character` — villagers are on the Character hierarchy, NOT Creature.
+  They share the exact health surface the player uses: `CurrentHealth` (get+set), `MaxHealth`,
+  `IsDead`, `HasAuthority`, `GetDamageTakenHistory().LastDamageTime`.
+- The ONLY subclasses of `Character` are `PlayerCharacter` and `Villager`; `Villager` has no
+  subclasses and there is no Soldier/Guard class — warriors/soldiers are gear-flagged `Villager`s
+  (`Villager.IsWarrior`).
 - `Villager` overrides `Spawned()`/`Despawned(NetworkRunner, bool)` — patch those (most-derived type) to capture villager instances.
-- ⚠️ pending in-game: whether `Character.CurrentHealth` writes stick on villagers as they do on the player (villagers also have the survival-side `CharacterSurvival._healthVAttr`, the fallback lever if not).
+- **`Character.CurrentHealth` writes stick on villagers** just as on the player (confirmed in-game
+  2026-07-08, HealthRegenMod v1.3.x villager regen). The survival-side
+  `CharacterSurvival._healthVAttr` exists as an alternative lever but was not needed.
 
 ### Dead ends (don't retry)
 - `SSSGame.Creature.TakeDamage`/`CurrentHealth` for **player** health — `Creature` only covers monsters/NPCs. Use `Character`/`PlayerCharacter`.
@@ -266,7 +327,9 @@ WeatherSystem.Instance           ← singleton accessor
 ```
 In-game hour = `dayLength / 24`.
 
-**Time-control oddities (confirmed 2026-07-09):** `dayOfYear` can exceed `daysInOneYear` (e.g. 74 vs 57 read in the same session) — year-wrap is not enforced the way field names suggest. Right after world load, `GetDaysPassed()` can briefly read 0 before WeatherSystem deserializes (transient).
+**Time-control oddities (confirmed 2026-07-09):** `dayOfYear` can exceed `daysInOneYear` (e.g. 74 vs
+57 read in the same session) — year-wrap is not enforced the way field names suggest. Right after
+world load, `GetDaysPassed()` can briefly read 0 before WeatherSystem deserializes (transient).
 
 **Respawn countdown — `SSSGame.BiomeItemAvailabilityData`** (the game's own built-in per-resource countdown; reference)
 ```
@@ -279,12 +342,30 @@ BiomeItemAvailabilityData
 ```
 
 **Seasonal/weather availability gating (WeatherManager) — confirmed in-game 2026-07-10/11**
-- **Structure:** `WeatherManager._descriptors : Dictionary<ItemInfo, BiomeItemAvailabilityData>` holds ~22 entries per world (mushrooms, crops, berries, driftwood, nests, etc.). Each entry carries an `AvailabilityProcess` ScriptableObject (process-global, NOT per-world — edit persists across world reloads). The process ANDs four condition lists: Season/Time/Other/ProgressingWeather. Evaluated on weather/season changes.
-- **Vanilla mushroom gating (confirmed deterministically in-game 2026-07-10/11):** Grey Mushrooms (id 16793609): Season[Spring,Summer,Autumn] + Other[IsRaining mandatory]; Yellow Mushrooms (id 16793610): Season[Autumn] + Other[IsRaining mandatory]; plain Mushrooms (id 16793608): ungated (both Season and Other condition lists empty). The v1.4.7 TreeRespawnMod mushroom feature clears these gates to remove seasonal/rain culling.
-- **Grey↔Gray plant/yield pairing:** the weather table registers the PLANT ItemInfo named "Grey Mushrooms"; world gather nodes' YIELD is a distinct ItemInfo named "Gray Mushrooms" (both spellings are literal `ItemInfo.Name` strings, NOT localization). Name-based substring filters are locale-safe as far as observed, but plant vs yield items can differ in id and gating.
-- **Census recipe (v1.5.8):** read `BiomeItemAvailabilityData.itemDescriptors` (interop List via Count+indexer) → per descriptor read `IsAvailable`/`IsHarvestable`/`._instances` → per `BiomeItemInstance` read `.Active`/`.Destroyed`/`.GetQuantity()`. Instance lists reflect the currently-streamed region.
-- **Dormant replenish cycle:** with gates cleared, `remainingDays` parks at −1 and the game's own replenish countdown goes dormant (no availability transitions). Un-gating must be paired with a node-respawn mechanism (TreeRespawnMod's `[GatherRespawn]` config provides the restore engine).
-- **`AvailabilityProcess.CanRun` observation (2026-07-11):** reads False when all condition lists are empty (seen on both cleared and vanilla-empty processes) — semantics unconfirmed, observation only.
+- **Structure:** `WeatherManager._descriptors : Dictionary<ItemInfo, BiomeItemAvailabilityData>`
+  holds ~22 entries per world (mushrooms, crops, berries, driftwood, nests, etc.). Each entry
+  carries an `AvailabilityProcess` ScriptableObject (process-global, NOT per-world — edit persists
+  across world reloads). The process ANDs four condition lists:
+  Season/Time/Other/ProgressingWeather. Evaluated on weather/season changes.
+- **Vanilla mushroom gating (confirmed deterministically in-game 2026-07-10/11):** Grey Mushrooms
+  (id 16793609): Season[Spring,Summer,Autumn] + Other[IsRaining mandatory]; Yellow Mushrooms (id
+  16793610): Season[Autumn] + Other[IsRaining mandatory]; plain Mushrooms (id 16793608): ungated
+  (both Season and Other condition lists empty). The v1.4.7 TreeRespawnMod mushroom feature clears
+  these gates to remove seasonal/rain culling.
+- **Grey↔Gray plant/yield pairing:** the weather table registers the PLANT ItemInfo named "Grey
+  Mushrooms"; world gather nodes' YIELD is a distinct ItemInfo named "Gray Mushrooms" (both
+  spellings are literal `ItemInfo.Name` strings, NOT localization). Name-based substring filters are
+  locale-safe as far as observed, but plant vs yield items can differ in id and gating.
+- **Census recipe (v1.5.8):** read `BiomeItemAvailabilityData.itemDescriptors` (interop List via
+  Count+indexer) → per descriptor read `IsAvailable`/`IsHarvestable`/`._instances` → per
+  `BiomeItemInstance` read `.Active`/`.Destroyed`/`.GetQuantity()`. Instance lists reflect the
+  currently-streamed region.
+- **Dormant replenish cycle:** with gates cleared, `remainingDays` parks at −1 and the game's own
+  replenish countdown goes dormant (no availability transitions). Un-gating must be paired with a
+  node-respawn mechanism (TreeRespawnMod's `[GatherRespawn]` config provides the restore engine).
+- **`AvailabilityProcess.CanRun` observation (2026-07-11):** reads False when all condition lists
+  are empty (seen on both cleared and vanilla-empty processes) — semantics unconfirmed, observation
+  only.
 
 **Vegetation / resource classes**
 ```
@@ -316,12 +397,19 @@ BiomeItemInstance                ← .Initialize() fires per instance as the wor
 ```
 
 **Confirmed facts (HarvestInteraction / trees):**
-- `HarvestInteraction._worldInstance.TryCast<BiomeItemInstance>()` gives the biome instance directly; non-biome resources (rocks etc.) return null and are skipped. `BiomeItemInstance.Replenish()` fully respawns in place — confirmed in-game.
-- The **last** entry in `harvestPieces` is reliably the **stump** (`List<HarvestInteraction.HarvestPiece>`; element is a nested class with a `pieceId ResourcePieces` enum — no explicit stump flag, position-based). Detect stump stage via `GetCurrentPieceIndex() == harvestPieces.Count - 1`.
+- `HarvestInteraction._worldInstance.TryCast<BiomeItemInstance>()` gives the biome instance
+  directly; non-biome resources (rocks etc.) return null and are skipped.
+  `BiomeItemInstance.Replenish()` fully respawns in place — confirmed in-game.
+- The **last** entry in `harvestPieces` is reliably the **stump**
+  (`List<HarvestInteraction.HarvestPiece>`; element is a nested class with a `pieceId
+  ResourcePieces` enum — no explicit stump flag, position-based). Detect stump stage via
+  `GetCurrentPieceIndex() == harvestPieces.Count - 1`.
 - `WeatherSystem.NetworkedCurrentGameTime` persists across saves — valid for elapsed-time calculations after a full game restart.
 
 ### Dead ends (don't retry)
-- Subscribing to `HarvestInteraction.OnFullyHarvested` per-instance — IL2CPP `Action` delegate issue (see interop gotchas). Checking `BiomeItemInstance.Destroyed` at tick time is simpler and equivalent.
+- Subscribing to `HarvestInteraction.OnFullyHarvested` per-instance — IL2CPP `Action` delegate issue
+  (see interop gotchas). Checking `BiomeItemInstance.Destroyed` at tick time is simpler and
+  equivalent.
 - `BiomeItemInstance.UniqueId` as a dictionary key — NOT globally unique (per-chunk index restarting at 0). Key by world position instead.
 
 ### Mining / stone-clump respawn — INVESTIGATED & ABANDONED (don't re-attempt)
@@ -405,7 +493,10 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
 
 **Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
 - All names confirmed in-game against the inventory/storage UI (2026-06-17):
-  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"` (PLURAL — verified live in the respawn log 2026-06-25; the config key `Fiber` still matches it via the case-insensitive `itemName.Contains(key)` substring test, so the override applies regardless)
+  - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"`
+    (PLURAL — verified live in the respawn log 2026-06-25; the config key `Fiber` still matches it
+    via the case-insensitive `itemName.Contains(key)` substring test, so the override applies
+    regardless)
   - `"Small Stone"` (ground pickup), `"Mussels"`, `"Feathers"` (Bird's Nest), `"Water"` (Natural Water Collector)
   - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
   - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
@@ -465,10 +556,22 @@ biome nodes — none of the BiomeItemInstance/Replenish machinery applies. Confi
 ---
 
 ## Structures, Workstations & the AI Quest/Task system (general)
-- **`SSSGame.Structure`** is the base building (a `NetworkBehaviour`). Useful members: `StructureName` / `DefaultName` / `GetName()` (display name, same role as `ItemInfo.Name` — use for substring filtering), `storageSupplies` (array of the structure's `StorageSupply` dispatchers), `Settlement`, `Parent`/`Root`, `OnSpawned`/`OnStructureDeath` actions.
-- **Get a typed component off a structure:** `structure.TryGetStructureComponent<T>(out T comp)` (bool) or `GetStructureComponent<T>()` / `FindStructureComponent(predicate)`. This is how you ask "is this building a `CraftingStation`/`ResourceStorage`/…".
-- **Workstations** (`ResourceStorage`, `CraftingStation`, `CookingStation`, etc.) are `Workstation : NetworkBehaviour` structure-components. Each owns a set of AI **Quests** (`SSSGame.AI.*Quest`, e.g. `CrafterFetchQuest`, `SupplyPatrolQuest`, `GatherAndHarvestQuest`) exposed as `vFSMBehaviour` fields, and runs them through **FSM nodes** under `SSSGame.AI.FSM.*` (ScriptableObjects — their method bodies are NOT dumpable in IL2CPP, only signatures). Active work is tracked by `SSSGame.AI.TaskRunner`.
-- **Per-villager whitelisting** exists on workstations: `IsWhitelisted(Villager)`, `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which villagers may use this station."
+- **`SSSGame.Structure`** is the base building (a `NetworkBehaviour`). Useful members:
+  `StructureName` / `DefaultName` / `GetName()` (display name, same role as `ItemInfo.Name` — use
+  for substring filtering), `storageSupplies` (array of the structure's `StorageSupply`
+  dispatchers), `Settlement`, `Parent`/`Root`, `OnSpawned`/`OnStructureDeath` actions.
+- **Get a typed component off a structure:** `structure.TryGetStructureComponent<T>(out T comp)`
+  (bool) or `GetStructureComponent<T>()` / `FindStructureComponent(predicate)`. This is how you ask
+  "is this building a `CraftingStation`/`ResourceStorage`/…".
+- **Workstations** (`ResourceStorage`, `CraftingStation`, `CookingStation`, etc.) are `Workstation :
+  NetworkBehaviour` structure-components. Each owns a set of AI **Quests** (`SSSGame.AI.*Quest`,
+  e.g. `CrafterFetchQuest`, `SupplyPatrolQuest`, `GatherAndHarvestQuest`) exposed as `vFSMBehaviour`
+  fields, and runs them through **FSM nodes** under `SSSGame.AI.FSM.*` (ScriptableObjects — their
+  method bodies are NOT dumpable in IL2CPP, only signatures). Active work is tracked by
+  `SSSGame.AI.TaskRunner`.
+- **Per-villager whitelisting** exists on workstations: `IsWhitelisted(Villager)`,
+  `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which
+  villagers may use this station."
 
 ### `GatherAndHarvestQuest` — fiber gather can get permanently stuck (confirmed in-game 2026-06-28)
 `GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound(bool value, ItemManifest
@@ -481,41 +584,100 @@ workstation/recipe stockpile target — same shape as `CookingStockpileQuestData
 `NeededFillerSupplies` fixed-target manifests, see Cooking Station Pipeline below), not a per-world
 computed deficit. **Leading hypothesis, not fully confirmed:** the resource-search needs a single source
 able to satisfy the whole manifest in one shot; since one flax harvest yields only 6-7 fiber, no source
-can ever satisfy a 15-unit request, so it fails forever regardless of flax abundance/proximity. **Can't
-be confirmed further without an IL decompile** — `SSSGame.AI.FSM.*` quest-behavior nodes are
-ScriptableObjects whose method bodies Cecil can't dump (signatures only). Full writeup, evidence, and the
-cheap in-game verification (check the stuck villager's job for a workstation needing exactly 15 fiber):
-[`../TREERESPAWN_HANDOFF.md`](../TREERESPAWN_HANDOFF.md) Issue F. **Not a TreeRespawnMod bug** —
-discovered through its diagnostics, but the mod doesn't touch quest targets or resource search.
+can ever satisfy a 15-unit request, so it fails forever regardless of flax abundance/proximity. A
+second instance reinforces the fixed-constant hypothesis with a different constant: three villagers
+in a 2026-07-02 solo session each repeated `wants Wild Eggx50` all session (same shape — a fixed,
+round, suspiciously-large target). **Can't be confirmed further without an IL decompile** —
+`SSSGame.AI.FSM.*` quest-behavior nodes are ScriptableObjects whose method bodies Cecil can't dump
+(signatures only). Cheap in-game verification (never run): check the stuck villager's job for a
+workstation/recipe needing exactly that quantity. Full evidence log:
+[`archive/TREERESPAWN_HANDOFF.md`](archive/TREERESPAWN_HANDOFF.md) Issue F. **Not a TreeRespawnMod
+bug** — discovered through its diagnostics, but the mod doesn't touch quest targets or resource
+search. Note the disambiguation: this failure mode ("search never succeeds") and the resolved
+Issues C/D ("registration succeeded, respawn-servicing didn't") are separate mechanisms with the
+same surface symptom ("the village is short on X").
 
 ### Workstation task assignment (Mod 18 groundwork)
-- **`_CanAddVillagerToTaskData(Villager, WorkstationTaskData)` has FOUR implementations:** base `SSSGame.Workstation` plus overrides in `Buildstation`, `Marketplace`, `ResourceStorage`. Harmony patches concrete methods, so blocking task inheritance requires patching all four. Derived overrides call base (paired log lines confirmed).
-- **`AddToTaskDatas(Villager)` has TWO implementations:** `Workstation` + `HarboringStation` override. It fires at WORLD LOAD for every villager (per-station re-add burst), BEFORE `DeserializeTaskData` — vanilla load order is Add-then-Deserialize; the later Deserialize overwrites `VillagersInCharge` from the save (this is also how vanilla preserves unchecked task boxes).
-- **The task-assignment UI does NOT read `_CanAddVillagerToTaskData`:** menu-open and checkbox toggles never call it (the checkbox path is RPC-only), so a prefix-block on `_CanAdd` cannot break manual checkbox assignment. `_CanAdd` is called ONLY from inside `AddToTaskDatas`.
-- **Unassigning a villager from a station auto-transfers them to the `Buildstation`** (Remove → Add(Buildstation)) — any inheritance-blocking mod must exempt the Buildstation family or unassigned villagers lose build/firekeep tasks.
-- **Load/upgrade deserialize paths:** `Workstation.DeserializeTaskData(DataObject)` (+ `Buildstation` override), `Workstation.DeserializeTaskDataForRecreation(DataObject)`. `Workstation._structure : Structure` is the back-reference (may be '?'/unlinked during load-path and on Buildstation).
-- **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` → `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil cross-assembly chain walk, build-verified).
+- **`_CanAddVillagerToTaskData(Villager, WorkstationTaskData)` has FOUR implementations:** base
+  `SSSGame.Workstation` plus overrides in `Buildstation`, `Marketplace`, `ResourceStorage`. Harmony
+  patches concrete methods, so blocking task inheritance requires patching all four. Derived
+  overrides call base (paired log lines confirmed).
+- **`AddToTaskDatas(Villager)` has TWO implementations:** `Workstation` + `HarboringStation`
+  override. It fires at WORLD LOAD for every villager (per-station re-add burst), BEFORE
+  `DeserializeTaskData` — vanilla load order is Add-then-Deserialize; the later Deserialize
+  overwrites `VillagersInCharge` from the save (this is also how vanilla preserves unchecked task
+  boxes).
+- **The task-assignment UI does NOT read `_CanAddVillagerToTaskData`:** menu-open and checkbox
+  toggles never call it (the checkbox path is RPC-only), so a prefix-block on `_CanAdd` cannot break
+  manual checkbox assignment. `_CanAdd` is called ONLY from inside `AddToTaskDatas`.
+- **Unassigning a villager from a station auto-transfers them to the `Buildstation`** (Remove →
+  Add(Buildstation)) — any inheritance-blocking mod must exempt the Buildstation family or
+  unassigned villagers lose build/firekeep tasks.
+- **Load/upgrade deserialize paths:** `Workstation.DeserializeTaskData(DataObject)` (+
+  `Buildstation` override), `Workstation.DeserializeTaskDataForRecreation(DataObject)`.
+  `Workstation._structure : Structure` is the back-reference (may be '?'/unlinked during load-path
+  and on Buildstation).
+- **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` →
+  `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil
+  cross-assembly chain walk, build-verified).
 
 ### Workstation task priority machinery (idea-12 groundwork)
 **Task data + priority (confirmed in-game 2026-07-09):**
-- **`WorkstationTaskData` structure:** `itemInfoQuantity : ItemInfoQuantity` (item + quota), `priority : Int32`, `pinnedTask : Boolean`, `VillagersInCharge : List`, `onDataChanged : Action`, `GetQuantityRange()`. Priority is SERIALIZED into saves (key names per station type: `c_taskDataPriority` on CraftingStation/CookingStation/AnimalPen; `c_taskPriority` on Buildstation/ResourceStorage; `c_taskPriorityKey` on FarmingStation) — a modified priority PERSISTS across save/reload.
-- **Native co-op priority update path:** UI `WorkstationMenu.IncreaseTaskPriority/DecreaseTaskPriority(TaskDataPanel)` → `TaskDataPanel._SetPriority(WorkstationTaskData)` → **`NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32, Int32)`** + `OnTaskPriorityChanged(WorkstationTaskData)` callback (exact arg signatures ⚠️ unverified, but the RPC exists and fires).
-- **Task-priority tiers/types:** `WorkstationTaskPriority` enum exists (seen on `StorageSupply.defaultTaskPriority`) — [likely] the High/Medium/Low tier used by gathering stations (woodcutter, forager, stonecutter). Crafting stations use an integer `priority : Int32` for a ranked list.
-- **Item → producer lookup:** `CraftingStation.KnowsBlueprintForItem(ItemInfo, out CraftBlueprint)` — check if a station can craft an item. Also exists: `_outsourcedQuests`/`_outsourcedBlueprints` dictionaries and `GetPersonalFetchDepth(Villager, ItemInfo, out minDepth, out topPriority)` on CraftingStation (fetch-chain plumbing, unexplored). `BuildstationQuest.c_TaskPriorityCoefficient : Single` hints priority feeds quest-priority math.
+- **`WorkstationTaskData` structure:** `itemInfoQuantity : ItemInfoQuantity` (item + quota),
+  `priority : Int32`, `pinnedTask : Boolean`, `VillagersInCharge : List`, `onDataChanged : Action`,
+  `GetQuantityRange()`. Priority is SERIALIZED into saves (key names per station type:
+  `c_taskDataPriority` on CraftingStation/CookingStation/AnimalPen; `c_taskPriority` on
+  Buildstation/ResourceStorage; `c_taskPriorityKey` on FarmingStation) — a modified priority
+  PERSISTS across save/reload.
+- **Native co-op priority update path:** UI
+  `WorkstationMenu.IncreaseTaskPriority/DecreaseTaskPriority(TaskDataPanel)` →
+  `TaskDataPanel._SetPriority(WorkstationTaskData)` →
+  **`NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32, Int32)`** +
+  `OnTaskPriorityChanged(WorkstationTaskData)` callback (exact arg signatures ⚠️ unverified, but the
+  RPC exists and fires).
+- **Task-priority tiers/types:** `WorkstationTaskPriority` enum exists (seen on
+  `StorageSupply.defaultTaskPriority`) — [likely] the High/Medium/Low tier used by gathering
+  stations (woodcutter, forager, stonecutter). Crafting stations use an integer `priority : Int32`
+  for a ranked list.
+- **Item → producer lookup:** `CraftingStation.KnowsBlueprintForItem(ItemInfo, out CraftBlueprint)`
+  — check if a station can craft an item. Also exists: `_outsourcedQuests`/`_outsourcedBlueprints`
+  dictionaries and `GetPersonalFetchDepth(Villager, ItemInfo, out minDepth, out topPriority)` on
+  CraftingStation (fetch-chain plumbing, unexplored). `BuildstationQuest.c_TaskPriorityCoefficient :
+  Single` hints priority feeds quest-priority math.
 
 **Two priority mechanisms + the vanilla starvation loop (confirmed in-game 2026-07-09):**
-1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL inventory. Worker fills rank 1's quota locally, moves to rank 2, snaps BACK to earlier ranks if their quota drops below the local count.
+1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL
+   inventory. Worker fills rank 1's quota locally, moves to rank 2, snaps BACK to earlier ranks if
+   their quota drops below the local count.
 2. **Gathering stations** (woodcutter, forager, stonecutter, …): use High/Medium/Low TIERS per eligible resource + quota — all Highs satisfied → Mediums → Lows.
-3. **Priority is effectively WINNER-TAKE-ALL**, not a soft weight: one task set higher monopolizes the worker (a woodcutter with only long-hardwood-stick=High did nothing else; a warehouse with one raised Collect-priority let everything else run dry).
-4. **The persistent-monopoly mechanism:** QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop — haulers carrying output away keep the quota unmet, so the top task never self-completes (intended vanilla design; creates the user-observed starvation loop).
+3. **Priority is effectively WINNER-TAKE-ALL**, not a soft weight: one task set higher monopolizes
+   the worker (a woodcutter with only long-hardwood-stick=High did nothing else; a warehouse with
+   one raised Collect-priority let everything else run dry).
+4. **The persistent-monopoly mechanism:** QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop —
+   haulers carrying output away keep the quota unmet, so the top task never self-completes (intended
+   vanilla design; creates the user-observed starvation loop).
 
 ### Builder-loan recipe via agent registry (idea-11 Phase 2, confirmed in-game 2026-07-10)
 **Loan plumbing — off-duty villagers temporarily assigned to the builder pool:**
-- Villager assignment = single `Villager._workstation` pointer (networked `__WorkstationID`, `Rpc_ChangeWorkstation`); the UI job icon/marker and schedule-panel binding read it. `_GetDefaultBuildstationToAssign()` resolves the unassigned pool; "builders" ARE villagers assigned to the Buildstation.
-- Station-side agent registry (`Workstation._taskAgents`, `SetTaskAgent`/`ReleaseTaskAgent` — base-class methods) is SEPARATE from the villager pointer. **The builder-loan recipe (confirmed in-game 2026-07-10):** `home.ReleaseTaskAgent(agent)` removes home quests from the villager's QuestRunner without touching `_workstation` or task checkboxes; `bs.SetTaskAgent(agent)` + `bs.AddToTaskDatas(villager)` + an all-Work schedule write = the villager does real builder work (build/haul/terraform/lightkeep) while every UI surface still shows the home job; exact reverse restores cleanly. `SetTaskAgent` ALONE is insufficient — home quests outcompete (dead-end, v1.6.0). Registry membership is sticky (no reconciler eviction observed across sessions).
+- Villager assignment = single `Villager._workstation` pointer (networked `__WorkstationID`,
+  `Rpc_ChangeWorkstation`); the UI job icon/marker and schedule-panel binding read it.
+  `_GetDefaultBuildstationToAssign()` resolves the unassigned pool; "builders" ARE villagers
+  assigned to the Buildstation.
+- Station-side agent registry (`Workstation._taskAgents`, `SetTaskAgent`/`ReleaseTaskAgent` —
+  base-class methods) is SEPARATE from the villager pointer. **The builder-loan recipe (confirmed
+  in-game 2026-07-10):** `home.ReleaseTaskAgent(agent)` removes home quests from the villager's
+  QuestRunner without touching `_workstation` or task checkboxes; `bs.SetTaskAgent(agent)` +
+  `bs.AddToTaskDatas(villager)` + an all-Work schedule write = the villager does real builder work
+  (build/haul/terraform/lightkeep) while every UI surface still shows the home job; exact reverse
+  restores cleanly. `SetTaskAgent` ALONE is insufficient — home quests outcompete (dead-end,
+  v1.6.0). Registry membership is sticky (no reconciler eviction observed across sessions).
 - Observed quest priorities: `BuilderPrepareForWorkQuest` 16.0, `BuildAndSupplyQuest` 15.1, cooking quests ~15.5.
-- `ITaskAgent`/`IWorkstation` interop wrapper classes are in `SSSGame.AI` (not SSSGame), `.ctor(IntPtr)`; interop `Villager` does NOT managed-implement `ITaskAgent` — rewrap via pointer (boxing pattern for `.Pointer`).
-- **Buildstation cohort trap:** unassigned (incl. newly-summoned) villagers are auto-parked on the Buildstation → any station-pointer cohort grouping must exclude the Buildstation family (native class-name check; managed `is` lies) or the "builder pool" masquerades as a schedulable cohort.
+- `ITaskAgent`/`IWorkstation` interop wrapper classes are in `SSSGame.AI` (not SSSGame),
+  `.ctor(IntPtr)`; interop `Villager` does NOT managed-implement `ITaskAgent` — rewrap via pointer
+  (boxing pattern for `.Pointer`).
+- **Buildstation cohort trap:** unassigned (incl. newly-summoned) villagers are auto-parked on the
+  Buildstation → any station-pointer cohort grouping must exclude the Buildstation family (native
+  class-name check; managed `is` lies) or the "builder pool" masquerades as a schedulable cohort.
 - Lent villagers also receive the Buildstation complain quest → builder barks while idle on loan.
 
 ### Reusable structure-footprint spatial query — "is (x,z) inside a player-built structure?" (TreeRespawnMod v1.5.x, confirmed in-game 2026-07-07)
@@ -552,12 +714,28 @@ Mechanism:
 ### Villager Complaint / Issue System (idea-12 groundwork)
 **Structured complaint events for "villager needs X" (confirmed via Cecil dump 2026-07-09):**
 - **`SSSGame.AI.Complaint`** (Il2CppSystem.Object-derived) is the typed system behind villager barks/exclamation-point statuses — **NOT text parsing**.
-- **Per-villager complaint tracking:** `VillagerSocial.complaints : List<Complaint>`, `AddComplaint(Complaint)`/`_AddComplaintInternal(Complaint)` (candidate Harmony postfix for capture), `Rpc_AddComplaint(Complaint)`/`Rpc_RemoveComplaint(Complaint)`, `OnComplainChange : Action` (do NOT subscribe — IL2CPP Action gotcha; patch the add method or poll instead), `ImportantComplaintsCount`/`NotificationComplaintsCount`/`MenuNotificationComplaintsCount` counters.
+- **Per-villager complaint tracking:** `VillagerSocial.complaints : List<Complaint>`,
+  `AddComplaint(Complaint)`/`_AddComplaintInternal(Complaint)` (candidate Harmony postfix for
+  capture), `Rpc_AddComplaint(Complaint)`/`Rpc_RemoveComplaint(Complaint)`, `OnComplainChange :
+  Action` (do NOT subscribe — IL2CPP Action gotcha; patch the add method or poll instead),
+  `ImportantComplaintsCount`/`NotificationComplaintsCount`/`MenuNotificationComplaintsCount`
+  counters.
 - **Per-complaint alert tiers:** boolean flags `important`/`notification`/`forcedMenuNotification` control UI alert level.
-- **Typed complaint payloads carry the missing resource/item directly:** `ItemComplaint.itemInfo : ItemInfo`, `ItemManifestComplaint.itemManifest : ItemManifest` (+ `maxItemCount`), `ItemCategoryComplaint.itemCategory`, `ComplexCategoryComplaint` (itemA, itemB, category), `LoadoutsComplaint.missingItems : List<ItemInfo>`, `StructureComplaint._structure`. **No text parsing needed — every missing item is a strong-typed object.**
-- **~120 named complaint format keys** cover every station type: `c_defender_needAmmo_format`, `c_buildstation_noSupplies_format(Single)`, `c_crafting_noPartsFound_format`, `c_farming_noSeeds_format`, `c_item_needItem_format`, etc.
-- **Settlement-wide issue aggregation:** `SettlementIssueTrackerWidget` (UI widget tracking maps of marker/storage-full/mine-exhausted/no-crafting-station/no-production/farm complaints across all villagers) + `SettlementIssuesTabPage`.
-- **Per-station complaint quests:** every workstation type owns a typed complain quest (`CrafterComplainQuest`, `BuildstationComplainQuest`, `CookingComplainQuest`, `ForesterComplaintQuest`, …) + `complainBehaviour : vFSMBehaviour`; quest priority tier `QuestPriority` has `c_ComplainHigh`/`c_WorkstationComplain`/`c_ComplainLow`.
+- **Typed complaint payloads carry the missing resource/item directly:** `ItemComplaint.itemInfo :
+  ItemInfo`, `ItemManifestComplaint.itemManifest : ItemManifest` (+ `maxItemCount`),
+  `ItemCategoryComplaint.itemCategory`, `ComplexCategoryComplaint` (itemA, itemB, category),
+  `LoadoutsComplaint.missingItems : List<ItemInfo>`, `StructureComplaint._structure`. **No text
+  parsing needed — every missing item is a strong-typed object.**
+- **~120 named complaint format keys** cover every station type: `c_defender_needAmmo_format`,
+  `c_buildstation_noSupplies_format(Single)`, `c_crafting_noPartsFound_format`,
+  `c_farming_noSeeds_format`, `c_item_needItem_format`, etc.
+- **Settlement-wide issue aggregation:** `SettlementIssueTrackerWidget` (UI widget tracking maps of
+  marker/storage-full/mine-exhausted/no-crafting-station/no-production/farm complaints across all
+  villagers) + `SettlementIssuesTabPage`.
+- **Per-station complaint quests:** every workstation type owns a typed complain quest
+  (`CrafterComplainQuest`, `BuildstationComplainQuest`, `CookingComplainQuest`,
+  `ForesterComplaintQuest`, …) + `complainBehaviour : vFSMBehaviour`; quest priority tier
+  `QuestPriority` has `c_ComplainHigh`/`c_WorkstationComplain`/`c_ComplainLow`.
 - **Subclass identification:** `TryCast<T>(Complaint)` works on Il2CppSystem.Object-derived complaint types (confirmed pattern from QuestData precedent).
 
 ---
@@ -581,8 +759,18 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   .GetGatheredItemQuantity / GetGatheredItemPriority / FillResourceStorageTaskDatas
   .excludedResourcesList (ItemInfoList), onlyGatherNativeItems / _nativeItemsFilter — built-in exclusions
 ```
-- **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation` registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`) and its **output**; the output is additionally wrapped in **`CraftingStation/OutputStorageWrapper`** (`._cs`, `._ss` = the output `StorageSupply`). The warehouse hauling the *input* supplies is the theft loop (crafter re-fetches → warehouse re-hauls).
-- **To filter what the warehouse hauls:** prefix `ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply ss, ItemInfo)` and inspect `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+- **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation`
+  registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`)
+  and its **output**; the output is additionally wrapped in
+  **`CraftingStation/OutputStorageWrapper`** (`._cs`, `._ss` = the output `StorageSupply`). The
+  warehouse hauling the *input* supplies is the theft loop (crafter re-fetches → warehouse
+  re-hauls).
+- **To filter what the warehouse hauls:** prefix
+  `ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply ss, ItemInfo)` and inspect
+  `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its
+  inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses
+  the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply
+  stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
 
 ---
 
@@ -615,7 +803,8 @@ SSSGame.Settlement (MonoBehaviour)
 No static `Settlement.Instance` — reach it via a `SettlementManager` instance, or via any `Structure.Settlement` back-ref.
 
 **Inventory read / write — `SandSailorStudio.Inventory.ItemCollection` / `ItemContainer`**
-A workstation's own stock: `Workstation.GetInventory() → ItemCollection`; what a station is asking the village to deliver: `Workstation.GetItemsNeededFromSettlement() → List`.
+A workstation's own stock: `Workstation.GetInventory() → ItemCollection`; what a station is asking
+the village to deliver: `Workstation.GetItemsNeededFromSettlement() → List`.
 ```
 ItemCollection (a logical inventory = a set of ItemContainers)
   .GetItemQuantity(ItemInfo) / .HasItem(ItemInfo) / .GetFirstItem(ItemInfo)
@@ -625,7 +814,10 @@ ItemCollection (a logical inventory = a set of ItemContainers)
   .OnItemAdded / .OnItemRemoved (ItemEventHandler)
 ItemContainer (one physical bin)  .AddItems / .RemoveItem / .HasSpace(ItemInfo, qty) / .GetItemCount(...)
 ```
-⚠️ Whether a direct `AddItems`/`RemoveItems` on a **networked** `ResourceStorage` replicates in co-op is UNVERIFIED. TorchFuelMod deliberately used the game's own RPC (`Rpc_AddFuel`) to stay network-safe — look for an analogous item RPC before writing storage state directly. Host/solo is unaffected either way.
+⚠️ Whether a direct `AddItems`/`RemoveItems` on a **networked** `ResourceStorage` replicates in
+co-op is UNVERIFIED. TorchFuelMod deliberately used the game's own RPC (`Rpc_AddFuel`) to stay
+network-safe — look for an analogous item RPC before writing storage state directly. Host/solo is
+unaffected either way.
 
 **`SandSailorStudio.Inventory.ItemManifest` — the counts / requirements struct**
 ```
@@ -644,25 +836,63 @@ SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via Ite
      .cookingRequirements : CookingRecipeRequirement[] { ItemInfo acceptedInfo; int count; type; ItemTableConfig tableConfig }
   Forging / Dyeing / Painting / Workshop / Structure variants also derive from Blueprint(Info)
 ```
-`ItemInfo`s are ScriptableObjects (not constructable) — get a reference by name (`item.info.Name`) off a live item, by category via `ItemCategoryInfo`, or from a blueprint's `GetItemInfo()`.
+`ItemInfo`s are ScriptableObjects (not constructable) — get a reference by name (`item.info.Name`)
+off a live item, by category via `ItemCategoryInfo`, or from a blueprint's `GetItemInfo()`.
 
 **Fishing/bait (the trigger for the above — mod cancelled, game does it natively)**
-`SSSGame.FishingStation : ResourceStorage : Workstation`; bait = `SSSGame.BaitItem : EquipmentItem` (category `VillagerFishingInteractionConfig.BaitCategInfo`); the "no bait" complaint is `FishingComplainQuest : CrafterComplainQuest`. **Villagers self-craft bait from warehouse ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory `fisher-bait-native`).
+`SSSGame.FishingStation : ResourceStorage : Workstation`; bait = `SSSGame.BaitItem : EquipmentItem`
+(category `VillagerFishingInteractionConfig.BaitCategInfo`); the "no bait" complaint is
+`FishingComplainQuest : CrafterComplainQuest`. **Villagers self-craft bait from warehouse
+ingredients with no mod**; the "no bait" bark actually means "no *ingredients* to make bait." Don't
+build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in session memory
+`fisher-bait-native`).
 
 **Storage acceptance / the Outhouse container (OuthouseComposter groundwork, confirmed in-game 2026-07-11)**
-**Container acceptance is NOT storage-class-based alone.** Pointer-verified in-game: every SmallItem-class item (Fibers, Jotun Blood, Feathers, Gray Mushrooms, Raw Red Meat, Compost) carries the IDENTICAL `ItemStorageClass` asset (same native pointer) that the Outhouse containerType lists — yet the Outhouse container accepts ONLY 'Compost' (`CanStoreItemType`/`Check` true, `GetStackSize`=10). `ItemContainer.CanStoreItemType(ItemInfo)` applies a per-item condition beyond class membership (mechanism unidentified; OuthouseComposterMod v0.2.0 overrides it with scoped postfixes rather than reverse-engineering it). `SSSGame.StorageInteraction.Check(ItemInfo)` (the UI-level gate) always mirrors `container.Check` — patching the container level is sufficient.
+**Container acceptance is NOT storage-class-based alone.** Pointer-verified in-game: every
+SmallItem-class item (Fibers, Jotun Blood, Feathers, Gray Mushrooms, Raw Red Meat, Compost) carries
+the IDENTICAL `ItemStorageClass` asset (same native pointer) that the Outhouse containerType lists —
+yet the Outhouse container accepts ONLY 'Compost' (`CanStoreItemType`/`Check` true,
+`GetStackSize`=10). `ItemContainer.CanStoreItemType(ItemInfo)` applies a per-item condition beyond
+class membership (mechanism unidentified; OuthouseComposterMod v0.2.0 overrides it with scoped
+postfixes rather than reverse-engineering it). `SSSGame.StorageInteraction.Check(ItemInfo)` (the
+UI-level gate) always mirrors `container.Check` — patching the container level is sufficient.
 
-**`ItemStorageClass` is an EMPTY ScriptableObject** — a pure name tag; `ItemContainerType.storageClasses` entries are `StorageClassData { storageClass, stackSize }`. ⚠️ `stackSize` is NOT the visible stack cap (Outhouse entry has stackSize=1 yet Compost stacks to 10 there) — semantics unresolved.
+**`ItemStorageClass` is an EMPTY ScriptableObject** — a pure name tag;
+`ItemContainerType.storageClasses` entries are `StorageClassData { storageClass, stackSize }`. ⚠️
+`stackSize` is NOT the visible stack cap (Outhouse entry has stackSize=1 yet Compost stacks to 10
+there) — semantics unresolved.
 
-**Outhouse ground truth:** a generic `Structure`, display name AND `DefaultName` both exactly 'Outhouse'. Its `ItemContainerComponent` (`.container : ItemContainer`) sits on child node **'crapContainer'**; `StorageInteraction` on node 'ActiveInteractions'. containerType **'Storage_SmallItems_Outhouse' is UNIQUE to the Outhouse** (52 containerTypes scanned across 199 structures). capacity=20 (4×5 UI grid), `IsHidden`=False, `NoActionTargets`=False, `canAddItems`=True. NO `NetworkSimpleResourceStorage_N` Fusion backing observed on it (only `NetworkPositionYRotation` at the root).
+**Outhouse ground truth:** a generic `Structure`, display name AND `DefaultName` both exactly
+'Outhouse'. Its `ItemContainerComponent` (`.container : ItemContainer`) sits on child node
+**'crapContainer'**; `StorageInteraction` on node 'ActiveInteractions'. containerType
+**'Storage_SmallItems_Outhouse' is UNIQUE to the Outhouse** (52 containerTypes scanned across 199
+structures). capacity=20 (4×5 UI grid), `IsHidden`=False, `NoActionTargets`=False,
+`canAddItems`=True. NO `NetworkSimpleResourceStorage_N` Fusion backing observed on it (only
+`NetworkPositionYRotation` at the root).
 
-**Compost ground truth:** `FarmingStation.composts` == `FarmCropInteraction.compatibleComposts` == ['Spoiled Food', 'Compost', 'Crawler Slime', 'Slag']. The vanilla Outhouse stores 'Spoiled Food' — which is itself a valid compost item, i.e. vanilla already implements a rot→outhouse→farm loop; the mod adds fresh food/seed → 'Compost' conversion.
+**Compost ground truth:** `FarmingStation.composts` == `FarmCropInteraction.compatibleComposts` ==
+['Spoiled Food', 'Compost', 'Crawler Slime', 'Slag']. The vanilla Outhouse stores 'Spoiled Food' —
+which is itself a valid compost item, i.e. vanilla already implements a rot→outhouse→farm loop; the
+mod adds fresh food/seed → 'Compost' conversion.
 
-**Useful ItemContainer API surface** (Cecil 2026-07-11, exercised in-game): `CanStoreItemType(ItemInfo)`, `Check(ItemInfo)`, `HasSpace(ItemInfo, Int32)`, `GetStackSize(ItemInfo)`, `GetEmptySlots()`, `AddItems(ItemInfo, Int32) : Int32`, `RemoveItem(Item, Int32, ItemEventContext)` — **`ItemEventContext` is an ENUM** (pass `ItemEventContext.Default`), `GetItems() : IReadOnlyList<Item>` (through the compile-time reference only the indexer is visible — bound iteration by `capacity`), `canAddItems`, `containerType`, `GetAcceptedItemTypes()`.
+**Useful ItemContainer API surface** (Cecil 2026-07-11, exercised in-game):
+`CanStoreItemType(ItemInfo)`, `Check(ItemInfo)`, `HasSpace(ItemInfo, Int32)`,
+`GetStackSize(ItemInfo)`, `GetEmptySlots()`, `AddItems(ItemInfo, Int32) : Int32`, `RemoveItem(Item,
+Int32, ItemEventContext)` — **`ItemEventContext` is an ENUM** (pass `ItemEventContext.Default`),
+`GetItems() : IReadOnlyList<Item>` (through the compile-time reference only the indexer is visible —
+bound iteration by `capacity`), `canAddItems`, `containerType`, `GetAcceptedItemTypes()`.
 
-**Player inventory recipe (confirmed in-game):** capture the local player via `PlayerCharacter.Spawned` postfix gated on `HasAuthority` (GroundItemVacuum pattern), then `Character.Inventory : InventoryComponent` → `.GetItemCollection() : ItemCollection` → `.GetItemInfos() : Il2Cpp List<ItemInfo>`. Item classification: `ItemInfo.storageClass` (asset name, e.g. seeds = 'SeedItem') and `ItemInfo.category : ItemCategoryInfo` with display name property **`.Name` (capital N)**.
+**Player inventory recipe (confirmed in-game):** capture the local player via
+`PlayerCharacter.Spawned` postfix gated on `HasAuthority` (GroundItemVacuum pattern), then
+`Character.Inventory : InventoryComponent` → `.GetItemCollection() : ItemCollection` →
+`.GetItemInfos() : Il2Cpp List<ItemInfo>`. Item classification: `ItemInfo.storageClass` (asset name,
+e.g. seeds = 'SeedItem') and `ItemInfo.category : ItemCategoryInfo` with display name property
+**`.Name` (capital N)**.
 
-**Dead-end:** non-generic `GameObject.GetComponents(System.Type)` throws MissingMethodException through the interop trampoline (same family as plural generics / FindObjectsByType) — AND when it threw it escaped an enclosing per-call try/catch and aborted the whole calling dump method, so don't assume a caught probe: just never call it. Confirmed in-game 2026-07-11.
+**Dead-end:** non-generic `GameObject.GetComponents(System.Type)` throws MissingMethodException
+through the interop trampoline (same family as plural generics / FindObjectsByType) — AND when it
+threw it escaped an enclosing per-call try/catch and aborted the whole calling dump method, so don't
+assume a caught probe: just never call it. Confirmed in-game 2026-07-11.
 
 ---
 
@@ -771,23 +1001,87 @@ LightOutlet (StructureTaskDispatcher) .fireStructure / .fireInteraction / .Initi
     grabbing __instance.fireStructure is a name-free way to catch all *lighting* fires while leaving
     crafting fires alone (TorchFuelMod's KeepAllLightSources path).
 ```
-**Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name (e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name`.
+**Confirmed:** `Structure.DefaultName` / `Structure.StructureName` give the structure's display name
+(e.g. "Flimsy Torch") for substring matching, same pattern as `ItemInfo.Name`.
 
-**Rename-proof name matching (confirmed in-game 2026-07-10):** station/structure display names are player-editable at runtime via `Structure.Rpc_ChangeName(String)` (networked `__NetworkedStructureName`, `OnNameChanged`). **`Structure.DefaultName` keeps returning the pristine type name after a rename** — any name-keyed matching/config should check BOTH `GetName()` (display name) and `DefaultName` (type name). When both names differ, display them as `Display (Default)` for clarity (DynamicVillagerNeedsMod v1.9.4 pattern).
+**Rename-proof name matching (confirmed in-game 2026-07-10):** station/structure display names are
+player-editable at runtime via `Structure.Rpc_ChangeName(String)` (networked
+`__NetworkedStructureName`, `OnNameChanged`). **`Structure.DefaultName` keeps returning the pristine
+type name after a rename** — any name-keyed matching/config should check BOTH `GetName()` (display
+name) and `DefaultName` (type name). When both names differ, display them as `Display (Default)` for
+clarity (DynamicVillagerNeedsMod v1.9.4 pattern).
 
-**Built-in / composite-building fires (e.g. tavern campfire):** these ARE `FireStructure`s and DO fire `Initialize`, but their owning `Structure` is the *building* ("Tavern"), so a name filter of `"Torch"` misses them. Two ways to catch them: add the building/fire name to the name list, or use the `LightOutlet.Initialize` patch above (catches any light-emitting fire by component, no name needed).
+**Built-in / composite-building fires (e.g. tavern campfire):** these ARE `FireStructure`s and DO
+fire `Initialize`, but their owning `Structure` is the *building* ("Tavern"), so a name filter of
+`"Torch"` misses them. Two ways to catch them: add the building/fire name to the name list, or use
+the `LightOutlet.Initialize` patch above (catches any light-emitting fire by component, no name
+needed).
 
-**⚠️ DEAD-END — cave wall sconces are NOT FireStructures.** Sticking a torch into a cave wall sconce goes through `SSSGame.CaveTorchOutlet` (a plain `MonoBehaviour`, *not* a NetworkBehaviour and *not* a FireStructure). It has **no fuel volume and no `Rpc_AddFuel`** — `IsLit()`/`IsAvailable()` are get-only, the actual light is a torch **equipment item** (`CaveTorchOutlet.torchReplacements[] : {GameObject replacementPrefab, EquipmentItemInfo torchInfo}`) held in an `EquipmentDisplaySlot` via `EquipmentManager`, that burns down by **item durability** and is *replaced* by a villager `LightkeepingQuest` (see `FSM_BuilderLightkeep`, `CaveLightingFilter`). Keeping sconces perpetually lit therefore is a *different* problem from fuel top-off — it needs blocking the equipped torch's durability decay or auto-re-equipping, not `Rpc_AddFuel`. The fuel-volume TorchFuelMod cannot touch them. (confirmed via interop dump 2026-06-25; in-game behavior pending)
+**⚠️ DEAD-END — cave wall sconces are NOT FireStructures.** Sticking a torch into a cave wall sconce
+goes through `SSSGame.CaveTorchOutlet` (a plain `MonoBehaviour`, *not* a NetworkBehaviour and *not*
+a FireStructure). It has **no fuel volume and no `Rpc_AddFuel`** — `IsLit()`/`IsAvailable()` are
+get-only, the actual light is a torch **equipment item** (`CaveTorchOutlet.torchReplacements[] :
+{GameObject replacementPrefab, EquipmentItemInfo torchInfo}`) held in an `EquipmentDisplaySlot` via
+`EquipmentManager`, that burns down by **item durability** and is *replaced* by a villager
+`LightkeepingQuest` (see `FSM_BuilderLightkeep`, `CaveLightingFilter`). Keeping sconces perpetually
+lit therefore is a *different* problem from fuel top-off — it needs blocking the equipped torch's
+durability decay or auto-re-equipping, not `Rpc_AddFuel`. The fuel-volume TorchFuelMod cannot touch
+them. (confirmed via interop dump 2026-06-25; in-game behavior pending)
 
-**⚠️ DEAD-END — coal-burning buildings (Kiln, etc.) do NOT use the FireStructure fuel model.** TorchFuelMod's name filter cannot reach them, and there is **no structure named "Furnace"/"Smelter"** in the binary at all (searched the whole interop surface 2026-06-25 — only `KilnInteraction`, `ForgeInteraction`, `CharcoalStation` exist). The smelting building is the **Kiln** (`SSSGame.KilnInteraction : CookingInteraction : StorageInteraction : Interaction : MonoBehaviour`) — it is **not a `FireStructure` and not even a `NetworkBehaviour`**, so it never comes through the `FireStructure.Initialize` patch and has **no `CurrentFuelVolume`/`Rpc_AddFuel`**. Its fuel is a fundamentally different mechanic:
-- `_fuelVAttr` (`VariableAttribute`, writable — same type as `_happinessVAttr`/survival attrs, so `SetValue()` is available) = the current fuel/heat reservoir, drained by `_fuelBurnRateAttr` (`Attribute`) × `_burnRateMultiplier` (`CustomOperationAttributeModifier`).
-- Fuel arrives as **coal items** dropped into an `ItemContainer`, gated by `static Boolean _IsFuelPredicate(Item)`; `GetFuelCount()` = count of fuel items present; energy per item from `_fuelCaloricMass`/`_fuelCaloricPower`; `fuelRatioToPower` (AnimationCurve) maps fuel ratio → smelting power. (`_oreCaloricMass`/`GetOreCount`/`GetBakedOreCount` are the ore side.)
+**⚠️ DEAD-END — coal-burning buildings (Kiln, etc.) do NOT use the FireStructure fuel model.**
+TorchFuelMod's name filter cannot reach them, and there is **no structure named
+"Furnace"/"Smelter"** in the binary at all (searched the whole interop surface 2026-06-25 — only
+`KilnInteraction`, `ForgeInteraction`, `CharcoalStation` exist). The smelting building is the
+**Kiln** (`SSSGame.KilnInteraction : CookingInteraction : StorageInteraction : Interaction :
+MonoBehaviour`) — it is **not a `FireStructure` and not even a `NetworkBehaviour`**, so it never
+comes through the `FireStructure.Initialize` patch and has **no `CurrentFuelVolume`/`Rpc_AddFuel`**.
+Its fuel is a fundamentally different mechanic:
+- `_fuelVAttr` (`VariableAttribute`, writable — same type as `_happinessVAttr`/survival attrs, so
+  `SetValue()` is available) = the current fuel/heat reservoir, drained by `_fuelBurnRateAttr`
+  (`Attribute`) × `_burnRateMultiplier` (`CustomOperationAttributeModifier`).
+- Fuel arrives as **coal items** dropped into an `ItemContainer`, gated by `static Boolean
+  _IsFuelPredicate(Item)`; `GetFuelCount()` = count of fuel items present; energy per item from
+  `_fuelCaloricMass`/`_fuelCaloricPower`; `fuelRatioToPower` (AnimationCurve) maps fuel ratio →
+  smelting power. (`_oreCaloricMass`/`GetOreCount`/`GetBakedOreCount` are the ore side.)
 
-So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, with two candidate levers (both untested in-game / co-op): **(a)** pin `_fuelVAttr` to `max` each tick via `SetValue()` (the torch-equivalent "never runs dry"), or **(b)** keep the coal `ItemContainer` topped with coal items. **Co-op replication is the open risk** — there is **no `Rpc_AddFuel`-style network-safe call** on the kiln and it's a plain MonoBehaviour, so writes are guaranteed to work solo/host but co-op-client replication is unverified (same caveat class as direct inventory writes).
+So "keep coal buildings fueled" is a **separate feature** from TorchFuelMod, with two candidate
+levers (both untested in-game / co-op): **(a)** pin `_fuelVAttr` to `max` each tick via `SetValue()`
+(the torch-equivalent "never runs dry"), or **(b)** keep the coal `ItemContainer` topped with coal
+items. **Co-op replication is the open risk** — there is **no `Rpc_AddFuel`-style network-safe
+call** on the kiln and it's a plain MonoBehaviour, so writes are guaranteed to work solo/host but
+co-op-client replication is unverified (same caveat class as direct inventory writes).
 
-**🛑 DEAD-END (CONFIRMED in-game 2026-06-25) — do NOT Harmony-patch `Initialize(Structure)` on these smithing/interaction types to capture instances.** TorchFuelMod v1.2.0–1.2.1 tried postfixing `Initialize(Structure)` on `KilnInteraction`, `BellowsInteraction`, `ForgeInteraction`, `CharcoalStation`, and `Bloomstation` (read-only diagnostic). Result: **v1.2.0 hard-froze the game during chainloader**; **v1.2.1 (added a name guard + dropped `GetFuelCount()`) stopped the freeze but the game still would not finish opening**, logging `[Il2CppInterop] During invoking native->managed trampoline / System.InvalidOperationException: Handle is not initialized … GetMonoObjectFromIl2CppPointer … at (il2cpp -> managed) Initialize(IntPtr, IntPtr, Il2CppMethodInfo*)`. **Why:** these `Initialize` methods fire during early-boot prefab/pool init on instances whose **managed GC handle isn't set up yet**; the il2cpp→managed trampoline fails to marshal `__instance` **in the glue, before your patch body runs** — so a name guard / `try`-catch can't save it (same class as the by-ref-param trampoline hazard), and because the patched `Initialize` never completes, the game object stays half-built and boot stalls. Arg-count attribution: the failing trampoline is a **1-arg** `Initialize` = `Initialize(Structure)`; TreeRespawn's `BiomeItemInstance.Initialize` takes **5 args** so it's not the culprit, and the shipped `FireStructure.Initialize`/`LightOutlet.Initialize` (NetworkBehaviour / dispatcher, also 1-arg) have always been fine — so it's specifically these **MonoBehaviour `Interaction`-based** types that break. **Capture them another way:** for the bloomery, prefer the NetworkBehaviour `Bloomstation.Spawned()` (Fusion lifecycle, the safe pattern other mods use) and reach its `.kiln`/`.bellows` from there; never patch the `Interaction.Initialize`. **For DISCOVERY (which building is which), no new patch is needed at all** — the existing `LogAllFireStructures` flag (which patches the safe `FireStructure.Initialize`) already logs the forge fire, the bloomery (via its bellows `FireStructure`), and the charcoal pyre with each owner Structure's display name.
+**🛑 DEAD-END (CONFIRMED in-game 2026-06-25) — do NOT Harmony-patch `Initialize(Structure)` on these
+smithing/interaction types to capture instances.** TorchFuelMod v1.2.0–1.2.1 tried postfixing
+`Initialize(Structure)` on `KilnInteraction`, `BellowsInteraction`, `ForgeInteraction`,
+`CharcoalStation`, and `Bloomstation` (read-only diagnostic). Result: **v1.2.0 hard-froze the game
+during chainloader**; **v1.2.1 (added a name guard + dropped `GetFuelCount()`) stopped the freeze
+but the game still would not finish opening**, logging `[Il2CppInterop] During invoking
+native->managed trampoline / System.InvalidOperationException: Handle is not initialized …
+GetMonoObjectFromIl2CppPointer … at (il2cpp -> managed) Initialize(IntPtr, IntPtr,
+Il2CppMethodInfo*)`. **Why:** these `Initialize` methods fire during early-boot prefab/pool init on
+instances whose **managed GC handle isn't set up yet**; the il2cpp→managed trampoline fails to
+marshal `__instance` **in the glue, before your patch body runs** — so a name guard / `try`-catch
+can't save it (same class as the by-ref-param trampoline hazard), and because the patched
+`Initialize` never completes, the game object stays half-built and boot stalls. Arg-count
+attribution: the failing trampoline is a **1-arg** `Initialize` = `Initialize(Structure)`;
+TreeRespawn's `BiomeItemInstance.Initialize` takes **5 args** so it's not the culprit, and the
+shipped `FireStructure.Initialize`/`LightOutlet.Initialize` (NetworkBehaviour / dispatcher, also
+1-arg) have always been fine — so it's specifically these **MonoBehaviour `Interaction`-based**
+types that break. **Capture them another way:** for the bloomery, prefer the NetworkBehaviour
+`Bloomstation.Spawned()` (Fusion lifecycle, the safe pattern other mods use) and reach its
+`.kiln`/`.bellows` from there; never patch the `Interaction.Initialize`. **For DISCOVERY (which
+building is which), no new patch is needed at all** — the existing `LogAllFireStructures` flag
+(which patches the safe `FireStructure.Initialize`) already logs the forge fire, the bloomery (via
+its bellows `FireStructure`), and the charcoal pyre with each owner Structure's display name.
 
-**Related coal buildings (for reference):** `ForgeInteraction` *does* wrap a `FireStructure fireStructure` (secondary heat — the FireStructure path could see it by name), and `CharcoalStation : Workstation` owns a `PyreStructure pyre` where `PyreStructure : FireStructure` — but the pyre's job is converting wood→charcoal (`woodInputContainer`→`coalOutputContainer`, `_InputFuelToCoalConversion`, `fuelToCoalConversionBaseline`), i.e. it *produces* coal rather than consuming it, so topping its fuel volume isn't "keep it supplied with coal." (confirmed via interop dump 2026-06-25; in-game behavior pending)
+**Related coal buildings (for reference):** `ForgeInteraction` *does* wrap a `FireStructure
+fireStructure` (secondary heat — the FireStructure path could see it by name), and `CharcoalStation
+: Workstation` owns a `PyreStructure pyre` where `PyreStructure : FireStructure` — but the pyre's
+job is converting wood→charcoal (`woodInputContainer`→`coalOutputContainer`,
+`_InputFuelToCoalConversion`, `fuelToCoalConversionBaseline`), i.e. it *produces* coal rather than
+consuming it, so topping its fuel volume isn't "keep it supplied with coal." (confirmed via interop
+dump 2026-06-25; in-game behavior pending)
 
 ---
 
@@ -815,7 +1109,8 @@ NOT isolated):**
    persistence untested.
 
 **Never touch `alphaSpawner : PopulationSpawner`** — it's the boss spawner; empty/inactive is its normal
-pre-boss state (boss spawns after the nodes are cleared — see the den table in `SEED_SCOUT_HANDOFF.md`).
+pre-boss state (boss spawns after the nodes are cleared — see the den table in
+`archive/SEED_SCOUT_HANDOFF.md`).
 
 **Structure blocking (⚠️ hypothesis, effect untested):** vanilla has a blocked-by-structures mechanism
 (`Den.IsBlockedByStructures()`; `PopulationSpawner.RespawningBlockedByStructures`, recomputed by
@@ -838,14 +1133,20 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 
 ### Map Pins & Revision (DenRespawnMod v1.1.x confirmed in-game 2026-07-09)
 
-**DEAD-END: `MapMenu._OnMarkersLeftClick(WorldObjectiveMarker marker)` is AOT-inlined** — Harmony patches never fire on this method. `MapMenu.OnPointerClick(PointerEventData)` is the patchable click entry point, but ONLY receives clicks on empty map space (pin widgets swallow clicks on themselves; confirmed in-game 2026-07-09).
+**DEAD-END: `MapMenu._OnMarkersLeftClick(WorldObjectiveMarker marker)` is AOT-inlined** — Harmony
+patches never fire on this method. `MapMenu.OnPointerClick(PointerEventData)` is the patchable click
+entry point, but ONLY receives clicks on empty map space (pin widgets swallow clicks on themselves;
+confirmed in-game 2026-07-09).
 
 **Map pins: UI components and state**
 - UI widget for a pin = `CompassObjectiveMarker` (MonoBehaviour)
 - Pins SELECT ON HOVER (`OnSelect` fires on mouse-over, no click required; confirmed in-game 2026-07-09)
 - Pins carry NO `Button` component (confirmed 2026-07-09)
 - Vanilla pin left-click toggles the compass-eyeball via the pin's own event handler (not routed through `MapMenu`)
-- Reliable pin-click recipe: OnSelect/OnDeselect postfixes to TRACK the hovered pin (clear tracked pin only when OnDeselect fires on a matching widget pointer) + per-frame `Input.GetMouseButtonDown(0)` poll in a tracker's Update method (DenRespawnMod v1.1.4 pattern, confirmed working 2026-07-09)
+- Reliable pin-click recipe: OnSelect/OnDeselect postfixes to TRACK the hovered pin (clear tracked
+  pin only when OnDeselect fires on a matching widget pointer) + per-frame
+  `Input.GetMouseButtonDown(0)` poll in a tracker's Update method (DenRespawnMod v1.1.4 pattern,
+  confirmed working 2026-07-09)
 
 **Widget-to-marker mapping (UI state sync)**
 - `MapMenu._objectiveContainer._icons` is `List<ObjectiveIcon>` where each icon pairs a UI widget with a game-world marker
@@ -855,14 +1156,20 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 - Capture the `MapMenu` instance via an `OnActivate` postfix (fires on every map open); never cache it across world sessions (map-instance is per-world)
 
 **Screen-to-world coordinate transform on the map**
-- `RectTransformUtility.ScreenPointToLocalPointInRectangle(MapMenu.Content, screenPos, eventData.pressEventCamera, out local)` → converts screen click to local map-rect coords
+- `RectTransformUtility.ScreenPointToLocalPointInRectangle(MapMenu.Content, screenPos,
+  eventData.pressEventCamera, out local)` → converts screen click to local map-rect coords
 - `MapMenu.GetWorldPosition(local)` → converts map-rect coords to world position
 - Confirmed accurate in-game 2026-07-09 (matched den's position to within ~19 m of click point)
 
 **Pin state refresh (map-pin recolor on revive)**
-- `MarkerObject.RefreshSpawnersHostileStatus(bool noNotification)` — re-evaluates den-spawner hostility and recolors the pin (confirmed in-game 2026-07-09; pins visibly red→yellow on revive)
-- Reach the `MarkerObject` via `area.areaInstanceMarkerHandler.GetMarkerObject()` — returns it DECLARED as `SandSailorStudio.Inventory.ItemComponent`; managed casts lie (universal gotcha) — use native-class-name check + rewrap `new MarkerObject(IntPtr)`
-- GOTCHA: some markers (long-defeated enemy dens) have `_biomePopulation == null` and calling RefreshSpawnersHostileStatus on them throws a managed NRE inside the native call (caught by try/catch but noisy in logs) — null-check before calling
+- `MarkerObject.RefreshSpawnersHostileStatus(bool noNotification)` — re-evaluates den-spawner
+  hostility and recolors the pin (confirmed in-game 2026-07-09; pins visibly red→yellow on revive)
+- Reach the `MarkerObject` via `area.areaInstanceMarkerHandler.GetMarkerObject()` — returns it
+  DECLARED as `SandSailorStudio.Inventory.ItemComponent`; managed casts lie (universal gotcha) — use
+  native-class-name check + rewrap `new MarkerObject(IntPtr)`
+- GOTCHA: some markers (long-defeated enemy dens) have `_biomePopulation == null` and calling
+  RefreshSpawnersHostileStatus on them throws a managed NRE inside the native call (caught by
+  try/catch but noisy in logs) — null-check before calling
 - With `noNotification=false`, the game fires its native "monsters are back" notification (toast wording ⚠️ unconfirmed)
 
 **Spatial data**
@@ -871,12 +1178,25 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 - `AreaInstanceMarkerHandler`/`IAreaInstanceMarkerHandler` are in GLOBAL namespace
 
 **Den defeat semantics (confirmed in-game 2026-07-09)**
-- `spawner.ignoreRespawning=true` is the DURABLE vanilla defeat flag (user-confirmed on dens cleared long ago that stayed flagged; natural respawn ~1 in-game year)
+- `spawner.ignoreRespawning=true` is the DURABLE vanilla defeat flag (user-confirmed on dens cleared
+  long ago that stayed flagged; natural respawn ~1 in-game year)
 - `den.isActive=false` does NOT mean defeated (nocturnal wolf dens inactive by design)
 - `PopulationSpawner.HasNoAliveCreatures()` is TRANSIENT (creatures can be roaming/streaming-culled) — false-positive as "needs revive" signal alone
-- Reliable defeat selection: `needsWork = (anyIgnore || outOfCombatBeingDecided)` where `anyIgnore = any(affectedSpawner.ignoreRespawning)` (confirmed in-game 2026-07-09; narrower filter than v1.1.2's `anyEmpty || anyIgnore`)
+- Reliable defeat selection: `needsWork = (anyIgnore || outOfCombatBeingDecided)` where `anyIgnore =
+  any(affectedSpawner.ignoreRespawning)` (confirmed in-game 2026-07-09; narrower filter than
+  v1.1.2's `anyEmpty || anyIgnore`)
 
-**Vanilla natural den respawn = LOAD-TIME check (working model, confirmed-by-correlation 2026-07-09):** At world load, dens whose TRUE defeat age exceeds a threshold (~1 in-game year per community lore) receive a foreign `Den.Revive()` attempt; mid-session elapsed time triggers NOTHING (74 fast-forwarded in-game days produced zero attempts, confirmed in-game 2026-07-09 via TimeWarpMod). Evidence: only the same 3 long-ago-cleared Baby Crawler dens ever received foreign Revive() calls (at every load); a freshly-defeated Skeleton Den with reviveCooldown=0 was NOT attempted (kills a cooldown-only selection theory); mod-revived dens carry ReviveCooldown=1 and re-defeating a den does NOT reset it (observed on the Wulfar den across defeat cycles); Revive() bumps ReviveCooldown 0→1 (previously known). ⚠️ Caveat: threshold-crossing was INFERRED from defeat-age correlation, never watched live; ReviveCooldown's role in driver selection cannot be isolated from defeat-freshness with current data.
+**Vanilla natural den respawn = LOAD-TIME check (working model, confirmed-by-correlation
+2026-07-09):** At world load, dens whose TRUE defeat age exceeds a threshold (~1 in-game year per
+community lore) receive a foreign `Den.Revive()` attempt; mid-session elapsed time triggers NOTHING
+(74 fast-forwarded in-game days produced zero attempts, confirmed in-game 2026-07-09 via
+TimeWarpMod). Evidence: only the same 3 long-ago-cleared Baby Crawler dens ever received foreign
+Revive() calls (at every load); a freshly-defeated Skeleton Den with reviveCooldown=0 was NOT
+attempted (kills a cooldown-only selection theory); mod-revived dens carry ReviveCooldown=1 and
+re-defeating a den does NOT reset it (observed on the Wulfar den across defeat cycles); Revive()
+bumps ReviveCooldown 0→1 (previously known). ⚠️ Caveat: threshold-crossing was INFERRED from
+defeat-age correlation, never watched live; ReviveCooldown's role in driver selection cannot be
+isolated from defeat-freshness with current data.
 
 **Map pin labels ≠ den type names**
 - "Small Cemetery"/"Large Cemetery" pins = Skeleton Den / Skeleton Den Cluster dens internally
@@ -885,18 +1205,50 @@ special case as TreeRespawn's `OnWorldChanged`. (DenRespawnMod v1.0.1 fix.)
 
 ## Villager Summoning (Eye of Odin) — SummonTimerMod evidence
 
-**Structure & state:** `SSSGame.VillagerOutlet` is a `NetworkBehaviour` (one instance per Eye of Odin structure, captures via `Spawned()` postfix). Handles the entire summon flow: `_CheckSummonAvailability(ItemContainer)` gates the 5-jotun-blood requirement; `OnStorageMenuConfirmationPressed(ItemContainer)` initiates the wait; `__NetworkedVillagerTimerEnd : float` + `_SpawnPending : NetworkBool` track the timer state; `SpawnVillager()` fires when timer expires. Additional features: `GenerateNewVillagerChoices()` / `Rpc_SetUpcomingVillagerData(DescriptionData, SByte)` handle the villager-choice UI; instance fields for `_pm : PopulationManager`, `_wm : WeatherManager`, militia management (`GetCurrentMilitiaCount`/`GetMaxMilitiaCount`/`CanAssignNewMilitia`), and demo-mode fields (`trialPopulation`, `trialGametimeToSpawnVillager` — ignore).
+**Structure & state:** `SSSGame.VillagerOutlet` is a `NetworkBehaviour` (one instance per Eye of
+Odin structure, captures via `Spawned()` postfix). Handles the entire summon flow:
+`_CheckSummonAvailability(ItemContainer)` gates the 5-jotun-blood requirement;
+`OnStorageMenuConfirmationPressed(ItemContainer)` initiates the wait; `__NetworkedVillagerTimerEnd :
+float` + `_SpawnPending : NetworkBool` track the timer state; `SpawnVillager()` fires when timer
+expires. Additional features: `GenerateNewVillagerChoices()` /
+`Rpc_SetUpcomingVillagerData(DescriptionData, SByte)` handle the villager-choice UI; instance fields
+for `_pm : PopulationManager`, `_wm : WeatherManager`, militia management
+(`GetCurrentMilitiaCount`/`GetMaxMilitiaCount`/`CanAssignNewMilitia`), and demo-mode fields
+(`trialPopulation`, `trialGametimeToSpawnVillager` — ignore).
 
-**Delay data structure:** `_spawnTimeline : VillagerSpawnCooldownsConfig` (shared `ScriptableObject`, one per Eye of Odin blueprint) contains `cooldowns : SandSailorStudio.Types.IntThresholdList<float>` — a struct (`ValueType`) whose `thresholds` property is `Il2CppSystem.Collections.Generic.List<IntThreshold<float>>`. Each threshold entry is `IntThreshold<float>{threshold : int, value : float}`. **IL2CPP interop gotcha:** reading `cooldowns` returns a struct COPY, but its inner `thresholds` List is a shared native reference — to mutate entries, read the list in place with copy-back round-trip (`var e = list[i]; e.value = x; list[i] = e;`). Accessed via `GetValue(int)` lookup in game logic. Per-instance timer lives in `gametimeToSpawnVillager : float`.
+**Delay data structure:** `_spawnTimeline : VillagerSpawnCooldownsConfig` (shared
+`ScriptableObject`, one per Eye of Odin blueprint) contains `cooldowns :
+SandSailorStudio.Types.IntThresholdList<float>` — a struct (`ValueType`) whose `thresholds` property
+is `Il2CppSystem.Collections.Generic.List<IntThreshold<float>>`. Each threshold entry is
+`IntThreshold<float>{threshold : int, value : float}`. **IL2CPP interop gotcha:** reading
+`cooldowns` returns a struct COPY, but its inner `thresholds` List is a shared native reference — to
+mutate entries, read the list in place with copy-back round-trip (`var e = list[i]; e.value = x;
+list[i] = e;`). Accessed via `GetValue(int)` lookup in game logic. Per-instance timer lives in
+`gametimeToSpawnVillager : float`.
 
-**⚠️ Cooldown-table semantics UNKNOWN (confirmed reads in-game 2026-07-09):** All 9 vanilla threshold entries (villager counts: 3, 8, 12, 20, 40, 70, 110, 150, 200) hold the SAME negative value `-2.5980988`, and `gametimeToSpawnVillager = 10`. The per-count escalation is NOT a direct per-threshold duration lookup; the value may be a rate/curve input, and actual growth math may involve `gametimeCustomizationData : GametimeCustomizationData` (world-customization slots; role unconfirmed). **Consequence:** removing the wait entirely (multiplier 0) is confirmed SUFFICIENT; fractional multipliers (0 < m < 1) are UNTESTED and may not scale linearly. Harmless degenerate observed: scaling to 0 produces `__NetworkedVillagerTimerEnd = -2147483.8` (underflow) — game handles gracefully (no crash, timer expires immediately). (SummonTimerMod v0.1.0, confirmed in-game 2026-07-09.)
+**⚠️ Cooldown-table semantics UNKNOWN (confirmed reads in-game 2026-07-09):** All 9 vanilla
+threshold entries (villager counts: 3, 8, 12, 20, 40, 70, 110, 150, 200) hold the SAME negative
+value `-2.5980988`, and `gametimeToSpawnVillager = 10`. The per-count escalation is NOT a direct
+per-threshold duration lookup; the value may be a rate/curve input, and actual growth math may
+involve `gametimeCustomizationData : GametimeCustomizationData` (world-customization slots; role
+unconfirmed). **Consequence:** removing the wait entirely (multiplier 0) is confirmed SUFFICIENT;
+fractional multipliers (0 < m < 1) are UNTESTED and may not scale linearly. Harmless degenerate
+observed: scaling to 0 produces `__NetworkedVillagerTimerEnd = -2147483.8` (underflow) — game
+handles gracefully (no crash, timer expires immediately). (SummonTimerMod v0.1.0, confirmed in-game
+2026-07-09.)
 
 ---
 
 ## World Generation (Headless / Main Menu)
-- `WorldGenerator` is a `MonoBehaviour` but can be attached to a dummy GameObject in the Main Menu and successfully run `Setup(size...)`. It does not require a live 3D scene to generate the mathematical map!
+- `WorldGenerator` is a `MonoBehaviour` but can be attached to a dummy GameObject in the Main Menu
+  and successfully run `Setup(size...)`. It does not require a live 3D scene to generate the
+  mathematical map!
 - `GenerateWorldMapAsync(filterTag)` executes the procedural generation logic, producing a `WorldDataMap` (with `_areaInstances` containing caves/lakes/dens).
-- **CRITICAL BLOCKER:** `WorldGenerator` relies on `RandomGeneratorManager`. Instantiating `RandomGeneratorManager` directly via `AddComponent` throws an NRE in `OnEnable()` and `_PadSeedPhrase()` because it requires serialized IL2CPP struct arrays (like `generatorNames`, `seedKeyLength`) that are normally provided by its prefab. You must find an existing instance or initialize these arrays manually before it can process a seed string.
+- **CRITICAL BLOCKER:** `WorldGenerator` relies on `RandomGeneratorManager`. Instantiating
+  `RandomGeneratorManager` directly via `AddComponent` throws an NRE in `OnEnable()` and
+  `_PadSeedPhrase()` because it requires serialized IL2CPP struct arrays (like `generatorNames`,
+  `seedKeyLength`) that are normally provided by its prefab. You must find an existing instance or
+  initialize these arrays manually before it can process a seed string.
 
 ### Identifying the loaded world / save (for per-world mod state)
 - **Use `SandSailorStudio.Storage.StorageManager.ActiveSessionID` (String).** `StorageManager` is a
@@ -943,7 +1295,10 @@ Villager.NormalizedHappiness (Single 0..1, GET-ONLY) / Villager.HappinessCap (GE
 VillagerHappiness (via Villager.GetHappinessManager()): SleepRate/WorkRate/LeisureRate are GET-ONLY —
   you CANNOT scale the leisure happiness rate; instead write _happinessVAttr directly each tick.
 ```
-`VariableAttribute` API: `GetValue()`, `SetValue(Single)`, `GetNormalizedValue()`, `min`, `max`. Boost a need by adding `addNormalized * (max - min)` to the value, clamped to `max`; the game re-clamps happiness to `HappinessCap` (so a housing-capped villager shows up as a plateau — happiness stops rising despite the write).
+`VariableAttribute` API: `GetValue()`, `SetValue(Single)`, `GetNormalizedValue()`, `min`, `max`.
+Boost a need by adding `addNormalized * (max - min)` to the value, clamped to `max`; the game
+re-clamps happiness to `HappinessCap` (so a housing-capped villager shows up as a plateau —
+happiness stops rising despite the write).
 
 **Schedule (the thing that actually dispatches tasks)**
 ```
@@ -956,22 +1311,54 @@ Villager.overrideSchedule (bool), scheduleOverride (ScheduleType), CurrentBehavi
 ```
 
 **Schedule clock + packed-field ground truth (confirmed in-game 2026-07-09, DynamicVillagerNeeds v1.3.1–v1.3.3 diagnostic runs, TimeWarp-accelerated 10x/36x):**
-- **`WeatherSystem.Instance.TimeOfDay` is the wall clock** — linear `float` 0..24, wraps cleanly at midnight, tracks TimeWarp's independent readout. Current schedule hour = `Mathf.FloorToInt(TimeOfDay)`, and **schedule slot k == clock hour k, zero offset** (a painted Sleep block at slots 10–13 executed as behavior=Sleep 10:00–13:59, flipping to Work at 14:00, on two consecutive observed days).
-- **DEAD-END: `WeatherSystem.DayNightValue` is NOT a clock** — it saturates at exactly 0.0/1.0 for long stretches (a day/night blend factor) with transitions at odd times; `floor(DayNightValue*24)` pins at 0/23. Never use it for schedule-hour math. `WeatherSystem.IsNight` flips ~20:00 (False→True) and ~07:00 (True→False).
-- **`Villager.__NetworkedSchedule` is a transient change-transport field, NOT an at-rest schedule mirror**: it reads 0x0 at world load even when villagers' `_schedule` arrays differ; the game mass-resets it to 0x0 mid-session (seen for all 45 tracked villagers at once); and **player UI schedule edits never pulse it at all** — an apply in the schedule panel changes `villager._schedule` (per-hour int array) without touching the packed field. **Detect player edits by diffing `_schedule` array contents on a slow cadence (5 s is ample; catches edits within one tick)** — packed-value comparison misses real edits and false-positives on the 0x0 resets. (Extends the older "sched=match/REVERTED readback quirk" note below.)
-- ⚠️ Tentative (2026-07-09, one villager, two accelerated nights): a UI-painted **Work schedule kept a villager awake working straight through the night** (20:00–02:00, behavior=Work, sleeping=False) — the long-documented "nightfall forces sleep regardless of schedule" did not occur. Possibly rest-depletion-driven (this villager had a painted midday sleep block keeping rest topped up) or specific to Rpc-written all-W schedules. Re-verify during idea-11 Phase 1 before relying on it.
+- **`WeatherSystem.Instance.TimeOfDay` is the wall clock** — linear `float` 0..24, wraps cleanly at
+  midnight, tracks TimeWarp's independent readout. Current schedule hour =
+  `Mathf.FloorToInt(TimeOfDay)`, and **schedule slot k == clock hour k, zero offset** (a painted
+  Sleep block at slots 10–13 executed as behavior=Sleep 10:00–13:59, flipping to Work at 14:00, on
+  two consecutive observed days).
+- **DEAD-END: `WeatherSystem.DayNightValue` is NOT a clock** — it saturates at exactly 0.0/1.0 for
+  long stretches (a day/night blend factor) with transitions at odd times; `floor(DayNightValue*24)`
+  pins at 0/23. Never use it for schedule-hour math. `WeatherSystem.IsNight` flips ~20:00
+  (False→True) and ~07:00 (True→False).
+- **`Villager.__NetworkedSchedule` is a transient change-transport field, NOT an at-rest schedule
+  mirror**: it reads 0x0 at world load even when villagers' `_schedule` arrays differ; the game
+  mass-resets it to 0x0 mid-session (seen for all 45 tracked villagers at once); and **player UI
+  schedule edits never pulse it at all** — an apply in the schedule panel changes
+  `villager._schedule` (per-hour int array) without touching the packed field. **Detect player edits
+  by diffing `_schedule` array contents on a slow cadence (5 s is ample; catches edits within one
+  tick)** — packed-value comparison misses real edits and false-positives on the 0x0 resets.
+  (Extends the older "sched=match/REVERTED readback quirk" note below.)
+- ⚠️ Tentative (2026-07-09, one villager, two accelerated nights): a UI-painted **Work schedule kept
+  a villager awake working straight through the night** (20:00–02:00, behavior=Work, sleeping=False)
+  — the long-documented "nightfall forces sleep regardless of schedule" did not occur. Possibly
+  rest-depletion-driven (this villager had a painted midday sleep block keeping rest topped up) or
+  specific to Rpc-written all-W schedules. Re-verify during idea-11 Phase 1 before relying on it.
 - **Rest drains ~1 h per in-game hour while awake, regardless of activity** — leisure drains it the
   same as work (confirmed from transition telemetry 2026-07-09: 23→20.9 over ~2 h of leisure;
   11.4→0.4 over an 11 h shift). Sleep placement inside an off-window therefore matters: rest peaks at
   sleep end and decays linearly after.
 
-**Quit-to-menu does NOT fire plugin OnDestroy (confirmed in-game 2026-07-10):** shutdown-restore patterns (e.g., `RestoreAll`) never run before the save; any live schedule write bakes into the save. Mitigation proven: Harmony prefix/postfix mask on `Villager.Serialize(DataObject)` (patchable, fires; `DataObject` = `SandSailorStudio.Storage.DataObject`; saves serialize the schedule from `_schedule`). `Villager.GetSurvival()` bridges Villager→VillagerSurvival.
+**Quit-to-menu does NOT fire plugin OnDestroy (confirmed in-game 2026-07-10):** shutdown-restore
+patterns (e.g., `RestoreAll`) never run before the save; any live schedule write bakes into the
+save. Mitigation proven: Harmony prefix/postfix mask on `Villager.Serialize(DataObject)` (patchable,
+fires; `DataObject` = `SandSailorStudio.Storage.DataObject`; saves serialize the schedule from
+`_schedule`). `Villager.GetSurvival()` bridges Villager→VillagerSurvival.
 
-**Player UI schedule edits land in `_schedule` (per-hour int array), discriminable from a mod's own writes:** array-diff detectable; discriminate player edits from a mod's own writes by comparing the packed live array against the mod's recorded last write — an "anything not bit-for-bit mine is player intent" rule (DynamicVillagerNeedsMod v1.7.1/v1.7.2 pattern).
+**Player UI schedule edits land in `_schedule` (per-hour int array), discriminable from a mod's own
+writes:** array-diff detectable; discriminate player edits from a mod's own writes by comparing the
+packed live array against the mod's recorded last write — an "anything not bit-for-bit mine is
+player intent" rule (DynamicVillagerNeedsMod v1.7.1/v1.7.2 pattern).
 
-**Schedule UI surface (confirmed in-game 2026-07-10):** `SSSGame.UI.VillagerSchedulePanel` (MonoBehaviour; `_v` property = bound villager; populate/read = `Set(Villager)`/`Refresh()`/`OnEnable()`; `HasUnappliedChanges()` diffs panel vs live; apply = `UpdateSchedule()`; renders via `_schedulePixels`/`_scheduleTexture`); parent `SSSGame.UI.ScheduleEditorMenu` (ContextMenu, `SetupVillagers()` builds per-villager panels). Set/Refresh/OnEnable/HasUnappliedChanges are Harmony-patchable; Set and OnEnable fire-verified in-game 2026-07-10.
+**Schedule UI surface (confirmed in-game 2026-07-10):** `SSSGame.UI.VillagerSchedulePanel`
+(MonoBehaviour; `_v` property = bound villager; populate/read =
+`Set(Villager)`/`Refresh()`/`OnEnable()`; `HasUnappliedChanges()` diffs panel vs live; apply =
+`UpdateSchedule()`; renders via `_schedulePixels`/`_scheduleTexture`); parent
+`SSSGame.UI.ScheduleEditorMenu` (ContextMenu, `SetupVillagers()` builds per-villager panels).
+Set/Refresh/OnEnable/HasUnappliedChanges are Harmony-patchable; Set and OnEnable fire-verified
+in-game 2026-07-10.
 
-**Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour = `dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
+**Day length** — `WeatherSystem.Instance.dayLength` (Single, seconds/day) → in-game hour =
+`dayLength / 24`; also `IsNight` (bool), `DayNightValue` (Single, ~1=midday ~0=deep night).
 
 **Eating / drinking — the survival-quest FSM (separate from the schedule pipeline)**
 A villager's eat/drink behavior is NOT driven by the schedule a mod rewrites — it's a survival-quest
@@ -992,20 +1379,44 @@ SSSGame.AI.SurvivalObjectiveQuest
 SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the store and consumes
   ConsumeStatus { IDLE, WAIT, COMPLETE, ERROR_NO_ITEM }   ← ERROR_NO_ITEM = arrived, store empty
 ```
-- **Two food tiers:** normal (`foodItems` — cooked meals) and emergency (`emergencyFoodItems` — raw/poisonous). A starving villager (high-priority objective) eats the emergency tier; a mildly-hungry one only normal food. Remove all cooked food and villagers fall *down* the tiers — raw-but-safe (eggs) when low, poison only when truly starving. **This is vanilla, not a mod effect** (confirmed by testing with hunger ×50 → constant emergency-tier eating).
-- **The "stuck at empty store" bug:** a villager commits to a food target and stops re-evaluating across tiers; if the cooked store is empty when they arrive (`ERROR_NO_ITEM`) they park there and ignore *available raw food*, until something forces a re-evaluation (hand-feeding, or `SetDirty()`). Vanilla's `autoRetryTime*` did not recover them in practice. DynamicVillagerNeedsMod v1.1.0 fixes this by calling `SetDirty()` — see that mod's doc.
+- **Two food tiers:** normal (`foodItems` — cooked meals) and emergency (`emergencyFoodItems` —
+  raw/poisonous). A starving villager (high-priority objective) eats the emergency tier; a
+  mildly-hungry one only normal food. Remove all cooked food and villagers fall *down* the tiers —
+  raw-but-safe (eggs) when low, poison only when truly starving. **This is vanilla, not a mod
+  effect** (confirmed by testing with hunger ×50 → constant emergency-tier eating).
+- **The "stuck at empty store" bug:** a villager commits to a food target and stops re-evaluating
+  across tiers; if the cooked store is empty when they arrive (`ERROR_NO_ITEM`) they park there and
+  ignore *available raw food*, until something forces a re-evaluation (hand-feeding, or
+  `SetDirty()`). Vanilla's `autoRetryTime*` did not recover them in practice.
+  DynamicVillagerNeedsMod v1.1.0 fixes this by calling `SetDirty()` — see that mod's doc.
 
 ### Game-mechanic facts worth knowing before re-modeling villager behavior
-- **The night-sleep race:** the game forces villagers to bed at **nightfall** regardless of their schedule, catching them at whatever rest they have then. Any mod-driven sleep control that only runs in its *own* Sleep mode will be pre-empted unless it **adopts** the game-forced sleep (detect `IsSleeping` + low rest, take it over). See DynamicVillagerNeedsMod for the adopt fix.
-- **Sleep duration is a rate problem, not a threshold problem:** total sleep *fraction* = drain-rate / (drain + gain). Lowering the wake threshold only shortens each cycle, not the fraction — to make villagers sleep *less*, raise the rest-gain rate.
-- **Warmth is best left to the game.** The game's own `warmUpBehaviour`/`_warmUpQuest` warms villagers *fully* during work. Forcing a leisure trip for warmth only warms partway → thrash between fire and job. Tune the game's warm-up *speed* (multiply warmth only while it's already rising) rather than taking over the *when*.
+- **The night-sleep race:** the game forces villagers to bed at **nightfall** regardless of their
+  schedule, catching them at whatever rest they have then. Any mod-driven sleep control that only
+  runs in its *own* Sleep mode will be pre-empted unless it **adopts** the game-forced sleep (detect
+  `IsSleeping` + low rest, take it over). See DynamicVillagerNeedsMod for the adopt fix.
+- **Sleep duration is a rate problem, not a threshold problem:** total sleep *fraction* = drain-rate
+  / (drain + gain). Lowering the wake threshold only shortens each cycle, not the fraction — to make
+  villagers sleep *less*, raise the rest-gain rate.
+- **Warmth is best left to the game.** The game's own `warmUpBehaviour`/`_warmUpQuest` warms
+  villagers *fully* during work. Forcing a leisure trip for warmth only warms partway → thrash
+  between fire and job. Tune the game's warm-up *speed* (multiply warmth only while it's already
+  rising) rather than taking over the *when*.
 
 ### Dead ends (don't retry)
-- `Villager.overrideSchedule` + `scheduleOverride` + `CurrentBehaviorType` — drives the FSM behavior **label** (and suppresses sleep) but **bypasses the task-dispatch pipeline**: villagers stand idle (`TaskRunner` active-task null) even at midday with a valid workstation. Use `Rpc_ChangeSchedule` (the real schedule) — the only thing that dispatches work.
+- `Villager.overrideSchedule` + `scheduleOverride` + `CurrentBehaviorType` — drives the FSM behavior
+  **label** (and suppresses sleep) but **bypasses the task-dispatch pipeline**: villagers stand idle
+  (`TaskRunner` active-task null) even at midday with a valid workstation. Use `Rpc_ChangeSchedule`
+  (the real schedule) — the only thing that dispatches work.
 - `VillagerHappiness.LeisureRate`/`WorkRate`/`SleepRate` — **get-only**, can't scale the rate. Write `_happinessVAttr` directly.
-- Warmth/cold as a leisure trigger (incl. the `IsFreezing` flag) — villagers thrash between a fire and their job (each warmth-leisure trip only warms to the exit threshold, then they immediately get cold again). Hand cold back to the game.
-- Lowering `WakeWhenRestAboveHours` to "sleep less" — only shortens each sleep's cycle, not the total sleep *fraction*; raise the rest-gain rate instead (see facts above).
-- The `sched=match/REVERTED` readback diagnostic shows `REVERTED` for all-Sleep/all-Leisure but `match` for all-Work — a packing/representation quirk of comparing `__NetworkedSchedule` to the packed value, **not** a functional revert: behavior always followed the schedule. Don't chase it.
+- Warmth/cold as a leisure trigger (incl. the `IsFreezing` flag) — villagers thrash between a fire
+  and their job (each warmth-leisure trip only warms to the exit threshold, then they immediately
+  get cold again). Hand cold back to the game.
+- Lowering `WakeWhenRestAboveHours` to "sleep less" — only shortens each sleep's cycle, not the
+  total sleep *fraction*; raise the rest-gain rate instead (see facts above).
+- The `sched=match/REVERTED` readback diagnostic shows `REVERTED` for all-Sleep/all-Leisure but
+  `match` for all-Work — a packing/representation quirk of comparing `__NetworkedSchedule` to the
+  packed value, **not** a functional revert: behavior always followed the schedule. Don't chase it.
 
 ---
 
@@ -1055,83 +1466,68 @@ SSSGame.Combat.CombatManager (MonoBehaviour singleton-ish) ← RegisterCombatant
 - A `Creature`'s name is a runtime ScriptableObject value (same as item names) — **not** in the binary;
   discover it live by logging `IAttackTarget.GetTargetName()` + `.Faction` from a patch.
 
-**The fight-vs-flee override (VillagerFightBackMod's approach):** Postfix
-`FleeCombatQuest/FleeCombatQuestData.get_ShouldFight`; when `__result==false` (would flee) and
-`__instance._engagedEnemy` matches a name/faction whitelist, set `__result=true`. Read + return-a-bool only
-(no networked write → co-op-safe); gate the flip on `__instance._survival._hasAuthority`.
+**Why villagers flee (root cause, confirmed in-game):** `VillagerSurvival` carries two combat FSMs
+— **`fleeCombatBehaviour`** (kite/run) and **`naturalCombatBehaviour`** (stand & fight), plus
+`avoidDangerBehaviour`, `callToArmsBehaviour`, etc. `CombatQuest.GetFSMBehavior(QuestData) →
+vFSMBehaviour` selects which one runs; for `FleeCombatQuest` it returns the flee one. Idle
+villagers CAN fight (a non-warrior reached `FSM_MeleeCombat` and killed a Wisp) because they use
+the natural behaviour. **The behaviour selection — not priorities, flags, or `ShouldFight` — is
+the real fight-vs-flee branch.**
 
-### Confirmed in-game (session 2, 2026-06-22) — supersedes the old "pending" notes
-Verified live while building Mod 7 (see [`VILLAGER_FIGHTBACK_HANDOFF.md`](../VILLAGER_FIGHTBACK_HANDOFF.md)
-for the full lever-by-lever log). **These are facts now, with dead-ends called out so they aren't re-tried:**
-- **Wisp:** `GetTargetName()` == `"Wisp"`, `Faction` == `Undead`. Name-whitelist only (draugar are also `Undead`).
-- **`ShouldFight` is a DEAD END for fight-vs-flee.** In a real Wisp encounter it already returns `True`, and
-  the villager flees anyway. The flee is **not** gated on `ShouldFight`. Forcing it does nothing.
-- **`_engagedEnemy` is usually `null`** when `ShouldFight`/`GetPriority` are read — capture the attacker from
-  `_GetSpooked(IAttackTarget)` and remember it per quest-data instance (key by `Pointer`) as a fallback. (Done.)
-- **Flee is FSM-driven, in layers:** `_GetSpooked` = *notification only* (suppressing it removes the spook
-  icon/fanfare but NOT the flee); `FSM_SetVillagerIsFleeing.OnStateEnter` sets `Villager.IsFleeing`;
-  `FSM_RunFromTarget` does the run movement. Blocking each removes its piece but not the overall retreat.
-- **`FSM_CheckVillagerWarrior` is NOT the melee-vs-run branch** — forcing its `Decide` true has no effect.
-- **A regular (non-warrior) villager CAN reach `FSM_MeleeCombat`** and kill a Wisp — confirmed when **idle**.
-- **The real blocker is QUEST ARBITRATION:** a villager **with an active work quest** (e.g. `TerraformingQuest`)
-  gets pulled back to her job marker; combat only fully wins once the job resets. `QuestRunner._activeQuestPriority`
-  oscillates between the work quest and `FleeCombatQuest`. **Combat time is NOT the issue** (topping
-  `_combatTimeRemaining` works but doesn't fix it).
-- **Priority-number boosts via getter postfixes DON'T fix it — both tried and failed in-game:**
-  - Postfix `CombatQuest.GetPriority` → 41 **fired** yet the runner still re-selected `TerraformingQuest`
-    (`activePrio=15`) — impossible for a `GetPriority`-ranked selector, so `GetPriority` (Single) is only the
-    *reported* priority of the already-chosen quest, not the selector.
-  - Postfix `FleeCombatQuest.get_TriggerPriority` → 40 (v1.0.11): the boost log **never fired** → the getter
-    is almost certainly **cached** (a stored field the runner reads, not the property; `CombatQuest.SetDirty()`
-    exists) — so postfixing the property is inert. (`FleeCombatQuest` *does* override `TriggerPriority`, and
-    it is **per-villager** — `VillagerSurvival._fleeCombatQuest` — but that doesn't help if the value is cached.)
-  - **Takeaway: don't fight the arbiter with priority numbers. Patch the selection method.**
-- **v1.0.12 tried overriding `QuestRunner.FindNextBestQuest` → CRASHED** (its `Single&` by-ref out-param is
-  the IL2CPP trampoline hazard above; villagers went inert). Dead end as a patch target.
-- **v1.0.13 suspended the work quest** (`QuestRunner.Update` poll → `RemoveQuest` the active work quest,
-  `AddQuest` back later). **Mechanically worked** (`Suspended work quest 'TerraformingQuest'` → active became
-  `FleeCombatQuest` → reached `FSM_MeleeCombat`) **but she STILL ran.** Decisive: with the job removed, the
-  run can't be job-pathing.
-- **CONFIRMED ROOT CAUSE (session 3): she runs because the FleeCombatQuest executes the FLEE combat
-  _behaviour_.** `VillagerSurvival` has two combat FSMs: **`fleeCombatBehaviour`** (kite/run) and
-  **`naturalCombatBehaviour`** (stand & fight) — plus `avoidDangerBehaviour`, `callToArmsBehaviour`, etc.
-  `CombatQuest.GetFSMBehavior(QuestData) → vFSMBehaviour` selects which one runs; for `FleeCombatQuest` it
-  returns the flee one. Idle villagers fight Wisps because they use the *natural* behaviour. Every lever that
-  poked the flee quest (suppress spook, block flee-flag/run-action, force `ShouldFight`, boost priority,
-  remove job) was de-fanging the wrong FSM.
-- **The working fix (v1.0.22): postfix `CombatQuest.GetFSMBehavior` → return `_survival.naturalCombatBehaviour`
-  for a whitelisted enemy.** `FleeCombatQuest` does **not** override `GetFSMBehavior`, so patching `CombatQuest`'s
-  covers it.
-  - **TryCast Crash Gotcha:** Calling the native `TryCast<CombatQuest.CombatQuestData>()` on dummy/placeholder
-    `QuestData` assets during early startup asset loading causes a native Access Violation (`0xc0000005`).
-    **Resolution:** Use standard C# `as` casting (`var cqd = questData as CombatQuest.CombatQuestData`) and
-    `Plugin.PtrOf(cqd) == IntPtr.Zero` checks, which executes in managed code without invoking the native casting runtime.
-  - **Immediate Combat Drop:** Upon enemy death (`!decisionTarget.IsAlive()`), reset `_combatTimeRemaining = 0f` and
-    bridge active combat with a tight `8f` second (rather than `60f` second) top-up. This allows the villager to drop
-    out of the combat quest and resume their suspended work quest within seconds of the fight ending.
+**The shipped override (VillagerFightBackMod, confirmed in-game):** Postfix
+`CombatQuest.GetFSMBehavior` → return `_survival.naturalCombatBehaviour` when the villager's
+remembered attacker matches the name whitelist. `FleeCombatQuest` does **not** override
+`GetFSMBehavior`, so patching the base covers it. Supporting machinery, all confirmed:
+- **Attacker capture:** `_engagedEnemy` is usually `null` when `ShouldFight`/`GetPriority` are
+  read — capture the attacker from `_GetSpooked(IAttackTarget)` (safe signature) and remember it
+  per quest-data instance, keyed by `Pointer`.
+- **Wisp identity:** `GetTargetName()` == `"Wisp"`, `Faction` == `Undead`. Whitelist by NAME —
+  draugar are also `Undead`, so faction is too coarse.
+- **TryCast crash gotcha:** native `TryCast<CombatQuest.CombatQuestData>()` on dummy/placeholder
+  `QuestData` assets during early startup causes a native AV (`0xc0000005`). Use managed `as`
+  casting + `Plugin.PtrOf(cqd) == IntPtr.Zero` checks instead (runs without the native cast).
+- **Work-quest suspension:** a villager with an active work quest (e.g. `TerraformingQuest`) gets
+  pulled back to her job marker mid-fight (`_activeQuestPriority` oscillates). The mod suspends
+  the active work quest via a `QuestRunner.Update` poll (`RemoveQuest` / `AddQuest` back later).
+- **Prompt return-to-work (both halves confirmed in-game 2026-07-03):** (1) vanilla re-arms
+  `_combatTimeRemaining` to ~60 s mid-fight, so a top-up that only RAISES the timer rides out the
+  full minute — also DOWN-CLAMP when the timer reads above the intended cap; (2) on enemy death,
+  zero the timer from a method that runs unconditionally every tick (the `QuestRunner.Update`
+  patch) — a polled getter like `ShouldFight` can simply stop being polled once the target dies,
+  so a death branch placed only there can silently never run. Together these fixed the
+  "inconsistent return-to-work (seconds vs. ~a minute)" bug. On death also bridge with a tight
+  ~8 s top-up instead of 60 s so the villager resumes work within seconds.
 - **Scope FSM-action patches by target** via `IFSMBehaviourController.AiTargeting.CurrentTarget`.
-- **Quest back-refs (confirmed):** `QuestData.Quest` + `QuestData.QuestRunner`, and `CombatQuestData.GetVillager()`
-  — so from a `FleeCombatQuestData` patch you can reach the villager's runner/quest without `FindObjectsByType`.
-  `QuestRunner` exposes `FindNextBestQuest(out topPriority, excludeActiveQuest)`, `ReevaluateQuest`,
-  `AddQuest`/`RemoveQuest`, `StopAndRemoveAllQuests`, `ActiveQuest`, `_activeQuestPriority`, and a
-  `_pendingQuest*` set. **Pointer gotcha:** `QuestRunner` is on the UnityEngine.Object chain and the csproj
-  references the *stripped* unity-libs CoreModule, so `QuestRunner.Pointer` won't compile — cast through
-  `object` to `Il2CppObjectBase` at runtime (Il2CppSystem.Object-derived types like `QuestData`/`Quest` are fine).
-- `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat), `AvoidImminentDanger`=46,
-  `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0.
-- **Vanilla re-arms `CombatQuestData._combatTimeRemaining` to ~60s mid-fight** (observed
-  `combatTime 63.8 -> ...`, plausibly on the villager taking a hit) — a top-up that only ever RAISES the
-  timer toward a target (VillagerFightBackMod's original `KeepCombatAlive` logic) can get overridden by
-  this re-arm and ride out close to the full ~60s. **Fix: also down-clamp** — if the timer is ever found
-  ABOVE the intended cap, clamp it back down in the same patch. (confirmed in-game 2026-07-03, v1.0.27)
-- **Death-detection via a polled getter (`ShouldFight`) is not reliable enough alone** — the getter can
-  simply stop being polled once the target is actually dead, so a `!IsAlive()` → zero-the-timer branch
-  placed only there can silently never run for a given fight. **Fix: also check on a method that runs
-  unconditionally every tick** (this mod already patches `QuestRunner.Update` for work-suspension) —
-  store the live `CombatQuestData` wrapper per villager and zero the timer / purge engagement state from
-  there the instant the remembered enemy reads dead, independent of getter polling. Together with the
-  clamp above this closed VillagerFightBackMod's "inconsistent return-to-work (seconds vs. ~a minute)"
-  bug. (confirmed in-game 2026-07-03, v1.0.27 — see [`docs/mods/villager-fight-back.md`](mods/villager-fight-back.md))
+- **Quest back-refs:** `QuestData.Quest` + `QuestData.QuestRunner`, `CombatQuestData.GetVillager()`
+  — reach the villager's runner/quest from a patch without `FindObjectsByType`. `QuestRunner`
+  exposes `ReevaluateQuest`, `AddQuest`/`RemoveQuest`, `StopAndRemoveAllQuests`, `ActiveQuest`,
+  `_activeQuestPriority`. **Pointer gotcha:** `QuestRunner` is on the UnityEngine.Object chain →
+  `QuestRunner.Pointer` won't compile against the unity-libs stub; box-cast through `object` to
+  `Il2CppObjectBase` (Il2CppSystem.Object-derived types like `QuestData`/`Quest` are fine).
+- `QuestPriority` scale (runtime): `Flee`=40, `SelfDefense`=42 (warrior combat),
+  `AvoidImminentDanger`=46, `WorkstationWork`=15, `ImportantWork`=22, `Idle`=0.
+
+### Dead ends (don't retry) — every one tried and failed in-game
+- **Forcing `ShouldFight`** — in a real Wisp encounter it already returns `True` and the villager
+  flees anyway; the flee is not gated on it.
+- **Blocking the flee FSM layer by layer** — `_GetSpooked` is notification-only (suppressing it
+  removes the spook icon, not the flee); `FSM_SetVillagerIsFleeing` only sets the flag;
+  `FSM_RunFromTarget` only does the movement. Each block removes its piece, never the retreat.
+- **`FSM_CheckVillagerWarrior`** is not the melee-vs-run branch — forcing its `Decide` true does
+  nothing.
+- **Priority-number boosts via getter postfixes:** `CombatQuest.GetPriority` postfix fired but the
+  runner still re-selected the work quest (`GetPriority` is the *reported* priority of the chosen
+  quest, not the selector); `get_TriggerPriority` postfix never fired at all (value cached in a
+  field the runner reads). Don't fight the arbiter with numbers — patch the selection.
+- **Patching `QuestRunner.FindNextBestQuest`** — its `Single&` by-ref out-param is the trampoline
+  hazard; villagers went inert with thousands of NREs/frame.
+- **Work-quest suspension ALONE** — mechanically worked (active quest became `FleeCombatQuest`,
+  reached `FSM_MeleeCombat`) but the villager still ran: the flee behaviour, not job-pathing, was
+  the cause. (This test was the decisive isolation step.)
+- **Topping `_combatTimeRemaining` alone** — combat time was never the fight-vs-flee issue.
+
+Full lever-by-lever log: [`VILLAGER_FIGHTBACK_HANDOFF.md`](../VILLAGER_FIGHTBACK_HANDOFF.md);
+shipped recipe: [`docs/mods/villager-fight-back.md`](mods/villager-fight-back.md).
 
 ## Villager Ranged Combat / Ammo System (VillagerAmmoMod evidence, confirmed in-game 2026-07-11)
 
@@ -1208,7 +1604,8 @@ keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is ful
 
 ## Worldgen / World Streaming
 How the world loads around the player, and how to make distant tiles stream **without moving the player**.
-Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEED_SCOUT_HANDOFF.md).
+Used by Mod 9 (SeedScoutMod) — full recipe in
+[`archive/SEED_SCOUT_HANDOFF.md`](archive/SEED_SCOUT_HANDOFF.md).
 
 - **Worldgen is deterministic, seed-phrase driven**, and runs at world **LOAD** (not in the create-world UI).
   Caves (mines) are fully known at load (`BiomesManager._worldGenerator.GetDataMap()._areaInstances`, filter
@@ -1270,43 +1667,69 @@ Used by Mod 9 (SeedScoutMod) — full recipe in [`SEED_SCOUT_HANDOFF.md`](../SEE
   - **Gotchas found on the way:** `AreaInstance.GetWorldTileCoordinates()` returns an EMPTY rect —
     derive tiles from `area.position` (world meters). `WorldStreamingManager` has NO request-release API
     (only `CancelLoading` for in-flight) — force-loaded tiles stay resident for the session.
-    **`AreaInstance.GetBounds()` Vector4 layout CONFIRMED (2026-07-05):
-    `(xMin, zMin, xMax, zMax)` directly** — e.g. `MainIsland-0` raw `(-975.00, -801.00, 835.00,
-    1009.00)` → bounds `(-975,-801)-(835,1009)`. (The earlier "failed under both interpretations"
-    note was a false alarm — v1.2.0's home-island resolver crashed on the logging gotcha above
-    *before* it could report which interpretation matched, not because the bounds genuinely didn't
-    contain spawn; A was correct all along.)
+    **`AreaInstance.GetBounds()` Vector4 layout is `(xMin, zMin, xMax, zMax)` directly**
+    (confirmed 2026-07-05) — e.g. `MainIsland-0` raw `(-975.00, -801.00, 835.00, 1009.00)` →
+    bounds `(-975,-801)-(835,1009)`.
 - **Den type/tier:** a `Den : Creature`'s own sheet is empty (`faction=Ignore`, `baseThreatScore=0`); the
   type/tier is what its `alphaSpawner` (PopulationSpawner) spawns — `_populations[i].config`
   (CreaturePopulationConfiguration) `.name` + `.populationInfo.name` (e.g. `WightBoss`, `DraugarAlpha`).
-  Full den→creature table in the SeedScout handoff.
+  Full den→creature table in `archive/SEED_SCOUT_HANDOFF.md`.
 - **Dead end (still unresolved):** the runtime seed reads `<rng-null>` —
   `RandomGeneratorManager.seedPhrase`/`SetSeedPhrase` are never the path the seed travels at load. Non-blocking
-  for a scorer (you type the seed); required only for an auto-finder. See the SeedScout handoff for the chase.
+  for a scorer (you type the seed); required only for an auto-finder. See
+  `archive/SEED_SCOUT_HANDOFF.md` for the chase.
 
 ---
 
 ## Caves, Mines & Hallway Excavation (confirmed in-game 2026-06-26)
-- **Caves Manager**: `SSSGame.CavesManager` is a persistent MonoBehaviour that tracks all mine/cave instances in the world. It exposes `GetAllCaves()` returning a list of `CaveEntrance` instances (which represent the root nodes of each cave/mine).
-- **Cave Node Tree**: A mine is a tree of `CaveNode`s (with `CaveEntrance` inheriting from `CaveNode`) structured using `SandSailorStudio.Procedural.LSystemNode`. You can recursively traverse the entire mine system starting from the entrance node using the `connections` list on `LSystemNode`.
+- **Caves Manager**: `SSSGame.CavesManager` is a persistent MonoBehaviour that tracks all mine/cave
+  instances in the world. It exposes `GetAllCaves()` returning a list of `CaveEntrance` instances
+  (which represent the root nodes of each cave/mine).
+- **Cave Node Tree**: A mine is a tree of `CaveNode`s (with `CaveEntrance` inheriting from
+  `CaveNode`) structured using `SandSailorStudio.Procedural.LSystemNode`. You can recursively
+  traverse the entire mine system starting from the entrance node using the `connections` list on
+  `LSystemNode`.
 - **Hallway State (`DigData`)**:
-  - Each `CaveNode` stores the excavation progress of its mineable walls in a `SSSGame.DigData` object, accessed via `node.PersistentData.GetDigData(node.index, DataAccessMode.FETCH)`.
-  - `DigData` contains a list of crack damages (`crackDamagesLeft`, `crackDamagesRight`) and indices for the currently active walls (`wallIndexLeft`, `wallIndexRight`).
-  - Calling `digData.ResetCrackData()` and setting `wallIndexLeft = 0` / `wallIndexRight = 0` resets the wall's excavation state to brand new. Calling `digData.SetDirty()` flags the data for saving and replicates the reset state over the network to all clients in co-op.
+  - Each `CaveNode` stores the excavation progress of its mineable walls in a `SSSGame.DigData`
+    object, accessed via `node.PersistentData.GetDigData(node.index, DataAccessMode.FETCH)`.
+  - `DigData` contains a list of crack damages (`crackDamagesLeft`, `crackDamagesRight`) and indices
+    for the currently active walls (`wallIndexLeft`, `wallIndexRight`).
+  - Calling `digData.ResetCrackData()` and setting `wallIndexLeft = 0` / `wallIndexRight = 0` resets
+    the wall's excavation state to brand new. Calling `digData.SetDirty()` flags the data for saving
+    and replicates the reset state over the network to all clients in co-op.
 - **Wall Interaction & Renderers (`CaveWallInteraction`)**:
   - Mineable walls are represented by the `CaveWallInteraction` component on child GameObjects of each node.
-  - To apply the reset `DigData` and update the visuals/physics instantly on the host, locate all `CaveWallInteraction` components in children and call `wall.RefreshDigData(digData)`, `wall.RefreshRendererData()`, and `wall.SetRenderersVisible(true)`.
+  - To apply the reset `DigData` and update the visuals/physics instantly on the host, locate all
+    `CaveWallInteraction` components in children and call `wall.RefreshDigData(digData)`,
+    `wall.RefreshRendererData()`, and `wall.SetRenderersVisible(true)`.
 - **Rubble & Cave-In Clearing**:
   - A hallway collapse (cave-in) is represented by `node.IsCollapsed` and `node.open = false`.
-  - A collapsed node can be programmatically cleared and reopened by setting `node.open = true`, `node._isCollapsed = false` (the writable backing field in the interop assembly), and calling `node.UpdateCollapsedState()`. This clears the rubble visuals and restores navigation.
+  - A collapsed node can be programmatically cleared and reopened by setting `node.open = true`,
+    `node._isCollapsed = false` (the writable backing field in the interop assembly), and calling
+    `node.UpdateCollapsedState()`. This clears the rubble visuals and restores navigation.
 - **Resource Spawning**:
-  - Inside each hallway, loose items (chests, iron deposits, mushrooms) are spawned by `CaveItemSpawner` components. Calling `spawner.Run()` on all spawners in the node's `caveItemSpawners` list regenerates these resources.
+  - Inside each hallway, loose items (chests, iron deposits, mushrooms) are spawned by
+    `CaveItemSpawner` components. Calling `spawner.Run()` on all spawners in the node's
+    `caveItemSpawners` list regenerates these resources.
 - **Character Proximity Scans**:
-  - Standard Unity `UnityEngine.Object.FindObjectsOfType(typeof(Character))` is used to query all active characters in the scene. 
-  - To check if a worker or player is inside the mine before refreshing, calculate their distance to *every* node in the traversed list. If anyone is within 25 meters, abort the refresh to prevent trapping them.
+  - `UnityEngine.Object.FindObjectsOfType(typeof(Character))` — the NON-generic `Type`-argument
+    overload — works through interop to query all active characters. (It's the GENERIC
+    `FindObjectsByType<T>()` that is trampoline-broken — see universal gotchas.)
+  - To check if a worker or player is inside the mine before refreshing, calculate their distance to
+    *every* node in the traversed list. If anyone is within 25 meters, abort the refresh to prevent
+    trapping them.
 - **IL2CPP Interop Quirks**:
-  - **UnityEngine.Object Casting**: Do NOT call `.TryCast<T>()` on `UnityEngine.Object`-derived types (like `Component` or `GameObject`) as it throws compile-time errors. Standard C# casting (`obj as Character`, `node as CaveNode`) is fully supported and works perfectly for these mirrored types.
-  - **IReadOnlyList Metadata**: `Il2CppSystem.Collections.Generic.IReadOnlyList<T>` lacks metadata showing it inherits from `IReadOnlyCollection<T>` in the interop assembly, making `.Count` and `GetEnumerator` unavailable directly. **Workaround**: Cast the list to `Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>` using `.TryCast<T>()` to safely retrieve `.Count`, and access elements by index `list[i]`.
+  - **UnityEngine.Object Casting**: Do NOT call `.TryCast<T>()` on `UnityEngine.Object`-derived
+    types (like `Component` or `GameObject`) — compile-time errors from the unity-libs stub chain
+    (see universal gotchas). Managed `as` casts (`obj as Character`, `node as CaveNode`) worked here
+    because these objects come from correctly-typed APIs and are already materialized as their real
+    types — do NOT generalize that to list elements or base-typed parameters, where `as`/`is` casts
+    LIE (universal gotcha).
+  - **IReadOnlyList Metadata**: `Il2CppSystem.Collections.Generic.IReadOnlyList<T>` lacks metadata
+    showing it inherits from `IReadOnlyCollection<T>` in the interop assembly, making `.Count` and
+    `GetEnumerator` unavailable directly. **Workaround**: Cast the list to
+    `Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>` using `.TryCast<T>()` to safely
+    retrieve `.Count`, and access elements by index `list[i]`.
 
 
 ## Build Menu / Structure Templates & Localization (confirmed in-game 2026-07-01)
@@ -1367,7 +1790,10 @@ to inject a **new buildable entry** into the build menu. Full recipe in
 
 Bypassing discovery to show tasks in workstations requires different strategies depending on the station:
 
-- **Cooking Tasks (CrockpotRecipeInfo)**: Cooking workstation tasks are gated strictly by SSSGame.BlueprintConditionsDatabase. Setting NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable unlocks them natively (confirmed in-game 2026-07-05, TaskUnlockerMod). requiresDiscovery = false does not work here.
+- **Cooking Tasks (CrockpotRecipeInfo)**: Cooking workstation tasks are gated strictly by
+  SSSGame.BlueprintConditionsDatabase. Setting
+  NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable unlocks them natively (confirmed in-game
+  2026-07-05, TaskUnlockerMod). requiresDiscovery = false does not work here.
 - **Fishing Tasks — the gate is MARKING, not discovery.** Fishing tasks are not item-discovery-gated
   at all; the 2026-07-05 "dead ends everywhere" session was attacking the wrong system. The real chain
   (signature-traced and **confirmed in-game 2026-07-06**, TaskUnlockerMod v1.2.0): player marks a fishing ground (buoy) →
@@ -1447,11 +1873,10 @@ state for the drag preview).
     `BitSet256` on `NetworkDynamicDimensionBuildingState_256` (used by this structure),
     `BitSet512` on the `_512` variant (used by other building types). Read the true cap at runtime via
     `NetworkedGridSize` — don't hardcode 256 or 512, since which variant is in play depends on the
-    building. Past that many tiles, `UpdateGridValidityOnNetwork` writes validity bits past the struct →
-    network-state corruption → a hard, silent native crash (confirmed by mapping WER crash offsets to
-    this exact method via Cpp2IL — see [Native Crash Diagnosis](#native-crash-diagnosis-wer--cpp2il)
-    below). **This supersedes the old "512-tile NetworkArray" belief below** — 512 is real, but it's the
-    *`_512` variant's* cap, not this structure's; the terraforming preview uses the 256 variant.
+    building (the terraforming preview uses the 256 variant). Past that many tiles,
+    `UpdateGridValidityOnNetwork` writes validity bits past the struct → network-state corruption →
+    a hard, silent native crash (confirmed by mapping WER crash offsets to this exact method via
+    Cpp2IL — see [Native Crash Diagnosis](#native-crash-diagnosis-wer--cpp2il) below).
     (confirmed in-game 2026-07-01)
 *   **`DynamicDimensionTemplate.maxNumberOfTiles`, `DynamicDimensionsPlacementTool.maxRange`, and
     `_ValidateFootprint`'s `OverlapBoxNonAlloc` are all real but secondary limits** — they cap the
@@ -1541,9 +1966,19 @@ BitSet256 root cause above, but applies to any future native ASKA crash:
     contain a native stack trace for these crashes — WER events are the reliable source, not this file.
 
 #### When WER blames `coreclr.dll+0x1d1fdd`
-`coreclr.dll+0x1d1fdd` (coreclr 6.0.722, exception 0xc0000005) is NOT a real crash site — it is the CLR's fatal-error chokepoint (`EEPolicy::HandleFatalError` on the stack). It means: a NATIVE access violation happened beneath managed (mod) frames — e.g. inside a game method called from a Harmony hook — and the CLR fail-fasted. The BepInEx log always ends clean (no managed exception is possible on this path). Confirmed 2026-07-06 by symbol-resolving the public coreclr PDB from the Microsoft symbol server.
+`coreclr.dll+0x1d1fdd` (coreclr 6.0.722, exception 0xc0000005) is NOT a real crash site — it is the
+CLR's fatal-error chokepoint (`EEPolicy::HandleFatalError` on the stack). It means: a NATIVE access
+violation happened beneath managed (mod) frames — e.g. inside a game method called from a Harmony
+hook — and the CLR fail-fasted. The BepInEx log always ends clean (no managed exception is possible
+on this path). Confirmed 2026-07-06 by symbol-resolving the public coreclr PDB from the Microsoft
+symbol server.
 
-To find the REAL fault: parse the matching minidump in `%LOCALAPPDATA%\CrashDumps\Aska.exe.<pid>.dmp` with `_explore/parse_minidump.ps1` (exception context + faulting-thread stack scan against module ranges), then map GameAssembly RVAs with the Cpp2IL dummy-DLL index (`_explore/map_crash_offsets.ps1` / `map_reload_crash_rvas.ps1`) and coreclr offsets with `_explore/resolve_coreclr_syms.ps1` (downloads the PDB from msdl.microsoft.com, resolves via dbghelp).
+To find the REAL fault: parse the matching minidump in
+`%LOCALAPPDATA%\CrashDumps\Aska.exe.<pid>.dmp` with `_explore/parse_minidump.ps1` (exception context
++ faulting-thread stack scan against module ranges), then map GameAssembly RVAs with the Cpp2IL
+dummy-DLL index (`_explore/map_crash_offsets.ps1` / `map_reload_crash_rvas.ps1`) and coreclr offsets
+with `_explore/resolve_coreclr_syms.ps1` (downloads the PDB from msdl.microsoft.com, resolves via
+dbghelp).
 
 ### Startup: a one-off `UnityEngine.CoreModule` chainloader abort is transient — NOT a SAC block
 Distinct from both the native crashes above and from a Smart App Control block. Symptom (seen
@@ -1563,7 +1998,15 @@ down all of them.
   `check-loaded` shows *some* mods loaded and one missing → SAC (bump that mod's version). If **zero**
   loaded and the log dies at `Chainloader initialized` → this transient chainloader abort, not SAC.
 
-`dotnet-dump analyze` CANNOT read these WER minidumps (DAC init fails — the dump lacks the managed heap); the manual parser is the working path. Worked example: the 2026-07-06 reload crash — WER said coreclr+0x1d1fdd in 4/4 crashes; the real fault in all 4 dumps was `GameAssembly+0x13e89d1` = VegetationStudioPro `InstancesDataArrays.FindIndexOfUniqueId+0xc1`, reached via `SSSGame.BiomeProceduralDataHandler.GetInstance` from TreeRespawnMod's stale cached handler after a same-world reload.
+`dotnet-dump analyze` CANNOT read these WER minidumps (DAC init fails — the dump lacks the managed
+heap); the manual parser is the working path. Worked example: the 2026-07-06 reload crash — WER said
+coreclr+0x1d1fdd in 4/4 crashes; the real fault in all 4 dumps was `GameAssembly+0x13e89d1` =
+VegetationStudioPro `InstancesDataArrays.FindIndexOfUniqueId+0xc1`, reached via
+`SSSGame.BiomeProceduralDataHandler.GetInstance` from TreeRespawnMod's stale cached handler after a
+same-world reload.
 
-Historical note: the same coreclr+0x1d1fdd signature appears in Application-Error events on 6/18, 6/23, 6/27, 6/29 (2026) — the TreeRespawn reload bug existed for weeks before it was reproduced; recurring WER offsets in coreclr.dll therefore mean "same crash CLASS (native AV under managed frames)", not necessarily same root cause.
+Historical note: the same coreclr+0x1d1fdd signature appears in Application-Error events on 6/18,
+6/23, 6/27, 6/29 (2026) — the TreeRespawn reload bug existed for weeks before it was reproduced;
+recurring WER offsets in coreclr.dll therefore mean "same crash CLASS (native AV under managed
+frames)", not necessarily same root cause.
 

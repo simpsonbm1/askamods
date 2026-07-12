@@ -2,101 +2,237 @@
 
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours)
 with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real
-food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without reducing
-happiness.** Villager-only; the player is never touched.
-
-**v1.9.6–v1.9.7 — [Perf] sub-phase stopwatches + cfg reload cadence (2026-07-12)**
-v1.9.6 added separate Stopwatch tracking for `tick.cohorts` and `tick.villagers` sub-phases; v1.9.7
-analysis from the 2026-07-11/12 perf arc (see docs/architecture.md → Mod-side frame hitches): `tick.cohorts` (RefreshCohorts) avg 4.7 / max 28 ms, already 10s-gated via `_cohortTimer`; `tick.villagers` avg 8.6 / max 21.6 ms. Config hot-reload cadence 5s→30s (single-pass optimization across several mods). Tick avg 5.8 / max ~44–48 ms; no behavioral changes.
-
-**v1.9.5 — Typing guard (confirmed in-game 2026-07-10)**
-BuilderDiag F9 hotkey now guarded for consistency with other mods' input handlers. Confirmed: hotkeys work again after the rename window closes.
+food/water need → leisure, otherwise work. Overarching principle: **stop wasting time without
+reducing happiness.** Villager-only; the player is never touched.
 
 **Game subsystem:** [Villager Schedule / Needs / Happiness System](../architecture.md#villager-schedule--needs--happiness-system)
 — survival/happiness/schedule APIs, the eating FSM, the game-mechanic facts (night-sleep race, sleep
-being a rate problem, warmth left to the game), and the dead-ends list all live there. Read it first.
+being a rate problem, warmth left to the game), and the subsystem dead-ends all live there. Read it
+first. This file describes the mod as it exists at v1.9.7; the version history is compressed into
+the appendix at the bottom.
 
-**Working approach:**
-- `NeedsController` (registered `MonoBehaviour`, `Update()` polling, same pattern as `DayTracker`/`RegenTracker`/`TorchFuelTracker`); `VillagerSurvivalSpawnedPatch` Postfix on `VillagerSurvival.Spawned()` registers each villager. Everything gated on `surv._hasAuthority` (host/solo).
-- **Drives the REAL per-hour schedule**, not the override fields: each mode change collapses the villager's whole schedule to one activity via `_ScheduleToNetworkSchedule(arr)` → `Rpc_ChangeSchedule(packed)` (idempotent — only on change). The original packed schedule is snapshotted on first touch and restored on `OnDestroy`/`OnApplicationQuit`.
-- **Decision (`Decide`, with hysteresis):** Sleep (top priority) when `rest <= SleepWhenRestBelowHours`, stay asleep until `rest >= WakeWhenRestAboveHours`; else Leisure if food/water critically low **or** happiness below its trigger; else Work.
-- **Direct VAttr writes (the core trick), rate derived from in-game hour length:**
-  - *Happiness:* while in Leisure, add to `_happinessVAttr` so an empty→full restore takes `LeisureHoursToFullHappiness` in-game hours. Makes leisure actually worth taking (vanilla rate was painfully slow — ~2 in-game days 0.4→0.75).
-  - *Rest:* while asleep, add to `_restVariableAttribute` so a 0→24 restore takes `SleepHoursToFullRest` in-game hours → shorter sleeps. (Lowering the wake threshold alone does NOT reduce total sleep; sleep *fraction* = drain-rate/(drain+gain), so you must raise the gain rate.)
-  - *Warmth:* `FireWarmthMultiplier` adds extra warmth **only when warmth is already rising** (i.e. the game has them at a heat source) → shorter warm-up trips, never warms them out in the cold, never overrides the game's *when*-to-warm decision.
-- **Happiness cap / plateau safety:** if happiness can't rise under the boost (capped below the exit threshold by housing etc.), a windowed plateau check sends the villager back to Work and starts a cooldown so they don't oscillate Work↔Leisure. (In practice all tested villagers had `cap=100`, so this rarely fires, but it's the guard against the original "stuck in leisure forever" trap.)
-- **Cold is deliberately NOT a leisure trigger.** The game's own `warmUpBehaviour`/`_warmUpQuest` warms villagers *fully* during work; forcing a leisure trip for warmth only warmed them partway and made them thrash fire↔work. Warmth is read for logging only; `FireWarmthMultiplier` tunes the game's warm-up speed without taking over the behavior.
-- **⚠️ The night-sleep race + the adopt fix (critical):** the game forces villagers to bed at **nightfall**, regardless of an all-Work schedule, catching them at whatever rest they have then (varies per villager/night; ~12 observed once). The mod's sleep control + rest boost only run in *its own* Sleep mode. With the original `8` threshold, the game slept everyone first each night → villagers slept the full vanilla night and oversaw to 24, i.e. the mod **appeared to do nothing** for any well-rested villager (only already-unhappy ones, who drop to Leisure and stay up draining rest below the threshold, looked "modded"). A high threshold (16) wins the race but makes them nap eagerly. **Real fix:** `Decide` now also enters Sleep when `surv.IsSleeping` is true and `rest < WakeWhenRestAboveHours` — i.e. it **adopts the game-forced sleep**, applies the rest boost, and wakes them at the threshold (the `Sleep->Work` schedule change ends the sleep). This makes the race irrelevant, so `SleepWhenRestBelowHours` can stay low (default `8`, "nap only when truly tired") while every night-sleep still gets shortened. (Separately: the happiness boost only runs in *our* Leisure mode, so already-happy villagers — happiness > `LeisureWhenHappinessBelow` — never get it and keep vanilla happiness; by design, they don't need it.)
-- **Config `[DynamicNeeds]`** (`BepInEx/config/com.askamods.dynamicneeds.cfg`): `Enabled` (true); `SleepWhenRestBelowHours` (8; adopt-net covers the game's bedtime so it needn't beat it); `WakeWhenRestAboveHours` (23); `SleepHoursToFullRest` (3, 0=vanilla; this is the real "sleep less" lever); `LeisureWhenNeedBelow` (0.15, food/water only, 0=off) / `LeisureUntilNeedAbove` (0.5); `LeisureWhenHappinessBelow` (0.6, 0=off) / `LeisureUntilHappinessAbove` (0.78); `LeisureHoursToFullHappiness` (4, 0=vanilla); `FireWarmthMultiplier` (2.0, 1=vanilla); `DebugLogging` (false).
-- Confirmed in-game: villagers perform real work tasks, take short boosted sleeps and wake at the threshold (no oversleep); the happiness boost visibly moves `_happinessVAttr`/`NormalizedHappiness`; warmth thrash eliminated; food/water self-manage and the leisure net rarely fires. (The high-threshold workaround, 16, was verified across all 7 villagers; the `IsSleeping` adopt-net then made the low default safe — re-verify the adopt path on a healthy save.)
+## Architecture
 
-**v1.1.0 additions:**
-- **Food/water re-check (the stuck-villager fix):** each tick the controller, for any owned villager whose food/water is below a threshold (or who's starving/dehydrated), calls `SurvivalObjectiveQuest.SetDirty()` via `GetReplenishFoodQuest()`/`GetReplenishWaterQuest()`. This re-arms the game's *own* eat path so a villager parked at an empty (then restocked, or alternative) store re-evaluates and goes to eat the REAL food (decrementing storage) instead of standing there — no hand-feeding. Cadence is throttled by `FoodRecheckIntervalSeconds`. **The threshold gates WHO we re-poke, not when they eat** — the eat decision stays the game's own `_foodObjectiveLow` objective. `SetDirty()` confirmed sufficient in-game (villagers that previously ignored available raw food now pick it up on their own); no thrashing observed at 15s cadence.
-- **`FoodRecheckWhenNeedBelow` tuning:** default **0.2**, set just below the game's natural eat trigger. Higher values (tested 0.5) re-arm mildly-peckish villagers and cause a **mass dash to storage right after loading a save** (every below-threshold quest re-arms at once). Too low delays un-sticking a parked villager until near-starvation. At vanilla drain rates a villager won't fall far in the 15s window, so 0.2 cleanly targets the genuinely hungry.
-- **Needs drain-rate controls:** `HungerRateMultiplier` / `ThirstRateMultiplier` (both 1.0 = vanilla, zero overhead/writes when 1.0) scale how fast food/water fall, via the same observe-the-per-frame-delta-and-amplify trick as `FireWarmthMultiplier` (`ScaleDrain`). Acts only on DROPS so eating/drinking is never scaled; `BoostAttr` now clamps **both** ends so a high multiplier can't push a meter below min. A general control and the quick way to test the re-check (use ~4-8×; **×50 pins everyone at starving** → permanent emergency-tier eating, too extreme to observe normal behavior).
-- **Config additions** to `[DynamicNeeds]`: `FoodRecheckIntervalSeconds` (15.0; 0 = off), `FoodRecheckWhenNeedBelow` (0.2), `HungerRateMultiplier` (1.0), `ThirstRateMultiplier` (1.0).
+- `NeedsController` (registered `MonoBehaviour`, `Update()` polling — the standard `DayTracker`
+  pattern). `VillagerSurvivalSpawnedPatch` Postfix on `VillagerSurvival.Spawned()` registers each
+  villager. All writes gated on `surv._hasAuthority` (host/solo).
+- **Throttling:** the villager loop runs at 4 Hz (every 4th frame) with `Time.deltaTime` accumulated
+  across skipped frames and fed as dt so rate math stays correct. `RefreshCohorts` (cohort grouping)
+  is further gated to every 10 s via `_cohortTimer`. `[Perf]` stopwatches instrument `tick.cohorts`
+  and `tick.villagers` sub-phases (log only when > 2 ms). Measured 2026-07-12: tick avg 5.8 /
+  max ~44–48 ms; `tick.cohorts` avg 4.7 / max 28 ms; `tick.villagers` avg 8.6 / max 21.6 ms.
+- **Live config reload:** `Plugin.Cfg?.Reload()` every 30 s at the top of `Update()`, BEFORE the
+  Enabled gate (so `Enabled` edits apply too). Exception: `BuilderTestKey` parses once at startup.
+- **Drives the REAL per-hour schedule**, never the override fields: mode changes pack via
+  `_ScheduleToNetworkSchedule(arr)` → `Rpc_ChangeSchedule(packed)`, idempotent (only on change).
+  Original schedules snapshot on first touch; `RestoreAll` (OnDestroy/OnApplicationQuit) restores
+  the player's painted hours (`_scheduleHours`) for every villager the mod ever wrote to.
+- Boost rates scale with `WeatherSystem.TimeSpeedMultiplier` so hours-to-full settings hold in
+  game-hours under TimeWarp acceleration. (The rest boost is Sleep-MODE-gated, not in-bed-gated —
+  under high acceleration a top-up can complete before the villager reaches bed; accepted, because
+  in-bed gating risks a stuck-Sleep state when no bed is reachable.)
 
-**v1.2.0 performance fix (2026-07-07):** villager loop in `NeedsController.Update()` gated to 4 Hz (0.25 s per tick at 60 FPS) using accumulated `deltaTime` so rate math stays correct. Was iterating all villagers every frame; now scans ~25% per frame, still responsive (~250 ms per full pass).
+## Needs-based mode (default) — `Decide`
 
-**v1.3.0–v1.3.3 — idea-11 Phase 0 manual-schedule diagnostics (COMPLETE, verified in-game 2026-07-09):**
-Groundwork for NEW_MOD_IDEAS_PLAN.md idea 11 (RespectManualSchedule — opt-in manual-schedule/coverage-staggering mode). Two builds to overcome an observability blocker:
-- **v1.3.0 — the diagnostics (shipped, but untestable as delivered):** added `[DynamicNeeds] ManualScheduleDiagnostics` config (default true, per project diagnostics rule) to log manual-schedule state: per-hour schedule snapshots (`_scheduleHours`), hour-calibration cadence (every 5 s), cohort grouping by workstation with sleep-hour overlaps (every 10 s), and player-edit detection (`__NetworkedSchedule` vs. `_appliedPacked`). However, with `Enabled=true` the controller remained active and **collapsed painted staggered schedules to a single activity on every mode change**, preventing observation of the player's custom schedule before the mod overwrote it — and `Enabled=false` made the whole mod inert (early return), so passive observation was impossible too.
-- **v1.3.1 — observe-only path (shipped):** added `ObserveTick()` that runs when `Enabled=false AND ManualScheduleDiagnostics=true`. This fully read-only path (zero writes/RPCs) tracks `_observedPacked` and re-reads `_schedule` on first sight or change, firing the same diagnostics on the same 4 Hz tick / 5 s / 10 s cadences. With the controller disabled, painted schedules **remain intact** and are natively observed. Bonus: when `Enabled=true`, a detected player edit also re-snapshots `_scheduleHours` and updates `_originalSchedule[surv]` so shutdown `RestoreAll` restores the player's LATEST schedule instead of the session-start one (load-bearing for Phase 1). **⚠️ Note:** the re-snapshot logic currently lives inside the diag-gated `LogForeignScheduleChange` call — it must move out of the diagnostics gate when RespectManualSchedule ships (Phase 1) since it's essential to capture the latest player edits even with diag off.
-- **Config:** `ManualScheduleDiagnostics` (bool, default true).
+Priority order, with hysteresis:
+1. **Sleep** when `rest <= SleepWhenRestBelowHours` (default 8), stay asleep until
+   `rest >= WakeWhenRestAboveHours` (default 23). **Adopt-net (critical):** also enter Sleep when
+   `surv.IsSleeping` && `rest < WakeWhenRestAboveHours` — the game forces villagers to bed at
+   nightfall regardless of schedule, so the mod ADOPTS the game-forced sleep, applies the rest
+   boost, and wakes them at the threshold. This makes the nightfall race irrelevant and lets the
+   sleep-entry threshold stay low ("nap only when truly tired").
+2. **Leisure** when food/water critically low (`LeisureWhenNeedBelow`, hold to
+   `LeisureUntilNeedAbove`) or happiness below trigger (`LeisureWhenHappinessBelow`, hold to
+   `LeisureUntilHappinessAbove`).
+3. Else **Work**.
 
-**v1.3.2 (Phase 0b):** v1.3.1's active-mode run exposed two defects. (1) `WeatherSystem.DayNightValue` saturates at 0/1 (a lighting blend, not a clock) so the derived hourIndex pinned at 0/23 — v1.3.2 added `timeOfDay=`/`hourTod=`/`snapTod=`/`liveTod=` fields to the `MSdiag hour` line from `WeatherSystem.Instance.TimeOfDay` (linear 0..24 wall clock). (2) `__NetworkedSchedule` reads 0x0 at rest and the game mass-resets it to 0x0 mid-session; v1.3.1 misread one such reset as 45 simultaneous player edits and re-snapshotted `_scheduleHours` from the mod's own collapsed schedules — v1.3.2 added a `live == 0` guard (logs `MSdiag packed reset … ignored, snapshot kept`, keeps snapshot + restore target).
+**Direct VariableAttribute writes (the core trick), rates derived from in-game hour length:**
+- *Happiness:* while in mod-Leisure, add to `_happinessVAttr` so empty→full takes
+  `LeisureHoursToFullHappiness` in-game hours (vanilla rate is ~2 in-game days for 0.4→0.75).
+  Already-happy villagers never enter mod-Leisure, so they keep vanilla happiness by design.
+- *Rest:* while asleep, add to `_restVariableAttribute` so 0→24 takes `SleepHoursToFullRest`
+  in-game hours → shorter sleeps. (Lowering the wake threshold alone does NOT reduce total sleep;
+  sleep *fraction* = drain/(drain+gain) — you must raise the gain rate.)
+- *Warmth:* `FireWarmthMultiplier` adds extra warmth **only while warmth is already rising** (the
+  game has them at a heat source) → shorter warm-up trips; never overrides the game's *when*.
+- **Plateau safety:** if happiness can't rise under the boost (capped below the exit threshold by
+  housing etc.), a windowed plateau check sends the villager back to Work with a retry cooldown so
+  they don't oscillate Work↔Leisure. (All tested villagers had cap=100, so it rarely fires.)
+- **Cold is deliberately NOT a leisure trigger** — the game's own `warmUpBehaviour` warms villagers
+  fully during work; a forced leisure trip warms only partway and causes fire↔job thrash.
 
-**v1.3.3 (Phase 0c):** the observe-only run proved player UI schedule edits NEVER pulse `__NetworkedSchedule`, so the packed-diff observer missed painted schedules entirely. v1.3.3 diffs the per-hour `_schedule` ARRAY contents every 5 s per villager (logs `MSdiag observe … (array change)` + refreshes the snapshot) and, for any villager with a non-uniform (painted) schedule, logs a `MSdiag mixed` behavior-probe line (timeOfDay/hourTod/slot vs. CurrentBehaviorType/IsSleeping) — the slot↔clock alignment experiment.
+**Stuck-eater fix:** each tick, for any owned villager below `FoodRecheckWhenNeedBelow` (or
+starving/dehydrated), call `SurvivalObjectiveQuest.SetDirty()` via
+`GetReplenishFoodQuest()`/`GetReplenishWaterQuest()` (throttled by `FoodRecheckIntervalSeconds`).
+This re-arms the game's OWN eat path so a villager parked at an empty store re-evaluates and eats
+real food. The threshold gates WHO gets re-poked, not when they eat — the eat decision stays the
+game's `_foodObjectiveLow` objective. No thrashing observed at 15 s cadence.
 
-**Phase 0 verdict (all confirmed in-game 2026-07-09; ground-truth details in architecture.md → "Schedule clock + packed-field ground truth"):** hour source = `floor(WeatherSystem.Instance.TimeOfDay)`, schedule slot k == clock hour k (zero offset); player-edit detection = `_schedule` array diff (caught 3/3 live UI edits within 5 s, incl. splitting a sleep block into two sessions); cohort grouping by `GetNonVikingWorkstation()` native pointer works (13 cohorts, names via `ws._structure.GetName()`, zero errors across all runs); sleep-overlap math validated on real painted staggered schedules. Also observed (⚠️ tentative): a painted-Work night was worked straight through — the old "nightfall forces sleep" may be rest-depletion-driven; re-verify in Phase 1. Ready for Phase 1 (v1.4.x `RespectManualSchedule`, NEW_MOD_IDEAS_PLAN.md idea 11).
+**Drain-rate controls:** `HungerRateMultiplier`/`ThirstRateMultiplier` scale how fast food/water
+fall (observe-the-delta-and-amplify, drops only, so eating is never scaled; both ends clamped).
+1.0 = vanilla = zero overhead.
 
-**v1.4.0–v1.4.4 — idea-11 Phase 1: `RespectManualSchedule` (⚠️ pending in-game confirmation; iterated live 2026-07-09):**
-Opt-in manual-schedule mode (`[DynamicNeeds] RespectManualSchedule`, default **false**; the test build seeds it true in the live cfg only). Scope: villagers in a **2+ same-workstation cohort** (recomputed every 10 s from `GetNonVikingWorkstation()` pointers by `RefreshCohorts`, which also feeds the diagnostics) whose captured painted schedule is a **real mixed paint** (≥1 Work hour AND ≥1 off-hour — uniform all-S/all-L saved schedules are legacy junk from old collapse writes baked into saves and fall back to pure needs; v1.4.3 fix after three bystander villagers got captured). Everyone else keeps pure needs-based behavior.
-- **New `Mode.Manual` baseline = follow the villager's own painted schedule, write-silent while held.** First entry with no prior collapse writes nothing (the game natively executes painted schedules); re-entry after a collapse packs `_scheduleHours` → `Rpc_ChangeSchedule`. The schedule UI keeps showing the player's real hours; player edits are adopted within 5 s by array-diff (`RefreshPaintedSnapshot`, incl. edits made mid-override).
-- **`DecideManual`** (replaces `Decide` for qualifying villagers): (1) emergency food/water (`IsStarving`/`IsDehydrated` or `minNeed <= CriticalNeedOffPostBelow`, default 0.05) → Leisure, pierces any window (holds to `LeisureUntilNeedAbove` only off-window); (2) hold an in-progress sleep to `WakeWhenRestAboveHours`; adopt game-initiated sleeps only below `wake − ResleepMarginHours` (2 h re-entry margin, v1.4.2 — kills the tick-flap at the wake threshold); (3) asleep-but-rested during the on-window → one all-Work write as a wake shove, then back to Manual; (4) off-window → Leisure fill with **ONE back-loaded top-up sleep** per off-window (`_toppedUp` once-per-window flag, v1.4.3 — leisure drains rest ~1 h/game-h, so unlimited re-entry napped on a ~2.5 h limit cycle) **timed to end at shift start** (v1.4.4: lead = `(wake − rest) × SleepHoursToFullRest/24 + 1.5 h buffer`; front-loading left a 12 h-shift cook starting at rest 11.4 and ending at 0.4; an exhausted villager — rest ≤ `SleepWhenRestBelowHours` — still sleeps immediately); (5) else man the post (Manual). Happiness never pulls a manual villager off-shift — the off-window fill (+ its boost) is where it recovers. The idea-11 plan's `ManualWorkIsInviolable` sub-toggle was DROPPED (cohort on-windows already forbid discretionary off-post; only the emergency pierces).
-- **Boost rates scale with `WeatherSystem.TimeSpeedMultiplier`** (v1.4.2) so `SleepHoursToFullRest`/`LeisureHoursToFullHappiness` hold in game-hours under TimeWarp acceleration. Note: the rest boost is Sleep-MODE-gated, not in-bed-gated — under high acceleration a top-up can complete before the villager physically reaches bed (accepted; in-bed gating risks a stuck-Sleep state when no bed is reachable).
-- **`RestoreAll` now packs `_scheduleHours`** (the real painted hours) for every villager the mod wrote to (`_everWrote`), fixing the old wart where packed-transient restores (0x0) baked collapsed uniform schedules into saves.
-- **Coverage warning:** a 2+ cohort whose painted sleep windows fully overlap logs a `LogWarning` (deduped per overlap value) instead of silently failing coverage.
-- **Diagnostics** (`ManualScheduleDiagnostics`-gated, default true until verified): `manual villager[i] hour/painted/X->Y/rest/minNeed` transitions, `baseline restored/adopted`, `player edit adopted`, and a 5 s `manual state` probe (mode vs. behavior vs. TaskRunner act/run — added v1.4.4 to test the "working during leisure = an in-progress station task finishing after shift end" hypothesis, ⚠️ unconfirmed).
-- **In-game iteration trail (2026-07-09, all at TimeWarp 10x):** v1.4.1 wake-threshold tick-flap (12 Sleep↔Leisure flips per cook per night, villagers yanked out of bed → zzz-wandering + coverage gaps) → v1.4.2 re-entry margin; v1.4.2 drain-driven ~2.5 h nap limit cycle (speed-scaled boost finished naps before villagers reached bed) + legacy all-S schedules captured 3 bystander villagers → v1.4.3 once-per-window flag + mixed-paint qualifier (transitions 74 → 11, machinery clean); v1.4.3 front-load rest-drain flaw (shift-end rest 0.4) → v1.4.4 back-load. **10x optics caveat:** walking costs game-hours and a cooking batch spans many game-hours under acceleration, so even correct behavior looks erratic — validate at 1x–2x.
-- **Config additions** to `[DynamicNeeds]`: `RespectManualSchedule` (false), `CriticalNeedOffPostBelow` (0.05).
+## Manual-schedule mode (opt-in) — `RespectManualSchedule` + `DecideManual`
 
-**v1.5.0 (2026-07-09) — Phase 1 confirmed in-game for cook cohort (goal 2a):**
-- **New `[DynamicNeeds] OffWindowFill` enum config** (Leisure | Work | Builder, default Leisure) applies only in `RespectManualSchedule` mode to qualifying 2+-cohort villagers with mixed painted schedules. Governs the off-window surplus fill policy after the one back-loaded top-up sleep:
-  - `Leisure` (default) = exact v1.4.4 behavior (leisure fill + happiness boost).
-  - `Work` (confirmed in-game 2026-07-09) = after the top-up sleep and needs handling, the villager returns to their post during off-hours (opt-in over-manning with the "cooks fighting over the pot" optics as the deliberate trade-off). Base-mode happiness-leisure thresholds are honored off-window as a mood safety valve (entry <= `LeisureWhenHappinessBelow`, hysteresis hold < `LeisureUntilHappinessAbove`, plateau give-up + retry cooldown — same operators as base `Decide`).
-  - `Builder` (NOT yet implemented) = one-time log note, degrades to Leisure. Deferred to its own diagnostics phase — ASKA models builders as UNASSIGNED labor; the lend/restore via `SetTaskAgent` per idea-11 item-3 must be verified first.
-- Implementation: the entire behavior change is step 4 of `NeedsController.DecideManual` (topUpNow sleep takes precedence over fill; new params `fillWork, happiness, happyBelow, happyUntil, happyPlateaued, happyAllowed`); `_toppedUp` accounting, collapse/restore writes, probe unchanged. Plugin.cs startup summary line echoes `OffWindowFill=...`.
-- In-game evidence (confirmed 2026-07-09, user + log triage at 1x speed): with `OffWindowFill=Work`, off-window probes = Work 28 / Sleep 25 / Leisure 0 (v1.4.4 showed Leisure); zero flapping; 5 transitions all session; no errors; cook woke from top-up sleep at rest 23.1 and resumed work immediately. The happiness valve never fired this session (mood never dipped <= 0.6) — unexercised, low-risk (same logic as base `Decide`).
-- **Phase 1 RespectManualSchedule confirmed in-game (2026-07-09) for the cook cohort** — user checked off goal 2a. Other workstation types unverified (assumed to track — all stations run the same `WorkstationQuest` layer; one casual observation pass at a non-cooking station is a noted follow-up).
+Scope: villagers in a **2+ same-workstation cohort** (grouped by `GetNonVikingWorkstation()` native
+pointer every 10 s) whose captured painted schedule is a **real mixed paint** (≥1 Work hour AND ≥1
+off-hour — uniform all-S/all-L saved schedules are legacy junk from old collapse writes and fall
+back to pure needs mode). The **Buildstation family is excluded** from cohorts/qualification/lending
+(native class-name check — managed `is` lies): unassigned and newly-summoned villagers are
+auto-parked there and their mixed DEFAULT schedules would wrongly qualify.
 
-**Half-working during leisure finding (confirmed 2026-07-09, option A: accept + document):**
-Observation: an off-duty cook takes leisure near the station, never STARTS new dishes, but when a dish finishes gets up, retrieves and distributes it, then resumes leisure. Probe evidence: mode=Leisure, behavior=Leisure, task=-/- THROUGHOUT — the retrieval is visible in neither `Villager.CurrentBehaviorType` nor the `TaskRunner` act/run. Root cause: the cooking work runs on the QUEST layer (`WorkstationQuest`/`QuestRunner`, priority ~15 vs idle 0); the deliver-results step (`FSM_ReturnCookingResults`/`CookingReturnQuest`) stays eligible for the assigned cook regardless of schedule — extends the existing 2026-06-23 finding that DVN schedule flips notify quest data (`_OnVillagerBehaviorChanged`) but never interrupt/block quests (full note in `docs/architecture.md` → Cooking Station Pipeline). New-dish starts do NOT happen off-window; only retrieval fires. USER DECISION (2026-07-09): accepted, no quest-eligibility gating (it protects finished dishes from overcooking — vanilla `OvercookingQuest` exists — and DVN's leisure happiness boost keys on the mod's mode, so it keeps pumping mid-retrieval; cost ≈ zero).
+**Baseline = follow the villager's own painted schedule, write-silent while held** (the game
+natively executes painted schedules). `DecideManual`, in order:
+1. **Emergency food/water** (`IsStarving`/`IsDehydrated` or `minNeed <= CriticalNeedOffPostBelow`)
+   → Leisure, pierces any window (holds to `LeisureUntilNeedAbove` only off-window).
+2. **Hold an in-progress sleep** to `WakeWhenRestAboveHours`; re-adopt game-initiated sleeps only
+   below `wake − ResleepMarginHours` (2 h margin — kills tick-flap at the wake threshold).
+3. **Asleep-but-rested during the on-window** → one all-Work write as a wake shove, then back to
+   baseline.
+4. **Off-window** → **ONE back-loaded top-up sleep per off-window** (once-per-window flag; leisure
+   drains rest ~1 h/game-h so unlimited re-entry naps on a ~2.5 h limit cycle), **timed to end at
+   shift start** (lead = `(wake − rest) × SleepHoursToFullRest/24 + 1.5 h buffer`; an exhausted
+   villager still sleeps immediately). Remaining off-window time = the **fill policy** (below).
+   Happiness never pulls a manual villager off-shift — the off-window fill (+ its boost) is where
+   mood recovers; base-mode happiness thresholds are honored during Work/Builder fill as a mood
+   safety valve.
+5. Else **man the post** (follow the paint).
 
-**v1.6.0–v1.6.1 (2026-07-10) — builder-loan diagnostics:** `BuilderDiag.cs` hotkey experiment (config `BuilderDiagnostics` default true, `BuilderTestKey` F9). v1.6.0 finding: `bs.SetTaskAgent(villager)` alone succeeds and registry membership is sticky (never evicted), UI untouched — but home-station quests remain in the QuestRunner and outcompete builder quests (CookingQuest won). v1.6.1 FULL_LOAN = the proven recipe: `home.ReleaseTaskAgent(agent)` (home quests leave the runner; task checkboxes/`VillagersInCharge` untouched) + `bs.SetTaskAgent` + `bs.AddToTaskDatas` + all-Work schedule write; confirmed in-game: a cook cleared land + hauled materials for a cottage alongside real builders, panel/assignment showed her cook job throughout, restore graceful (dropped loaner materials at warehouse, resumed cooking). Quest evidence: `BuilderPrepareForWorkQuest`=16.0 wins after home release, `BuildAndSupplyQuest`=15.1 active during building, cooking quests ~15.5 return on restore. Interop notes: `ITaskAgent`/`IWorkstation` interop classes live in `SSSGame.AI`, `.ctor(IntPtr)` rewrap required (interop `Villager` does not managed-implement `ITaskAgent`); `villager.Pointer`/`ws.Pointer` need the `(object) is Il2CppObjectBase` boxing.
+**Fill policy — global `OffWindowFill` (Leisure | Work | Builder) + per-station overrides:**
+- `Leisure` (default): leisure fill + happiness boost.
+- `Work`: return to post during off-hours (opt-in over-manning; "cooks fighting over the pot"
+  optics are the deliberate trade-off).
+- `Builder`: **builder-loan** — the villager does real builder work while every UI surface still
+  shows the home job. Recipe (shared `BuilderLoan.cs`, also drives the F9 diagnostic):
+  `home.ReleaseTaskAgent(agent)` (home quests leave the QuestRunner; checkboxes/`VillagersInCharge`
+  untouched) + `bs.SetTaskAgent(agent)` + `bs.AddToTaskDatas(villager)` + all-Work schedule write;
+  exact reverse restores. Lend failure → Leisure + per-window no-retry; restore failure retries
+  (10 s throttled warning); `RestoreAll` releases loans at app-quit; world-leave drops loan state
+  WITHOUT native calls (stale-wrapper rule). `BuilderReturnLeadHours` (1.0) = walk-back fallback.
+  Known cosmetic: lent villagers acquire the Buildstation complain quest → "time to build
+  something" barks while idle on loan (accepted; future option: skip lend when
+  `buildProjects`/`repairProjects` empty).
+- **Three-brush semantic (no config — the brush IS the toggle):** painted Work = on-window; painted
+  **Leisure** = fill FORCED to Leisure for that hour (overrides global/per-station fill; top-up
+  sleep and emergencies still take precedence; happiness boost applies); painted Sleep = flexible
+  off-time (top-up sleep + configured fill).
+- **`ManualScheduleStations`** (default "" = any station): comma-separated case-insensitive
+  station-name substrings limiting manual mode to matching cohorts. Entries accept `NameSubstring`
+  or `NameSubstring:Fill` (Fill ∈ Leisure|Work|Builder; FIRST-MATCH-WINS in list order — put
+  specific substrings before broad ones; invalid suffix → one-time warning, entry treated bare).
+  Matching checks the display name OR `Structure.DefaultName` (station names are player-editable
+  via `Rpc_ChangeName`; `DefaultName` keeps the pristine type name). Beware over-broad terms
+  (`house` matches Cooking House AND Warehouse AND Longhouse).
 
-**v1.7.0 (2026-07-10) — `OffWindowFill=Builder` feature:** `Mode.Builder` in `DecideManual` step 4 (same gating as Work fill: top-up sleep precedence, happiness valve, emergency pierces); loan on transition in / restore on transition out (lend failure → Leisure + per-window no-retry; restore failure retries, 10 s throttled warning); shared implementation `BuilderLoan.cs` (also drives the F9 diagnostic); per-villager loan state (whole cohorts lend simultaneously); `RestoreAll` releases loans at app-quit; world-leave drops loan state WITHOUT native calls (stale-wrapper rule); config `BuilderReturnLeadHours` (1.0 game-h walk-back fallback). Confirmed: two cooks on opposite staggers traded builder duty across days.
+**Station-name discovery + feedback:** generated file `com.askamods.dynamicneeds.stations.txt`
+(BepInEx config dir; rewritten only on content change; requires `RespectManualSchedule=true` or
+`ManualScheduleDiagnostics=true`): every station with ≥1 assigned villager — name (rendered
+`Display (Default)` when renamed), assigned count, whitelist verdict + fill. Two
+NON-diagnostics-gated one-time lines: (a) INFO when a 2+ cohort matches no entry while the list is
+non-empty, (b) WARNING when an entry matches no station ~60 s after first tracked villager.
+Motivation: real user failure — entry "Watchtower" vs actual building "Guard Tower"; names vary per
+save and game language, so docs can never list them.
 
-**v1.7.0–v1.7.1 — `PreserveScheduleInSaves` (default true):** Harmony prefix/postfix on `Villager.Serialize(DataObject)` swaps the painted snapshot (`_scheduleHours`, RestoreAll's source) into `_schedule` for the serialize call. WHY: quit-to-menu never fires plugin OnDestroy → RestoreAll doesn't run → the live collapse bakes into the save (this destroyed the user's painted cook schedules; confirmed root cause). v1.7.1 guard (load-bearing): mask ONLY when live packs to `_appliedPacked[surv]` (the mod's own last write) — an unadopted fresh player repaint also differs from the snapshot and masking it destroys the repaint (confirmed bug, one cook's paint eaten at save). Fire-verified in-game (`schedule mask applied ... during save`).
+**Player-edit adoption (mode-independent, every controlled villager):** diff the per-hour
+`_schedule` ARRAY contents every 5 s; a live array whose pack != `_appliedPacked` (the mod's own
+last write) and != the snapshot = player intent → adopt into `_scheduleHours`. Catches edits made
+mid-collapse, off-window, or while lent, within 5 s.
 
-**v1.7.2 — universal adoption + Buildstation exclusion + whitelist:** player-edit adoption is now mode-independent for every controlled villager (5 s cadence): live array whose pack != `_appliedPacked` and != snapshot = player intent → adopt into `_scheduleHours` (same discrimination as the save-mask). The old Manual-baseline-only adoption missed edits made while off-window/lent and the stale snapshot then reverted them. Buildstation family excluded from cohort grouping/manual qualification/lending (`IsBuildstation` native class-name check — managed `is` lies) — unassigned villagers are auto-parked on the Buildstation and their mixed DEFAULT schedules wrongly manual-qualified (froze newly-summoned villagers' schedules). `ManualScheduleStations` (string, default "" = any station): comma-separated case-insensitive station-name substrings limiting manual mode to matching cohorts.
+**`PreserveScheduleInSaves` (default true):** Harmony prefix/postfix on
+`Villager.Serialize(DataObject)` swaps the painted snapshot into `_schedule` for the serialize call.
+WHY: quit-to-menu never fires plugin OnDestroy → `RestoreAll` doesn't run → a live collapse would
+bake into the save. **Load-bearing guard:** mask ONLY when the live schedule packs to
+`_appliedPacked[surv]` — an unadopted fresh player repaint also differs from the snapshot, and
+masking it destroys the repaint.
 
-**v1.8.0 — `ShowIntendedScheduleInUI` (default true):** shared `ScheduleMask.cs` Begin/End core (used by save patch too); `Patches/SchedulePanelDisplayPatch.cs` masks `SSSGame.UI.VillagerSchedulePanel` `Set(Villager)`/`Refresh()`/`OnEnable()`/`HasUnappliedChanges()` via Harmony `__state` (nesting-safe; apply path `UpdateSchedule` deliberately unpatched so player writes hit reality and adoption catches them). WHY: the panel reads live `_schedule`, so during any collapse it showed all-Work/all-Leisure — users read that as data loss (three false bug reports in two days of testing). Fire-verified via Set AND OnEnable.
+**`ShowIntendedScheduleInUI` (default true):** shared `ScheduleMask.cs` Begin/End core (used by the
+save patch too); `SchedulePanelDisplayPatch` masks `VillagerSchedulePanel`
+`Set(Villager)`/`Refresh()`/`OnEnable()`/`HasUnappliedChanges()` via Harmony `__state`
+(nesting-safe). The apply path `UpdateSchedule` is deliberately unpatched so player writes hit
+reality and adoption catches them. WHY: the panel reads live `_schedule`, so during a collapse it
+showed all-Work — users read that as data loss (three false bug reports in two days).
 
-**Final verification (2026-07-10):** 227 lend/restore pairs across both cooks at 10x over several game-days, zero failures/exceptions; panel shows painted staggers while villagers are on loan; paint-and-apply mid-collapse adopts within 5 s. Residual notes: lent villagers acquire the Buildstation complain quest → "It's time to build something" barks when idle on loan (accepted; future option: skip lend when `buildProjects`/`repairProjects` empty); log-only sleep-overlap warning unverified (test chunk undone within one 10 s refresh window); pre-Nexus TODO: flip `ManualScheduleDiagnostics` + `BuilderDiagnostics` defaults to false.
+## Quest-layer interactions (accepted behavior, not bugs)
 
-**New config inventory (v1.6.0–v1.8.0):** `BuilderDiagnostics` (true), `BuilderTestKey` (F9), `BuilderReturnLeadHours` (1.0), `PreserveScheduleInSaves` (true), `ManualScheduleStations` (""), `ShowIntendedScheduleInUI` (true).
+- **Off-duty retrieval:** an off-duty cook in Leisure never STARTS new dishes but still gets pulled
+  out to retrieve/distribute a finishing dish, then resumes leisure. The work runs on the QUEST
+  layer (`WorkstationQuest`/`QuestRunner`, priority ~15 vs idle 0), and the deliver-results step
+  stays eligible regardless of schedule. USER DECISION (2026-07-09): accepted — it protects
+  finished dishes from overcooking, and the leisure happiness boost keys on the mod's mode so it
+  keeps pumping mid-retrieval. Full ground truth: architecture.md → Cooking Station Pipeline.
+- Schedule flips notify quest data (`_OnVillagerBehaviorChanged`) but never interrupt/block quests.
 
-**v1.9.0 — per-station fill + diagnostics flip (2026-07-10, confirmed in-game):** `ManualScheduleStations` entries now accept `NameSubstring` or `NameSubstring:Fill` syntax (Fill ∈ Leisure|Work|Builder, case-insensitive; FIRST-MATCH-WINS in list order — put specific substrings before broad ones; invalid token → one-time warning naming it, entry treated bare). Bare entries and empty list use the global `OffWindowFill` (documented as the global default per-station suffixes override). Resolution: `RefreshCohorts` computes per-cohort effective fill → per-villager dictionary → control loop feeds `DecideManual`; cohort report line gained `fill=`; startup summary echoes parsed rules. `ManualScheduleDiagnostics` and `BuilderDiagnostics` defaults flipped true→false (fresh configs only). Matching is substring: `warehouse` matches "Warehouse 2" and "Warehouse 3"; instance numbers allow targeting one building (`Warehouse 2:Leisure`); beware over-broad terms (`house` matches Cooking House AND Warehouse AND Longhouse).
+## Config reference — `[DynamicNeeds]` (`BepInEx/config/com.askamods.dynamicneeds.cfg`)
 
-**v1.9.1 — three-brush semantic: painted Leisure honored (2026-07-10, confirmed in-game):** user-approved design, no new config — the brush IS the toggle. Painted Work = on-window (unchanged); painted Leisure = the off-window fill is FORCED to Leisure during that hour (overrides global/per-station fill; the back-loaded top-up sleep and needs emergencies still take precedence; happiness boost applies); painted Sleep = flexible off-time (top-up sleep + configured fill). Implementation: one condition before the `DecideManual` call (`if (!onWindow && paintedNow == Leisure) fill = Leisure`). Confirmed via probes: `painted=L mode=Leisure behavior=Leisure` during the L block while `painted=S` surplus hours showed `mode=Builder`.
+Core: `Enabled` (true); `SleepWhenRestBelowHours` (8); `WakeWhenRestAboveHours` (23);
+`SleepHoursToFullRest` (3, 0=vanilla — the real "sleep less" lever); `LeisureWhenNeedBelow` (0.15,
+food/water only, 0=off) / `LeisureUntilNeedAbove` (0.5); `LeisureWhenHappinessBelow` (0.6, 0=off) /
+`LeisureUntilHappinessAbove` (0.78); `LeisureHoursToFullHappiness` (4, 0=vanilla);
+`FireWarmthMultiplier` (2.0, 1=vanilla); `DebugLogging` (false).
 
-**v1.9.2 — station-name discovery + non-diagnostic mismatch feedback (2026-07-10, confirmed in-game):** generated file `com.askamods.dynamicneeds.stations.txt` (BepInEx config dir; rewritten only on content change at the 10 s cadence; try/catch with one-time give-up on IO failure): every station with ≥1 assigned villager — name, assigned count, whitelist verdict (matched entry + fill / NOT matched / builder pool always excluded / whitelist empty). Two NON-diagnostics-gated one-time feedback lines: (a) 2+ cohort matching no entry while the list is non-empty (INFO naming the station + the file), (b) whitelist entry matching no station ~60 s after first tracked villager (WARNING). Once-flags reset per world. NOTE: file + warnings only generate while RefreshCohorts runs (RespectManualSchedule=true or ManualScheduleDiagnostics=true). Motivation: real user failure — entry "Watchtower" vs actual building "Guard Tower"; names also vary per save and game LANGUAGE so docs can never list them.
+Eating/drain: `FoodRecheckIntervalSeconds` (15.0, 0=off); `FoodRecheckWhenNeedBelow` (0.2);
+`HungerRateMultiplier` (1.0); `ThirstRateMultiplier` (1.0).
 
-**v1.9.3 — live config reload (2026-07-10, confirmed in-game):** BepInEx does NOT re-read an edited .cfg file — `ConfigEntry.Value` is in-memory only (a code review claimed "reads live each pass" and was wrong; mid-session whitelist edits never applied). Fix = the GroundItemVacuum/SeedScout pattern: `Plugin.Cfg?.Reload()` every 5 s at the top of `NeedsController.Update`, BEFORE the Enabled gate (so even Enabled=true edits apply). Exception: `BuilderTestKey` is parsed once at startup. Confirmed in-game: Guard Tower cohort line flipped `whitelisted=False fill=-` → `whitelisted=True fill=Builder` mid-session with no restart.
+Manual mode: `RespectManualSchedule` (false); `CriticalNeedOffPostBelow` (0.05); `OffWindowFill`
+(Leisure); `ManualScheduleStations` (""); `PreserveScheduleInSaves` (true);
+`ShowIntendedScheduleInUI` (true).
 
-**v1.9.4 — rename-proof matching (2026-07-10, confirmed in-game):** station display names are PLAYER-EDITABLE (`Structure.Rpc_ChangeName`; e.g. a tavern renamed "Tomaso's"). Entries now match the display name OR `Structure.DefaultName` (display checked first per rule; list-order first-match-wins unchanged). `FormatStationNames` renders `Display (Default)` in stations.txt/cohort report/warnings ONLY when the names differ (un-renamed stations render identically to before); the file verdict notes `via default name` when the type name matched. CONFIRMED in-game: `DefaultName` returns the pristine type name after a player rename (file showed `NewName (Original)`).
+Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); `BuilderTestKey`
+(F9, typing-guarded, parsed once at startup); `BuilderReturnLeadHours` (1.0).
 
-**Verification round (2026-07-10):** all of the above confirmed in one session — startup parse `fills=[Cooking House=Work, Watchtower=<global>]`, both v1.9.2 feedback lines fired for the Watchtower/Guard Tower mismatch, hot-reload flip, painted-L probes, and guards (the first NON-cooking cohort) cycling builder-loan lend/restore — which also retires the old "observation pass at a non-cooking station" follow-up. Known issue recorded elsewhere: typing in the game's rename text field triggers Input.GetKeyDown hotkeys across several mods (fix pending as a separate cross-mod pass — do not document as fixed).
+## Tuning facts (confirmed in-game)
 
-**Planning note:** the abbreviated handoff for this mod is [`../../DYNAMIC_NEEDS_HANDOFF.md`](../../DYNAMIC_NEEDS_HANDOFF.md).
+- `FoodRecheckWhenNeedBelow` default 0.2 sits just below the game's natural eat trigger. Higher
+  (tested 0.5) re-arms mildly-peckish villagers → **mass dash to storage right after loading a
+  save**. Too low delays un-sticking until near-starvation.
+- Hunger ×50 pins everyone at starving → permanent emergency-tier eating; use ~4–8× for testing.
+- 10x+ TimeWarp optics caveat: walking costs game-hours, so even correct behavior looks erratic —
+  validate at 1x–2x.
+
+## Dead-ends (don't retry)
+
+- `SetTaskAgent` ALONE for builder-loan — home quests remain in the QuestRunner and outcompete
+  builder quests. The full release+set+add recipe is required (v1.6.0 finding).
+- Front-loading the off-window top-up sleep — rest drains ~1 h/game-h afterward, so a 12 h-shift
+  villager started at rest 11.4 and ended at 0.4. Back-load it (end at shift start).
+- Unlimited sleep re-entry in the off-window — naps on a ~2.5 h drain-driven limit cycle. One
+  top-up per window.
+- Packed-value (`__NetworkedSchedule`) diffing for player-edit detection — it's a transient
+  change-transport field: reads 0x0 at rest, mass-resets mid-session, and UI edits never pulse it.
+  Diff `_schedule` array contents instead. (Ground truth: architecture.md → Schedule clock.)
+- `WeatherSystem.DayNightValue` as a clock — saturates at 0/1 for long stretches; use `TimeOfDay`.
+- Assuming `ConfigEntry.Value` reads the edited .cfg live — BepInEx never re-reads the file; a code
+  review claimed "reads live each pass" and was wrong. `Cfg.Reload()` polling is required.
+- Subsystem-level dead-ends (`overrideSchedule`, get-only happiness rates, warmth-as-trigger, wake
+  threshold as "sleep less") live in architecture.md → Villager Schedule / Needs / Happiness.
+
+## Verification status
+
+- Needs-based core, boosted sleeps/happiness, warmth, stuck-eater fix: confirmed in-game across
+  many sessions (2026-06-22 onward).
+- Manual mode Phase 1 confirmed in-game for the cook cohort 2026-07-09 (user goal 2a);
+  guards (first non-cooking cohort) cycled builder-loan lend/restore 2026-07-10.
+- Builder-loan final verification 2026-07-10: **227 lend/restore pairs across two cooks at 10x over
+  several game-days, zero failures/exceptions**; panel shows painted staggers while on loan;
+  mid-collapse repaint adopts within 5 s.
+- v1.9.x QoL round (per-station fill, three-brush, discovery file, live reload, rename-proof)
+  confirmed in-game 2026-07-10 in one session.
+- Unexercised: the happiness safety valve during Work fill (mood never dipped ≤ 0.6 in the test
+  session; same logic as base `Decide`, low-risk); the log-only sleep-overlap warning.
+
+## Version history (compressed)
+
+| Version(s) | Date | What changed |
+|---|---|---|
+| v1.0.x | 2026-06 | Needs-based core: Decide + VAttr boosts + adopt-net for game-forced sleep. |
+| v1.1.0 | 2026-06 | Stuck-eater `SetDirty()` fix; hunger/thirst rate multipliers. |
+| v1.2.0 | 2026-07-07 | Villager loop throttled to 4 Hz with accumulated dt. |
+| v1.3.0–v1.3.3 | 2026-07-09 | idea-11 Phase 0 diagnostics; established the schedule ground truth (TimeOfDay clock, slot==hour, `_schedule` array-diff for edits) now in architecture.md. |
+| v1.4.0–v1.4.4 | 2026-07-09 | `RespectManualSchedule` + `DecideManual`; iteration fixed tick-flap (re-entry margin), nap limit cycle (once-per-window), front-load drain (back-load). |
+| v1.5.0 | 2026-07-09 | `OffWindowFill` enum (Work fill confirmed in-game). |
+| v1.6.0–v1.6.1 | 2026-07-10 | Builder-loan diagnostics (F9); proved the release+set+add loan recipe. |
+| v1.7.0–v1.7.2 | 2026-07-10 | Builder fill shipped; `PreserveScheduleInSaves` (+ repaint guard); universal player-edit adoption; Buildstation exclusion; `ManualScheduleStations`. |
+| v1.8.0 | 2026-07-10 | `ShowIntendedScheduleInUI` panel masking. |
+| v1.9.0–v1.9.4 | 2026-07-10 | Per-station `Name:Fill`; three-brush semantic; stations.txt discovery + mismatch feedback; live cfg reload; rename-proof matching; diag defaults → false. |
+| v1.9.5 | 2026-07-10 | Typing guard on the F9 hotkey. |
+| v1.9.6–v1.9.7 | 2026-07-12 | `[Perf]` sub-phase stopwatches; cfg reload 5 s→30 s. No behavior change. |
