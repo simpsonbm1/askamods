@@ -4,6 +4,8 @@ This file is the always-loaded orientation. Deep detail lives in `docs/` and is 
 see [Documentation map](#documentation-map) below. **Before working on any game subsystem, read its
 section in `docs/architecture.md` first** — it carries the confirmed facts *and* the dead-ends, so a
 new mod touching a familiar subsystem won't re-tread a path we've already ruled out.
+(Root [`AGENTS.md`](AGENTS.md) is the bootstrap for NON-Claude agents — a thin pointer here plus
+the working agreement and tool-specific caveats; it is not a third orientation copy to sync.)
 
 ## Keeping this knowledge base current (standing instruction)
 **Proactively maintain the docs as you work — you don't need to be asked.** Whenever you *confirm* a new
@@ -246,6 +248,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped by subsystem: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations/task-priority, villager complaints/issue tracker, settlement hauling, inventory/settlement/recipes, cooking pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, villager ranged/ammo, worldgen/streaming, caves/mines, build menu/structure templates/localization, terrain/terraforming, dens/population spawners, villager summoning (Eye of Odin), native crash diagnosis (WER + Cpp2IL) |
 | `docs/mods/<mod>.md` | The matching mod — current recipe, config reference, per-mod dead-ends (pointers also in the Project Structure above): bow-damage.md, tree-respawn.md, health-regen.md, torch-fuel.md, dynamic-villager-needs.md, villager-fight-back.md, seed-scout.md, mine-refresh.md, jotun-blood-yield.md, terrain-leveler.md, resource-marker-radius.md, task-unlocker.md, zero-task-workers.md, ground-item-vacuum.md, fish-fillet.md, den-respawn.md, time-warp.md, summon-timer.md, villager-ammo.md |
 | [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas with Cecil-confirmed API leads. Open: crafting multiplier (idea 3), freezing hunters (5), pre-construction worker/task setup (7), DVN Phase 3 schedule-UI overlap warning (11), demand-driven crafting prioritization (12), outhouse composter Phases 2–3 (13), rocks-only remover (14). Shipped ideas are one-line pointers to their mod docs |
+| [`AGENTS.md`](AGENTS.md) (repo root) | Onboarding a NEW/non-Claude agent (e.g. OpenAI Codex auto-loads this path): reading order, which CLAUDE.md sections are Claude-Code-specific, the user working agreement, hook automation that must be replaced manually |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |
 | [`docs/agent-delegation.md`](docs/agent-delegation.md) | Delegating subtasks to cheaper-model subagents (Claude Code only): agent roster (`.claude/agents/`), delegation-prompt checklist, invocation syntax, runtime gotchas |
 | [`TerrainLevelerMod/BULLDOZER_UI_PLAN.md`](TerrainLevelerMod/BULLDOZER_UI_PLAN.md) | Mod 15 — the bulldozer build-menu square: design + evidence chain, build-menu/localization ground truth (COMPLETE 2026-07-01) |
