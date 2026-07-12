@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using SandSailorStudio.Inventory;
+using SSSGame;
 using SSSGame.Combat;
 using UnityEngine;
 
@@ -193,23 +195,34 @@ public class AmmoTracker : MonoBehaviour
         if (diag) Plugin.Logger.LogInfo($"[VillagerAmmo] refunded {added}/{deficit} '{info.Name}' (state={state})");
     }
 
-    // v0.2.0: periodically cull stuck arrows from archery-range targets via the game's own
-    // ReleaseAllStuckObjects() - unlimited villager ammo otherwise lets thousands of recoverable
-    // arrows accumulate in targets (confirmed framerate collapse in co-op with ~2000 arrows).
+    // v0.2.1: v0.2.0's ReleaseAllStuckObjects() cull never fired in-game - the ~2,548 accumulated
+    // stuck arrows observed at the archery range turned out to be ordinary DynamicItemObject ground
+    // items (category chain Arrows/Weapons), never registered in a target's hit-time _stuckObjects
+    // list. This now culls those ground items directly (near-target, category-matched), then keeps
+    // the original ReleaseAllStuckObjects() sweep as a secondary pass for whatever DOES register.
     private void RunTargetCleanup()
     {
         bool diag = Plugin.EnableDiagnostics.Value;
         int threshold = Plugin.StuckArrowThreshold.Value;
 
-        ProjectileTargetHelper[] snapshot;
-        lock (Plugin.TargetRegistryLock)
+        // 1. Host gate FIRST - the cull replicates a world-state change (ground-item removal).
+        if (!IsHost())
         {
-            if (Plugin.TargetRegistry.Count == 0) return;
-            snapshot = new ProjectileTargetHelper[Plugin.TargetRegistry.Count];
-            Plugin.TargetRegistry.CopyTo(snapshot);
+            if (diag) Plugin.Logger.LogInfo("[VillagerAmmo] cleanup pass skipped: not host.");
+            return;
         }
 
-        foreach (var helper in snapshot)
+        // 2. Snapshot target positions from the existing TargetRegistry; drop dead helpers.
+        ProjectileTargetHelper[] targetSnapshot;
+        lock (Plugin.TargetRegistryLock)
+        {
+            targetSnapshot = new ProjectileTargetHelper[Plugin.TargetRegistry.Count];
+            Plugin.TargetRegistry.CopyTo(targetSnapshot);
+        }
+
+        var liveTargets = new List<ProjectileTargetHelper>(targetSnapshot.Length);
+        var targetPositions = new List<Vector3>(targetSnapshot.Length);
+        foreach (var helper in targetSnapshot)
         {
             try
             {
@@ -218,11 +231,103 @@ public class AmmoTracker : MonoBehaviour
                     lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper!); }
                     continue;
                 }
+                targetPositions.Add(helper.transform.position);
+                liveTargets.Add(helper);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[VillagerAmmo] removing target from registry after exception: {ex}");
+                lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper); }
+            }
+        }
 
+        // 3. Snapshot tracked ground items; keep near-target, category-matched arrows.
+        DynamicItemObject[] itemSnapshot;
+        lock (Plugin.TrackedGroundItemsLock)
+        {
+            itemSnapshot = new DynamicItemObject[Plugin.TrackedGroundItems.Count];
+            Plugin.TrackedGroundItems.CopyTo(itemSnapshot);
+        }
+
+        string categoryMatch = Plugin.ArrowCategoryMatch.Value ?? "Arrows";
+        float radius = Plugin.TargetArrowRadius.Value;
+        float radiusSqr = radius * radius;
+
+        var candidates = new List<WorldItemObject>();
+        foreach (var node in itemSnapshot)
+        {
+            try
+            {
+                if (node == null) continue;
+
+                var itemObj = node._itemObject;
+                if (itemObj == null) continue;
+
+                var item = itemObj.ItemInstance;
+                var info = item?.info;
+                if (info == null) continue;
+
+                string catChain = BuildCategoryChain(info.category);
+                if (catChain.IndexOf(categoryMatch, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                Vector3 pos = node.transform.position;
+                bool nearTarget = false;
+                foreach (var tp in targetPositions)
+                {
+                    if ((pos - tp).sqrMagnitude <= radiusSqr) { nearTarget = true; break; }
+                }
+                if (!nearTarget) continue;
+
+                candidates.Add(itemObj);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[VillagerAmmo] ground-item resolve error during cleanup: {ex}");
+            }
+        }
+
+        // 4. Threshold gate.
+        if (candidates.Count < threshold)
+        {
+            if (diag && candidates.Count > 0)
+                Plugin.Logger.LogInfo($"[VillagerAmmo] {candidates.Count} stuck arrow(s) near targets (below threshold {threshold}).");
+        }
+        else
+        {
+            // 5. Cull.
+            int removed = 0;
+            foreach (var wobj in candidates)
+            {
+                try
+                {
+                    if (wobj != null)
+                    {
+                        wobj.RemoveObjectFromWorld();
+                        removed++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogWarning($"[VillagerAmmo] failed to remove stuck arrow: {ex}");
+                }
+            }
+            Plugin.Logger.LogInfo($"[VillagerAmmo] culled {removed}/{candidates.Count} stuck arrows near {liveTargets.Count} target(s).");
+        }
+
+        // 6. Secondary sweep: original ReleaseAllStuckObjects() path (unchanged logic), diagnostics
+        // fixed to always report a per-pass summary and to log removals visibly (LogWarning).
+        int targetsWithStuck = 0;
+        foreach (var helper in liveTargets)
+        {
+            try
+            {
                 int count = helper._stuckObjects?.Count ?? 0;
 
-                if (diag && count > 0)
-                    Plugin.Logger.LogInfo($"[VillagerAmmo] target has {count} stuck object(s).");
+                if (count > 0)
+                {
+                    targetsWithStuck++;
+                    if (diag) Plugin.Logger.LogInfo($"[VillagerAmmo] target has {count} stuck object(s).");
+                }
 
                 if (count < threshold) continue;
 
@@ -236,9 +341,44 @@ public class AmmoTracker : MonoBehaviour
             }
             catch (Exception ex)
             {
-                if (diag) Plugin.Logger.LogDebug($"[VillagerAmmo] removing target from registry after exception: {ex}");
+                Plugin.Logger.LogWarning($"[VillagerAmmo] removing target from registry after exception: {ex}");
                 lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper); }
             }
         }
+
+        if (diag)
+            Plugin.Logger.LogInfo($"[VillagerAmmo] cleanup pass: {liveTargets.Count} target(s), {targetsWithStuck} with stuck-registry entries.");
+    }
+
+    private bool IsHost()
+    {
+        try
+        {
+            var p = Plugin.LocalPlayer;
+            if (p == null || p.NetworkObject == null || p.NetworkObject.Runner == null) return false;
+            var runner = p.NetworkObject.Runner;
+            return runner.IsServer || runner.IsSharedModeMasterClient;
+        }
+        catch { return false; }
+    }
+
+    private static string BuildCategoryChain(ItemCategoryInfo? cat)
+    {
+        if (cat == null) return "";
+        var sb = new StringBuilder();
+        int depth = 0;
+        var c = cat;
+        while (c != null && depth++ < 8)
+        {
+            string n = "";
+            try { n = c.Name ?? ""; } catch { }
+            if (!string.IsNullOrEmpty(n))
+            {
+                if (sb.Length > 0) sb.Append('/');
+                sb.Append(n);
+            }
+            try { c = c.parent; } catch { break; }
+        }
+        return sb.ToString();
     }
 }

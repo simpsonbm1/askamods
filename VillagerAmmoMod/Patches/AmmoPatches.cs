@@ -75,6 +75,60 @@ internal static class ProjectileTargetHelperAwakePatch
     }
 }
 
+// v0.2.1: the v0.2.0 ReleaseAllStuckObjects() cull never fired in-game - the accumulated stuck
+// arrows are ordinary DynamicItemObject ground items that never register in a target's hit-time
+// _stuckObjects list. Track live ground items via our OWN OnEnable/OnDisable set, mirroring
+// GroundItemVacuumMod's proven pattern EXACTLY: Unity-guaranteed lifecycle messages are immune to
+// the IL2CPP AOT-inlining trap, and we never walk the game's intrusive linked list.
+[HarmonyPatch(typeof(DynamicItemObject), nameof(DynamicItemObject.OnEnable))]
+internal static class GroundItemEnablePatch
+{
+    private static bool _fired;
+
+    static void Postfix(DynamicItemObject __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            lock (Plugin.TrackedGroundItemsLock)
+            {
+                Plugin.TrackedGroundItems.Add(__instance);
+            }
+
+            if (!_fired)
+            {
+                _fired = true;
+                Plugin.Logger.LogInfo("[VillagerAmmo] ground-item tracking active.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[VillagerAmmo] GroundItemEnablePatch: {ex}");
+        }
+    }
+}
+
+[HarmonyPatch(typeof(DynamicItemObject), nameof(DynamicItemObject.OnDisable))]
+internal static class GroundItemDisablePatch
+{
+    // Prefix: remove BEFORE the game tears the object down, while its wrapper is still valid.
+    static void Prefix(DynamicItemObject __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            lock (Plugin.TrackedGroundItemsLock)
+            {
+                Plugin.TrackedGroundItems.Remove(__instance);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[VillagerAmmo] GroundItemDisablePatch: {ex}");
+        }
+    }
+}
+
 [HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Spawned))]
 internal static class PlayerSpawnedPatch
 {
@@ -114,10 +168,14 @@ internal static class PlayerDespawnedPatch
                 {
                     Plugin.TargetRegistry.Clear();
                 }
+                lock (Plugin.TrackedGroundItemsLock)
+                {
+                    Plugin.TrackedGroundItems.Clear();
+                }
                 Plugin.Baselines.Clear();
                 Plugin.LastShootingSeen.Clear();
                 Plugin.InfoCache.Clear();
-                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, baselines, last-shooting-seen, and info cache dropped.");
+                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, tracked ground items, baselines, last-shooting-seen, and info cache dropped.");
             }
         }
         catch (Exception ex)

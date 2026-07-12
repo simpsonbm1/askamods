@@ -1,32 +1,67 @@
-# Mod 24: VillagerAmmoMod — WORKING (v0.2.0)
+# Mod 24: VillagerAmmoMod — COMPLETE (v0.2.1)
 
 **Goal:** villagers assigned to the archery range and other ranged combat roles (defenders, hunters)
 never run out of arrows. Ammo consumed during shooting is refunded in place, so the carried arrow
 stack holds level. The player's own arrows are unaffected (villager-only gate).
 
-## v0.2.0 — Stuck-arrow target cleanup (⚠️ pending in-game confirmation)
+## v0.2.1 — Ground-item cull for persisted stuck arrows (confirmed in-game 2026-07-11)
 
-**Status: built + deployed 2026-07-11.** The v0.1.3 arrow-litter risk materialized in co-op with
-unlimited villager ammo: ~2000 recoverable arrows accumulated stuck in archery-range targets and
-tanked framerate for both players near town. v0.2.0 adds scheduled culling via the game's own
-machinery (`ProjectileTargetHelper.ReleaseAllStuckObjects()`, Cecil-verified 2026-07-11).
+**Status: confirmed in-game 2026-07-11.** v0.2.0's `ReleaseAllStuckObjects` cleanup was INEFFECTIVE:
+persisted stuck arrows do NOT live in `ProjectileTargetHelper._stuckObjects` (that registry only fills
+at hit-time via `_RegisterStuckAmmo`; save/load restores arrows as ordinary `DynamicItemObject` world
+items without re-registering). In-game diagnosis (2026-07-11): GroundItemVacuum dry-run census at
+the archery range showed **2,548 tracked `DynamicItemObject` ground items** with category chain
+`Arrows/Weapons`, while v0.2.0's diagnostic sweep reported `103 target(s), 0 with stuck-registry entries`.
+
+v0.2.1 fixes this: **own `DynamicItemObject` tracking set** (OnEnable postfix/OnDisable prefix
+capture — GroundItemVacuum pattern; parameterless targets, safe under inventory-family patch gotcha)
++ every `CleanupCheckSeconds` (60 s), host-gated (`Runner.IsServer || IsSharedModeMasterClient`),
+cull ground items whose category chain contains `ArrowCategoryMatch` (default "Arrows") AND within
+`TargetArrowRadius` (default 15 m, squared-distance) of any tracked `ProjectileTargetHelper` position
+once the count ≥ `StuckArrowThreshold` (10). Culled via `WorldItemObject.RemoveObjectFromWorld()`
+(proven by user's manual GroundItemVacuum vacuum before v0.2.1 existed).
+
+**In-game results (2026-07-11):** v0.2.1 **culled 2,533/2,533 stuck arrows near 103 target(s)** within
+~60 s of world load; arrows visibly disappeared and framerate recovered from ~2 FPS to normal
+(user-observed).
 
 **Mechanism:**
-- New API facts (Cecil-verified 2026-07-11): `SSSGame.Combat.ProjectileTargetHelper` (plain
-  MonoBehaviour on shooting targets, NOT a NetworkBehaviour): `_stuckObjects : List<T>` (per-target
-  stuck-arrow registry; only `.Count` is read), public parameterless `ReleaseAllStuckObjects() : Void`
-  (the game's own cleanup), `_hasAuthority : bool`, parameterless `Awake()`. Also present but
-  UNUSED/unverified (prevention levers held in reserve): `allowRecovery : bool`, `deflectAll : bool`,
-  `hideProjectilesFromResourceGatherers : bool`.
-- Implementation: `ProjectileTargetHelper.Awake` postfix (parameterless) captures targets into a
-  registry (cleared on world-leave with the rest); the AmmoTracker checks each target every
-  `CleanupCheckSeconds` (default 60) and when `_stuckObjects.Count >= StuckArrowThreshold` (default 10)
-  and `_hasAuthority`, calls `ReleaseAllStuckObjects()`, logging `released stuck arrows: {before} -> {after}` (always-on fire-verification, not diagnostics-gated).
-- New config section `[TargetCleanup]`: `TargetCleanupEnabled`=true, `StuckArrowThreshold`=10,
-  `CleanupCheckSeconds`=60.
-- ⚠️ Open question for the first in-game run: what `ReleaseAllStuckObjects()` does with the arrows —
-  despawn vs. drop as ground pickups (if pickups: GroundItemVacuum can sweep, though its default
-  ExcludeCategories includes 'Weapon' and arrows' category chain is unknown).
+- `ProjectileTargetHelper.Awake` postfix (parameterless) still captures targets into a static registry
+  (cleared on world-leave).
+- New tracking hook: `DynamicItemObject.OnEnable` postfix + `OnDisable` prefix capture/uncapture ground
+  items into a static locked `HashSet<DynamicItemObject>` (matching GroundItemVacuum's safe pattern).
+- Cleanup every `CleanupCheckSeconds`, host-gated, iterates tracked `DynamicItemObject` set:
+  - Check category chain (parent-walk) for `ArrowCategoryMatch` ("Arrows")
+  - Check distance-squared to any tracked `ProjectileTargetHelper.position` ≤ `TargetArrowRadius²` (15²)
+  - When matches ≥ `StuckArrowThreshold` (10): cull via `WorldItemObject.RemoveObjectFromWorld()`
+  - Always-on log: `culled N/M stuck arrows near T target(s)` (fire-verification).
+- Old `ReleaseAllStuckObjects` sweep retained as secondary pass with Warning-level errors on each
+  release + per-pass summary (now typically logs 0 released since `_stuckObjects` empty after reload).
+
+**New config section `[TargetCleanup]`:**
+- `TargetCleanupEnabled`=true
+- `StuckArrowThreshold`=10
+- `CleanupCheckSeconds`=60
+- `ArrowCategoryMatch`="Arrows" (category to match in parent chain; arrows player shoots into range
+  targets are also culled; loose arrows away from targets untouched)
+- `TargetArrowRadius`=15 (meters from a target center to cull arrows)
+
+**Diagnostic log levels** (always-on, pre-Nexus):
+- `[VillagerAmmo] culled N/M stuck arrows near T target(s)` — periodic summary (INFO level)
+- `[VillagerAmmo] released stuck arrows: {before} -> {after}` — secondary ReleaseAllStuckObjects pass,
+  if any (WARNING level on hits)
+
+**Related finding (useful world fact):** a settlement archery range tracked **103 `ProjectileTargetHelper`
+instances** (far more than visible visual racks — targets are numerous per range structure).
+
+## v0.2.0 — Stuck-arrow target cleanup (ineffective — superseded by v0.2.1)
+
+**Status: built + deployed 2026-07-11; INEFFECTIVE — see v0.2.1.** The v0.1.3 arrow-litter risk
+materialized in co-op with unlimited villager ammo: ~2000 recoverable arrows accumulated stuck in
+archery-range targets and tanked framerate for both players near town. v0.2.0 attempted scheduled
+culling via the game's own machinery (`ProjectileTargetHelper.ReleaseAllStuckObjects()`, Cecil-verified
+2026-07-11), but this only clears arrows registered at hit-time, not persisted arrows restored from
+save/load as DynamicItemObjects.
 
 ## v0.1.3 — Polling redesign with grace window (confirmed in-game 2026-07-11)
 

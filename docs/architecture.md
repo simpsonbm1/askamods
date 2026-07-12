@@ -1137,26 +1137,38 @@ keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is ful
 - `Complaint.c_defender_needAmmo_format` — the out-of-ammo complaint (only when stack is empty and the
   villager is in a combat/training role).
 
-### Stuck-ammo recovery (vanilla litter risk — VillagerAmmoMod v0.2.0 cleanup)
+### Stuck-ammo recovery (vanilla litter risk — VillagerAmmoMod v0.2.1 ground-item cull)
 - `SandSailorStudio.Inventory.AmmoItemInfo` — ammo item asset type: `recoverableSpawnObject`,
   `SpawnRecoverableObject(...)` — fired arrows can spawn as recoverable stuck-arrow pickups.
 - **Litter risk materialized in co-op (confirmed 2026-07-11):** with unlimited villager ammo (mod v0.1.3),
   ~2000 recoverable arrows accumulated stuck in archery-range targets and tanked framerate for both
   players near town. The vanilla system's `_RegisterStuckAmmo` / `_OnAmmoRemoved` path is incomplete and
   doesn't recover arrows fast enough when villagers fire continuously without consuming the stack.
+- **DEAD-END: v0.2.0's `ReleaseAllStuckObjects` cleanup was ineffective (confirmed in-game 2026-07-11)** —
+  persisted stuck arrows do NOT live in `ProjectileTargetHelper._stuckObjects` after save/load. That registry
+  only fills at hit-time via `_RegisterStuckAmmo`; when the world reloads, arrows that were previously stuck
+  are restored as ordinary `DynamicItemObject` ground items without being re-registered in the targets. In-game
+  diagnostic evidence (2026-07-11): GroundItemVacuum census of an archery range found **2,548 tracked
+  `DynamicItemObject` ground items** with category chain containing "Arrows", while v0.2.0's diagnostic
+  cleanup sweep reported `0 with stuck-registry entries` out of 103 target(s).
 - `SSSGame.Combat.ProjectileTargetHelper` (plain MonoBehaviour, NOT a NetworkBehaviour) — the target
-  object tracking stuck arrows:
-  - `_stuckObjects : List<T>` — per-target registry of stuck arrows (only `.Count` is read).
-  - `ReleaseAllStuckObjects() : Void` — **the game's own cleanup** (public, parameterless; used by
-    VillagerAmmoMod v0.2.0 to cull accumulated stuck arrows on a schedule).
+  object tracking same-session stuck arrows (incomplete persistence):
+  - `_stuckObjects : List<T>` — per-target registry of stuck arrows **registered at hit-time only** (only
+    `.Count` is read). **Does NOT persist across save/load cycles.**
+  - `ReleaseAllStuckObjects() : Void` — **the game's own cleanup** (public, parameterless; VillagerAmmoMod
+    v0.2.0 attempted to use it, but it only clears same-session arrows, not persisted ones).
   - `_hasAuthority : bool` — network authority check (write-gated).
-  - `Awake() : Void` — patchable as postfix (parameterless, used by VillagerAmmoMod v0.2.0 for
-    instance capture).
+  - `Awake() : Void` — patchable as postfix (parameterless, used by VillagerAmmoMod v0.2.0 for instance
+    capture).
   - Also present but UNUSED/unverified (prevention levers): `allowRecovery : bool`, `deflectAll : bool`,
     `hideProjectilesFromResourceGatherers : bool`.
-- **Cleanup recipe:** documented in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → v0.2.0
-  section (scheduled culling via `ReleaseAllStuckObjects` on a per-target threshold; ⚠️ pending
-  confirmation on what it does with the arrows — despawn vs. drop as ground pickups).
+- **Effective cleanup recipe (VillagerAmmoMod v0.2.1, confirmed in-game 2026-07-11):** documented in
+  [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → v0.2.1 section. Uses ground-item tracking
+  (`DynamicItemObject.OnEnable`/`OnDisable` pattern) + periodic sweep: cull arrows (category "Arrows")
+  within 15 m radius of `ProjectileTargetHelper` positions via `WorldItemObject.RemoveObjectFromWorld()`.
+  Result: **2,533/2,533 stuck arrows culled within ~60 s of world load; framerate recovered from ~2 FPS to
+  normal** (user-observed 2026-07-11). Useful fact: an archery range tracked **103 `ProjectileTargetHelper`
+  instances** (far more than visually visible target racks).
 
 ## Worldgen / World Streaming
 How the world loads around the player, and how to make distant tiles stream **without moving the player**.

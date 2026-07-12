@@ -29,6 +29,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TargetCleanupEnabled = null!;
     internal static ConfigEntry<int> StuckArrowThreshold = null!;
     internal static ConfigEntry<float> CleanupCheckSeconds = null!;
+    internal static ConfigEntry<string> ArrowCategoryMatch = null!;
+    internal static ConfigEntry<float> TargetArrowRadius = null!;
 
     // --- live state ---
     // v0.1.2: NO patches on ammo-event methods (see Patches/AmmoPatches.cs header for why). Instead
@@ -44,6 +46,15 @@ public class Plugin : BasePlugin
     // ReleaseAllStuckObjects().
     internal static readonly HashSet<ProjectileTargetHelper> TargetRegistry = new();
     internal static readonly object TargetRegistryLock = new();
+
+    // v0.2.1: the v0.2.0 ReleaseAllStuckObjects() cull never fired - the ~2,548 accumulated stuck
+    // arrows observed in-game turned out to be ordinary DynamicItemObject ground items (category
+    // chain Arrows/Weapons) that never register in a target's hit-time _stuckObjects list. Track
+    // live ground items via our OWN OnEnable/OnDisable set (GroundItemVacuum pattern - never walk
+    // the game's intrusive linked list) so AmmoTracker can find and remove nearby stuck arrows via
+    // WorldItemObject.RemoveObjectFromWorld().
+    internal static readonly HashSet<DynamicItemObject> TrackedGroundItems = new();
+    internal static readonly object TrackedGroundItemsLock = new();
 
     // Last-seen ammo count per tracked manager, used by the poller to detect consumption between
     // polls. Reference-keyed on the exact wrapper instance captured in the Awake postfix - the
@@ -94,6 +105,14 @@ public class Plugin : BasePlugin
             "TargetCleanup", "CleanupCheckSeconds", 60f,
             "How often targets are checked for stuck-arrow cleanup, in seconds.");
 
+        ArrowCategoryMatch = Config.Bind(
+            "TargetCleanup", "ArrowCategoryMatch", "Arrows",
+            "Case-insensitive substring matched against a ground item's category chain (e.g. 'Arrows/Weapons'). Only matching items are ever culled.");
+
+        TargetArrowRadius = Config.Bind(
+            "TargetCleanup", "TargetArrowRadius", 15f,
+            "Only arrows within this many meters of a shooting target are culled - loose arrows elsewhere (e.g. a stack you dropped at base) are never touched. Note: arrows YOU shoot into the range targets will also be culled.");
+
         ClassInjector.RegisterTypeInIl2Cpp<AmmoTracker>();
 
         var go = new GameObject("VillagerAmmoMod_Tracker");
@@ -103,6 +122,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}");
+        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}");
     }
 }
