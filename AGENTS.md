@@ -140,3 +140,41 @@ twice under your tooling, mechanize it the same way. Two groups:
 - Feature branches named `wip/<feature>` are normal in-progress work. Branches named
   `wip/<HOSTNAME>` (machine names) were Claude Code auto-snapshots of uncommitted state — if one
   exists, tell Ben; don't build on it silently.
+
+## The break-glass prompt (for Ben — paste this as the new tool's first message)
+
+```
+You are taking over an active game-modding project (ASKA, a Viking survival game — BepInEx 6 /
+IL2CPP mods in C#) from a previous AI assistant (Claude), which left a complete handoff trail
+for you.
+
+Working directory: D:\Claude Projects\askamods (a git repo; origin =
+https://github.com/simpsonbm1/askamods.git)
+
+Do this IN ORDER before any other action:
+1. Read AGENTS.md at the repo root in full. It was written specifically for you: reading order,
+   the working agreement with me, which docs are canonical, and an inventory of automation whose
+   FUNCTIONS you must recreate in your own tooling.
+2. Follow its reading order: CLAUDE.md (canonical orientation — skip the sections it marks as
+   Claude-Code-specific), then SESSION_HANDOFF.md at repo root (live in-flight state), then
+   `git log --oneline -15` (commit messages here are a deliberate project journal).
+3. Verify the safety mechanisms are active for your clone: `git config core.hooksPath` must
+   output `.githooks` (set it if not). Never bypass the pre-commit hook with --no-verify.
+
+Hard rules, effective immediately (full detail in AGENTS.md):
+- Never commit or push without my explicit go-ahead.
+- Nothing is "fixed" or "complete" until I confirm it in-game; until then it is FIX ATTEMPTED /
+  PENDING CONFIRMATION.
+- Before touching any game subsystem, read its section in docs/architecture.md first — it
+  records dead-ends that WILL hard-crash the game or waste whole sessions if re-tried.
+- Maintain SESSION_HANDOFF.md continuously (update after each meaningful step, with the
+  freshness header format shown in AGENTS.md).
+
+When you have finished orienting, reply with: (a) your summary of the project and its current
+in-flight work, (b) which mod versions are pending in-game confirmation, and (c) whether any
+wip/* branches exist on origin — then STOP and wait for my direction. Do not change anything
+yet.
+```
+
+Why the readback step: it fire-verifies the bootstrap. If (a)–(c) come back wrong, the new agent
+skipped or misread the trail — correct it before letting it touch anything.
