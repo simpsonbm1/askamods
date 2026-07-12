@@ -26,6 +26,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> RefundOnlyWhenShooting = null!;
     internal static ConfigEntry<float> RecentShootingWindowSeconds = null!;
     internal static ConfigEntry<bool> EnableDiagnostics = null!;
+    internal static ConfigEntry<bool> TargetCleanupEnabled = null!;
+    internal static ConfigEntry<int> StuckArrowThreshold = null!;
+    internal static ConfigEntry<float> CleanupCheckSeconds = null!;
 
     // --- live state ---
     // v0.1.2: NO patches on ammo-event methods (see Patches/AmmoPatches.cs header for why). Instead
@@ -33,6 +36,14 @@ public class Plugin : BasePlugin
     // registry, and AmmoTracker.Update() polls them ~2x/second to detect ammo-count drops.
     internal static readonly HashSet<RangedManager> Registry = new();
     internal static readonly object RegistryLock = new();
+
+    // v0.2.0: unlimited villager ammo means thousands of stuck arrows accumulate in archery-range
+    // targets over time (framerate collapse observed in co-op with ~2000 arrows). Non-player
+    // ProjectileTargetHelpers are captured via a safe parameterless Awake postfix (mirrors the
+    // RangedManager registry above) and periodically culled via the game's own
+    // ReleaseAllStuckObjects().
+    internal static readonly HashSet<ProjectileTargetHelper> TargetRegistry = new();
+    internal static readonly object TargetRegistryLock = new();
 
     // Last-seen ammo count per tracked manager, used by the poller to detect consumption between
     // polls. Reference-keyed on the exact wrapper instance captured in the Awake postfix - the
@@ -71,6 +82,18 @@ public class Plugin : BasePlugin
             "VillagerAmmo", "EnableDiagnostics", true,
             "Verbose logging of ammo consumption/refunds seen by the mod's polling loop (consumption detected by polling ammo counts ~2x/second, not by an event patch). Defaults to true until the mod's behavior is verified in-game; set false afterward to keep logs clean.");
 
+        TargetCleanupEnabled = Config.Bind(
+            "TargetCleanup", "TargetCleanupEnabled", true,
+            "Periodically release stuck arrows from shooting targets via the game's own ReleaseAllStuckObjects() - prevents the framerate collapse from thousands of accumulated stuck arrows.");
+
+        StuckArrowThreshold = Config.Bind(
+            "TargetCleanup", "StuckArrowThreshold", 10,
+            "A target is cleaned when its stuck-object count reaches this.");
+
+        CleanupCheckSeconds = Config.Bind(
+            "TargetCleanup", "CleanupCheckSeconds", 60f,
+            "How often targets are checked for stuck-arrow cleanup, in seconds.");
+
         ClassInjector.RegisterTypeInIl2Cpp<AmmoTracker>();
 
         var go = new GameObject("VillagerAmmoMod_Tracker");
@@ -80,6 +103,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}");
+        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}");
     }
 }

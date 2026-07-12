@@ -1,8 +1,32 @@
-# Mod 24: VillagerAmmoMod — WORKING (v0.1.3)
+# Mod 24: VillagerAmmoMod — WORKING (v0.2.0)
 
 **Goal:** villagers assigned to the archery range and other ranged combat roles (defenders, hunters)
 never run out of arrows. Ammo consumed during shooting is refunded in place, so the carried arrow
 stack holds level. The player's own arrows are unaffected (villager-only gate).
+
+## v0.2.0 — Stuck-arrow target cleanup (⚠️ pending in-game confirmation)
+
+**Status: built + deployed 2026-07-11.** The v0.1.3 arrow-litter risk materialized in co-op with
+unlimited villager ammo: ~2000 recoverable arrows accumulated stuck in archery-range targets and
+tanked framerate for both players near town. v0.2.0 adds scheduled culling via the game's own
+machinery (`ProjectileTargetHelper.ReleaseAllStuckObjects()`, Cecil-verified 2026-07-11).
+
+**Mechanism:**
+- New API facts (Cecil-verified 2026-07-11): `SSSGame.Combat.ProjectileTargetHelper` (plain
+  MonoBehaviour on shooting targets, NOT a NetworkBehaviour): `_stuckObjects : List<T>` (per-target
+  stuck-arrow registry; only `.Count` is read), public parameterless `ReleaseAllStuckObjects() : Void`
+  (the game's own cleanup), `_hasAuthority : bool`, parameterless `Awake()`. Also present but
+  UNUSED/unverified (prevention levers held in reserve): `allowRecovery : bool`, `deflectAll : bool`,
+  `hideProjectilesFromResourceGatherers : bool`.
+- Implementation: `ProjectileTargetHelper.Awake` postfix (parameterless) captures targets into a
+  registry (cleared on world-leave with the rest); the AmmoTracker checks each target every
+  `CleanupCheckSeconds` (default 60) and when `_stuckObjects.Count >= StuckArrowThreshold` (default 10)
+  and `_hasAuthority`, calls `ReleaseAllStuckObjects()`, logging `released stuck arrows: {before} -> {after}` (always-on fire-verification, not diagnostics-gated).
+- New config section `[TargetCleanup]`: `TargetCleanupEnabled`=true, `StuckArrowThreshold`=10,
+  `CleanupCheckSeconds`=60.
+- ⚠️ Open question for the first in-game run: what `ReleaseAllStuckObjects()` does with the arrows —
+  despawn vs. drop as ground pickups (if pickups: GroundItemVacuum can sweep, though its default
+  ExcludeCategories includes 'Weapon' and arrows' category chain is unknown).
 
 ## v0.1.3 — Polling redesign with grace window (confirmed in-game 2026-07-11)
 

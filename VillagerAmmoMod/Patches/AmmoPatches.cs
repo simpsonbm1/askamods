@@ -43,6 +43,38 @@ internal static class RangedManagerAwakePatch
     }
 }
 
+// v0.2.0: ProjectileTargetHelper is a plain MonoBehaviour (NOT a NetworkBehaviour), and Awake() is
+// parameterless - safe to patch under the same "no inventory-family types in the target method's
+// signature" rule that keeps the RangedManager patch above safe. Captures non-player targets into a
+// registry so AmmoTracker can periodically cull stuck arrows via the game's own
+// ReleaseAllStuckObjects().
+[HarmonyPatch(typeof(ProjectileTargetHelper), "Awake")]
+internal static class ProjectileTargetHelperAwakePatch
+{
+    private static bool _fired;
+
+    static void Postfix(ProjectileTargetHelper __instance)
+    {
+        try
+        {
+            lock (Plugin.TargetRegistryLock)
+            {
+                Plugin.TargetRegistry.Add(__instance);
+            }
+
+            if (!_fired)
+            {
+                _fired = true;
+                Plugin.Logger.LogInfo("[VillagerAmmo] ProjectileTargetHelper capture active.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[VillagerAmmo] ProjectileTargetHelperAwakePatch: {ex}");
+        }
+    }
+}
+
 [HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Spawned))]
 internal static class PlayerSpawnedPatch
 {
@@ -78,10 +110,14 @@ internal static class PlayerDespawnedPatch
                 {
                     Plugin.Registry.Clear();
                 }
+                lock (Plugin.TargetRegistryLock)
+                {
+                    Plugin.TargetRegistry.Clear();
+                }
                 Plugin.Baselines.Clear();
                 Plugin.LastShootingSeen.Clear();
                 Plugin.InfoCache.Clear();
-                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, baselines, last-shooting-seen, and info cache dropped.");
+                Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, baselines, last-shooting-seen, and info cache dropped.");
             }
         }
         catch (Exception ex)

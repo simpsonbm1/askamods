@@ -1137,12 +1137,26 @@ keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is ful
 - `Complaint.c_defender_needAmmo_format` — the out-of-ammo complaint (only when stack is empty and the
   villager is in a combat/training role).
 
-### Stuck-ammo recovery (vanilla litter risk)
+### Stuck-ammo recovery (vanilla litter risk — VillagerAmmoMod v0.2.0 cleanup)
 - `SandSailorStudio.Inventory.AmmoItemInfo` — ammo item asset type: `recoverableSpawnObject`,
   `SpawnRecoverableObject(...)` — fired arrows can spawn as recoverable stuck-arrow pickups.
-- `ProjectileTargetHelper._RegisterStuckAmmo(GameObject, AmmoItem)` — registers stuck arrows for the
-  partial-recovery loop (the vanilla system recovers some arrows from targets, but is incomplete — litter
-  can accumulate; use GroundItemVacuumMod to clean up if refunding leads to many stuck arrows).
+- **Litter risk materialized in co-op (confirmed 2026-07-11):** with unlimited villager ammo (mod v0.1.3),
+  ~2000 recoverable arrows accumulated stuck in archery-range targets and tanked framerate for both
+  players near town. The vanilla system's `_RegisterStuckAmmo` / `_OnAmmoRemoved` path is incomplete and
+  doesn't recover arrows fast enough when villagers fire continuously without consuming the stack.
+- `SSSGame.Combat.ProjectileTargetHelper` (plain MonoBehaviour, NOT a NetworkBehaviour) — the target
+  object tracking stuck arrows:
+  - `_stuckObjects : List<T>` — per-target registry of stuck arrows (only `.Count` is read).
+  - `ReleaseAllStuckObjects() : Void` — **the game's own cleanup** (public, parameterless; used by
+    VillagerAmmoMod v0.2.0 to cull accumulated stuck arrows on a schedule).
+  - `_hasAuthority : bool` — network authority check (write-gated).
+  - `Awake() : Void` — patchable as postfix (parameterless, used by VillagerAmmoMod v0.2.0 for
+    instance capture).
+  - Also present but UNUSED/unverified (prevention levers): `allowRecovery : bool`, `deflectAll : bool`,
+    `hideProjectilesFromResourceGatherers : bool`.
+- **Cleanup recipe:** documented in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → v0.2.0
+  section (scheduled culling via `ReleaseAllStuckObjects` on a per-target threshold; ⚠️ pending
+  confirmation on what it does with the arrows — despawn vs. drop as ground pickups).
 
 ## Worldgen / World Streaming
 How the world loads around the player, and how to make distant tiles stream **without moving the player**.

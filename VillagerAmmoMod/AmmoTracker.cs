@@ -18,6 +18,7 @@ public class AmmoTracker : MonoBehaviour
 
     private float _cfgReloadTimer = 0f;
     private float _pollTimer = 0f;
+    private float _cleanupTimer = 0f;
     private bool _pollActiveLogged = false;
 
     private void Update()
@@ -27,6 +28,13 @@ public class AmmoTracker : MonoBehaviour
         {
             _cfgReloadTimer = 0f;
             try { Plugin.Cfg?.Reload(); } catch { }
+        }
+
+        _cleanupTimer += Time.deltaTime;
+        if (_cleanupTimer >= Plugin.CleanupCheckSeconds.Value)
+        {
+            _cleanupTimer = 0f;
+            if (Plugin.TargetCleanupEnabled.Value) RunTargetCleanup();
         }
 
         _pollTimer += Time.deltaTime;
@@ -183,5 +191,54 @@ public class AmmoTracker : MonoBehaviour
 
         Plugin.Baselines[mgr] = count + added;
         if (diag) Plugin.Logger.LogInfo($"[VillagerAmmo] refunded {added}/{deficit} '{info.Name}' (state={state})");
+    }
+
+    // v0.2.0: periodically cull stuck arrows from archery-range targets via the game's own
+    // ReleaseAllStuckObjects() - unlimited villager ammo otherwise lets thousands of recoverable
+    // arrows accumulate in targets (confirmed framerate collapse in co-op with ~2000 arrows).
+    private void RunTargetCleanup()
+    {
+        bool diag = Plugin.EnableDiagnostics.Value;
+        int threshold = Plugin.StuckArrowThreshold.Value;
+
+        ProjectileTargetHelper[] snapshot;
+        lock (Plugin.TargetRegistryLock)
+        {
+            if (Plugin.TargetRegistry.Count == 0) return;
+            snapshot = new ProjectileTargetHelper[Plugin.TargetRegistry.Count];
+            Plugin.TargetRegistry.CopyTo(snapshot);
+        }
+
+        foreach (var helper in snapshot)
+        {
+            try
+            {
+                if (helper == null) // Unity destroyed-object equality
+                {
+                    lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper!); }
+                    continue;
+                }
+
+                int count = helper._stuckObjects?.Count ?? 0;
+
+                if (diag && count > 0)
+                    Plugin.Logger.LogInfo($"[VillagerAmmo] target has {count} stuck object(s).");
+
+                if (count < threshold) continue;
+
+                bool auth = false;
+                try { auth = helper._hasAuthority; } catch { }
+                if (!auth) continue;
+
+                helper.ReleaseAllStuckObjects();
+                int after = helper._stuckObjects?.Count ?? 0;
+                Plugin.Logger.LogInfo($"[VillagerAmmo] released stuck arrows: {count} -> {after}.");
+            }
+            catch (Exception ex)
+            {
+                if (diag) Plugin.Logger.LogDebug($"[VillagerAmmo] removing target from registry after exception: {ex}");
+                lock (Plugin.TargetRegistryLock) { Plugin.TargetRegistry.Remove(helper); }
+            }
+        }
     }
 }
