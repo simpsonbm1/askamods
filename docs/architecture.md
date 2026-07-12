@@ -1538,6 +1538,8 @@ keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is ful
 ### Core types
 - `SSSGame.Combat.RangedManager` (NetworkBehaviour) — base class for all ranged shooters (player and
   villagers). Derived: `PlayerRangedManager`, `RiderRangedManager`. Villagers use the base class.
+  `RiderRangedManager` is dead code in practice — **there are no mounts in ASKA** (user-confirmed
+  2026-07-12), so no gameplay path routes the player through the base class without `IsPlayer`.
   - `IsPlayer : bool` — **clean villager-only gate** (true for player, false for villagers).
   - `HasAuthority : bool` — network authority.
   - `State : RangedManager.AimState` — enum: None=0, StandBy=1, Aim=2, Fire=3, Reload=4. State

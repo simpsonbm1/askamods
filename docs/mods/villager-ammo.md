@@ -193,14 +193,16 @@ All findings Cecil-verified 2026-07-11; in-game-confirmed where the mod exercise
 
 ## Known unexercised paths (⚠️ still pending in-game exercise)
 
-**Two code paths remain unexercised in-game (known unknowns):**
+**One code path remains unexercised in-game (known unknown):**
 1. **Manual arrow withdrawal from an idle villager** (removing arrows from a villager's inventory
    while not shooting) — should NOT refund (villager choosing to drop them). Relies on grace window +
    state gate; NOT tested.
-2. **Player's own arrows** (player shooting) — should NOT refund (`IsPlayer==true` gate prevents it).
-   Gate is applied; the fallback case (player on a mount) may route through base `RangedManager`
-   without setting `IsPlayer` — **requires explicit confirmation** that player's arrows still deplete
-   normally.
+
+**RESOLVED (2026-07-12):** the old caveat #2 (player-on-a-mount possibly routing through base
+`RangedManager` without `IsPlayer`, refunding the player's own arrows) is MOOT — **there are no
+mounts in ASKA** (user-confirmed 2026-07-12). `RiderRangedManager` exists in the binary but is
+unreachable in gameplay. Normal on-foot player shooting depletes arrows normally (`IsPlayer==true`
+gate; user play experience since 2026-07-11 with the mod active).
 
 ## Version history (2026-07-11/12)
 

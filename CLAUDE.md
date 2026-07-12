@@ -19,6 +19,29 @@ fact about the game, the IL2CPP interop, or a mod's behavior — especially **in
 findings (`confirmed in-game (YYYY-MM-DD)`). Always capture dead-ends — the whole point is to
 stop future sessions re-treading a ruled-out path.
 
+### Doc update style — stateless, de-accreted (pattern locked in by the 2026-07-12 doc audit)
+Docs record **current truth, not the journey**. These rules exist because the pre-audit docs had
+decayed into chronological fact→correction chains a reader had to replay to learn what's true now:
+- **Write stateless.** A `docs/mods/*.md` file is: current design/recipe + config reference +
+  per-mod dead-ends + a compressed version-history list. Never a chronological changelog. When a
+  new version changes a fact, rewrite the fact in place — don't append a correction beneath the
+  stale statement.
+- **Supersede in place** (architecture.md included). A finding that invalidates older text updates
+  or deletes that text in the same edit — no dangling "superseded by X below" chains. Clear a
+  ⚠️ pending flag the moment its fact is confirmed; never leave both states in the file.
+- **Collapse finished ideas-plan entries to pointers.** When a NEW_MOD_IDEAS_PLAN idea (or a phase
+  of one) ships or is ruled out, collapse the finished portion to a one-liner pointing at the
+  mod's doc, keeping only still-open phases/research in the body. Never leave a body that still
+  recommends an approach later proven fatal.
+- **Archive absorbed handoffs.** Once a handoff/investigation doc's live conclusions are absorbed
+  into architecture.md / docs/mods/, `git mv` it to `docs/archive/` and fix all cross-references.
+  Orientation files reference archives only via the Documentation map's archive row.
+- **Wrap doc lines at ≤100 chars.** Mega-lines silently break ripgrep-based doc recall
+  ("[Omitted long matching line]"). Verify after a doc pass: `grep -rnE '.{161,}' docs/` must
+  return only justifiable hits (tables, URLs) — rewrap any prose it finds.
+- Dead-ends and dated confirmations still accumulate forever — that's the knowledge base's point.
+  What gets pruned is narrative accretion: the journey, the corrections, the superseded plans.
+
 ### Diagnostics Default Behavior
 Whenever you add a configuration option for a diagnostic or debug logger, **always default it to `true` initially.** This saves the user from having to boot the game just to generate the config file, close it, edit it, and launch again. Once a mod is verified and ready to ship, update the code to flip the default to `false` so it doesn't spam normal users' logs. These doc updates ride along with the related work when it's committed.
 
