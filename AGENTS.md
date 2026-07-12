@@ -25,11 +25,8 @@ context that lives nowhere else — the project knowledge itself is NOT here.
   Claude Code subagent machinery. Ignore; do the work inline.
 - **Hook-based automation referenced under "Session Handoff Doc"** (handoff mirroring to
   `~/.claude`, automatic `wip/<hostname>` snapshot branches, session-start pulls) — these are
-  Claude Code hooks and DO NOT RUN for you. What to do instead:
-  - Still maintain `SESSION_HANDOFF.md` continuously (update after each meaningful step, start it
-    with `> Last updated: YYYY-MM-DD HH:MM (<hostname>)`). It is the crash-safety net.
-  - Cross-machine transport for uncommitted work does not exist for you — flag risky uncommitted
-    state to the user rather than assuming it synced anywhere.
+  Claude Code hooks and DO NOT RUN for you. See "Automation inventory" below for what each one
+  accomplished and what you must recreate.
 - References to `~/.claude/...` paths are the Claude Code config tree on this machine. The two
   methodology guides there are plain markdown and worth reading regardless of tool:
   - `C:\Users\simps\.claude\skills\game-modding-research\SKILL.md` — root-cause methodology for
@@ -73,6 +70,67 @@ csproj `<Version>` together. After the user launches the game, verify with `.\ch
 Harmony patch with a log line (the AOT inliner silently eats patches). `.\sync-plugins.ps1`
 pushes committed DLLs to the live folder after a pull; `.\bisect-plugins.ps1` bisects live-plugin
 regressions. Test evidence comes from Ben playing; you cannot run the game.
+
+## Automation inventory — the functions matter, not the implementations
+
+Design philosophy behind all of it (from the process-hygiene methodology): **an instruction is a
+hope; a mechanism is a guarantee.** Every "every time X, do Y" rule in this project got turned
+into something the OS/git/build executes, after prose versions failed. When the same gotcha bites
+twice under your tooling, mechanize it the same way. Two groups:
+
+### In the repo — these work for ANY agent as-is. Use them; do not rebuild or bypass them.
+
+- **`.githooks/pre-commit`** (activate once per clone: `git config core.hooksPath .githooks`) —
+  blocks a commit when the orientation files drift from ground truth: mod folder missing from
+  either file, stated version ≠ csproj `<Version>`, `PLUGIN_VERSION` ≠ csproj `<Version>` (the
+  Smart App Control half-bump), a handoff/mod doc missing from either Documentation Map, or a
+  duplicated `# AskaMods` header. GOAL: the always-loaded orientation can never silently lie.
+  Never bypass with `--no-verify`; fix the drift.
+- **`Directory.Build.targets` (SAC BUMP GUARD)** — fails any build whose `<Version>` is already
+  deployed in the live plugins folder (deliberate same-version rebuild: `-p:SkipSacGuard=true`).
+  GOAL: make it impossible to test a rebuilt DLL whose unchanged hash Smart App Control will
+  block, which otherwise looks like a mysterious stale-behavior session.
+- **`CopyToPlugins` build target** — every `dotnet build` auto-deploys the DLL to
+  `ASKA\BepInEx\plugins\<Mod>\`. GOAL: no manual copy step to forget mid-iteration.
+- **`sync-plugins.ps1`** — copies each committed `<Mod>.dll` to the live game folder
+  (hash-compared; preserves each mod's enabled/`.dll.off` state; backs up replaced DLLs; its
+  `$ParkedByDefault` list keeps parked mods disabled on fresh installs). GOAL: after a `git pull`
+  on either machine, one command brings the live game up to date.
+- **`check-loaded.ps1`** — one table of repo vs live vs actually-loaded version per mod (reads PE
+  headers + `LogOutput.log`; never loads the DLLs). GOAL: verify what the game REALLY loaded
+  before trusting any test result — the SAC gotcha makes "it built" meaningless.
+- **`bisect-plugins.ps1`** — enable/disable live plugins in halves for framerate/crash
+  bisection; state-saving, `-Restore` reverts. GOAL: attribute a live regression to a mod fast.
+
+### Claude Code harness hooks — these will NOT run for you. Recreate the FUNCTION in your format.
+
+- **Continuous session-handoff persistence + cross-machine mirror** (PostToolUse hook on every
+  `SESSION_HANDOFF.md` write: mirrored the file into a synced config repo and pushed it).
+  FUNCTION TO RECREATE: sessions can be killed mid-action with no warning (usage limits), so the
+  handoff file must be (a) updated right after each meaningful step, not at session end, and
+  (b) transported to the other machine WITHOUT waiting for a project commit (the file itself is
+  gitignored). Minimum viable replacement: keep (a) as discipline; for (b), tell Ben when a
+  session ends with a meaningful handoff so he can move it, or agree on a new transport.
+- **Uncommitted-WIP snapshot transport** (same hook: on every handoff update, snapshotted the
+  repo's uncommitted tracked+untracked state via a temp index — working tree never touched — and
+  force-pushed it to a disposable `wip/<hostname>` branch on origin; consumed on the other
+  machine by `git cherry-pick --no-commit`, then the branch deleted immediately). FUNCTION TO
+  RECREATE: in-progress code reaches the other machine even though the project's ask-first
+  commit policy forbids committing unverified work to `master`. The disposable-branch pattern is
+  tool-agnostic — you may reuse it directly if you can run git; the ask-first policy for real
+  branches is unchanged.
+- **Session-start freshness check** (SessionStart hook: pulled the synced config repo; copied
+  down a strictly-newer other-machine handoff; fast-forwarded this repo when the tree was clean;
+  ran `sync-plugins.ps1 -DryRun` and reported stale live plugins; reported incoming
+  `wip/<other-host>` branches with resume instructions). FUNCTION TO RECREATE: start every
+  session by pulling, reading `SESSION_HANDOFF.md`, checking for foreign `wip/*` branches, and
+  offering `sync-plugins.ps1` if live DLLs lag the repo — as an explicit checklist if your
+  tooling has no hook equivalent.
+- **Continuous assistant-memory sync** (Stop hook: auto-committed/pushed the `~/.claude` config
+  tree — memory, skills, global conventions — after every turn). FUNCTION TO RECREATE: whatever
+  durable cross-session memory your tooling has, persist working-agreement learnings there AND
+  mirror anything project-critical into this repo's docs (this file exists because
+  assistant-side memory does not transfer between vendors).
 
 ## Repo state signals
 
