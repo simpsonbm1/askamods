@@ -12,7 +12,15 @@ namespace OuthouseComposterMod;
 // v0.1.x: read-only Phase 0 recon (structure/container/compost dump, F10 + auto-dump). v0.2.0
 // (Phase 1) adds the actual composter: a converter half that WRITES game state (host/solo-gated) —
 // see ConverterTick() and everything below NoteWorldLeft(). The dump/recon methods above that are
-// still unchanged and still read-only. See Plugin.cs for the "why".
+// still unchanged and still read-only. v0.3.0 moves the converter's timers from real time
+// (DateTime.UtcNow) onto the in-game clock (SSSGame.Weather.WeatherSystem anchor +
+// GetTimeDifferenceFromCurrentGameTimeInSeconds — opaque-units anchor+measure pattern, see
+// TreeRespawnMod.WellRefill.Tick()) so TimeWarp-style acceleration speeds up composting. See
+// Plugin.cs for the "why". v0.4.0 adds a second conversion mode: DoConvert (default, "sequential")
+// pools across slots and performs exactly one conversion per fire; DoConvertSimultaneous ("true"
+// mode, Plugin.SimultaneousConversion) evaluates every occupied slot independently and converts
+// each one that individually holds a full ratio, all within the same fire — see TickTimer's fire
+// branch for the dispatch.
 public class ComposterDiag : MonoBehaviour
 {
     private const float PollIntervalSeconds = 5f;
@@ -40,14 +48,18 @@ public class ComposterDiag : MonoBehaviour
     private readonly Dictionary<string, ItemContainer> _outhouseContainers = new();
     private DateTime _lastContainerResolveAt = DateTime.MinValue;
 
-    // Per-outhouse next-fire timestamps. No entry = unarmed (waiting for its pool to first become
-    // non-empty). v0.2.0 does NOT persist these across save/load — timers restart on world load
-    // (documented limitation; a per-slot day-stamp store would be the upgrade if this matters later).
-    private readonly Dictionary<string, DateTime> _foodNextFire = new();
-    private readonly Dictionary<string, DateTime> _seedNextFire = new();
+    // Per-outhouse in-game-time anchors (v0.3.0). No entry = unarmed (waiting for its pool to
+    // first become non-empty). Value is a game-time anchor assigned ONLY from
+    // ws.NetworkedCurrentGameTime — never from real time, never arithmetic'd directly (opaque
+    // internal units; project-wide gotcha, see TreeRespawnMod.WellRefill). These are NOT persisted
+    // across save/load — timers restart on world load (documented limitation, unchanged from
+    // v0.2.0; a per-slot day-stamp store would be the upgrade if this matters later).
+    private readonly Dictionary<string, float> _foodAnchor = new();
+    private readonly Dictionary<string, float> _seedAnchor = new();
 
     private ItemInfo? _compostInfo;
     private bool _loggedCompostUnresolved;
+    private bool _loggedWeatherUnavailable;
 
     private void Start()
     {
@@ -153,15 +165,16 @@ public class ComposterDiag : MonoBehaviour
         // ItemContainer cache here, plus OuthouseGate's own container-identity cache) must never
         // survive across world sessions (project-wide gotcha; a stale wrapper read AVs natively).
         _outhouseContainers.Clear();
-        _foodNextFire.Clear();
-        _seedNextFire.Clear();
+        _foodAnchor.Clear();
+        _seedAnchor.Clear();
         _compostInfo = null;
         _loggedCompostUnresolved = false;
+        _loggedWeatherUnavailable = false;
         _lastContainerResolveAt = DateTime.MinValue;
         OuthouseGate.ClearCache();
     }
 
-    // ── Converter (v0.2.0, Phase 1 — the actual feature) ────────────────────────────────────────
+    // ── Converter (v0.2.0, Phase 1 — the actual feature; v0.3.0 — in-game-clock timers) ────────────
     // Runs only when a world session is active, the local player is registered, AND this client has
     // host/solo authority (co-op safety — copied verbatim from GroundItemVacuumMod.VacuumTracker's
     // IsHost() pattern). EnableDiagnostics never gates whether this runs, only how much it logs.
@@ -171,21 +184,33 @@ public class ComposterDiag : MonoBehaviour
         if (Plugin.LocalPlayer == null) return;
         if (!IsHostOrSolo()) return;
 
+        SSSGame.Weather.WeatherSystem? ws = null;
+        try { ws = SSSGame.Weather.WeatherSystem.Instance; } catch { ws = null; }
+        if (ws == null || ws.dayLength <= 0f)
+        {
+            if (Plugin.EnableDiagnostics.Value && !_loggedWeatherUnavailable)
+            {
+                _loggedWeatherUnavailable = true;
+                Plugin.Logger.LogInfo("[OuthouseComposter][convert] WeatherSystem not yet available — conversions waiting.");
+            }
+            return;
+        }
+        _loggedWeatherUnavailable = false;
+
         ResolveOuthouseContainersIfDue();
         if (_outhouseContainers.Count == 0) return;
 
         ResolveCompostInfoIfNeeded();
 
-        var now = DateTime.UtcNow;
         foreach (var kv in _outhouseContainers)
         {
             string posKey = kv.Key;
             ItemContainer container = kv.Value;
 
-            try { TickTimer(posKey, container, isFood: true, now); }
+            try { TickTimer(posKey, container, isFood: true, ws); }
             catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] TickTimer(food) error: {ex}"); }
 
-            try { TickTimer(posKey, container, isFood: false, now); }
+            try { TickTimer(posKey, container, isFood: false, ws); }
             catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] TickTimer(seed) error: {ex}"); }
         }
     }
@@ -238,9 +263,9 @@ public class ComposterDiag : MonoBehaviour
             }
 
             var stale = new List<string>();
-            foreach (var key in _foodNextFire.Keys) if (!newMap.ContainsKey(key)) stale.Add(key);
-            foreach (var key in _seedNextFire.Keys) if (!newMap.ContainsKey(key) && !stale.Contains(key)) stale.Add(key);
-            foreach (var key in stale) { _foodNextFire.Remove(key); _seedNextFire.Remove(key); }
+            foreach (var key in _foodAnchor.Keys) if (!newMap.ContainsKey(key)) stale.Add(key);
+            foreach (var key in _seedAnchor.Keys) if (!newMap.ContainsKey(key) && !stale.Contains(key)) stale.Add(key);
+            foreach (var key in stale) { _foodAnchor.Remove(key); _seedAnchor.Remove(key); }
 
             _outhouseContainers.Clear();
             foreach (var kv in newMap) _outhouseContainers[kv.Key] = kv.Value;
@@ -335,40 +360,54 @@ public class ComposterDiag : MonoBehaviour
         return null;
     }
 
-    // Advances one outhouse's food-or-seed timer. No entry in the dict = unarmed: only starts
-    // counting once the relevant pool first becomes non-empty. Once armed, every fire re-arms to
-    // now + minutes REGARDLESS of whether a conversion actually happened (a below-ratio pool just
-    // skips that cycle) — locked semantics from the delegation spec.
-    private void TickTimer(string posKey, ItemContainer container, bool isFood, DateTime now)
+    // Advances one outhouse's food-or-seed timer on the IN-GAME clock (v0.3.0). No entry in the
+    // dict = unarmed: only starts counting once the relevant pool first becomes non-empty. Once
+    // armed, every fire re-arms to a fresh ws.NetworkedCurrentGameTime anchor REGARDLESS of whether
+    // a conversion actually happened (a below-ratio pool just skips that cycle) — locked semantics
+    // from the delegation spec. Anchor is opaque-units (project-wide gotcha): only ever assigned
+    // from NetworkedCurrentGameTime, only ever consumed through
+    // GetTimeDifferenceFromCurrentGameTimeInSeconds — never arithmetic'd directly.
+    private void TickTimer(string posKey, ItemContainer container, bool isFood, SSSGame.Weather.WeatherSystem ws)
     {
-        var dict = isFood ? _foodNextFire : _seedNextFire;
+        var dict = isFood ? _foodAnchor : _seedAnchor;
         bool enabled = isFood ? Plugin.AcceptFood.Value : Plugin.AcceptSeeds.Value;
         if (!enabled) return;
 
         int ratio = isFood ? Plugin.FoodToCompostRatio.Value : Plugin.SeedsToCompostRatio.Value;
-        double minutes = isFood ? Plugin.FoodMinutes.Value : Plugin.SeedMinutes.Value;
+        double hours = isFood ? Plugin.FoodGameHours.Value : Plugin.SeedGameHours.Value;
+
+        float thresholdSeconds;
+        try { thresholdSeconds = (float)(hours * ws.dayLength / 24.0); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] TickTimer dayLength read error: {ex}"); return; }
 
         int pool = CountPool(container, isFood);
 
-        if (!dict.TryGetValue(posKey, out var nextFire))
+        if (!dict.TryGetValue(posKey, out var anchor))
         {
             if (pool <= 0) return; // stay unarmed until the pool has something in it
-            dict[posKey] = now.AddMinutes(minutes);
+            try { dict[posKey] = ws.NetworkedCurrentGameTime; } catch { }
             return;
         }
 
-        if (now < nextFire) return;
+        float elapsed;
+        try { elapsed = ws.GetTimeDifferenceFromCurrentGameTimeInSeconds(anchor); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] TickTimer elapsed-time read error: {ex}"); return; }
+
+        if (elapsed < thresholdSeconds) return;
 
         // Fire.
         if (_compostInfo == null)
         {
-            dict[posKey] = now.AddMinutes(minutes); // re-arm and wait for the compost item to resolve
+            try { dict[posKey] = ws.NetworkedCurrentGameTime; } catch { } // re-arm and wait for the compost item to resolve
             return;
         }
 
         if (pool >= ratio)
         {
-            DoConvert(container, isFood, ratio, pool);
+            if (Plugin.SimultaneousConversion.Value)
+                DoConvertSimultaneous(container, isFood, ratio, pool);
+            else
+                DoConvert(container, isFood, ratio, pool);
         }
         else if (Plugin.EnableDiagnostics.Value)
         {
@@ -376,7 +415,7 @@ public class ComposterDiag : MonoBehaviour
             Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind} timer fired but pool insufficient (pool={pool} need={ratio}) — skipped.");
         }
 
-        dict[posKey] = now.AddMinutes(minutes); // re-arm regardless
+        try { dict[posKey] = ws.NetworkedCurrentGameTime; } catch { } // re-arm regardless
     }
 
     private static int CountPool(ItemContainer container, bool isFood)
@@ -407,6 +446,14 @@ public class ComposterDiag : MonoBehaviour
         return total;
     }
 
+    // ── Conversion (v0.2.0 DoConvert = "sequential" mode; v0.4.0 DoConvertSimultaneous = "true"
+    // mode) ──────────────────────────────────────────────────────────────────────────────────────
+    // Sequential (default, Plugin.SimultaneousConversion=false): pools across slots, removing the
+    // ratio's worth starting from the first matching slot(s) in container order, and produces
+    // exactly 1 Compost per fire. Simultaneous (Plugin.SimultaneousConversion=true): every occupied
+    // matching slot is evaluated independently — each slot holding at least a full ratio converts
+    // on its own (no cross-slot pooling), possibly producing multiple Compost in one fire.
+    //
     // No partial conversions: only called when pool >= ratio. Requires HasSpace(compost, 1) BEFORE
     // removing anything (compost is natively accepted by the outhouse — this is the real game
     // answer, not our override). Snapshots matching items before removing (RemoveItem may
@@ -486,6 +533,82 @@ public class ComposterDiag : MonoBehaviour
             try { emptySlots = container.GetEmptySlots(); } catch { }
             int used = (capacityNow >= 0 && emptySlots >= 0) ? capacityNow - emptySlots : -1;
             Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: -{taken} (pool was {poolBefore}) → +1 Compost (container now {used}/{capacityNow} slots).");
+        }
+    }
+
+    // v0.4.0: "simultaneous" mode — every occupied matching slot is evaluated independently. A slot
+    // converts on its own only if it individually holds >= a full ratio (no cross-slot pooling: two
+    // below-ratio stacks never combine here, unlike DoConvert's sequential pooling). Snapshots
+    // matching items before removing anything, same reason as DoConvert (RemoveItem may
+    // reindex/compact the container mid-walk).
+    private void DoConvertSimultaneous(ItemContainer container, bool isFood, int ratio, int poolBefore)
+    {
+        if (_compostInfo == null) return;
+        string kind = isFood ? "food" : "seeds";
+
+        var matching = new List<Item>();
+        try
+        {
+            var items = container.GetItems();
+            int capacity = -1;
+            try { capacity = container.capacity; } catch { }
+            int bound = capacity > 0 ? capacity : 64;
+
+            for (int i = 0; i < bound; i++)
+            {
+                Item? item = null;
+                try { item = items != null ? items[i] : null; } catch { break; }
+                if (item == null) continue;
+                ItemInfo? info = null;
+                try { info = item.info; } catch { }
+                if (info == null) continue;
+                bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
+                if (matches) matching.Add(item);
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertSimultaneous snapshot walk error: {ex}"); }
+
+        int conversions = 0;
+        foreach (var item in matching)
+        {
+            int count = 0;
+            try { count = item.count; } catch { }
+            if (count < ratio) continue;
+
+            bool hasSpace = false;
+            try { hasSpace = container.HasSpace(_compostInfo, 1); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] HasSpace(compost) error: {ex}"); }
+
+            if (!hasSpace)
+            {
+                if (Plugin.EnableDiagnostics.Value)
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: container full — stopped after {conversions} simultaneous conversion(s).");
+                break;
+            }
+
+            bool removed = false;
+            try { removed = container.RemoveItem(item, ratio, ItemEventContext.Default); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] RemoveItem error: {ex}"); }
+            if (!removed) continue;
+
+            int added = 0;
+            try { added = container.AddItems(_compostInfo, 1); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] AddItems(compost) error: {ex}"); }
+
+            if (added == 0)
+            {
+                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: AddItems(Compost) returned 0 after removing {ratio} unit(s) (pool was {poolBefore}) — Compost NOT added despite HasSpace=true. Known v0.2.0 limitation, accepted for now.");
+            }
+
+            conversions++;
+        }
+
+        if (Plugin.EnableDiagnostics.Value)
+        {
+            if (conversions > 0)
+                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — {conversions} slot(s) converted, +{conversions} Compost (pool was {poolBefore}).");
+            else
+                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — no single slot held >= {ratio}, nothing converted (pool was {poolBefore}).");
         }
     }
 

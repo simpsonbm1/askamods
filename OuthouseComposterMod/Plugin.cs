@@ -17,11 +17,26 @@ namespace OuthouseComposterMod;
 // asset, proven by identical native pointers in the v0.1.2 probe) — we don't reverse-engineer that
 // condition, we override it for the outhouse container only (Patches/AcceptancePatches.cs).
 //
-// The feature: the player throws food/seeds into the Outhouse; independent real-time repeating
-// timers (ComposterDiag's converter half) consume a full ratio's worth and produce Compost in the
-// same container. Diagnostics (F10 dump, world-session recon) are unchanged from v0.1.x and stay
+// The feature: the player throws food/seeds into the Outhouse; independent repeating timers
+// (ComposterDiag's converter half) consume a full ratio's worth and produce Compost in the same
+// container. Diagnostics (F10 dump, world-session recon) are unchanged from v0.1.x and stay
 // read-only; EnableDiagnostics only gates logging verbosity, never the feature itself — the
 // converter and acceptance patches always run once the mod is loaded (subject to host/solo gating).
+//
+// v0.3.0: the converter timers moved from real time (DateTime.UtcNow) onto the IN-GAME clock
+// (SSSGame.Weather.WeatherSystem anchor + GetTimeDifferenceFromCurrentGameTimeInSeconds — the same
+// opaque-units anchor+measure pattern as TreeRespawnMod's WellRefill.Tick(), see docs/mods/tree-
+// respawn.md), so TimeWarpMod-style time acceleration now speeds up composting. Config is
+// expressed in in-game hours (FoodGameHours/SeedGameHours) instead of real-time minutes.
+//
+// v0.4.0: two independent additions. (1) SimultaneousConversion config toggle — default false keeps
+// the existing "sequential" fire behavior (pools across slots, one conversion per fire), true adds a
+// "simultaneous" mode where every occupied slot holding >= a full ratio converts independently in the
+// same fire (no cross-slot pooling). (2) Split InputStackSize into FoodStackSize/SeedStackSize so
+// food and seed inputs can be given different forced stack sizes.
+//
+// v1.0.0: ship polish — SimultaneousConversion description leads with an explicit no-pooling
+// warning, and EnableDiagnostics default flips to false now the mod is verified in-game.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -35,12 +50,14 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> AcceptFood = null!;
     internal static ConfigEntry<bool> AcceptSeeds = null!;
     internal static ConfigEntry<int> FoodToCompostRatio = null!;
-    internal static ConfigEntry<float> FoodMinutes = null!;
+    internal static ConfigEntry<float> FoodGameHours = null!;
     internal static ConfigEntry<int> SeedsToCompostRatio = null!;
-    internal static ConfigEntry<float> SeedMinutes = null!;
+    internal static ConfigEntry<float> SeedGameHours = null!;
     internal static ConfigEntry<string> CompostItemName = null!;
     internal static ConfigEntry<string> FoodCategoryMatch = null!;
-    internal static ConfigEntry<int> InputStackSize = null!;
+    internal static ConfigEntry<int> FoodStackSize = null!;
+    internal static ConfigEntry<int> SeedStackSize = null!;
+    internal static ConfigEntry<bool> SimultaneousConversion = null!;
 
     // Captured by Patches/LifecyclePatches.cs (PlayerCharacter.Spawned/Despawned postfixes, gated on
     // HasAuthority). Despawned clearing this also doubles as world-leave state clear. Also the
@@ -54,8 +71,8 @@ public class Plugin : BasePlugin
         EnableDiagnostics = Config.Bind(
             section: "Diagnostics",
             key: "EnableDiagnostics",
-            defaultValue: true,
-            description: "Master switch for the OuthouseComposter Phase 0 read-only recon (world-session tracking, hotkey dump, auto-dump). Default true (project rule for pre-verification diagnostics) — flip to false once Phase 0 recon is complete.");
+            defaultValue: false,
+            description: "Master switch for OuthouseComposter diagnostic logging (world-session recon, hotkey/auto dump, per-conversion log lines). Shipped default false — flip to true when troubleshooting.");
 
         DumpKey = Config.Bind(
             section: "Diagnostics",
@@ -87,11 +104,11 @@ public class Plugin : BasePlugin
             defaultValue: 1,
             description: "How many food units are consumed per Compost produced. No partial conversions — the food timer skips (and re-arms) if the container's food pool is below this amount when it fires.");
 
-        FoodMinutes = Config.Bind(
+        FoodGameHours = Config.Bind(
             section: "Composter",
-            key: "FoodMinutes",
+            key: "FoodGameHours",
             defaultValue: 5.0f,
-            description: "Real-time minutes between food→Compost conversion attempts, per outhouse. The timer only starts once the container's food pool first becomes non-empty.");
+            description: "In-game hours between food→Compost conversion attempts, per outhouse. 1 in-game hour = dayLength/24 ≈ 60 real seconds at normal speed; scales with time acceleration (e.g. TimeWarpMod fast-forward). The timer only starts once the container's food pool first becomes non-empty.");
 
         SeedsToCompostRatio = Config.Bind(
             section: "Composter",
@@ -99,11 +116,11 @@ public class Plugin : BasePlugin
             defaultValue: 20,
             description: "How many seed units are consumed per Compost produced. No partial conversions.");
 
-        SeedMinutes = Config.Bind(
+        SeedGameHours = Config.Bind(
             section: "Composter",
-            key: "SeedMinutes",
+            key: "SeedGameHours",
             defaultValue: 10.0f,
-            description: "Real-time minutes between seeds→Compost conversion attempts, per outhouse.");
+            description: "In-game hours between seeds→Compost conversion attempts, per outhouse. Same in-game-hour scale as FoodGameHours.");
 
         CompostItemName = Config.Bind(
             section: "Composter",
@@ -117,11 +134,23 @@ public class Plugin : BasePlugin
             defaultValue: "Food",
             description: "Comma-separated, case-insensitive substrings matched against ItemInfo.category.Name. An item (that isn't a seed) counts as food if its category name contains any listed substring. The [accept] log lines (when EnableDiagnostics=true) show each item's actual category name — use them to tune this list.");
 
-        InputStackSize = Config.Bind(
+        FoodStackSize = Config.Bind(
             section: "Composter",
-            key: "InputStackSize",
+            key: "FoodStackSize",
             defaultValue: 10,
-            description: "Forced stack size for accepted food/seed inputs in the outhouse container (ItemContainer.GetStackSize returned 0 for them natively — this is the override).");
+            description: "Forced stack size for accepted FOOD inputs in the outhouse container (ItemContainer.GetStackSize returns 0 for them natively — this is the override).");
+
+        SeedStackSize = Config.Bind(
+            section: "Composter",
+            key: "SeedStackSize",
+            defaultValue: 200,
+            description: "Forced stack size for accepted SEED inputs in the outhouse container. Seeds stack to 200 in other storage containers; match that here.");
+
+        SimultaneousConversion = Config.Bind(
+            section: "Composter",
+            key: "SimultaneousConversion",
+            defaultValue: false,
+            description: "WARNING: in simultaneous mode there is NO cross-slot pooling — a slot only converts if that single slot holds a full ratio's worth (e.g. two stacks of 10 seeds at ratio 20 will NEVER combine into a conversion; sequential mode is what pools across slots). false = sequential: each timer fire performs ONE conversion per outhouse, consuming the ratio's worth from the first matching slot(s) in container order. true = simultaneous: each timer fire evaluates every occupied food/seed slot independently; each slot holding at least a full ratio's worth converts once (consumes ratio units from that slot, produces 1 Compost), all in the same fire.");
 
         // Register our custom Mono class into IL2CPP
         ClassInjector.RegisterTypeInIl2Cpp<ComposterDiag>();
@@ -134,6 +163,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodMinutes.Value}min) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedMinutes.Value}min) CompostItemName='{CompostItemName.Value}' DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value}.");
+        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value}.");
     }
 }

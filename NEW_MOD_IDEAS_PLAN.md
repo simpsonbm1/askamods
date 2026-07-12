@@ -28,8 +28,9 @@ marked otherwise. Most ideas originate from Nexus user feedback (credited per id
 - Idea 11, manual-schedule mode for DynamicVillagerNeeds → **SHIPPED** through DVN v1.9.x
   (Phases 0–2 + QoL complete) — [`docs/mods/dynamic-villager-needs.md`](docs/mods/dynamic-villager-needs.md).
   Only Phase 3 remains open — see the idea-11 section below.
-- Idea 13, outhouse composter → **BUILT** as OuthouseComposterMod v0.2.0, ⚠️ pending in-game
-  confirmation; Phases 2–3 unbuilt — see the idea-13 section below.
+- Idea 13, outhouse composter → **SHIPPED** as OuthouseComposterMod v1.0.0 (Phase 1, confirmed
+  in-game 2026-07-12) — [`docs/mods/outhouse-composter.md`](docs/mods/outhouse-composter.md).
+  Phases 2–3 unbuilt.
 - Idea 15, villager ammo refund → **SHIPPED** as VillagerAmmoMod —
   [`docs/mods/villager-ammo.md`](docs/mods/villager-ammo.md). ⚠️ The research's recommended
   "refill-on-remove" approach was a FATAL dead-end — see the idea-15 stub below.

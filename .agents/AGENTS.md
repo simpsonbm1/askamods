@@ -211,7 +211,7 @@ askamods/
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v0.2.3 — docs/mods/villager-ammo.md]
-  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [WIP v0.2.0 — built 2026-07-11, ⚠️ PENDING in-game confirmation — NEW_MOD_IDEAS_PLAN.md idea 13]
+  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [COMPLETE v1.0.0 — docs/mods/outhouse-composter.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
@@ -246,7 +246,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | Read this | When you're working on |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped by subsystem: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations/task-priority, villager complaints/issue tracker, settlement hauling, inventory/settlement/recipes, cooking pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, villager ranged/ammo, worldgen/streaming, caves/mines, build menu/structure templates/localization, terrain/terraforming, dens/population spawners, villager summoning (Eye of Odin), native crash diagnosis (WER + Cpp2IL) |
-| `docs/mods/<mod>.md` | The matching mod — current recipe, config reference, per-mod dead-ends (pointers also in the Project Structure above): bow-damage.md, tree-respawn.md, health-regen.md, torch-fuel.md, dynamic-villager-needs.md, villager-fight-back.md, seed-scout.md, mine-refresh.md, jotun-blood-yield.md, terrain-leveler.md, resource-marker-radius.md, task-unlocker.md, zero-task-workers.md, ground-item-vacuum.md, fish-fillet.md, den-respawn.md, time-warp.md, summon-timer.md, villager-ammo.md |
+| `docs/mods/<mod>.md` | The matching mod — current recipe, config reference, per-mod dead-ends (pointers also in the Project Structure above): bow-damage.md, tree-respawn.md, health-regen.md, torch-fuel.md, dynamic-villager-needs.md, villager-fight-back.md, seed-scout.md, mine-refresh.md, jotun-blood-yield.md, terrain-leveler.md, resource-marker-radius.md, task-unlocker.md, zero-task-workers.md, ground-item-vacuum.md, fish-fillet.md, den-respawn.md, time-warp.md, summon-timer.md, villager-ammo.md, outhouse-composter.md |
 | [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas with Cecil-confirmed API leads. Open: crafting multiplier (idea 3), freezing hunters (5), pre-construction worker/task setup (7), DVN Phase 3 schedule-UI overlap warning (11), demand-driven crafting prioritization (12), outhouse composter Phases 2–3 (13), rocks-only remover (14). Shipped ideas are one-line pointers to their mod docs |
 | [`AGENTS.md`](AGENTS.md) (repo root) | Onboarding a NEW/non-Claude agent (e.g. OpenAI Codex auto-loads this path): reading order, which CLAUDE.md sections are Claude-Code-specific, the user working agreement, hook automation that must be replaced manually |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |

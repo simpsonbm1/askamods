@@ -159,7 +159,7 @@ internal static class GetStackSizePatch
             if (!OuthouseGate.IsOuthouseContainer(__instance)) return;
             if (!OuthouseGate.IsAcceptedInput(itemInfo)) return;
 
-            __result = Plugin.InputStackSize.Value;
+            __result = OuthouseGate.IsSeed(itemInfo) ? Plugin.SeedStackSize.Value : Plugin.FoodStackSize.Value;
 
             if (Plugin.EnableDiagnostics.Value)
             {
