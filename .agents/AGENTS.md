@@ -236,7 +236,7 @@ askamods/
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [COMPLETE v1.0.0 — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.4.3, Phase 0 + 1 (priority autopilot) + 2a (warehouse/clog diagnostics) complete, in-game-verified 2026-07-13, dev tool NOT for Nexus — docs/mods/supply-chain.md]
-  NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
+  NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed

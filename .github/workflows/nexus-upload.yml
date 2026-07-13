@@ -38,6 +38,7 @@ on:
           - DenRespawnMod
           - OuthouseComposterMod
           - VillagerAmmoMod
+          - NoNeedsMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -86,6 +87,7 @@ jobs:
             DenRespawnMod)           file_id=7638170 ;;   # Enemy Den Respawner
             OuthouseComposterMod)    file_id=7651913 ;;   # Outhouse Composter
             VillagerAmmoMod)         file_id=7651994 ;;   # Unlimited Arrows for Villagers
+            NoNeedsMod)              file_id=7657799 ;;   # Max All Needs
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
