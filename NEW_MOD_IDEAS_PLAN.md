@@ -426,7 +426,8 @@ all-villager ticks (worst cohort 28 ms).
 - **Phase 0 — flow diagnostics (read-only), SHIPPED as SupplyChainMod v0.1.3** — all Phase 0
   unknowns answered in-game 2026-07-12; findings absorbed into `docs/architecture.md`
   (`docs/mods/supply-chain.md` for the diagnostic mod itself).
-- **Phase 1 — crafting priority bumps** (boost/revert/duty-cycle + ledger; solo/host).
+- **Phase 1 — crafting priority bumps — BUILT as SupplyChainMod v0.3.5** (1a spike + 1b
+  complaint-driven controller), core in-game-verified 2026-07-12; see `docs/mods/supply-chain.md`.
 - **Phase 2 — storage drain management** (warehouse allotment quota/priority; fixes the byproduct
   clog; the metabolic plane comes online here).
 - **Phase 3 — gathering tiers** (the second bump flavor).
@@ -440,7 +441,7 @@ all-villager ticks (worst cohort 28 ms).
 - Deferred idea from v1, unchanged status: "priority softening" (patch task-selection into
   weighted/round-robin) — deeper + riskier; duty-cycling achieves most of it externally.
 
-*Open unknowns (Phase 0 ANSWERED in-game 2026-07-12):*
+*Open unknowns (Phase 0 + Phase 1 ANSWERED in-game 2026-07-12):*
 **Answered:** `Rpc_ChangeTaskPriority` args (taskIndex, newPriority); gathering tier mechanism
 (FiltersTaskData filters + Rpc_ChangeTaskFilters); native add-task path exists (Rpc_AddTask +
 WorkstationMenu.AddTaskDataToWorkstation); no-production complaint payload (SettlementIssueTrackerWidget
@@ -448,12 +449,16 @@ map ItemInfo→needed-by string); storage-full fires (typed StorageFullComplaint
 complaint cadence (level signal, re-add ~50–100 ms, fresh id ~3 s, chronic 40–160 s vs transient
 <2 s, alarm 60 s); AddComplaint not inlined; complaint TryCast works; CraftBlueprint ingredient
 access (via _localBlueprints + CreateFromBlueprint; KnowsBlueprintForItem is a dead-end); sweep
-cost measured (6–20 ms per 31 stations, 10.8 ms per 61 stations).
+cost measured (6–20 ms per 31 stations, 10.8 ms per 61 stations); priority Int32 rank-vs-index
+semantics (= 0-based rank index mirroring list position, confirmed 2026-07-12); `NetworkWorkstation<T>`
+reachability (GetComponent works; property lies, confirmed 2026-07-12).
 
-**Still open:** priority Int32 rank-vs-index semantics (all live priorities were 0 in-game);
-whether mod-created tasks serialize like player ones; dead-inventory native alert (untested; sweep-only
-detection assumed per design); `NetworkWorkstation<T>` base-chain reachability from station
-wrappers (unexercised — Phase 0 never touched the network classes at runtime).
+**Still open:** whether mod-created tasks serialize like player ones; dead-inventory native alert
+(untested; sweep-only detection assumed per design); research-task discriminator (no assigned
+workers + TaskDataPanel `_bgStudyTaskColor` are markers; Phase 1b controller excluded research tasks
+per user decision); untested Phase 1b edges (militia-alarm lockout no raid/test, StationBusy rotation
+no same-station contention observed, capacity verdict via 2 ineffective cycles all real boosts
+self-cleared early).
 
 *Sequencing dependency:* do NOT start building while the stack's hitching investigation is open —
 land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,

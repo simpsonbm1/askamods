@@ -45,6 +45,11 @@ internal static class ComplaintLog
     private static readonly List<string> _ignoreSubstrings = new();
     private static readonly HashSet<string> _ignoreExactValues = new();
 
+    // v0.3.0 — militia-alarm lockout signal for SupplyController. Complaint.c_militia_alarm is a
+    // STRING message-key static (Cecil-confirmed — there is NO bool alarm member), cached the same
+    // lazy way as the ignore-filter statics above.
+    private static string? _militiaAlarmKey;
+
     // Per-world: which complaint ids were suppressed at ADD, so the matching REMOVE(id) can also be
     // suppressed. Cleared on world-leave (ClearState, called from SupplyChainTracker.NoteWorldLeft)
     // — ids are per-world-session, never globally unique (project-wide gotcha).
@@ -62,6 +67,11 @@ internal static class ComplaintLog
         public string Discriminator = "?";
         public DateTime FirstSeen;
         public int ReAdds;
+        // v0.3.0 — cached demand-item extraction (ItemComplaint/ItemManifestComplaint only) and the
+        // complaint's important flag, so re-adds can feed SupplyController.NoteDemand without any
+        // TryCast work (re-adds fire at ~20/s per held complaint — this must stay cheap).
+        public List<string>? DemandItems;
+        public bool Important;
     }
 
     private static readonly Dictionary<string, ActiveEntry> _active = new();
@@ -91,6 +101,9 @@ internal static class ComplaintLog
 
         try { var v = Complaint.c_combat_feelUnsafeAtHome; if (!string.IsNullOrEmpty(v)) _ignoreExactValues.Add(v); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Complaint.c_combat_feelUnsafeAtHome read error: {ex}"); }
+
+        try { _militiaAlarmKey = Complaint.c_militia_alarm; }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Complaint.c_militia_alarm read error: {ex}"); }
 
         Plugin.Logger.LogInfo($"[SupplyChain] [complaint] ignore filter built: {_ignoreSubstrings.Count} substring(s), {_ignoreExactValues.Count} exact static value(s).");
     }
@@ -196,6 +209,14 @@ internal static class ComplaintLog
             string? gmMessage = null;
             if (gm != null) { try { gmMessage = gm.message; } catch { } }
 
+            // v0.3.0 — militia-alarm lockout signal, checked BEFORE the ignore-filter early return
+            // so it fires even if this exact message also happens to be filtered from logging.
+            if (!string.IsNullOrEmpty(gmMessage) && gmMessage == _militiaAlarmKey)
+            {
+                try { SupplyController.NoteAlarm(); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteAlarm error: {ex}"); }
+            }
+
             if (gm != null && IsIgnoredMessage(gmMessage))
             {
                 if (id >= 0) _suppressedIds.Add(id);
@@ -222,6 +243,15 @@ internal static class ComplaintLog
                 {
                     entry.ReAdds++;
                     _statsReAdds++;
+
+                    // v0.3.0 — re-adds are the freshness signal for SupplyController; use ONLY the
+                    // cached list (no TryCasts on this hot path, which fires ~20/s per held complaint).
+                    if (entry.DemandItems != null && entry.DemandItems.Count > 0)
+                    {
+                        try { SupplyController.NoteDemand(entry.DemandItems, entry.Important); }
+                        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteDemand (readd) error: {ex}"); }
+                    }
+
                     return; // silent — level signal, not an edge
                 }
                 // same id slot, different content — treat as a fresh complaint occupying the slot.
@@ -249,11 +279,70 @@ internal static class ComplaintLog
                 $"important={important} notification={notification} forcedMenuNotification={forcedMenuNotification} t={ts}");
 
             if (complaint != null) LogPayload(complaint);
+
+            // v0.3.0 — demand-item extraction: ItemComplaint/ItemManifestComplaint only in this
+            // phase (Category/Complex/Loadouts/Structure/FailedObjective yield no demand items).
+            // Cached on the entry so the hot re-add path above never needs a TryCast.
+            List<string> demandItems = complaint != null ? ExtractDemandItems(complaint) : new List<string>();
+            entry.DemandItems = demandItems.Count > 0 ? demandItems : null;
+            entry.Important = important;
+            if (demandItems.Count > 0)
+            {
+                try { SupplyController.NoteDemand(demandItems, important); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteDemand error: {ex}"); }
+            }
         }
         catch (Exception ex)
         {
             Plugin.Logger.LogError($"[SupplyChain] LogAdd error: {ex}");
         }
+    }
+
+    // v0.3.0 — demand-item extraction for SupplyController, factored out so the ItemComplaint /
+    // ItemManifestComplaint enumeration recipe (already used by LogPayload below) isn't duplicated.
+    // Category/Complex/Loadouts/Structure/FailedObjective complaints yield NO demand items in this
+    // phase — their "what item" signal isn't a single ItemInfo/manifest the controller can target.
+    private static List<string> ExtractDemandItems(Complaint complaint)
+    {
+        var result = new List<string>();
+
+        try
+        {
+            var itemComplaint = complaint.TryCast<ItemComplaint>();
+            if (itemComplaint != null)
+            {
+                string name = Common.SafeItemName(itemComplaint.itemInfo);
+                if (name != "?") result.Add(name);
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ExtractDemandItems ItemComplaint error: {ex}"); }
+
+        try
+        {
+            var manifestComplaint = complaint.TryCast<ItemManifestComplaint>();
+            if (manifestComplaint != null)
+            {
+                var manifest = manifestComplaint.itemManifest;
+                if (manifest != null)
+                {
+                    var items = manifest.GetItems();
+                    int n = items != null ? items.Count : 0;
+                    for (int i = 0; i < n; i++)
+                    {
+                        try
+                        {
+                            var iq = items![i];
+                            string name = Common.SafeItemName(iq.itemInfo);
+                            if (name != "?") result.Add(name);
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ExtractDemandItems ItemManifestComplaint error: {ex}"); }
+
+        return result;
     }
 
     internal static void LogRemove(VillagerSocial? social, int id)

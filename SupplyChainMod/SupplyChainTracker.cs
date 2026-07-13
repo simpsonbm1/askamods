@@ -9,8 +9,12 @@ namespace SupplyChainMod;
 // real work on multi-second intervals — no per-frame work beyond the hotkey/typing-guard check and
 // the world-session id poll (both cheap, and the world-session poll itself is throttled below).
 //
-// Phase 0 is READ-ONLY: this class and everything it calls only observes and logs. No priority
-// changes, no task creation, no inventory writes.
+// Phase 0 (dump/composition/complaint/BOM diagnostics) is READ-ONLY: it only observes and logs.
+// v0.2.0 adds Phase 1a: a hotkey-gated ActuationSpike boost/revert with a crash-safe ledger — the
+// mod's first write-capable path, gated behind Plugin.EnableSpike and only ever triggered by the
+// spike hotkey or a ledger restore at world load (see ActuationSpike.cs). v0.3.0 adds Phase 1b:
+// SupplyController, the complaint-driven autopilot (gated behind Plugin.EnableController, dry-run
+// by default, F11-armed), driven from the same MasterTick and sharing RankActuator's write path.
 public class SupplyChainTracker : MonoBehaviour
 {
     private const float WorldPollInterval = 5f;
@@ -22,6 +26,9 @@ public class SupplyChainTracker : MonoBehaviour
     private float _widgetTimer;
 
     private KeyCode _dumpKey = KeyCode.F9;
+    private KeyCode _spikeKey = KeyCode.F10;
+    private KeyCode _controllerArmKey = KeyCode.F11;
+    private bool _ledgerRestoreDone;
 
     // Never cache per-world native wrappers across world sessions (project-wide gotcha) — only
     // StorageManager itself (a persistent, cross-world singleton) is cached; everything else is
@@ -35,15 +42,30 @@ public class SupplyChainTracker : MonoBehaviour
     private DateTime _lastStationResolveAt = DateTime.MinValue;
     private int _sweepCursor;
 
-    private void Start()
+    // On-screen toast (v0.2.2) — ported from MineRefreshMod/MineRefreshTracker.cs's proven
+    // ShowMessage/OnGUI pattern. Static so ActuationSpike (a static class with no MonoBehaviour
+    // reference) can post a toast directly; OnGUI (an instance lifecycle method) just renders
+    // whatever the static fields currently hold.
+    private static string? _guiMessage;
+    private static float _guiMessageExpiry;
+
+    internal static void ShowMessage(string message, float seconds)
     {
-        _dumpKey = ParseKey(Plugin.DumpHotkey.Value, KeyCode.F9);
+        _guiMessage = message;
+        _guiMessageExpiry = Time.time + seconds;
     }
 
-    private static KeyCode ParseKey(string raw, KeyCode fallback)
+    private void Start()
+    {
+        _dumpKey = ParseKey(Plugin.DumpHotkey.Value, KeyCode.F9, "DumpHotkey");
+        _spikeKey = ParseKey(Plugin.SpikeHotkey.Value, KeyCode.F10, "SpikeHotkey");
+        _controllerArmKey = ParseKey(Plugin.ControllerArmHotkey.Value, KeyCode.F11, "ControllerArmHotkey");
+    }
+
+    private static KeyCode ParseKey(string raw, KeyCode fallback, string keyName)
     {
         if (Enum.TryParse<KeyCode>(raw, true, out var parsed)) return parsed;
-        Plugin.Logger.LogWarning($"[SupplyChain] Could not parse DumpHotkey '{raw}'. Using default '{fallback}'.");
+        Plugin.Logger.LogWarning($"[SupplyChain] Could not parse {keyName} '{raw}'. Using default '{fallback}'.");
         return fallback;
     }
 
@@ -58,6 +80,37 @@ public class SupplyChainTracker : MonoBehaviour
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Hotkey check error: {ex}"); }
+
+        try
+        {
+            if (Plugin.EnableSpike.Value && !Common.IsTextInputFocused() && Input.GetKeyDown(_spikeKey))
+            {
+                if (_currentWorldId == null)
+                {
+                    Plugin.Logger.LogInfo("[SupplyChain] [spike] Hotkey pressed but skipped — no active world session.");
+                    ShowMessage("Spike: no active world.", 4f);
+                }
+                else
+                {
+                    try
+                    {
+                        ResolveStationsIfDue(force: true);
+                        ActuationSpike.OnHotkey(_stations, _currentWorldId);
+                    }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.OnHotkey error: {ex}"); }
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Spike hotkey check error: {ex}"); }
+
+        try
+        {
+            if (Plugin.EnableController.Value && !Common.IsTextInputFocused() && Input.GetKeyDown(_controllerArmKey))
+            {
+                SupplyController.ToggleArmed();
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Controller arm-hotkey check error: {ex}"); }
 
         // World-session tracking always runs (not gated by EnableDiagnostics) — every other
         // component depends on _currentWorldId / _stations being current.
@@ -133,8 +186,13 @@ public class SupplyChainTracker : MonoBehaviour
         _stations = new List<StationEntry>();
         _lastStationResolveAt = DateTime.MinValue;
         _sweepCursor = 0;
+        _ledgerRestoreDone = false;
         WidgetWatcher.ClearState();
         Patches.ComplaintLog.ClearState();
+        try { ActuationSpike.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.NoteWorldLeft error: {ex}"); }
+        try { SupplyController.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────
@@ -146,6 +204,25 @@ public class SupplyChainTracker : MonoBehaviour
         if (_stations.Count == 0) return;
 
         CompositionSweep.TickRolling(_stations, Plugin.SweepStationsPerTick.Value, ref _sweepCursor);
+
+        if (Plugin.EnableSpike.Value)
+        {
+            if (!_ledgerRestoreDone)
+            {
+                _ledgerRestoreDone = true;
+                try { ActuationSpike.OnWorldReady(_currentWorldId!, _stations); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.OnWorldReady error: {ex}"); }
+            }
+
+            try { ActuationSpike.TickAutoRevert(_stations); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.TickAutoRevert error: {ex}"); }
+        }
+
+        if (Plugin.EnableController.Value)
+        {
+            try { SupplyController.Tick(_stations, _currentWorldId!); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.Tick error: {ex}"); }
+        }
 
         if (!_autoTaskDumped && _worldLoadTime.HasValue && (Time.time - _worldLoadTime.Value) >= AutoTaskDumpDelaySeconds)
         {
@@ -193,5 +270,33 @@ public class SupplyChainTracker : MonoBehaviour
 
         try { BomDump.Dump(trigger); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] BomDump({trigger}) error: {ex}"); }
+    }
+
+    // ── On-screen toast rendering (ported verbatim from MineRefreshMod/MineRefreshTracker.cs) ──
+    private void OnGUI()
+    {
+        try
+        {
+            if (Time.time < _guiMessageExpiry && !string.IsNullOrEmpty(_guiMessage))
+            {
+                // Drop shadow style
+                var shadowStyle = new GUIStyle(GUI.skin.label);
+                shadowStyle.fontSize = 24;
+                shadowStyle.fontStyle = FontStyle.Bold;
+                shadowStyle.alignment = TextAnchor.MiddleCenter;
+                shadowStyle.normal.textColor = Color.black;
+
+                // Main text style
+                var textStyle = new GUIStyle(shadowStyle);
+                textStyle.normal.textColor = Color.yellow;
+
+                // Render drop shadow
+                GUI.Label(new Rect(0, 81, Screen.width, 100), _guiMessage, shadowStyle);
+
+                // Render main text
+                GUI.Label(new Rect(0, 80, Screen.width, 100), _guiMessage, textStyle);
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] OnGUI error: {ex}"); }
     }
 }

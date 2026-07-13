@@ -631,7 +631,17 @@ same surface symptom ("the village is short on X").
   `GetQuantityRange()`. Priority is SERIALIZED into saves (key names per station type:
   `c_taskDataPriority` on CraftingStation/CookingStation/AnimalPen; `c_taskPriority` on
   Buildstation/ResourceStorage; `c_taskPriorityKey` on FarmingStation) — a modified priority
-  PERSISTS across save/reload. In-game all observed live task priority ints were 0 (defaults).
+  PERSISTS across save/reload. **Priority Int32 == 0-based rank index**, mirroring list position
+  (confirmed in-game 2026-07-12: Workshop House 2 CraftingStation with 28 tasks showed priorities
+  0..27 exactly matching `_taskDatas` indices). `RefreshTaskDataPriorities()` renumbers all
+  priorities from list order, squashing any direct `SetPriority(Int32)` value write (setter itself
+  works; readback before/after confirms the setter succeeds, but the next refresh reverts it to
+  list order). **The working actuation recipe:** move the task within live `Workstation._taskDatas`
+  list (via `RemoveAt(oldIndex)` + `Insert(newIndex)`, the property IS the live backing list,
+  pointer-identical to `GetWorkstationTaskDatas()`) → call `RefreshTaskDataPriorities()` to renumber
+  → `HostUpdateTasks()` on the GetComponent-probed `NetworkCraftingStation` for co-op sync; reverting
+  = moving back to original index. Persistence confirmed (ledger-restore design proven in-game
+  2026-07-12).
 - **Full task RPC surface on `SSSGame.Network.NetworkWorkstation<T>`** (Cecil-verified
   2026-07-12): `Rpc_AddTask(TaskType, Il2CppStructArray villagersInChargeIDs)` (native
   add-task RPC exists), `Rpc_RemoveTaskData`, `Rpc_ChangeTaskPriority(Int32 taskIndex, Int32
@@ -642,9 +652,20 @@ same surface symptom ("the village is short on X").
   station (NetworkCraftingStation, NetworkCookingStation, etc.) each with nested blittable
   `NetworkTask` struct (itemID:UInt16, quantity, priority:Byte, villagersInCharge:Byte mask) +
   `_TryGetNetworkTaskFromTask`/`_CreateTaskFromNetworkTask` converters both ways.
+- **Network component reachability (confirmed in-game 2026-07-12):** `Workstation.NetworkWorkstations`
+  interop property returns null/empty at runtime even when the `NetworkCraftingStation` component
+  exists on the same GameObject (GetComponent finds it; confirmed via successful `HostUpdateTasks()`
+  call on the probe result). Reach network components via `GetComponent<NetworkCraftingStation>()`,
+  not the cached link property.
 - **Task-data hierarchy constructible:** `WorkstationTaskData(.ctor(ItemInfo, qty, villagers,
   removable))`, `CraftingStationTaskData(…, CraftingStation)`, `BuildStationTaskData`,
-  `FiltersTaskData(IFilterTaskStation, taskId)`. UI add path:
+  `FiltersTaskData(IFilterTaskStation, taskId)`. **Cooking/fire stations keep a `FiltersTaskData`
+  at data index 0** (the fuel-tending section: Firewood/Coal/Stick/Bark/Thatch/Wood Shaft, all
+  priority -1, removable=False; confirmed in-game 2026-07-12). It's rendered as its own UI block
+  above cooking task rows, so the visible top cooking slot = data index 1. Mods must not reorder
+  above it. **Normal cooking tasks** (Campfire/etc.) are plain `WorkstationTaskData`; **workshop
+  crafting tasks** are `CraftingStationTaskData` (qtyRange (0,30) observed vs cooking's unbounded
+  int-min/max range; confirmed in-game 2026-07-12). UI add path:
   `WorkstationMenu.AddTaskDataToWorkstation(WorkstationTaskData):bool` →
   `Workstation.AddTaskData` [virtual] + `CheckForDuplicateTaskData`; host sync via
   `HostUpdateTasks()`→NetworkArray. Native task PRESET system exists
@@ -656,7 +677,8 @@ same surface symptom ("the village is short on X").
   CreateFilterTask(taskId)` (Cooking filler-food, Charcoal, Hunting, Kennel, Dining, …).
   Tier-set over network = `Rpc_ChangeTaskFilters`.
 
-**Two priority mechanisms + the vanilla starvation loop (confirmed in-game 2026-07-09):**
+**Two priority mechanisms + the vanilla starvation loop (confirmed in-game 2026-07-09; demand
+mechanics confirmed in-game 2026-07-12):**
 1. **Crafting stations:** use an absolute RANKED LIST with per-task QUOTA measured against LOCAL
    inventory. Worker fills rank 1's quota locally, moves to rank 2, snaps BACK to earlier ranks if
    their quota drops below the local count.
@@ -668,6 +690,14 @@ same surface symptom ("the village is short on X").
 4. **The persistent-monopoly mechanism:** QUOTA-vs-LOCAL-INVENTORY + WAREHOUSE-HAULER-DRAIN loop —
    haulers carrying output away keep the quota unmet, so the top task never self-completes (intended
    vanilla design; creates the user-observed starvation loop).
+5. **Demand signal shape (confirmed in-game 2026-07-12):** complaint bursts occur with minutes-long
+   gaps, not continuous holds — any demand model needs burst-tolerant retention. `ItemManifestComplaint`s
+   mostly demand a station's raw INPUT items (gathered, unboostable); crafted-item demands from
+   downstream consumers are rarer. **Already-at-top diagnosis:** players often already have the
+   starving item top-ranked — "already top + demand persists" indicates a bottleneck-is-elsewhere
+   (inputs/capacity) situation, not a priority boost case. Confirming the item is already at/above
+   the target rank and demand persists across a boost attempt identifies this condition (confirmed
+   in-game 2026-07-12).
 
 ### Builder-loan recipe via agent registry (idea-11 Phase 2, confirmed in-game 2026-07-10)
 **Loan plumbing — off-duty villagers temporarily assigned to the builder pool:**
