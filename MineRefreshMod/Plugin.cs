@@ -38,7 +38,7 @@ public class Plugin : BasePlugin
         SafetyRadius = Config.Bind(
             section: "General",
             key: "SafetyRadius",
-            defaultValue: 25.0f,
+            defaultValue: 10.0f,
             description: "Safety proximity scan radius (in meters). If any player or worker is within this distance of any hallway/node in the mine, the refresh will be blocked to prevent trapping them.");
 
         TriggerOnlyNearEntrance = Config.Bind(

@@ -1,6 +1,12 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.3)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.4)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
+
+**v1.3.4 — SafetyRadius default lowered to 10m (confirmed in-game 2026-07-13)**
+Lowered `SafetyRadius` default from 25.0 to 10.0 meters. The 25m default caused
+frequent false-positive "player/worker too close" blocks. Caveat: BepInEx preserves
+existing `.cfg` values, so new default applies only to fresh configs — existing users
+must manually edit or delete the SafetyRadius line to adopt it.
 
 **v1.3.3 — Authority gate rework (confirmed in-game 2026-07-12)**
 Reworked the authority gate following a Nexus bug report (user pdp2010, self-hosted co-op).
@@ -26,7 +32,7 @@ and solved.
   hotkey (default: `U`). When pressed near a mine entrance (default: <20m), it triggers the refresh.
 - **Proximity Safety Check**: Scans all active characters in the world using our high-performance
   local `Plugin.ActiveCharacters` list. If any player or worker (excluding the player triggering the
-  refresh) is within `SafetyRadius` (default: 25m) of *any* hallway/node in the target mine, the
+  refresh) is within `SafetyRadius` (default: 10m) of *any* hallway/node in the target mine, the
   refresh is blocked, and their name is displayed in-game to prevent trapping them.
 - **Authority Gate (v1.3.3)**: The refresh uses a 4-step authority check to handle all session
   types safely: (1) if `[General] ForceAllowRefresh` is enabled, skip the authority gate entirely
@@ -92,13 +98,13 @@ and solved.
 
 **Config Options (`com.askamods.minerefresh.cfg`):**
 - `General/TriggerHotkey` (string, default: `"u"`): The key to trigger the refresh.
-- `General/SafetyRadius` (float, default: `25.0`): Safe clearance distance from all mine nodes.
+- `General/SafetyRadius` (float, default: `10.0`): Safe clearance distance from all mine nodes.
 - `General/TriggerOnlyNearEntrance` (bool, default: `true`): Restrict trigger to mine entrances.
 - `General/MaxEntranceDistance` (float, default: `20.0`): Maximum distance from entrance allowed.
 - `General/RespawnItems` (bool, default: `true`): Respawn chests, loose ore, and mushrooms.
-- `General/ForceAllowRefresh` (bool, default: `false`): If true, skip the authority gate entirely
-  (refreshes even on non-host clients in co-op). Logs a warning about potential sync issues —
-  use this only if the host gate is blocking you incorrectly.
+- `General/ForceAllowRefresh` (bool, default: `false`): If true, skip the authority gate
+  entirely (refreshes even on non-host clients in co-op). Logs a warning about potential
+  sync issues — use this only if the host gate is blocking you incorrectly.
 
 **Nexus Reporter Status**
 - **pdp2010** (self-hosted co-op, v1.3.2): Got "Only the host/server can refresh the mine!"

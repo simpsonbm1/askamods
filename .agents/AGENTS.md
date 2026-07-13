@@ -221,7 +221,7 @@ askamods/
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
   SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.1 — docs/mods/seed-scout.md]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins [v1.0.0 — SUPERSEDED by SeedScout; keep for the PlayerDrive.Teleport primitive — docs/archive/WARP_TOUR_HANDOFF.md]
-  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh [COMPLETE v1.3.3 — docs/mods/mine-refresh.md]
+  MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh [COMPLETE v1.3.4 — docs/mods/mine-refresh.md]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
