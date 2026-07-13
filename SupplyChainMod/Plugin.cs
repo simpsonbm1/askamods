@@ -115,6 +115,32 @@ namespace SupplyChainMod;
 // whose only matching station is locked by another boost now rotates in (retry in 20s, no
 // strike/backoff) instead of being mislabeled "no boostable task" and going stale — fixes a
 // starvation case where a mature demand never got a turn while another demand held the station.
+//
+// v0.4.0 — Phase 2a: warehouse (ResourceStorage) allotment diagnostics + a dry-run clog detector.
+// TaskDump gained a ResourceStorageTaskData probe (storageSupply's taskMaxQuota/defaultTaskPriority
+// /IsAvailable()/taskContainer). New WarehouseWatch (read-only): builds each warehouse's allotment
+// table (task item/qty/stored/met/rank/maxQuota/supplyOwner) on a poll cadence, probes for a
+// NetworkCompositeResourceStorage/NetworkSimpleResourceStorage component once per warehouse per
+// world (fire-verification for a future write path), and — fed by the storage-full widget events
+// (AddStorageFullComplaint/RemoveStorageFullComplaint) — runs a dry-run clog detector: when a
+// complaining station's inventory is dominated by one item AND that item has a warehouse allotment
+// task, it logs/toasts a VERDICT (all allotments met = drain-boost candidate; no allotment task =
+// a different problem than priority). No actuation — read-only, same as every other diagnostic.
+//
+// v0.4.2 — first in-game run (v0.4.1, 2026-07-13) follow-up: a composite warehouse can hold
+// MULTIPLE tasks for the same item (one per child sub-storage supply), so a warehouse-wide
+// GetItemQuantity compared per-task was too coarse (duplicate rows for the same item/warehouse).
+// WarehouseWatch now also reads the per-supply ResourceStorage.GetGatheredItemQuantity and the
+// warehouse's ItemCollection.GetTotalRemainingCapacity every poll (both logged raw, semantics
+// still being learned), groups duplicate (Warehouse, Qty, Stored) rows in clog VERDICT text
+// instead of listing them separately, and adds a STALL escalation for the "watching" case (unmet
+// allotment, haulers should be draining): if the unmet row's Stored hasn't moved for
+// ClogStallMinutes, it diagnoses capacity-blocked (room=0) vs. likely priority-shadowed (room>0)
+// instead of leaving the player to guess. Still fully read-only.
+//
+// v0.4.3 — same v0.4.2 changeset; a nullable-reference warning (CS8602) surfaced by the STALL
+// escalation code was fixed after the v0.4.2 DLL had already deployed, so the SAC bump guard
+// required a further version bump to redeploy the corrected build.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -155,6 +181,14 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> BoostToRank = null!;
     internal static ConfigEntry<string> StationClassAllowList = null!;
     internal static ConfigEntry<float> AlarmLockoutSeconds = null!;
+
+    // ── [Phase2Warehouse] ────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableWarehouseWatch = null!;
+    internal static ConfigEntry<float> WarehousePollSeconds = null!;
+    internal static ConfigEntry<string> WarehouseClassList = null!;
+    internal static ConfigEntry<int> ClogDominantSharePercent = null!;
+    internal static ConfigEntry<float> ClogRealertMinutes = null!;
+    internal static ConfigEntry<float> ClogStallMinutes = null!;
 
     public override void Load()
     {
@@ -328,6 +362,42 @@ public class Plugin : BasePlugin
             defaultValue: 90f,
             description: "Seconds after a militia alarm (Complaint.c_militia_alarm) during which the controller starts NO new boosts — existing Boosting demands still advance/revert normally. Avoids competing with combat/defense priorities.");
 
+        EnableWarehouseWatch = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "EnableWarehouseWatch",
+            defaultValue: true,
+            description: "Master switch for the v0.4.0 warehouse (ResourceStorage) allotment diagnostics + dry-run clog detector (WarehouseWatch) — shipped default TRUE (Phase 2a read-only diagnostic, dev convention). Read-only: no game-state writes.");
+
+        WarehousePollSeconds = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "WarehousePollSeconds",
+            defaultValue: 30.0f,
+            description: "How often (seconds) WarehouseWatch polls warehouses' allotment tables and re-checks the dry-run clog detector.");
+
+        WarehouseClassList = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "WarehouseClassList",
+            defaultValue: "ResourceStorage",
+            description: "Comma-separated, case-sensitive, EXACT native class names (Common.NativeClassName(entry.Ws)) treated as warehouses.");
+
+        ClogDominantSharePercent = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "ClogDominantSharePercent",
+            defaultValue: 40,
+            description: "A complaining station's inventory is considered 'dominated' by its single largest item when that item's share of total stored quantity is at least this percent (0-100).");
+
+        ClogRealertMinutes = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "ClogRealertMinutes",
+            defaultValue: 10.0f,
+            description: "Minutes between repeat on-screen toasts for the same clog VERDICT (station+item). The log line still fires every poll regardless — this only throttles the toast.");
+
+        ClogStallMinutes = Config.Bind(
+            section: "Phase2Warehouse",
+            key: "ClogStallMinutes",
+            defaultValue: 3f,
+            description: "Minutes a watching-case unmet allotment must show an unchanged warehouse stored-count before a STALL diagnosis line/toast fires — distinguishes capacity-blocked (warehouse has no room) from priority-shadowed (room exists, haulers just aren't going).");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -359,7 +429,7 @@ public class Plugin : BasePlugin
         }
 
         Logger.LogInfo(
-            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller. " +
+            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics. " +
             $"TickSeconds={TickSeconds.Value} DumpHotkey='{DumpHotkey.Value}' EnableDiagnostics={EnableDiagnostics.Value} PatchVillagerComplaints={PatchVillagerComplaints.Value} " +
             $"WidgetPollSeconds={WidgetPollSeconds.Value} SweepStationsPerTick={SweepStationsPerTick.Value} IgnoredComplaintMessages='{IgnoredComplaintMessages.Value}' " +
             $"EnableSpike={EnableSpike.Value} SpikeHotkey='{SpikeHotkey.Value}' SpikeStationFilter='{SpikeStationFilter.Value}' SpikeTaskIndex={SpikeTaskIndex.Value} " +
@@ -369,6 +439,8 @@ public class Plugin : BasePlugin
             $"DemandMemoryMinutes={DemandMemoryMinutes.Value} BoostHoldSeconds={BoostHoldSeconds.Value} " +
             $"CooldownSeconds={CooldownSeconds.Value} MaxBoostCyclesPerDemand={MaxBoostCyclesPerDemand.Value} CapacityLockoutMinutes={CapacityLockoutMinutes.Value} " +
             $"MaxConcurrentBoosts={MaxConcurrentBoosts.Value} BoostToRank={BoostToRank.Value} StationClassAllowList='{StationClassAllowList.Value}' " +
-            $"AlarmLockoutSeconds={AlarmLockoutSeconds.Value}.");
+            $"AlarmLockoutSeconds={AlarmLockoutSeconds.Value} " +
+            $"EnableWarehouseWatch={EnableWarehouseWatch.Value} WarehousePollSeconds={WarehousePollSeconds.Value} WarehouseClassList='{WarehouseClassList.Value}' " +
+            $"ClogDominantSharePercent={ClogDominantSharePercent.Value} ClogRealertMinutes={ClogRealertMinutes.Value} ClogStallMinutes={ClogStallMinutes.Value}.");
     }
 }

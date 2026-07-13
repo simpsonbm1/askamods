@@ -429,7 +429,47 @@ all-villager ticks (worst cohort 28 ms).
 - **Phase 1 — crafting priority bumps — BUILT as SupplyChainMod v0.3.5** (1a spike + 1b
   complaint-driven controller), core in-game-verified 2026-07-12; see `docs/mods/supply-chain.md`.
 - **Phase 2 — storage drain management** (warehouse allotment quota/priority; fixes the byproduct
-  clog; the metabolic plane comes online here).
+  clog; the metabolic plane comes online here). Design refinements (user-confirmed mechanics,
+  2026-07-13):
+  - **Quota is an intake throttle, NOT an eviction lever.** Lowering a warehouse quota below the
+    stored count removes nothing — intake just stops until consumption draws the count under quota.
+    Consequences: (a) revert is always item-safe (nothing stranded/destroyed), but a boost's
+    physical effect outlives the revert — the extra stock occupies warehouse capacity until
+    consumed; (b) therefore CAP the boost delta to the clog size read from the composition scan,
+    never "boost to lots"; (c) the mod cannot free warehouse space — physically-full warehouse =
+    capacity boundary = alert, never actuate.
+  - **Quota-raise effectiveness is priority-conditional.** Raising a met quota re-opens the intake
+    valve, but haulers act on it only if that collect task's priority beats other unfilled-quota
+    tasks. Precondition check: log/inspect the collect task's rank vs. the set of other
+    unfilled-quota tasks. Warehouse PRIORITY moves stay the dangerous secondary lever (F3c
+    winner-take-all: one raised collect priority starved all other hauling) — quota-raise-only is
+    tested first; quota+short-duty-cycled-priority only if that proves insufficient.
+  - **Test strategy (contrived clogs are expensive — planned around):** (1) the 2a detector is
+    read-only and rides along passively in every session, validating against ORGANIC clogs;
+    (2) the actuator micro-test needs no clog — any healthy settlement has (item X at a source
+    station + warehouse quota for X met) pairs; the spike auto-selects one, raises the quota,
+    and self-reports whether/when haulers respond (response latency sizes the controller's
+    measure window); (3) full closed loop via a "clog forge" harness: clamp a byproduct's
+    warehouse quota down to its current count (shuts the drain — the failure mode's exact cause),
+    let production build the clog under TimeWarpMod, verify detect→drain-boost→recover→revert in
+    one session. The forge doubles as a permanent regression test for controller changes.
+  - Sub-phasing mirrors Phase 0→1a→1b: **2a** read-only warehouse dump (ResourceStorage task
+    structure, quotas, supply state) + dry-run clog detector logging verdicts — **SHIPPED as
+    SupplyChainMod v0.4.3, in-game-verified 2026-07-13** (three-way diagnosis working: drain
+    candidate / capacity-blocked / priority-shadowed; facts absorbed into architecture.md +
+    docs/mods/supply-chain.md); **2b** hotkey quota-spike (boost/revert through the shared ledger)
+    + hauler-response verification, with the room-split precondition (allotment met + room=0 is a
+    capacity alert, NOT a boost target — run-2 finding); **2c** metabolic plane (snapshot ring
+    buffer + net-rate derivatives) + clog state machine in the existing arbiter (shared ledger/
+    BoostedStationKeys/duty-cycling/capacity verdicts).
+- **Phase 2d — rate-based stock keeping / quota calibration (user-requested 2026-07-13):** use the
+  metabolic plane's per-item derivatives (consumption rate vs intake rate across sweeps) to
+  auto-maintain warehouse allotment quotas at levels that keep the base self-sustaining — quotas
+  sized from measured flow (steady-state target ≈ consumption × buffer window) instead of static
+  player guesses, within the player-owned capacity cap and the quota mechanics above (raise-only
+  effectiveness, never evicts, taskMaxQuota semantics still unknown ⚠️). Distinct from Phase 5
+  (player-DECLARED stock targets): 2d derives targets from observed usage. Builds on 2c's
+  derivatives; ships after 2b's quota actuator is proven.
 - **Phase 3 — gathering tiers** (the second bump flavor).
 - **Phase 4 — task creation** (requires the ledger hardened + the add-task RPC verified;
   dead-inventory detection→alert at minimum, auto-create where derivable).

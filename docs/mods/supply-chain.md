@@ -1,12 +1,14 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.3.5, Phase 0 + Phase 1 complete (priority autopilot: spike + complaint-driven
-controller, core loop in-game-verified 2026-07-12, dev tool NOT for Nexus)
+**Status:** WIP v0.4.3, Phase 0 + Phase 1 + Phase 2a complete (warehouse allotment diagnostics +
+dry-run clog detector, in-game-verified 2026-07-13, dev tool NOT for Nexus)
 
-**Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation. Phase 0
-observes game state (villager complaints, settlement issues, task data, inventory composition),
-never writes; findings absorbed into architecture.md. Phase 1 implements automatic crafting-task
-priority bumps triggered by complaint-based demand, with automatic revert and duty-cycling.
+**Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
+warehouse diagnostics. Phase 0 observes game state (villager complaints, settlement issues, task
+data, inventory composition), never writes; findings absorbed into architecture.md. Phase 1
+implements automatic crafting-task priority bumps triggered by complaint-based demand, with
+automatic revert and duty-cycling. Phase 2a provides read-only warehouse/storage-drain diagnostics
+and clog detection.
 
 ## Design & Components
 
@@ -90,6 +92,28 @@ priority bumps triggered by complaint-based demand, with automatic revert and du
 - Per-demand status line (when active + ≤8 demands): lists maturity gate / span gate / sightings /
   maturity-credit state / craftable flag per demand.
 
+**Phase 2a warehouse diagnostics (v0.4.0–v0.4.3, in-game-verified 2026-07-13):**
+
+- **TaskDump extension** — per-task `ResourceStorageTaskData` probe: supplyOwner / taskMaxQuota /
+  defaultTaskPriority / supplyAvailable / hasTaskContainer.
+- **WarehouseWatch** (new module, read-only) — polls stations whose native class matches
+  `WarehouseClassList` (default `ResourceStorage`): per-warehouse allotment table (item, qty,
+  warehouse-wide stored, met=stored>=qty, rank, taskMaxQuota, supplyOwner, gathered=quota echo,
+  room=GetTotalRemainingCapacity), one-time-per-world network-component probe
+  (NetworkCompositeResourceStorage vs NetworkSimpleResourceStorage_<N>), met-flag transition logs
+  between full tables (full table on F9 + first poll per world).
+- **Dry-run clog detector** — fed by a storage-full registry (Add/RemoveStorageFullComplaint widget
+  postfixes, strings only). Storage-full station → dominant-item composition scan → if share ≥
+  ClogDominantSharePercent: VERDICT A (all matching allotments met → drain-boost candidate, delta
+  = dominant count; duplicate rows grouped 'N×'), VERDICT B (no allotment task exists), or
+  watching (unmet allotment). Watching cases escalate to a STALL diagnosis after ClogStallMinutes
+  with an unchanged stored-count: room=0 → 'capacity-blocked'; room>0 → 'likely priority-shadowed'
+  (logs rank). Toasts deduped per (station,item) by ClogRealertMinutes; log lines fire every poll.
+- **Known gap (feeds Phase 2b preconditions):** VERDICT A does not yet split on room — run 2 showed
+  allotment-met clogs with room=0 (Coal, Pike) are capacity problems a quota raise cannot fix; the
+  room>0 check becomes a Phase 2b actuation precondition.
+- Perf: steady poll 8.5–9.5 ms / 15 warehouses (30 s cadence); F9 full pass 66–107 ms.
+
 ## Configuration
 
 **`<Mod>.cfg` after first launch:**
@@ -122,6 +146,14 @@ DemandRetainSeconds=180    # Re-sighting window (burst tolerance)
 MinDemandSpanSeconds=30    # Span maturity gate (first→last sighting)
 DemandMemoryMinutes=15     # Maturity credit on re-create
 ControllerTickSeconds=5    # State machine polling interval
+
+[Phase2Warehouse]
+EnableWarehouseWatch=true   # Phase 2a read-only warehouse diagnostics + clog detector
+WarehousePollSeconds=30     # WarehouseWatch poll cadence
+WarehouseClassList=ResourceStorage  # comma-sep exact native class names treated as warehouses
+ClogDominantSharePercent=40 # dominant-item share threshold for clog verdicts
+ClogRealertMinutes=10       # per-(station,item) toast dedupe window
+ClogStallMinutes=3          # unchanged stored-count window before a STALL diagnosis fires
 ```
 
 ## Dead-Ends
@@ -137,6 +169,9 @@ ControllerTickSeconds=5    # State machine polling interval
   lookup section). Always iterate `_knownBlueprints`/`_localBlueprints` dictionaries directly.
 - **`LoadoutsComplaint.missingItems` has no name:** is `List<IItemFilter>` with no name member —
   logs native class names instead.
+- `ResourceStorage.GetGatheredItemQuantity(supply, info)` returns the task's QUOTA, not fill
+  progress (gathered==qty on every row, in-game 2026-07-13) — no per-supply stored count exists on
+  this API; warehouse-wide GetItemQuantity is the only stored measure found so far.
 
 ## Version History (compressed)
 
@@ -153,3 +188,9 @@ ControllerTickSeconds=5    # State machine polling interval
   filter-aware rank, maturity memory, alarm lockout mechanism (untested in-game). ⚠️ Untested
   edges: StationBusy rotation (no same-station contention in tests), capacity verdict via 2
   ineffective cycles (all real boosts self-cleared early).
+- **v0.4.0–v0.4.3** (2026-07-13, Phase 2a) — warehouse allotment diagnostics + dry-run clog
+  detector, 2 test runs, zero errors. Confirmed: ResourceStorageTaskData structure, composite
+  multi-task-per-item allotments, Composite/Simple network split, room semantics
+  (GetTotalRemainingCapacity), STALL discriminator (capacity-blocked vs priority-shadowed) both
+  branches live-fired, GetGatheredItemQuantity dead-end. (v0.4.2 was a build-only SAC bump, never
+  tested.)

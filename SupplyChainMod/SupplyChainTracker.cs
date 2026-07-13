@@ -24,6 +24,7 @@ public class SupplyChainTracker : MonoBehaviour
     private float _worldPollTimer;
     private float _tickTimer;
     private float _widgetTimer;
+    private float _warehouseTimer;
 
     private KeyCode _dumpKey = KeyCode.F9;
     private KeyCode _spikeKey = KeyCode.F10;
@@ -143,6 +144,20 @@ public class SupplyChainTracker : MonoBehaviour
             try { Patches.ComplaintLog.PeriodicFlush(); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ComplaintLog.PeriodicFlush error: {ex}"); }
         }
+
+        // v0.4.0 Phase 2a — WarehouseWatch's own poll cadence. The tracker always passes
+        // fullTable=false here; WarehouseWatch tracks its own first-poll-after-world-load
+        // internally (_firstPollDone) and upgrades that one poll to a full table itself.
+        _warehouseTimer += Time.deltaTime;
+        if (_warehouseTimer >= Plugin.WarehousePollSeconds.Value)
+        {
+            _warehouseTimer = 0f;
+            if (_currentWorldId != null)
+            {
+                try { WarehouseWatch.Poll(_stations, fullTable: false); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.Poll error: {ex}"); }
+            }
+        }
     }
 
     // ── World session tracking (StorageManager/ActiveSessionID — TreeRespawnMod NoteWorldLeft
@@ -193,6 +208,8 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.NoteWorldLeft error: {ex}"); }
         try { SupplyController.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteWorldLeft error: {ex}"); }
+        try { WarehouseWatch.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────
@@ -270,6 +287,9 @@ public class SupplyChainTracker : MonoBehaviour
 
         try { BomDump.Dump(trigger); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] BomDump({trigger}) error: {ex}"); }
+
+        try { WarehouseWatch.Poll(_stations, fullTable: true); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.Poll({trigger}) error: {ex}"); }
     }
 
     // ── On-screen toast rendering (ported verbatim from MineRefreshMod/MineRefreshTracker.cs) ──

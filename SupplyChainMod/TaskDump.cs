@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SSSGame;
 using SSSGame.AI;
 
 namespace SupplyChainMod;
@@ -118,5 +119,41 @@ internal static class TaskDump
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] CraftingStationTaskData probe error: {ex}"); }
+
+        // v0.4.0 Phase 2a — ResourceStorageTaskData (warehouse allotment) probe. Every read wrapped
+        // in its own try/catch (any of storageSupply's members may throw or lie through interop).
+        try
+        {
+            var rst = task.TryCast<ResourceStorageTaskData>();
+            if (rst != null)
+            {
+                StorageSupply? supply = null;
+                try { supply = rst.storageSupply; } catch { }
+
+                if (supply == null)
+                {
+                    Plugin.Logger.LogInfo("[SupplyChain] [taskdump]     ResourceStorageTaskData storageSupply=null");
+                }
+                else
+                {
+                    string supplyOwner = "?";
+                    int taskMaxQuota = -1;
+                    int defaultTaskPriority = -1;
+                    bool supplyAvailable = false;
+                    bool hasTaskContainer = false;
+
+                    try { supplyOwner = Common.SafeName(supply.OwnerStructure); } catch { }
+                    try { taskMaxQuota = supply.taskMaxQuota; } catch { }
+                    try { defaultTaskPriority = (int)supply.defaultTaskPriority; } catch { }
+                    try { supplyAvailable = supply.IsAvailable(); } catch { }
+                    try { hasTaskContainer = supply.taskContainer != null; } catch { }
+
+                    Plugin.Logger.LogInfo(
+                        $"[SupplyChain] [taskdump]     ResourceStorageTaskData supplyOwner='{supplyOwner}' taskMaxQuota={taskMaxQuota} " +
+                        $"defaultTaskPriority={defaultTaskPriority} supplyAvailable={supplyAvailable} hasTaskContainer={hasTaskContainer}");
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ResourceStorageTaskData probe error: {ex}"); }
     }
 }
