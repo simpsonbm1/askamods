@@ -1424,10 +1424,15 @@ handles gracefully (no crash, timer expires immediately). (SummonTimerMod v0.1.0
 
 **Survival components**
 ```
-SSSGame.CharacterSurvival (base) → SSSGame.VillagerSurvival
+SSSGame.CharacterSurvival (base) → SSSGame.VillagerSurvival (villagers) and SSSGame.PlayerSurvival (player)
   GetNormalizedFood() / GetNormalizedWater() / GetNormalizedWarmth()  (Single 0..1, lower = more urgent)
   IsStarving / IsDehydrated / IsFreezing / IsSuffering  (bool — the game's own critical-need flags)
   _foodVAttr / _waterVAttr / _warmthVAttr / _energyVAttr / _healthVAttr  (VariableAttribute — writable)
+  Note: _energyVAttr on PlayerSurvival = player STAMINA (drains during sprint/combat; confirmed in-game 2026-07-13)
+  Note: SetValue(max) pinning CONFIRMED in-game (2026-07-13, NoNeedsMod v0.1.0) for all writable attrs listed above
+  across both player and villagers; Villager._happinessVAttr pinning confirmed (re-clamped to HappinessCap by game)
+PlayerSurvival
+  Derived from CharacterSurvival; player shares the same writable survival attributes
 VillagerSurvival
   _restVariableAttribute  (VariableAttribute, range 0..24 "hours of rest"; drains awake, fills asleep)
   GetVillager() → Villager
