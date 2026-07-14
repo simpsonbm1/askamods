@@ -1,6 +1,6 @@
 # TaskUnlockerMod (Mod 17) — unlock cooking recipes, fishing grounds + item-journal tasks
 
-**Status: COMPLETE v1.4.1, on Nexus ("Cooking and Fishing Task Unlocker", group ID 7623785).**
+**Status: COMPLETE v1.4.1, on Nexus ("Task and Journal Unlocker", renamed 2026-07-14, group ID 7623785).**
 Core journal unlock + perf rework confirmed in-game 2026-07-14 (as v1.3.0/v1.4.0); v1.4.1 =
 ship defaults only.
 

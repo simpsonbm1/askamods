@@ -29,7 +29,7 @@ gh run watch <run-id> --exit-status     # then: gh run view <run-id> --log  → 
 | VillagerFightBackMod | Villager Fight Back | `7587134` |
 | TerrainLevelerMod | Bulldozer Field / Terrain Leveler | `7606994` |
 | SeedScoutMod | World Seed Scout | `7619375` |
-| TaskUnlockerMod | Cooking and Fishing Task Unlocker | `7623785` |
+| TaskUnlockerMod | Task and Journal Unlocker | `7623785` |
 | ZeroTaskWorkersMod | Assigned Workers Start Idle | `7626437` |
 | GroundItemVacuumMod | Ground Item Vacuum Cleaner | `7632863` |
 | FishFilletMod | Inventory Fish Fillet | `7633997` |

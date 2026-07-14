@@ -80,7 +80,7 @@ jobs:
             VillagerFightBackMod)    file_id=7587134 ;;
             TerrainLevelerMod)       file_id=7606994 ;;
             SeedScoutMod)            file_id=7619375 ;;   # World Seed Scout
-            TaskUnlockerMod)         file_id=7623785 ;;   # Cooking and Fishing Task Unlocker
+            TaskUnlockerMod)         file_id=7623785 ;;   # Task and Journal Unlocker
             ZeroTaskWorkersMod)      file_id=7626437 ;;   # Assigned Workers Start Idle
             GroundItemVacuumMod)     file_id=7632863 ;;   # Ground Item Vacuum Cleaner
             FishFilletMod)           file_id=7633997 ;;   # Inventory Fish Fillet
