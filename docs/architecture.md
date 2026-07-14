@@ -1959,7 +1959,7 @@ to inject a **new buildable entry** into the build menu. Full recipe in
     (language switches rebuild the dictionaries); a postfix on `Loc(string, bool)` works as a
     safety net for lookup paths that bypass the dictionaries. (confirmed in-game 2026-07-01, v1.4.7)
 
-## Task Discovery & Bypassing (Fishing/Cooking)
+## Task Discovery & Bypassing (Fishing/Cooking/Item Journal)
 
 Bypassing discovery to show tasks in workstations requires different strategies depending on the station:
 
@@ -1967,6 +1967,27 @@ Bypassing discovery to show tasks in workstations requires different strategies 
   SSSGame.BlueprintConditionsDatabase. Setting
   NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable unlocks them natively (confirmed in-game
   2026-07-05, TaskUnlockerMod). requiresDiscovery = false does not work here.
+- **Item-gated building tasks (tavern/harbor/storage/workshops):** workstations with the
+  TaskDataComponents.CheckTaskDiscovery flag (enum also has IsTavern, IsHarbor) hide tasks whose
+  item is undiscovered in SSSGame.BlueprintConditionsDatabase — the SAME system as crockpot
+  recipes. Vanilla discovers items on pickup via BlueprintConditionsDatabase.OnCharacterItemAdded
+  (ItemCollection, Item, Int32, ItemEventContext) — ⚠️ inventory-family parameters: NEVER
+  Harmony-patch it (VillagerAmmo native-crash family). Rpc_AddDiscoverable(ItemInfo.id) unlocks
+  any discoverable item (confirmed in-game 2026-07-14, TaskUnlockerMod).
+  - **IDiscoverableItem families** (for walkable class chain / manual discovery): CrockpotRecipeInfo,
+    ResourceInfo (+Biome/Consumable/Population/Vegetation), WearableItemInfo, PlantableItemInfo,
+    WeaponizedItemInfo (+Ammo/RangedWeapon/Fishing/Toot) (Cecil 2026-07-14). Interop wrappers do
+    NOT declare the interface — use per-type IsDiscovered(db)/requiresDiscovery members, not
+    interface-typed APIs.
+  - **Capacity:** NetworkBlueprintConditionsDatabase._discoverablesMaxSize = 768, 1 bit per
+    discoverable (Cpp2IL diffable-cs 2026-07-14). Registration (_discoverableIDs) is init-time —
+    519 on the test save — and AddDiscoverable/Rpc_AddDiscoverable are status-bit writes that do
+    NOT append registrations (confirmed in-game 2026-07-14).
+  - **Load-order gotcha:** BlueprintConditionsDatabase, its NetworkLogic and ItemInfoDatabase all
+    exist during the load screen BEFORE the DB's storage pack ("BlueprintsConditionsData")
+    deserializes; IsDiscovered reads false for everything until then. Working gate:
+    GetRegisteredCharacters().Count > 0 (characters register only once the world runs; confirmed
+    in-game 2026-07-14). GetStage() is a per-client constant, not a live loaded signal.
 - **Fishing Tasks — the gate is MARKING, not discovery.** Fishing tasks are not item-discovery-gated
   at all; the 2026-07-05 "dead ends everywhere" session was attacking the wrong system. The real chain
   (signature-traced and **confirmed in-game 2026-07-06**, TaskUnlockerMod v1.2.0): player marks a fishing ground (buoy) →
@@ -1984,6 +2005,7 @@ Bypassing discovery to show tasks in workstations requires different strategies 
   `UnlockMarking()` was NOT needed. Hand-adding tasks can't work end-to-end anyway because
   villager dispatch (`FSM_Fishing`, `PopulationManager.TryGetFishingGroundsForItem`) needs a real marked
   ground to row to, and count-driven `_UpdateFishStatus` would remove tasks whose marked-count is 0.
+  **FishingGround marks persist in the save (confirmed in-game 2026-07-14).**
   - **Dead end**: NetworkBlueprintConditionsDatabase / DebugAllBlueprintsUnlocked — FishingStation ignores them (wrong system).
   - **Dead end**: StorageSupply.hideTasksForUndiscoveredItems = false has no effect (UI-level; the tasks were never created).
   - **Dead end**: Patching WorkstationTaskData.ShouldBeHidden throws System.NullReferenceException inside the IL2CPP

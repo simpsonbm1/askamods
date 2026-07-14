@@ -226,7 +226,9 @@ askamods/
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
-  TaskUnlockerMod/           ← Mod 17: unlock all cooking + fishing tasks [COMPLETE v1.2.2 — docs/mods/task-unlocker.md]
+  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + per-category
+                                item-journal task discovery (tavern/harbor/etc.) [COMPLETE v1.4.1,
+                                on Nexus — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.1.3, on Nexus — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.1.1 — docs/mods/fish-fillet.md]

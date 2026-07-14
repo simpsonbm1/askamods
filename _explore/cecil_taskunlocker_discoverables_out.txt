@@ -1,0 +1,189 @@
+﻿=== Types implementing SSSGame.IDiscoverableItem (own declaration) ===
+
+=== Derived types of each implementor ===
+
+=== All types deriving from SandSailorStudio.Inventory.ItemInfo ===
+  SandSailorStudio.Inventory.WearableItemInfo : EquipmentItemInfo  ifaces=[]
+  SandSailorStudio.Inventory.AmmoItemInfo : WeaponizedItemInfo  ifaces=[]
+  SandSailorStudio.Inventory.PlantableItemInfo : EquipmentItemInfo  ifaces=[]
+  SandSailorStudio.Inventory.RangedWeaponInfo : WeaponizedItemInfo  ifaces=[]
+  SandSailorStudio.Inventory.WeaponizedItemInfo : EquipmentItemInfo  ifaces=[]
+  SSSGame.DynamicDimensionTemplate : NodeTemplate  ifaces=[]
+  SSSGame.LootChestTemplate : NodeTemplate  ifaces=[]
+  SSSGame.NodeTemplate : StructureTemplate  ifaces=[]
+  SSSGame.OutpostTemplate : NodeTemplate  ifaces=[]
+  SSSGame.SettlementTemplate : NodeTemplate  ifaces=[]
+  SSSGame.SkewedNodeTemplate : NodeTemplate  ifaces=[]
+  SSSGame.SplineStructureTemplate : NodeTemplate  ifaces=[]
+  SSSGame.WallTemplate : StructureTemplate  ifaces=[]
+  SSSGame.BaitItemInfo : EquipmentItemInfo  ifaces=[]
+  SSSGame.BiomeResourceInfo : ResourceInfo  ifaces=[]
+  SSSGame.ConsumableInfo : ResourceInfo  ifaces=[]
+  SSSGame.ContainerInfo : ItemInfo  ifaces=[]
+  SSSGame.CookingRecipeInfo : BlueprintInfo  ifaces=[]
+  SSSGame.CraftBlueprintInfo : BlueprintInfo  ifaces=[]
+  SSSGame.CrockpotRecipeInfo : CookingRecipeInfo  ifaces=[]
+  SSSGame.DyeInfo : ItemInfo  ifaces=[]
+  SSSGame.DyeingBlueprintInfo : CraftBlueprintInfo  ifaces=[]
+  SSSGame.FishingGroundMarkerInfo : MarkerInfo  ifaces=[]
+  SSSGame.FishingItemInfo : WeaponizedItemInfo  ifaces=[]
+  SSSGame.ForgingBlueprintInfo : CraftBlueprintInfo  ifaces=[]
+  SSSGame.KnowledgeBlueprintInfo : WorkshopBlueprintInfo  ifaces=[]
+  SSSGame.MarkerInfo : ItemInfo  ifaces=[]
+  SSSGame.PaintingBlueprintInfo : DyeingBlueprintInfo  ifaces=[]
+  SSSGame.PopulationInfo : ResourceInfo  ifaces=[]
+  SSSGame.ResourceInfo : ItemInfo  ifaces=[]
+  SSSGame.StructureTemplate : BlueprintInfo  ifaces=[]
+  SSSGame.TootItemInfo : WeaponizedItemInfo  ifaces=[]
+  SSSGame.VegetationResourceInfo : ResourceInfo  ifaces=[]
+  SSSGame.WorkshopBlueprintInfo : CraftBlueprintInfo  ifaces=[]
+
+=== SSSGame.Network.NetworkBlueprintConditionsDatabase members ===
+  P BlueprintConditionsDatabase _database
+  P List`1 _condionIDs
+  P List`1 _discoverableIDs
+  P Int32 _conditionsMaxSize
+  P Int32 _bitsPerCondition
+  P Int32 _conditionsPerArrayElementMaxSize
+  P Il2CppStructArray`1 __Conditions
+  P Int32 _discoverablesMaxSize
+  P Int32 _bitsPerDiscoverable
+  P Int32 _discoverablesPerArrayElementMaxSize
+  P Il2CppStructArray`1 __Discoverables
+  P Changed`1 field_CompilerControlled_Static_Changed_1_NetworkBlueprintConditionsDatabase_0
+  P ChangedDelegate`1 field_CompilerControlled_Static_ChangedDelegate_1_NetworkBlueprintConditionsDatabase_0
+  P NetworkBehaviourCallbacks`1 field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkBlueprintConditionsDatabase_0
+  P NetworkArray`1 _Conditions
+  P NetworkArray`1 _Discoverables
+  P NetworkBool NetworkedDebugAllBlueprintsUnlocked
+  M Void _OnProxyConditionsChanged(Changed`1 changed)
+  M Void _OnNetworkedDiscoverablesChanged(Changed`1 changed)
+  M Void _OnDebugAllBlueprintsUnlocked(Changed`1 changed)
+  M Void Spawned()
+  M Void Initialize()
+  M Void _RegisterBlueprint(IConditionalBlueprint blueprint)
+  M Void _RegisterDiscoverable(IDiscoverableItem discoverable)
+  M Void AddCondition(Int32 conditionID, BlueprintConditionsData conditionData)
+  M Void AddDiscoverable(Int32 discoverableID, Boolean isDiscovered)
+  M Void Rpc_ChangeDebugAllBlueprintsUnlocked(NetworkBool debugAllBlueprintsUnlocked)
+  M Void Rpc_AddDiscoverable(Int32 id)
+  M Void Rpc_AddProficiencyCondition(Int32 id, NetworkBool value)
+  M Void CopyBackingFieldsToState(Boolean )
+  M Void CopyStateToBackingFields()
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message)
+
+=== SSSGame.BlueprintConditionsDatabase members ===
+  P NetworkBlueprintConditionsDatabase _networkPrefab
+  P NetworkBlueprintConditionsDatabase _networkLogic
+  P NetworkSession session
+  P Boolean debugAllBlueprintsUnlocked
+  P BlueprintConditionsList BlueprintConditionsConfigs
+  P Action`1 OnBlueprintUnlocked
+  P Action OnDatabaseLoaded
+  P Dictionary`2 _blueprintConditions
+  P Dictionary`2 _conditionsTable
+  P Dictionary`2 discoverables
+  P Dictionary`2 conditionsData
+  P HashSet`1 _newBlueprints
+  P ItemInfo _lastJournalEntry
+  P List`1 _registeredCharacters
+  P SettlementManager _settlementManager
+  P Int32 _newJournalEntriesCount
+  P String c_PackName
+  P String c_ConditionsDataKey
+  P String c_DiscoverablesKey
+  P String c_ConfigId
+  P String c_ReqStructuresData
+  P String c_ProfCondData
+  P String c_KillCondData
+  P String c_PopulationCondData
+  P String c_NewBlueprintsKey
+  P String c_DiscoverableId
+  P String c_DiscoverableStatus
+  P String c_Patch1
+  P Int32 c_PackPriority
+  P StoragePack _storagePack
+  P NetworkBlueprintConditionsDatabase NetworkLogic
+  P Boolean DebugAllBlueprintsUnlocked
+  P ItemInfo LastJournalEntry
+  P Boolean IsLocalStorageClient
+  M Void add_OnBlueprintUnlocked(Action`1 value)
+  M Void remove_OnBlueprintUnlocked(Action`1 value)
+  M Void add_OnDatabaseLoaded(Action value)
+  M Void remove_OnDatabaseLoaded(Action value)
+  M Void Awake()
+  M Void Start()
+  M Void Update()
+  M Void OnDestroy()
+  M Void SpawnNetworkLogic()
+  M Boolean TryGetConfigData(BlueprintConditionsRule config, BlueprintConditionsData& configData)
+  M Boolean IsNew(IConditionalBlueprint blueprint)
+  M Boolean IsNew(IDiscoverableItem discoverable)
+  M Void ClearNewStatus(IConditionalBlueprint blueprint)
+  M Void ClearNewStatus(IDiscoverableItem discoverable)
+  M Boolean CheckForNewUpgrades(StructureTemplate st)
+  M Boolean CheckForNewAddons(StructureTemplate st)
+  M Void RegisterCharacter(Character c)
+  M Void OnCharacterItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M Void UnregisterCharacter(Character c)
+  M List`1 GetRegisteredCharacters()
+  M Boolean GetDiscoveryStatus(IDiscoverableItem discoverableItem)
+  M Boolean SetDiscoveryStatus(IDiscoverableItem discoverableItem, Boolean value)
+  M Void FulfilNewBlueprintCondition(Int32 id)
+  M Void Initialize(NetworkBlueprintConditionsDatabase networkLogic)
+  M Void CheckRetroactiveCompletion()
+  M Void _OnBeforeNetworkLogicSpawned(NetworkRunner spawner, NetworkObject spawned)
+  M Boolean _RegisterBlueprint(NetworkBlueprintConditionsDatabase networkLogic, IConditionalBlueprint blueprint)
+  M Void _RegisterDiscoverable(NetworkBlueprintConditionsDatabase networkLogic, IDiscoverableItem item)
+  M Void OnCharacterProficiencyChanged()
+  M Void _OnKill(PopulationInfo kill)
+  M Void OnStructureActivated(Structure structure)
+  M Void _OnBlueprintUnlocked(ItemInfo info)
+  M Void _OnVillagerAdded(Villager villager)
+  M String GetPackName()
+  M Int32 GetPriority()
+  M StorageClientPackDescriptor GetPackDescriptor()
+  M StorageSessionStage GetStage()
+  M Void SetPack(StoragePack packHandle)
+  M StoragePack GetPack()
+  M DataElement Serialize()
+  M SerializationReturnCode Deserialize(DataElement data)
+  M Int32 GetVersion()
+  M Void _Start_b__31_0(Settlement settlement)
+
+=== TaskDataComponents enum values ===
+  None = 0
+  Order = 1
+  Quantity = 2
+  Priority = 4
+  ActiveWorkers = 8
+  PrioritizingWorkers = 16
+  IsWarehouse = 32
+  IsKennel = 64
+  HasWhitelisting = 128
+  HasStoragePage = 256
+  CanDestroyChildren = 512
+  IsMarketplace = 1024
+  NoBlueprintForTasks = 2048
+  OneWorkerPerTask = 4096
+  DontAddVillagersToTasksOnAssign = 8192
+  IsMilitary = 16384
+  HasTasksFromChildren = 32768
+  IsCart = 65536
+  NoAssignPage = 131072
+  NoTasksPage = 262144
+  Trashcan = 524288
+  DontAllowWorkerDismissal = 1048576
+  CheckTaskDiscovery = 2097152
+  CanViewTasksWithoutWorkers = 4194304
+  KeepWorkersAfterDeath = 8388608
+  ShowAvailabilityInTask = 16777216
+  IsHarbor = 33554432
+  HasWardrobe = 67108864
+  HasTasksPresets = 134217728
+  IsVikingWork = 268435456
+  NoStructurePage = 536870912
+  NoNetworkWorkstation = 1073741824
+  IsTavern = -2147483648
