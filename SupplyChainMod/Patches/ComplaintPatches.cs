@@ -236,7 +236,6 @@ internal static class ComplaintLog
             // discriminator changed) logs a line; a re-add of the SAME identity just increments a
             // silent counter. ────────────────────────────────────────────────────────────────────
             string key = $"{villagerName}|{id}";
-            bool isNew = true;
             if (_active.TryGetValue(key, out var entry))
             {
                 if (entry.Discriminator == discriminator)

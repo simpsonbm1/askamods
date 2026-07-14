@@ -843,7 +843,7 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
      any native complaint fires in this state is unverified (the failure was noticed via the food
      shortage, not an alert).
 
-### Warehouse (ResourceStorage) allotment/task machinery (idea-12 Phase 2a; Cecil + in-game 2026-07-13)
+### Warehouse (ResourceStorage) allotment/task machinery (idea-12 Phase 2a + 2b; Cecil + in-game 2026-07-13/14)
 
 - `SSSGame.AI.ResourceStorageTaskData : WorkstationTaskData` is the task type on ALL ResourceStorage
   tasks (no other type observed in-game). Adds `storageSupply : StorageSupply` (links task → its
@@ -853,15 +853,17 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
 - ResourceStorage serialization key props (Cecil): `c_taskDataArray, c_taskPriority, c_taskQuantity,
   c_taskQuantityRatio, c_itemInfo, c_storageSupply, c_taskVillagers` — task QUANTITY and priority
   both persist in saves. Any quota-writing actuation must ledger-record/restore quotas exactly like
-  priorities (idea-12 Phase 2b implication).
-- Network components (confirmed in-game 2026-07-13): true warehouses (Warehouse/Improved Warehouse)
+  priorities (idea-12 Phase 2b confirmed: write `ResourceStorageTaskData.itemInfoQuantity.quantity`
+  directly, call `rst._RefreshQuantityRange()`, then `HostUpdateTasks()` on the network component
+  via `GetComponent<NetworkCompositeResourceStorage>()` — readback confirmed, immediately visible
+  in UI, gameplay-effective, no renumber/squash unlike priority).
+- Network components (confirmed in-game 2026-07-13/14): true warehouses (Warehouse/Improved Warehouse)
   carry `SSSGame.Network.NetworkCompositeResourceStorage`; gathering-hut storages carry weaved
   numbered variants of `NetworkSimpleResourceStorage` (e.g. `NetworkSimpleResourceStorage_12` —
   base-typed `GetComponent<NetworkSimpleResourceStorage>()` finds them). Both derive from
   `NetworkWorkstation<T>` and expose `HostUpdateTasks()` — the crafting-station write pattern
-  (mutate host-side task datas + `HostUpdateTasks()`) is expected to carry over (⚠️ pending: no
-  warehouse write attempted yet). Outhouse / Yule Tree / Eye of Odin have no storage network
-  component.
+  (mutate host-side task datas + `HostUpdateTasks()`) carries over (confirmed in-game 2026-07-14).
+  Outhouse / Yule Tree / Eye of Odin have no storage network component.
 - Native class `ResourceStorage` covers BOTH gathering-hut storages AND true warehouses (and
   outposts — Outpost 1 carried 80+ tasks mirroring main-warehouse items). Distinguish empirically:
   hut tasks have `storageSupply.OwnerStructure` = the hut itself and no `taskContainer`; warehouse
@@ -871,28 +873,35 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   (observed: 2× Coal qty=300 each; warehouse-wide stored grew 530→600 = past a single task's quota
   → the effective allotment is the SUM of per-supply quotas). Comparing warehouse-wide
   `GetItemQuantity(info)` against a single task's qty is too coarse.
-- ⚠️ pending hypothesis: every ResourceStorage task showed `priority=1` with
-  `StorageSupply.defaultTaskPriority=1` — ResourceStorage priorities may use `WorkstationTaskPriority`
-  TIER semantics (High=0/Med=1/Low=2), NOT crafting's 0-based rank index. Confirm by raising one
-  collect priority in the UI and re-dumping (F9).
+- **ResourceStorage priority tier semantics (confirmed in-game 2026-07-14):** `priority` is a VALUE
+  with `WorkstationTaskPriority` tier semantics (High=0, Med=1, Low=2, None=3), NOT crafting's
+  0-based rank index. Evidence: ranks 0,1,2,3 observed across 1,430 warehouse rows, not matching
+  list positions (e.g. task[0] rank=1 while task[1] rank=0); decisively, the user raised the Thatch
+  collect task on 'Improved Warehouse 3' from Medium→High in the UI and that exact row then showed
+  rank=0. Consequence: any future warehouse priority lever is a VALUE write, not a list move.
 - ⚠️ `StorageSupply.taskMaxQuota` is NOT the quota ceiling (observed 1/5/15/20 against task
   quantities 45–2250); semantics unknown.
 - `ItemCollection.GetTotalRemainingCapacity(ItemInfo)` = remaining PHYSICAL container room for that
   item (confirmed in-game 2026-07-13): returns 0 on saturated storages including cases with
   stored=0 where no container can accept the item at all.
-- **Quota mechanics (user-confirmed from gameplay 2026-07-13):** a warehouse task's quota is an
+- **Quota mechanics (user-confirmed from gameplay 2026-07-13/14):** a warehouse task's quota is an
   INTAKE THROTTLE, not an eviction lever — lowering it below the stored count removes nothing
   (intake just stops until consumption draws the count under quota); raising a met quota re-opens
   intake, but haulers act on it only if that collect task's priority beats other unfilled-quota
-  tasks (winner-take-all).
-- **Storage-clog diagnosis (SupplyChainMod v0.4.3, in-game 2026-07-13)** — a storage-full station
-  dominated by one item resolves into three classes: (1) warehouse allotment met AND room>0 →
-  quota-raise drain candidate; (2) room=0 (with allotment met OR unmet) → capacity-blocked,
+  tasks (winner-take-all). Quota gates VILLAGER collect/intake tasks only — PLAYER deposits bypass
+  it entirely (observed: stored rose 133→168 while group quota was clamped to 133 via direct player
+  deposit, confirmed in-game 2026-07-14).
+- **Storage-clog diagnosis (SupplyChainMod v0.4.3–v0.5.2, in-game 2026-07-13/14)** — a storage-full
+  station dominated by one item resolves into three classes: (1) warehouse allotment met AND
+  room>0 → quota-raise drain candidate; (2) room=0 (with allotment met OR unmet) → capacity-blocked,
   player-owned (real example: Bone Fragments allotment qty=1250 stored=0 room=0 — open quota but
   zero container space); (3) allotment unmet + room>0 + stored not filling → priority-shadowed
   (real example: Mussels Stew qty=150 stored=0 room=150, never filled). A blocked main warehouse
   can coexist with an alternative unmet allotment WITH room elsewhere (Outpost 1, room=700) —
-  cross-warehouse redirect is a future lever.
+  cross-warehouse redirect is a future lever. Composite multi-row clamp distributes quota across
+  all rows for an item-group correctly (confirmed in-game 2026-07-14: 45,45,45,45 → 34,33,33,33 to
+  match warehouse-wide stored 133). Hauler response latency to a re-opened quota: 13 seconds
+  (single datum from 'Warehouse 3' Firewood, measured 2026-07-14).
 
 #### Dead-end: ResourceStorage.GetGatheredItemQuantity
 

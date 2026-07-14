@@ -1,14 +1,15 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.4.3, Phase 0 + Phase 1 + Phase 2a complete (warehouse allotment diagnostics +
-dry-run clog detector, in-game-verified 2026-07-13, dev tool NOT for Nexus)
+**Status:** WIP v0.5.2, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (quota-raise drain
+actuator + clog-forge harness, in-game-verified 2026-07-14, dev tool NOT for Nexus)
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
-warehouse diagnostics. Phase 0 observes game state (villager complaints, settlement issues, task
-data, inventory composition), never writes; findings absorbed into architecture.md. Phase 1
-implements automatic crafting-task priority bumps triggered by complaint-based demand, with
-automatic revert and duty-cycling. Phase 2a provides read-only warehouse/storage-drain diagnostics
-and clog detection.
+warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
+complaints, settlement issues, task data, inventory composition), never writes; findings absorbed
+into architecture.md. Phase 1 implements automatic crafting-task priority bumps triggered by
+complaint-based demand, with automatic revert and duty-cycling. Phase 2a provides read-only
+warehouse/storage-drain diagnostics and clog detection. Phase 2b implements quota-raise actuation
+with hauler-response verification and a permanent clog-forge regression harness.
 
 ## Design & Components
 
@@ -114,6 +115,58 @@ and clog detection.
   room>0 check becomes a Phase 2b actuation precondition.
 - Perf: steady poll 8.5–9.5 ms / 15 warehouses (30 s cadence); F9 full pass 66–107 ms.
 
+**Phase 2b quota spike (v0.5.0–v0.5.2, in-game-verified 2026-07-14):**
+
+- **QuotaActuator module — quota write path (NEW confirmed recipe, 2026-07-14):** writing
+  `ResourceStorageTaskData.itemInfoQuantity.quantity` directly WORKS — readback-confirmed,
+  immediately visible in the warehouse UI, and gameplay-effective (villager intake stopped when
+  clamped, resumed when restored). Full recipe: write `quantity`, call
+  `rst._RefreshQuantityRange()`, then `HostUpdateTasks()` on the network component obtained via
+  `GetComponent<NetworkCompositeResourceStorage>()` on the warehouse's own GameObject (found
+  there in-game; succeeded every call). `Rpc_ChangeTaskQuantity(taskIndex, newQuantity)` exists
+  (Cecil) as an untried fallback — never needed. There is NO renumber/squash mechanism for quota
+  (unlike priority's RefreshTaskDataPriorities). Ledger records every quota write + restore pair.
+- **F7 micro-test mode:** auto-selects a (warehouse item-group, source station) pair —
+  true-warehouse rows only (`storageSupply.taskContainer != null`; hut self-storage rows excluded);
+  group
+  considered "met" when warehouse-wide stored >= SUM of the item's rows' quotas; requires room>0
+  (`GetTotalRemainingCapacity`) and a station elsewhere holding >= QuotaMinStationStock of the
+  item; raises ONE row by delta = min(sourceStock, room, QuotaBoostMaxDelta); response watcher
+  self-reports hauler latency, auto-reverts on target-met or QuotaSpikeMaxHoldSeconds timeout.
+  Never fired a real boost yet in-game (both test saves too well-hauled: breakdown groups=323,
+  hutRowsExcluded=130, met=17, room0=7, noSourceStock=10; near-misses all failed sourceStock<min
+  with best stocks 6/2/2 on qty=1–2 tool/armor allotments). Non-blocking: its experimental purpose
+  (hauler-response proof) was fulfilled by the forge loop; logs top-3 near-miss diagnostics when
+  it finds no pair.
+- **Shift+F7 forge mode** (`ClogForgeItem` config): clamps ALL rows of that item's group in the
+  best-stocked true warehouse so the sum equals stored (base/remainder split), shutting villager
+  intake to deliberately build a clog — the permanent regression harness. No auto-revert; Shift+F7
+  (or F7) again restores every row and transitions into a read-only **drain watch** that
+  self-reports hauler latency and a target-met/timeout verdict. Verified end-to-end in-game
+  2026-07-14 (forged real storage-full complaints, hauler response 13 s, target met).
+- **Ledger schema extension (backward-compatible):** entries now carry `Kind` (rank|quota) +
+  `SupplyOwner` (10 pipe-separated fields); legacy 8-field lines parse as rank entries; quota
+  entries reuse the OrigPriority/BoostPriority columns as orig/boosted QUOTA values; one ledger
+  entry per clamped row, written BEFORE each mutation; world-load restore handles rank and quota
+  kinds separately.
+- **Safety rails:** room>0 precondition, delta cap, pinned-task guard, HasStateAuthority gate,
+  write-ahead ledger, shared BoostedStationKeys mutual exclusion with the rank spike/controller,
+  no interop wrappers cached across ticks.
+
+**Phase 2b factual findings (in-game-verified 2026-07-14):**
+
+- **Quota gates villagers only:** a warehouse task quota throttles VILLAGER collect/intake tasks
+  only — PLAYER deposits bypass it entirely (observed: stored rose 133→168 while the group quota
+  was
+  clamped to 133 because the player hand-deposited).
+- **Hauler response latency:** after a clamped Firewood allotment group on 'Warehouse 3' was
+  restored (sum 133→180 re-opening intake), haulers responded in 13 seconds and filled to the
+  target (stored 168→180). Single datum; sizes the future Phase 2c measurement window.
+- **Composite multi-row clamp confirmed:** the forge clamp distributed one item's group quota
+  across all 4 of its per-sub-storage rows (45,45,45,45 → 34,33,33,33 so the sum equals the
+  warehouse-wide stored count 133) and all 4 restored cleanly — consistent with (and further
+  confirming) the documented "effective allotment = SUM of per-supply quotas" fact.
+
 ## Configuration
 
 **`<Mod>.cfg` after first launch:**
@@ -154,6 +207,14 @@ WarehouseClassList=ResourceStorage  # comma-sep exact native class names treated
 ClogDominantSharePercent=40 # dominant-item share threshold for clog verdicts
 ClogRealertMinutes=10       # per-(station,item) toast dedupe window
 ClogStallMinutes=3          # unchanged stored-count window before a STALL diagnosis fires
+
+[Phase2Spike]
+EnableQuotaSpike=true       # F7 micro-test + Shift+F7 forge mode
+QuotaSpikeHotkey=F7         # Typing-guarded hotkey (Shift+hotkey = forge)
+QuotaBoostMaxDelta=50       # max single-row quota delta per spike
+QuotaSpikeMaxHoldSeconds=300  # hold timeout before auto-revert (F7 micro mode)
+QuotaMinStationStock=10     # minimum source-station stock to trigger spike
+ClogForgeItem=              # empty = forge disabled; item name to forge as permanent clog
 ```
 
 ## Dead-Ends
@@ -194,3 +255,10 @@ ClogStallMinutes=3          # unchanged stored-count window before a STALL diagn
   (GetTotalRemainingCapacity), STALL discriminator (capacity-blocked vs priority-shadowed) both
   branches live-fired, GetGatheredItemQuantity dead-end. (v0.4.2 was a build-only SAC bump, never
   tested.)
+- **v0.5.0–v0.5.2** (2026-07-13/14, Phase 2b) — quota spike + ledger extension; run 1 (v0.5.1)
+  clean but no eligible pair → v0.5.2 added the true-warehouse filter, near-miss diagnostics,
+  multi-row forge clamp, forge→drain-watch transition, Shift+F7 split; run 2 (v0.5.2) verified
+  the full closed loop (clamp → forged storage-full complaints → revert → 13 s hauler response →
+  target met), zero errors across both runs. Confirmed: quota write path works, player deposits
+  bypass quota, composite multi-row clamp distributes correctly, hauler response latency 13 s.
+  (v0.5.0 was a build-only casualty of the SAC bump guard, never tested.)

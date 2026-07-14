@@ -457,11 +457,14 @@ all-villager ticks (worst cohort 28 ms).
     structure, quotas, supply state) + dry-run clog detector logging verdicts — **SHIPPED as
     SupplyChainMod v0.4.3, in-game-verified 2026-07-13** (three-way diagnosis working: drain
     candidate / capacity-blocked / priority-shadowed; facts absorbed into architecture.md +
-    docs/mods/supply-chain.md); **2b** hotkey quota-spike (boost/revert through the shared ledger)
-    + hauler-response verification, with the room-split precondition (allotment met + room=0 is a
-    capacity alert, NOT a boost target — run-2 finding); **2c** metabolic plane (snapshot ring
-    buffer + net-rate derivatives) + clog state machine in the existing arbiter (shared ledger/
-    BoostedStationKeys/duty-cycling/capacity verdicts).
+    docs/mods/supply-chain.md); **2b quota-raise drain actuator + clog-forge harness —
+    SHIPPED as SupplyChainMod v0.5.2, in-game-verified 2026-07-14** — quota write path proven
+    (write `quantity`, call `_RefreshQuantityRange()`, then `HostUpdateTasks()`), hauler response
+    latency 13 s (single datum), player deposits bypass quota, clog-forge end-to-end verified
+    (clamp → storage-full → revert → target met). See `docs/mods/supply-chain.md` for Phase 2b
+    recipe/config/findings. **2c** metabolic plane (snapshot ring buffer + net-rate derivatives)
+    + clog state machine in the existing arbiter (shared ledger/BoostedStationKeys/duty-cycling/
+    capacity verdicts).
 - **Phase 2d — rate-based stock keeping / quota calibration (user-requested 2026-07-13):** use the
   metabolic plane's per-item derivatives (consumption rate vs intake rate across sweeps) to
   auto-maintain warehouse allotment quotas at levels that keep the base self-sustaining — quotas

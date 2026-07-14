@@ -141,6 +141,39 @@ namespace SupplyChainMod;
 // v0.4.3 — same v0.4.2 changeset; a nullable-reference warning (CS8602) surfaced by the STALL
 // escalation code was fixed after the v0.4.2 DLL had already deployed, so the SAC bump guard
 // required a further version bump to redeploy the corrected build.
+//
+// v0.5.0 — Phase 2b: quota-raise drain actuator (hotkey spike). New QuotaSpike/QuotaActuator write
+// a warehouse ResourceStorageTaskData's QUOTA (itemInfoQuantity.quantity) instead of its rank —
+// F7 hotkey, gated by EnableQuotaSpike. Two modes on ClogForgeItem: empty = micro-test (auto-picks
+// a met+room>0 warehouse allotment, raises its quota by min(donor stock, room, QuotaBoostMaxDelta),
+// watches for hauler response, auto-reverts on target-met or QuotaSpikeMaxHoldSeconds timeout);
+// non-empty = forge (clamps that item's quota DOWN to its current stored count to deliberately shut
+// intake for other diagnostics — no auto-revert, F7-only). SpikeLedger's schema is extended with
+// Kind ("rank"|"quota") and SupplyOwner, backward-compatible with pre-v0.5.0 8-field lines (parsed
+// as Kind="rank"). Rails: room>0 required, delta capped, pinned tasks skipped, HasStateAuthority
+// gate, write-ahead ledger with crash-safe restore at next world load — same discipline as every
+// other actuator in this mod.
+//
+// v0.5.1 — same v0.5.0 changeset; an unrelated pre-existing unused-variable warning (CS0219, an
+// `isNew` local in ComplaintPatches.cs never read) surfaced by the "0 warnings" build requirement
+// was fixed after the v0.5.0 DLL had already deployed, so the SAC bump guard required a further
+// version bump to redeploy the corrected build (same pattern as v0.4.3).
+//
+// v0.5.2 — run-1 findings (v0.5.1 loaded clean, zero errors, but the micro-test found no eligible
+// pair: "groups=452 met=32 room=0=22 noSourceStock=10"). Five changes: (1) true-warehouse filter —
+// gathering-hut self-storage rows (storageSupply.taskContainer == null) were diluting the candidate
+// pool and can never be real drain targets, so they're now excluded from both micro-test and forge
+// candidate selection (taskContainer != null distinguishes a real warehouse row, confirmed in-game
+// 2026-07-13); (2) a "no candidate" outcome now logs the top 3 near-miss groups with full
+// gate-failure detail for data-driven threshold tuning; (3) forge now clamps an ENTIRE multi-row
+// group (a composite warehouse can hold several rows for the same item) so the group sum equals
+// stored exactly, instead of aborting as a false "already shut" when no single row's qty exceeded
+// warehouse-wide stored; (4) reverting a forge clamp now transitions into a read-only "drain watch"
+// (same response/target-met/timeout semantics as micro-test) instead of just clearing, so the
+// artificial stockpile's drain can still be observed; (5) forge moved off the plain hotkey onto
+// Shift+<QuotaSpikeHotkey> — the plain key is now unambiguously always micro-test. Also confirmed:
+// warehouse task priority is a VALUE (tier: observed 0/1/2/3, NOT list-position-derived like
+// crafting-station priority) — no rank-reorder logic exists or is added to any warehouse path.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -189,6 +222,14 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> ClogDominantSharePercent = null!;
     internal static ConfigEntry<float> ClogRealertMinutes = null!;
     internal static ConfigEntry<float> ClogStallMinutes = null!;
+
+    // ── [Phase2Spike] ────────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableQuotaSpike = null!;
+    internal static ConfigEntry<string> QuotaSpikeHotkey = null!;
+    internal static ConfigEntry<int> QuotaBoostMaxDelta = null!;
+    internal static ConfigEntry<float> QuotaSpikeMaxHoldSeconds = null!;
+    internal static ConfigEntry<int> QuotaMinStationStock = null!;
+    internal static ConfigEntry<string> ClogForgeItem = null!;
 
     public override void Load()
     {
@@ -398,6 +439,42 @@ public class Plugin : BasePlugin
             defaultValue: 3f,
             description: "Minutes a watching-case unmet allotment must show an unchanged warehouse stored-count before a STALL diagnosis line/toast fires — distinguishes capacity-blocked (warehouse has no room) from priority-shadowed (room exists, haulers just aren't going).");
 
+        EnableQuotaSpike = Config.Bind(
+            section: "Phase2Spike",
+            key: "EnableQuotaSpike",
+            defaultValue: true,
+            description: "Master switch for the v0.5.0 quota-raise drain actuator spike (QuotaSpike/QuotaActuator) — shipped default TRUE (dev/diagnostic convention). Gates the hotkey (plain + Shift) AND its ledger restore at world load; set false to fully disarm the write machinery.");
+
+        QuotaSpikeHotkey = Config.Bind(
+            section: "Phase2Spike",
+            key: "QuotaSpikeHotkey",
+            defaultValue: "F7",
+            description: "Hotkey (UnityEngine.KeyCode name) for the quota spike. Plain key = micro-test boost/revert. Shift+key = forge clamp/revert (requires ClogForgeItem set). Either combination reverts/clears whatever is currently active (boost, forge, or a post-forge drain watch).");
+
+        QuotaBoostMaxDelta = Config.Bind(
+            section: "Phase2Spike",
+            key: "QuotaBoostMaxDelta",
+            defaultValue: 50,
+            description: "Cap on how far a warehouse task's quota is raised above its current value in micro-test mode. Quota raises can't be un-hauled — the extra stock occupies warehouse capacity until consumed — so this is never 'boost to lots'.");
+
+        QuotaSpikeMaxHoldSeconds = Config.Bind(
+            section: "Phase2Spike",
+            key: "QuotaSpikeMaxHoldSeconds",
+            defaultValue: 300f,
+            description: "Micro-test mode auto-revert timeout (seconds) when no hauler response (stored count never reaches the boosted quota).");
+
+        QuotaMinStationStock = Config.Bind(
+            section: "Phase2Spike",
+            key: "QuotaMinStationStock",
+            defaultValue: 10,
+            description: "Minimum station-side stock of an item for that station to count as a viable donor source in micro-test mode's auto-selection.");
+
+        ClogForgeItem = Config.Bind(
+            section: "Phase2Spike",
+            key: "ClogForgeItem",
+            defaultValue: "",
+            description: "Item display name for forge mode, fired by Shift+<QuotaSpikeHotkey> (plain key is always micro-test — this no longer replaces the plain-key mode). Empty = Shift+hotkey does nothing (logs/toasts a reminder to set this). When set: clamps ALL of that item's rows in its best-stocked warehouse DOWN so their sum equals the warehouse's current stored count exactly, deliberately shutting intake to reproduce a clog for other diagnostics (test harness only — no auto-revert; reverting transitions into a read-only drain watch).");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -429,7 +506,7 @@ public class Plugin : BasePlugin
         }
 
         Logger.LogInfo(
-            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics. " +
+            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics + Phase 2b quota spike. " +
             $"TickSeconds={TickSeconds.Value} DumpHotkey='{DumpHotkey.Value}' EnableDiagnostics={EnableDiagnostics.Value} PatchVillagerComplaints={PatchVillagerComplaints.Value} " +
             $"WidgetPollSeconds={WidgetPollSeconds.Value} SweepStationsPerTick={SweepStationsPerTick.Value} IgnoredComplaintMessages='{IgnoredComplaintMessages.Value}' " +
             $"EnableSpike={EnableSpike.Value} SpikeHotkey='{SpikeHotkey.Value}' SpikeStationFilter='{SpikeStationFilter.Value}' SpikeTaskIndex={SpikeTaskIndex.Value} " +
@@ -441,6 +518,8 @@ public class Plugin : BasePlugin
             $"MaxConcurrentBoosts={MaxConcurrentBoosts.Value} BoostToRank={BoostToRank.Value} StationClassAllowList='{StationClassAllowList.Value}' " +
             $"AlarmLockoutSeconds={AlarmLockoutSeconds.Value} " +
             $"EnableWarehouseWatch={EnableWarehouseWatch.Value} WarehousePollSeconds={WarehousePollSeconds.Value} WarehouseClassList='{WarehouseClassList.Value}' " +
-            $"ClogDominantSharePercent={ClogDominantSharePercent.Value} ClogRealertMinutes={ClogRealertMinutes.Value} ClogStallMinutes={ClogStallMinutes.Value}.");
+            $"ClogDominantSharePercent={ClogDominantSharePercent.Value} ClogRealertMinutes={ClogRealertMinutes.Value} ClogStallMinutes={ClogStallMinutes.Value} " +
+            $"EnableQuotaSpike={EnableQuotaSpike.Value} QuotaSpikeHotkey='{QuotaSpikeHotkey.Value}' QuotaBoostMaxDelta={QuotaBoostMaxDelta.Value} " +
+            $"QuotaSpikeMaxHoldSeconds={QuotaSpikeMaxHoldSeconds.Value} QuotaMinStationStock={QuotaMinStationStock.Value} ClogForgeItem='{ClogForgeItem.Value}'.");
     }
 }

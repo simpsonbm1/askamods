@@ -1,0 +1,84 @@
+﻿TYPE: SSSGame.AI.ResourceStorageTaskData base=SSSGame.AI.WorkstationTaskData
+  P: _quantityRange : UnityEngine.Vector2Int
+  P: _storageSupply : SSSGame.StorageSupply
+  P: storageSupply : SSSGame.StorageSupply
+  M: Void .cctor() [static]
+  M: Void .ctor(List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(Int32 quantity, List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable, StorageSupply storageSupply)
+  M: Boolean CheckDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void _RefreshQuantityRange()
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.AI.WorkstationTaskData base=Il2CppSystem.Object
+  P: itemInfoQuantity : SandSailorStudio.Inventory.ItemInfoQuantity
+  P: VillagersInCharge : Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager>
+  P: priority : System.Int32
+  P: isRemovable : System.Boolean
+  P: shouldUpdateFromNetwork : System.Boolean
+  P: pinnedTask : System.Boolean
+  P: onDataChanged : Il2CppSystem.Action
+  M: Void .cctor() [static]
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers)
+  M: Void .ctor(Int32 quantity, List`1 villagers)
+  M: Void .ctor(List`1 villagers)
+  M: Void .ctor()
+  M: Void SetPriority(Int32 value)
+  M: Boolean CheckDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+===== Network types with 'ResourceStorage' or 'Storage' in the name =====
+TYPE: SSSGame.Network.NetworkItemCountItemStorage base=SSSGame.Network.NetworkItemStorage
+  M: Void Rpc_ChangeNetworkItemCount(Byte itemCount)
+
+TYPE: SSSGame.Network.NetworkItemStorage base=SSSGame.Network.NetworkComponent
+  M: Void Rpc_ChangeNetworkItemCount(Byte itemPosition, Byte newCount)
+  M: Void Rpc_DestroyNetworkItem(Byte itemPosition)
+
+TYPE: SSSGame.Network.NetworkSpecificNoAttributeItemStorage base=SSSGame.Network.NetworkItemStorage
+  M: Void Rpc_RequestCreateNetworkItem(Byte itemPosition)
+  M: Void Rpc_MoveNetworkItem(Byte itemPosition, Byte newItemPosition)
+
+TYPE: SSSGame.Network.NetworkCompositeResourceStorage base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCompositeResourceStorage/NetworkTask>
+  M: Void HostUpdateTasks() [virtual]
+  M: Void _HostUpdateNetworkTasksFromTask(NetworkTaskContainer taskContainer, ResourceStorageTaskData task, Int32 villagersInChargeMask)
+  M: Void ProxyUpdateTasks() [virtual]
+  M: Void _ProxyRemoveFromTaskContainer(NetworkTaskContainer taskContainer)
+  M: Void ProxyUpdateTasksFromTaskContainer(NetworkTaskContainer taskContainer)
+  M: ResourceStorageTaskData _FindTaskCorrespondingToNetworkTask(NetworkTaskContainer taskContainer, Int32 containerTaskIndex)
+  M: Task _GetNetworkTaskFromTask(WorkstationTaskData task)
+  M: Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  M: Boolean _TryGetNetworkTaskFromTask(WorkstationTaskData task, NetworkTask& networkTask) [virtual]
+  M: WorkstationTaskData _CreateTaskFromNetworkTask(Int32 networkTaskIndex) [virtual]
+  M: Void _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) [virtual]
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask>
+  M: Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  M: Boolean _TryGetNetworkTaskFromTask(WorkstationTaskData task, NetworkTask& networkTask) [virtual]
+  M: WorkstationTaskData _CreateTaskFromNetworkTask(Int32 networkTaskIndex) [virtual]
+  M: Void _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) [virtual]
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_12 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_2 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_22 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_3 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_4 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_42 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_45 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_5 base=SSSGame.Network.NetworkSimpleResourceStorage
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_8 base=SSSGame.Network.NetworkSimpleResourceStorage
+

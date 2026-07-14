@@ -12,6 +12,14 @@ namespace SupplyChainMod;
 // v0.2.3: OrigPriority/BoostPriority are RANK INDICES (list position, == priority — test run 1
 // confirmed priority is a rank continuously renumbered from list order), not arbitrary values.
 // Schema is unchanged from v0.2.0-0.2.2 since the two are numerically identical.
+//
+// v0.5.0 — Phase 2b (QuotaSpike) reuses this same ledger for quota boosts, distinguished by Kind:
+// "rank" (ActuationSpike/SupplyController, the original meaning above) vs. "quota" (QuotaSpike) —
+// for Kind=="quota", OrigPriority/BoostPriority carry the ORIGINAL and BOOSTED QUOTA values instead
+// (field names kept as-is for schema/backward-compat stability). SupplyOwner is quota-specific
+// bookkeeping (the ResourceStorageTaskData's supply owner name), "-" for rank entries. Both new
+// fields are backward-compatible: a pre-v0.5.0 8-field line has no Kind/SupplyOwner columns and
+// parses as Kind="rank" SupplyOwner="-" (see LoadAll).
 internal sealed class LedgerEntry
 {
     public string WorldId = "?";
@@ -19,9 +27,11 @@ internal sealed class LedgerEntry
     public string StationName = "?";
     public int TaskIndex;
     public string ItemName = "?";
-    public int OrigPriority; // rank index (== priority) the task originally occupied
-    public int BoostPriority; // rank index (== priority) the task was moved to
+    public int OrigPriority; // rank index (Kind="rank") or original quota (Kind="quota")
+    public int BoostPriority; // rank index (Kind="rank") or boosted quota (Kind="quota")
     public long UtcTicks;
+    public string Kind = "rank"; // "rank" | "quota"
+    public string SupplyOwner = "-";
 }
 
 internal static class SpikeLedger
@@ -53,7 +63,8 @@ internal static class SpikeLedger
                 e.WorldId == entry.WorldId &&
                 e.PosKey == entry.PosKey &&
                 e.TaskIndex == entry.TaskIndex &&
-                e.ItemName == entry.ItemName);
+                e.ItemName == entry.ItemName &&
+                e.Kind == entry.Kind);
             WriteAll(all);
         }
         catch (Exception ex)
@@ -108,6 +119,10 @@ internal static class SpikeLedger
                         OrigPriority = int.Parse(parts[5]),
                         BoostPriority = int.Parse(parts[6]),
                         UtcTicks = long.Parse(parts[7]),
+                        // v0.5.0 — legacy 8-field lines (v0.2.x-v0.4.x, pre-QuotaSpike) have no
+                        // Kind/SupplyOwner columns and parse as Kind="rank" SupplyOwner="-".
+                        Kind = parts.Length >= 9 ? parts[8] : "rank",
+                        SupplyOwner = parts.Length >= 10 ? parts[9] : "-",
                     });
                 }
                 catch (Exception ex)
@@ -142,6 +157,8 @@ internal static class SpikeLedger
                     e.OrigPriority.ToString(),
                     e.BoostPriority.ToString(),
                     e.UtcTicks.ToString(),
+                    Sanitize(e.Kind),
+                    Sanitize(e.SupplyOwner),
                 }));
             }
             File.WriteAllLines(tmp, lines);

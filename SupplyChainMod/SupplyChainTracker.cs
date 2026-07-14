@@ -29,6 +29,7 @@ public class SupplyChainTracker : MonoBehaviour
     private KeyCode _dumpKey = KeyCode.F9;
     private KeyCode _spikeKey = KeyCode.F10;
     private KeyCode _controllerArmKey = KeyCode.F11;
+    private KeyCode _quotaSpikeKey = KeyCode.F7;
     private bool _ledgerRestoreDone;
 
     // Never cache per-world native wrappers across world sessions (project-wide gotcha) — only
@@ -61,6 +62,7 @@ public class SupplyChainTracker : MonoBehaviour
         _dumpKey = ParseKey(Plugin.DumpHotkey.Value, KeyCode.F9, "DumpHotkey");
         _spikeKey = ParseKey(Plugin.SpikeHotkey.Value, KeyCode.F10, "SpikeHotkey");
         _controllerArmKey = ParseKey(Plugin.ControllerArmHotkey.Value, KeyCode.F11, "ControllerArmHotkey");
+        _quotaSpikeKey = ParseKey(Plugin.QuotaSpikeHotkey.Value, KeyCode.F7, "QuotaSpikeHotkey");
     }
 
     private static KeyCode ParseKey(string raw, KeyCode fallback, string keyName)
@@ -103,6 +105,31 @@ public class SupplyChainTracker : MonoBehaviour
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Spike hotkey check error: {ex}"); }
+
+        try
+        {
+            if (Plugin.EnableQuotaSpike.Value && !Common.IsTextInputFocused() && Input.GetKeyDown(_quotaSpikeKey))
+            {
+                if (_currentWorldId == null)
+                {
+                    Plugin.Logger.LogInfo("[SupplyChain] [quota] Hotkey pressed but skipped — no active world session.");
+                    ShowMessage("Quota spike: no active world.", 4f);
+                }
+                else
+                {
+                    try
+                    {
+                        // v0.5.2 — Shift+<key> selects forge mode; plain key is always micro-test
+                        // (an active boost/forge/drain reverts on either combination — see OnHotkey).
+                        bool forge = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                        ResolveStationsIfDue(force: true);
+                        QuotaSpike.OnHotkey(_stations, _currentWorldId, forge);
+                    }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.OnHotkey error: {ex}"); }
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Quota spike hotkey check error: {ex}"); }
 
         try
         {
@@ -206,6 +233,8 @@ public class SupplyChainTracker : MonoBehaviour
         Patches.ComplaintLog.ClearState();
         try { ActuationSpike.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.NoteWorldLeft error: {ex}"); }
+        try { QuotaSpike.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.NoteWorldLeft error: {ex}"); }
         try { SupplyController.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteWorldLeft error: {ex}"); }
         try { WarehouseWatch.NoteWorldLeft(); }
@@ -222,17 +251,33 @@ public class SupplyChainTracker : MonoBehaviour
 
         CompositionSweep.TickRolling(_stations, Plugin.SweepStationsPerTick.Value, ref _sweepCursor);
 
-        if (Plugin.EnableSpike.Value)
+        // v0.5.0 — the ledger-restore latch is hoisted out of the EnableSpike gate so QuotaSpike's
+        // own restore pass still fires when EnableSpike=false but EnableQuotaSpike=true.
+        if (!_ledgerRestoreDone)
         {
-            if (!_ledgerRestoreDone)
+            _ledgerRestoreDone = true;
+            if (Plugin.EnableSpike.Value)
             {
-                _ledgerRestoreDone = true;
                 try { ActuationSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.OnWorldReady error: {ex}"); }
             }
+            if (Plugin.EnableQuotaSpike.Value)
+            {
+                try { QuotaSpike.OnWorldReady(_currentWorldId!, _stations); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.OnWorldReady error: {ex}"); }
+            }
+        }
 
+        if (Plugin.EnableSpike.Value)
+        {
             try { ActuationSpike.TickAutoRevert(_stations); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.TickAutoRevert error: {ex}"); }
+        }
+
+        if (Plugin.EnableQuotaSpike.Value)
+        {
+            try { QuotaSpike.TickWatch(_stations); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.TickWatch error: {ex}"); }
         }
 
         if (Plugin.EnableController.Value)

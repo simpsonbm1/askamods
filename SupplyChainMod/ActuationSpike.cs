@@ -77,6 +77,9 @@ internal static class ActuationSpike
             var entries = SpikeLedger.LoadFor(worldId);
             foreach (var entry in entries)
             {
+                // v0.5.0 — the ledger is shared with QuotaSpike (Kind="quota"); this pass only
+                // restores rank entries. QuotaSpike.OnWorldReady runs its own pass for its own kind.
+                if (entry.Kind != "rank") continue;
                 try { RestoreLedgerEntry(entry, stations); }
                 catch (Exception ex)
                 {

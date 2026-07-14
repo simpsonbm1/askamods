@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>SupplyChainMod</AssemblyName>
     <RootNamespace>SupplyChainMod</RootNamespace>
-    <Version>0.4.3</Version>
+    <Version>0.5.2</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
