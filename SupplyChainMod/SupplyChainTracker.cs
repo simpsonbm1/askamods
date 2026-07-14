@@ -239,6 +239,10 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteWorldLeft error: {ex}"); }
         try { WarehouseWatch.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.NoteWorldLeft error: {ex}"); }
+        try { ClogController.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ClogController.NoteWorldLeft error: {ex}"); }
+        try { MetabolicPlane.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] MetabolicPlane.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────
@@ -253,6 +257,9 @@ public class SupplyChainTracker : MonoBehaviour
 
         // v0.5.0 — the ledger-restore latch is hoisted out of the EnableSpike gate so QuotaSpike's
         // own restore pass still fires when EnableSpike=false but EnableQuotaSpike=true.
+        // v0.6.0 — widened further: ClogController writes Kind="quota" ledger entries too, restored
+        // by this same QuotaSpike.OnWorldReady pass, so it must also fire when EnableClogController
+        // is the only one of the two enabled.
         if (!_ledgerRestoreDone)
         {
             _ledgerRestoreDone = true;
@@ -261,7 +268,7 @@ public class SupplyChainTracker : MonoBehaviour
                 try { ActuationSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.OnWorldReady error: {ex}"); }
             }
-            if (Plugin.EnableQuotaSpike.Value)
+            if (Plugin.EnableQuotaSpike.Value || Plugin.EnableClogController.Value)
             {
                 try { QuotaSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.OnWorldReady error: {ex}"); }
@@ -284,6 +291,18 @@ public class SupplyChainTracker : MonoBehaviour
         {
             try { SupplyController.Tick(_stations, _currentWorldId!); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.Tick error: {ex}"); }
+        }
+
+        if (Plugin.EnableClogController.Value)
+        {
+            try { ClogController.Tick(_stations, _currentWorldId!); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ClogController.Tick error: {ex}"); }
+        }
+
+        if (Plugin.EnableMetabolicPlane.Value)
+        {
+            try { MetabolicPlane.MaybeLogMovers(); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] MetabolicPlane.MaybeLogMovers error: {ex}"); }
         }
 
         if (!_autoTaskDumped && _worldLoadTime.HasValue && (Time.time - _worldLoadTime.Value) >= AutoTaskDumpDelaySeconds)

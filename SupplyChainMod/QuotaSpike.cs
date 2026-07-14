@@ -80,24 +80,6 @@ internal static class QuotaSpike
         public float RespondedAtTime;
     }
 
-    // A single ResourceStorageTaskData row found during a warehouse scan. Rst is held only for the
-    // duration of the Boost() call that built this list — never stored in _active or any static
-    // field (project-wide gotcha: no per-world interop wrappers cached across ticks).
-    private sealed class WarehouseTaskRow
-    {
-        public StationEntry Warehouse = null!;
-        public int TaskIndex;
-        public ResourceStorageTaskData Rst = null!;
-        public string ItemName = "?";
-        public int Qty;
-        public int Rank;
-        public string SupplyOwner = "-";
-        // v0.5.2 — true-warehouse discriminator (Common.SafeName-style guarded probe):
-        // storageSupply.taskContainer != null on a real composite/simple warehouse row; null on a
-        // gathering-hut self-storage row, which is never a drain target.
-        public bool HasTaskContainer;
-    }
-
     // Near-miss diagnostic record for a met-but-rejected group (v0.5.2) — used only to log the top 3
     // when a micro-test Boost finds no eligible candidate.
     private sealed class MetGroupDiag
@@ -130,12 +112,12 @@ internal static class QuotaSpike
                     SupplyChainTracker.ShowMessage("Forge: set ClogForgeItem in the config first.", 6f);
                     return;
                 }
-                var rows = BuildWarehouseTaskRows(stations);
+                var rows = WarehouseTasks.BuildRows(stations);
                 BoostForge(stations, worldId, rows);
             }
             else
             {
-                var rows = BuildWarehouseTaskRows(stations);
+                var rows = WarehouseTasks.BuildRows(stations);
                 BoostMicro(stations, worldId, rows);
             }
         }
@@ -159,7 +141,7 @@ internal static class QuotaSpike
             // A representative row is enough — we only need warehouse-wide stored (item-level, not
             // row-level) for the watch/status logic below, for every mode.
             var rep = active.Rows[0];
-            FindQuotaTask(datas, rep.TaskIndex, rep.ItemName, rep.SupplyOwner, out var rst);
+            WarehouseTasks.FindQuotaTask(datas, rep.TaskIndex, rep.ItemName, rep.SupplyOwner, out var rst);
             if (rst == null) return; // task gone this tick; a hotkey revert will report it properly if pressed
 
             ItemInfo? info = null;
@@ -276,13 +258,13 @@ internal static class QuotaSpike
     }
 
     // ── Boost: micro-test ────────────────────────────────────────────────────────────────────────
-    private static void BoostMicro(List<StationEntry> stations, string worldId, List<WarehouseTaskRow> rows)
+    private static void BoostMicro(List<StationEntry> stations, string worldId, List<WarehouseTasks.WarehouseTaskRow> rows)
     {
         // v0.5.2 — exclude gathering-hut self-storage rows (no taskContainer) before grouping; they
         // are never real drain targets and were diluting run-1's candidate pool (452 groups, most hut
         // self-storage).
         int hutRowsExcluded = 0;
-        var trueRows = new List<WarehouseTaskRow>();
+        var trueRows = new List<WarehouseTasks.WarehouseTaskRow>();
         foreach (var r in rows)
         {
             if (!r.HasTaskContainer) { hutRowsExcluded++; continue; }
@@ -292,11 +274,11 @@ internal static class QuotaSpike
         // Group rows by (warehouse PosKey, item name) — a composite warehouse can hold multiple
         // task rows for the same item (one per child sub-storage supply); the effective intake
         // allotment is the SUM of that group's quotas.
-        var groups = new Dictionary<string, List<WarehouseTaskRow>>();
+        var groups = new Dictionary<string, List<WarehouseTasks.WarehouseTaskRow>>();
         foreach (var r in trueRows)
         {
             string key = r.Warehouse.PosKey + "|" + r.ItemName;
-            if (!groups.TryGetValue(key, out var list)) { list = new List<WarehouseTaskRow>(); groups[key] = list; }
+            if (!groups.TryGetValue(key, out var list)) { list = new List<WarehouseTasks.WarehouseTaskRow>(); groups[key] = list; }
             list.Add(r);
         }
 
@@ -304,7 +286,7 @@ internal static class QuotaSpike
         int metCount = 0, roomZeroCount = 0, noSourceCount = 0;
         var nearMisses = new List<MetGroupDiag>();
 
-        WarehouseTaskRow? bestRow = null;
+        WarehouseTasks.WarehouseTaskRow? bestRow = null;
         string? bestSourcePosKey = null;
         string? bestSourceName = null;
         int bestSourceStock = -1;
@@ -533,19 +515,19 @@ internal static class QuotaSpike
     }
 
     // ── Boost: forge ─────────────────────────────────────────────────────────────────────────────
-    private static void BoostForge(List<StationEntry> stations, string worldId, List<WarehouseTaskRow> rows)
+    private static void BoostForge(List<StationEntry> stations, string worldId, List<WarehouseTasks.WarehouseTaskRow> rows)
     {
         string targetItem = Plugin.ClogForgeItem.Value;
 
         // v0.5.2 — matching rows, true-warehouse only, grouped by warehouse (a composite warehouse
         // can hold several rows for the same item — the whole group in ONE warehouse is the forge
         // unit, not a single row).
-        var byWarehouse = new Dictionary<string, List<WarehouseTaskRow>>();
+        var byWarehouse = new Dictionary<string, List<WarehouseTasks.WarehouseTaskRow>>();
         foreach (var r in rows)
         {
             if (!r.HasTaskContainer) continue;
             if (!string.Equals(r.ItemName, targetItem, StringComparison.OrdinalIgnoreCase)) continue;
-            if (!byWarehouse.TryGetValue(r.Warehouse.PosKey, out var list)) { list = new List<WarehouseTaskRow>(); byWarehouse[r.Warehouse.PosKey] = list; }
+            if (!byWarehouse.TryGetValue(r.Warehouse.PosKey, out var list)) { list = new List<WarehouseTasks.WarehouseTaskRow>(); byWarehouse[r.Warehouse.PosKey] = list; }
             list.Add(r);
         }
 
@@ -557,7 +539,7 @@ internal static class QuotaSpike
         }
 
         // Choose the warehouse with the largest warehouse-wide stored count among the matches.
-        List<WarehouseTaskRow>? bestGroup = null;
+        List<WarehouseTasks.WarehouseTaskRow>? bestGroup = null;
         StationEntry? bestWarehouse = null;
         int bestStored = -1;
 
@@ -728,7 +710,7 @@ internal static class QuotaSpike
 
         foreach (var rowState in active.Rows)
         {
-            FindQuotaTask(datas, rowState.TaskIndex, rowState.ItemName, rowState.SupplyOwner, out var rst);
+            WarehouseTasks.FindQuotaTask(datas, rowState.TaskIndex, rowState.ItemName, rowState.SupplyOwner, out var rst);
             if (rst == null)
             {
                 missingCount++;
@@ -868,7 +850,7 @@ internal static class QuotaSpike
         try { datas = target.Ws.GetWorkstationTaskDatas(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [quota] GetWorkstationTaskDatas error: {ex}"); }
 
-        FindQuotaTask(datas, entry.TaskIndex, entry.ItemName, entry.SupplyOwner, out var rst);
+        WarehouseTasks.FindQuotaTask(datas, entry.TaskIndex, entry.ItemName, entry.SupplyOwner, out var rst);
         if (rst == null)
         {
             Plugin.Logger.LogWarning(
@@ -888,169 +870,4 @@ internal static class QuotaSpike
         SpikeLedger.Remove(entry);
     }
 
-    // ── Local helpers ────────────────────────────────────────────────────────────────────────────
-
-    // Local copy of WarehouseWatch.ParseClassList's idiom — WarehouseWatch's own copy is private
-    // and untouched (spec: do not change WarehouseWatch).
-    private static HashSet<string> ParseClassList(string raw)
-    {
-        var set = new HashSet<string>();
-        if (string.IsNullOrEmpty(raw)) return set;
-        foreach (var part in raw.Split(','))
-        {
-            var t = part.Trim();
-            if (t.Length > 0) set.Add(t);
-        }
-        return set;
-    }
-
-    // Scans every station matching WarehouseClassList (skipping stations already boosted by the
-    // spike or the controller) for non-pinned ResourceStorageTaskData rows. Item name/qty/rank/
-    // supply-owner are read out as plain values; ItemInfo itself is never stored on the row (read
-    // fresh from Rst.itemInfoQuantity.itemInfo wherever needed) — only Rst (the task wrapper) is
-    // held, and only for the lifetime of the single Boost() call that consumes this list. Includes
-    // BOTH true-warehouse and gathering-hut self-storage rows (HasTaskContainer distinguishes them);
-    // callers (BoostMicro/BoostForge) filter to true-warehouse rows themselves.
-    private static List<WarehouseTaskRow> BuildWarehouseTaskRows(List<StationEntry> stations)
-    {
-        var result = new List<WarehouseTaskRow>();
-        try
-        {
-            var allowedClasses = ParseClassList(Plugin.WarehouseClassList.Value);
-            foreach (var entry in stations)
-            {
-                string cls = "?";
-                try { cls = Common.NativeClassName(entry.Ws); } catch { }
-                if (!allowedClasses.Contains(cls)) continue;
-                if (RankActuator.BoostedStationKeys.Contains(entry.PosKey)) continue;
-
-                Il2CppSystem.Collections.Generic.List<WorkstationTaskData>? datas = null;
-                try { datas = entry.Ws.GetWorkstationTaskDatas(); }
-                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [quota] GetWorkstationTaskDatas '{entry.StructureName}' error: {ex}"); continue; }
-                if (datas == null) continue;
-
-                for (int i = 0; i < datas.Count; i++)
-                {
-                    WorkstationTaskData? task = null;
-                    try { task = datas[i]; } catch { continue; }
-                    if (task == null) continue;
-
-                    ResourceStorageTaskData? rst = null;
-                    try { rst = task.TryCast<ResourceStorageTaskData>(); } catch { }
-                    if (rst == null) continue;
-
-                    bool pinned = false;
-                    try { pinned = rst.pinnedTask; } catch { }
-                    if (pinned) continue;
-
-                    var iq = rst.itemInfoQuantity;
-                    if (iq == null) continue;
-                    var info = iq.itemInfo;
-                    if (info == null) continue;
-
-                    string itemName = Common.SafeItemName(info);
-                    int qty = 0; try { qty = iq.quantity; } catch { }
-                    int rank = -1; try { rank = rst.priority; } catch { }
-                    string supplyOwner = GetSupplyOwner(rst);
-                    bool hasTaskContainer = HasTaskContainer(rst);
-
-                    result.Add(new WarehouseTaskRow
-                    {
-                        Warehouse = entry,
-                        TaskIndex = i,
-                        Rst = rst,
-                        ItemName = itemName,
-                        Qty = qty,
-                        Rank = rank,
-                        SupplyOwner = supplyOwner,
-                        HasTaskContainer = hasTaskContainer,
-                    });
-                }
-            }
-        }
-        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [quota] BuildWarehouseTaskRows error: {ex}"); }
-        return result;
-    }
-
-    private static string GetSupplyOwner(ResourceStorageTaskData rst)
-    {
-        try
-        {
-            var supply = rst.storageSupply;
-            if (supply != null) return Common.SafeName(supply.OwnerStructure);
-        }
-        catch { }
-        return "-";
-    }
-
-    // v0.5.2 — true-warehouse discriminator (confirmed in-game 2026-07-13, Phase 2a/TaskDump):
-    // storageSupply.taskContainer != null on a real composite/simple warehouse row; null on a
-    // gathering-hut self-storage row. Same guarded-probe idiom as TaskDump.cs's hasTaskContainer read.
-    private static bool HasTaskContainer(ResourceStorageTaskData rst)
-    {
-        try
-        {
-            var supply = rst.storageSupply;
-            if (supply != null) return supply.taskContainer != null;
-        }
-        catch { }
-        return false;
-    }
-
-    // Loose owner comparison: "-" on either side means unresolvable/unknown, so it can't
-    // discriminate — treated as a match, falling through to item-name-only matching upstream.
-    private static bool OwnerMatches(string a, string b)
-    {
-        if (a == "-" || b == "-") return true;
-        return a == b;
-    }
-
-    private static ResourceStorageTaskData? TryGetRst(Il2CppSystem.Collections.Generic.List<WorkstationTaskData> datas, int i)
-    {
-        WorkstationTaskData? task = null;
-        try { task = datas[i]; } catch { return null; }
-        if (task == null) return null;
-        try { return task.TryCast<ResourceStorageTaskData>(); } catch { return null; }
-    }
-
-    // Locates the boosted task on a freshly-resolved warehouse. Tier A: preferredIndex, if it still
-    // TryCasts and matches item (+owner, when both are resolvable). Tier B: first row matching
-    // item+owner anywhere on the station. Tier C: first row matching item name alone. Returns the
-    // found index (-1 if none) with the matching ResourceStorageTaskData via out rst.
-    private static int FindQuotaTask(Il2CppSystem.Collections.Generic.List<WorkstationTaskData>? datas, int preferredIndex, string itemName, string supplyOwner, out ResourceStorageTaskData? rst)
-    {
-        rst = null;
-        if (datas == null) return -1;
-
-        if (preferredIndex >= 0 && preferredIndex < datas.Count)
-        {
-            var candRst = TryGetRst(datas, preferredIndex);
-            if (candRst != null && RankActuator.SafeTaskItemName(candRst) == itemName && OwnerMatches(supplyOwner, GetSupplyOwner(candRst)))
-            {
-                rst = candRst;
-                return preferredIndex;
-            }
-        }
-
-        for (int i = 0; i < datas.Count; i++)
-        {
-            var candRst = TryGetRst(datas, i);
-            if (candRst == null) continue;
-            if (RankActuator.SafeTaskItemName(candRst) != itemName) continue;
-            if (!OwnerMatches(supplyOwner, GetSupplyOwner(candRst))) continue;
-            rst = candRst;
-            return i;
-        }
-
-        for (int i = 0; i < datas.Count; i++)
-        {
-            var candRst = TryGetRst(datas, i);
-            if (candRst == null) continue;
-            if (RankActuator.SafeTaskItemName(candRst) != itemName) continue;
-            rst = candRst;
-            return i;
-        }
-
-        return -1;
-    }
 }

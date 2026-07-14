@@ -128,6 +128,10 @@ internal static class SupplyController
     private static DateTime _lastAlarmAt = DateTime.MinValue;
     private static bool _alarmLoggedThisWindow;
 
+    // v0.6.0 (Phase 2c) — ClogController shares this same militia-alarm lockout window so a fresh
+    // combat complaint pauses BOTH controllers' new boosts, not just this one's.
+    internal static bool AlarmLockoutActive => (DateTime.UtcNow - _lastAlarmAt).TotalSeconds < Plugin.AlarmLockoutSeconds.Value;
+
     private static DateTime _lastStatusAt = DateTime.MinValue;
 
     // ── Public surface (all wrapped so no exception escapes the caller) ────────────────────────

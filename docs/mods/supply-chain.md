@@ -1,7 +1,8 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.5.2, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (quota-raise drain
-actuator + clog-forge harness, in-game-verified 2026-07-14, dev tool NOT for Nexus)
+**Status:** WIP v0.6.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (in-game-verified),
+Phase 2c (metabolic plane + clog controller) built ⚠️ pending in-game confirmation, dev tool
+NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -167,6 +168,40 @@ with hauler-response verification and a permanent clog-forge regression harness.
   warehouse-wide stored count 133) and all 4 restored cleanly — consistent with (and further
   confirming) the documented "effective allotment = SUM of per-supply quotas" fact.
 
+**Phase 2c metabolic plane + clog controller (v0.6.0, ⚠️ pending in-game confirmation):**
+
+- **MetabolicPlane module** — per-key ring buffer (fixed capacity 16) of (Time.time, count)
+  samples, key format `<posKey>|<itemName>`. Fed by every WarehouseWatch poll: one sample per
+  (warehouse, item) stored count, plus each storage-full station's dominant-item count from
+  the clog detector. `TryGetRatePerMinute(key, window)`: endpoint-delta rate over samples in
+  the window, requires ≥2 samples spanning ≥45 s. Throttled "top movers" log line (top 5 by
+  |rate| ≥ 0.1/min, log prefix `[SupplyChain] [metabolic]`). `DescribeRate(key)` helper for
+  other modules' log lines.
+- **ClogController module** — automates the Phase-2b-proven quota-raise drain. Per-ITEM state
+  machine Pending → Boosting → Cooldown → CapacityLockout, fed by WarehouseWatch VERDICT A via
+  `NoteVerdictA(stationPosKey, stationName, item, dominantQty)` call. Shares: SupplyController
+  .Armed (F11 toggle — dry-run until armed), militia-alarm lockout (SupplyController
+  .AlarmLockoutActive), SpikeLedger (Kind="quota", write-ahead before every write), RankActuator
+  .BoostedStationKeys (mutual exclusion with spikes + rank controller), QuotaActuator.ApplyQuota
+  (single shared quota write path). Actuation: picks the unlocked true-warehouse row group for
+  the item with the LARGEST room (GetTotalRemainingCapacity), raises ONE row by delta = min
+  (clogged station's current item count, room, ClogBoostMaxDelta); authority-gated (HasStateAuthority
+  , unreadable → allow). Response detection every 5 s MasterTick: warehouse stored rises OR clogged
+  station's count falls; logs hauler latency. Revert triggers (priority order): target-met
+  (warehouse stored ≥ storedAtBoost+delta), clog-cleared (station's storage-full complaint not
+  seen for 60 s), no-response (ClogResponseWindowSeconds elapsed, default 60 s), hold-elapsed
+  (ClogHoldMaxSeconds). Then Cooldown; ClogMaxCyclesPerItem cycles with clog persisting →
+  capacity VERDICT toast + ClogCapacityLockoutMinutes lockout; 3 consecutive no-target outcomes
+  (no unlocked warehouse with room) → same verdict path. Entry staleness: VERDICT A refreshes
+  LastSeen each ~30 s warehouse poll; no refresh for ClogRetainSeconds → entry removed (reverting
+  first if Boosting). Revert ledger policy mirrors rank controller's: warehouse-not-found KEEPS
+  ledger entry (restored at next world load), task-not-found DROPS it. Stranded boosts restored
+  by QuotaSpike.OnWorldReady's existing Kind="quota" pass (MasterTick gate widened to
+  EnableQuotaSpike OR EnableClogController). Log prefix `[SupplyChain] [clog-ctl]`.
+- **WarehouseTasks module** — warehouse row scan (BuildRows, was QuotaSpike.BuildWarehouseTaskRows
+  ) + FindQuotaTask + WarehouseTaskRow + GetSupplyOwner hoisted into shared static class so spike
+  and controller use one implementation; QuotaSpike delegates — zero behavior change.
+
 ## Configuration
 
 **`<Mod>.cfg` after first launch:**
@@ -215,6 +250,23 @@ QuotaBoostMaxDelta=50       # max single-row quota delta per spike
 QuotaSpikeMaxHoldSeconds=300  # hold timeout before auto-revert (F7 micro mode)
 QuotaMinStationStock=10     # minimum source-station stock to trigger spike
 ClogForgeItem=              # empty = forge disabled; item name to forge as permanent clog
+
+[Phase2Clog]
+EnableClogController=true   # Phase 2c clog automation
+ClogRetainSeconds=240       # VERDICT A staleness threshold before entry removed
+ClogHysteresisSeconds=45    # min window between samples for rate calculation
+ClogBoostMaxDelta=50        # max single-row quota delta per clog boost
+ClogResponseWindowSeconds=60  # elapsed time without response = no-response revert trigger
+ClogHoldMaxSeconds=600      # hold duration before auto-revert after boost
+ClogCooldownSeconds=120     # cooldown duration before next clog boost eligible
+ClogMaxCyclesPerItem=2      # max cycles with clog persisting before VERDICT
+ClogCapacityLockoutMinutes=15  # lockout duration after capacity VERDICT
+MaxConcurrentClogBoosts=1   # max simultaneous clog boosts (mutual exclusion)
+
+[Metabolic]
+EnableMetabolicPlane=true   # Phase 2d future data layer (ring buffer samples)
+MetabolicWindowSeconds=180  # default window for rate-per-minute calculations
+MetabolicStatusMinutes=5    # throttle window for "top movers" log line
 ```
 
 ## Dead-Ends
@@ -262,3 +314,5 @@ ClogForgeItem=              # empty = forge disabled; item name to forge as perm
   target met), zero errors across both runs. Confirmed: quota write path works, player deposits
   bypass quota, composite multi-row clamp distributes correctly, hauler response latency 13 s.
   (v0.5.0 was a build-only casualty of the SAC bump guard, never tested.)
+- **v0.6.0** (2026-07-14, Phase 2c) — MetabolicPlane + ClogController + WarehouseTasks hoist;
+  build-verified only (0 errors/0 warnings), no game run yet. ⚠️ pending in-game confirmation.

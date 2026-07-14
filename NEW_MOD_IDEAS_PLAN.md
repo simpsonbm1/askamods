@@ -463,8 +463,9 @@ all-villager ticks (worst cohort 28 ms).
     latency 13 s (single datum), player deposits bypass quota, clog-forge end-to-end verified
     (clamp → storage-full → revert → target met). See `docs/mods/supply-chain.md` for Phase 2b
     recipe/config/findings. **2c** metabolic plane (snapshot ring buffer + net-rate derivatives)
-    + clog state machine in the existing arbiter (shared ledger/BoostedStationKeys/duty-cycling/
-    capacity verdicts).
+    + clog state machine in the existing arbiter — **BUILT as SupplyChainMod v0.6.0
+    (2026-07-14) ⚠️ pending in-game confirmation** (see `docs/mods/supply-chain.md` for Phase 2c
+    recipe/config); 2d uses 2c's metabolic data for quota calibration.
 - **Phase 2d — rate-based stock keeping / quota calibration (user-requested 2026-07-13):** use the
   metabolic plane's per-item derivatives (consumption rate vs intake rate across sweeps) to
   auto-maintain warehouse allotment quotas at levels that keep the base self-sustaining — quotas

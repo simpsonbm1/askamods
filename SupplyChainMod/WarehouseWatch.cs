@@ -32,6 +32,7 @@ internal static class WarehouseWatch
         public string SupplyOwner = "?";
         public int Gathered = -1;
         public int Room = -1;
+        public string PosKey = "?";
     }
 
     private sealed class StallTrack
@@ -69,6 +70,20 @@ internal static class WarehouseWatch
     {
         try { _storageFull.Remove(posKey); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.NoteStorageFullCleared error: {ex}"); }
+    }
+
+    // v0.6.0 (Phase 2c) — accessor for ClogController: is the given station currently registered as
+    // storage-full (widget-fed) within the last withinSeconds? Used both as a Pending eligibility gate
+    // and a Boosting exit condition ("clog-cleared").
+    internal static bool IsStorageFullRecent(string posKey, double withinSeconds)
+    {
+        try
+        {
+            if (_storageFull.TryGetValue(posKey, out var full))
+                return (DateTime.UtcNow - full.LastSeenUtc).TotalSeconds <= withinSeconds;
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.IsStorageFullRecent error: {ex}"); }
+        return false;
     }
 
     internal static void NoteWorldLeft()
@@ -113,6 +128,12 @@ internal static class WarehouseWatch
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch warehouse '{wh.StructureName}' error: {ex}"); }
             }
 
+            if (Plugin.EnableMetabolicPlane.Value)
+            {
+                try { FeedMetabolicSamples(allRows); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch FeedMetabolicSamples error: {ex}"); }
+            }
+
             try { DetectClogs(stations, allRows); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.DetectClogs error: {ex}"); }
         }
@@ -139,6 +160,18 @@ internal static class WarehouseWatch
             if (t.Length > 0) set.Add(t);
         }
         return set;
+    }
+
+    // ── Metabolic plane feed (Phase 2c) — one sample per (warehouse, item) pair per poll ─────────
+    private static void FeedMetabolicSamples(List<AllotmentRow> allRows)
+    {
+        var seen = new HashSet<string>();
+        foreach (var row in allRows)
+        {
+            string key = row.PosKey + "|" + row.Item;
+            if (!seen.Add(key)) continue;
+            MetabolicPlane.NoteSample(key, row.Stored);
+        }
     }
 
     // ── Network component probe (Phase 2b fire-verification; one-time per world per warehouse) ──
@@ -244,7 +277,8 @@ internal static class WarehouseWatch
                     MaxQuota = maxQuota,
                     SupplyOwner = supplyOwner,
                     Gathered = gathered,
-                    Room = room
+                    Room = room,
+                    PosKey = entry.PosKey,
                 });
 
                 string metKey = $"{entry.PosKey}|{itemName}|{i}";
@@ -324,6 +358,12 @@ internal static class WarehouseWatch
                 int sharePercent = (int)(dominantQty * 100L / total);
                 if (sharePercent < Plugin.ClogDominantSharePercent.Value) { ClearStallTrack(posKey, null); continue; }
 
+                if (Plugin.EnableMetabolicPlane.Value)
+                {
+                    try { MetabolicPlane.NoteSample(posKey + "|" + dominantName, dominantQty); }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch metabolic sample error: {ex}"); }
+                }
+
                 var matches = new List<AllotmentRow>();
                 foreach (var r in allRows) { if (r.Item == dominantName) matches.Add(r); }
 
@@ -346,6 +386,12 @@ internal static class WarehouseWatch
                             $"[SupplyChain] [clog] VERDICT: '{stationName}' clogged by '{dominantName}' x{dominantQty} ({sharePercent}%) — " +
                             $"warehouse allotment(s) met ({rowsStr}) — drain-boost candidate, delta={dominantQty}");
                         MaybeToast(posKey, dominantName, $"Clog: '{stationName}' full of '{dominantName}' — warehouse allotment met");
+
+                        if (Plugin.EnableClogController.Value)
+                        {
+                            try { ClogController.NoteVerdictA(posKey, stationName, dominantName, dominantQty); }
+                            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch ClogController.NoteVerdictA error: {ex}"); }
+                        }
                     }
                     else
                     {

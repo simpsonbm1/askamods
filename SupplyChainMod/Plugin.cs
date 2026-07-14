@@ -174,6 +174,17 @@ namespace SupplyChainMod;
 // Shift+<QuotaSpikeHotkey> — the plain key is now unambiguously always micro-test. Also confirmed:
 // warehouse task priority is a VALUE (tier: observed 0/1/2/3, NOT list-position-derived like
 // crafting-station priority) — no rank-reorder logic exists or is added to any warehouse path.
+//
+// v0.6.0 — Phase 2c: MetabolicPlane (per-warehouse-item stored-count ring buffers + net-rate
+// derivatives, the Phase 2d rate-based-calibration data layer) + ClogController (automates the
+// 2b-proven quota-raise drain: WarehouseWatch's VERDICT A feed -> a duty-cycled single-row quota
+// boost through the SAME QuotaActuator/SpikeLedger/BoostedStationKeys write path QuotaSpike uses,
+// with a hauler-response window sized from the measured 13s response latency, early release on
+// clog-cleared/target-met, and capacity VERDICTs after 2 ineffective cycles or 3 no-target strikes).
+// ClogController shares SupplyController's F11 Armed flag and militia-alarm lockout — dry-run until
+// armed, exactly like the other actuators in this mod. New WarehouseTasks.cs hoists the warehouse
+// row scan (BuildRows/FindQuotaTask/GetSupplyOwner) out of QuotaSpike so ClogController can reuse it
+// without duplicating the WarehouseClassList filter logic — no behavior change to QuotaSpike itself.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -230,6 +241,23 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> QuotaSpikeMaxHoldSeconds = null!;
     internal static ConfigEntry<int> QuotaMinStationStock = null!;
     internal static ConfigEntry<string> ClogForgeItem = null!;
+
+    // ── [Phase2Clog] ─────────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableClogController = null!;
+    internal static ConfigEntry<float> ClogRetainSeconds = null!;
+    internal static ConfigEntry<float> ClogHysteresisSeconds = null!;
+    internal static ConfigEntry<int> ClogBoostMaxDelta = null!;
+    internal static ConfigEntry<float> ClogResponseWindowSeconds = null!;
+    internal static ConfigEntry<float> ClogHoldMaxSeconds = null!;
+    internal static ConfigEntry<float> ClogCooldownSeconds = null!;
+    internal static ConfigEntry<int> ClogMaxCyclesPerItem = null!;
+    internal static ConfigEntry<float> ClogCapacityLockoutMinutes = null!;
+    internal static ConfigEntry<int> MaxConcurrentClogBoosts = null!;
+
+    // ── [Metabolic] ──────────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableMetabolicPlane = null!;
+    internal static ConfigEntry<float> MetabolicWindowSeconds = null!;
+    internal static ConfigEntry<float> MetabolicStatusMinutes = null!;
 
     public override void Load()
     {
@@ -475,6 +503,84 @@ public class Plugin : BasePlugin
             defaultValue: "",
             description: "Item display name for forge mode, fired by Shift+<QuotaSpikeHotkey> (plain key is always micro-test — this no longer replaces the plain-key mode). Empty = Shift+hotkey does nothing (logs/toasts a reminder to set this). When set: clamps ALL of that item's rows in its best-stocked warehouse DOWN so their sum equals the warehouse's current stored count exactly, deliberately shutting intake to reproduce a clog for other diagnostics (test harness only — no auto-revert; reverting transitions into a read-only drain watch).");
 
+        EnableClogController = Config.Bind(
+            section: "Phase2Clog",
+            key: "EnableClogController",
+            defaultValue: true,
+            description: "Master switch for the v0.6.0 automated clog drain controller (ClogController) — shipped default TRUE (dev/diagnostic convention). Only ever actuates when armed (shares SupplyController's ControllerStartArmed/ControllerArmHotkey F11 flag) — writes nothing in dry-run.");
+
+        ClogRetainSeconds = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogRetainSeconds",
+            defaultValue: 240f,
+            description: "How long (seconds) a tracked clog stays live after its last VERDICT A sighting. WarehouseWatch's VERDICT A refreshes roughly every WarehousePollSeconds (~30s) while a clog persists, so this must comfortably exceed that poll cadence; a clog not re-sighted for this long is dropped (with an early revert if it was being boosted) — stale means the clog is gone.");
+
+        ClogHysteresisSeconds = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogHysteresisSeconds",
+            defaultValue: 45f,
+            description: "How long (seconds) a clog must be continuously tracked (since first VERDICT A) before the controller will consider boosting it — avoids reacting to a clog that clears itself almost immediately.");
+
+        ClogBoostMaxDelta = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogBoostMaxDelta",
+            defaultValue: 50,
+            description: "Cap on how far a warehouse task's quota is raised above its current value. Quota raises can't be un-hauled — the extra stock occupies warehouse capacity until consumed — bounded the same way QuotaSpike's QuotaBoostMaxDelta is.");
+
+        ClogResponseWindowSeconds = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogResponseWindowSeconds",
+            defaultValue: 60f,
+            description: "Seconds after a boost before the controller reverts as 'no-response' if no hauler activity has been detected yet. Sized from the measured ~13s hauler response latency (QuotaSpike test runs) with margin.");
+
+        ClogHoldMaxSeconds = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogHoldMaxSeconds",
+            defaultValue: 600f,
+            description: "Absolute maximum seconds a boost is held before it is force-reverted (moving the clog to Cooldown), even if haulers responded and are still working on it.");
+
+        ClogCooldownSeconds = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogCooldownSeconds",
+            defaultValue: 120f,
+            description: "How long (seconds) after a revert before a still-fresh clog is eligible to be boosted again (up to ClogMaxCyclesPerItem).");
+
+        ClogMaxCyclesPerItem = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogMaxCyclesPerItem",
+            defaultValue: 2,
+            description: "How many boost/revert cycles a single persistent clog item gets before the controller concludes it's a warehouse capacity/hauler-shortage problem (not a quota problem) and issues a VERDICT alert + lockout instead of boosting again.");
+
+        ClogCapacityLockoutMinutes = Config.Bind(
+            section: "Phase2Clog",
+            key: "ClogCapacityLockoutMinutes",
+            defaultValue: 15f,
+            description: "Minutes a clog stays in CapacityLockout (no further boost attempts) after exhausting ClogMaxCyclesPerItem or 3 no-target strikes, before the controller resets its cycle/strike counts and re-evaluates it from scratch.");
+
+        MaxConcurrentClogBoosts = Config.Bind(
+            section: "Phase2Clog",
+            key: "MaxConcurrentClogBoosts",
+            defaultValue: 1,
+            description: "Maximum number of clog items the controller will have actively Boosting at the same time.");
+
+        EnableMetabolicPlane = Config.Bind(
+            section: "Metabolic",
+            key: "EnableMetabolicPlane",
+            defaultValue: true,
+            description: "Master switch for the v0.6.0 metabolic plane (MetabolicPlane) — per-(warehouse,item) stored-count ring buffers feeding net-rate derivatives for the future Phase 2d rate-based quota calibration. Shipped default TRUE (dev/diagnostic convention); purely a data layer, never writes game state.");
+
+        MetabolicWindowSeconds = Config.Bind(
+            section: "Metabolic",
+            key: "MetabolicWindowSeconds",
+            defaultValue: 180f,
+            description: "Lookback window (seconds) used when computing a key's net rate (endpoint-delta, not a linear fit) from its sample ring buffer.");
+
+        MetabolicStatusMinutes = Config.Bind(
+            section: "Metabolic",
+            key: "MetabolicStatusMinutes",
+            defaultValue: 5f,
+            description: "How often (minutes) the metabolic plane logs its top 5 fastest-moving (|rate| >= 0.1/min) keys. 0 = disable the movers status line entirely (sampling itself is unaffected).");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -506,7 +612,7 @@ public class Plugin : BasePlugin
         }
 
         Logger.LogInfo(
-            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics + Phase 2b quota spike. " +
+            $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics + Phase 2b quota spike + Phase 2c metabolic plane/clog controller. " +
             $"TickSeconds={TickSeconds.Value} DumpHotkey='{DumpHotkey.Value}' EnableDiagnostics={EnableDiagnostics.Value} PatchVillagerComplaints={PatchVillagerComplaints.Value} " +
             $"WidgetPollSeconds={WidgetPollSeconds.Value} SweepStationsPerTick={SweepStationsPerTick.Value} IgnoredComplaintMessages='{IgnoredComplaintMessages.Value}' " +
             $"EnableSpike={EnableSpike.Value} SpikeHotkey='{SpikeHotkey.Value}' SpikeStationFilter='{SpikeStationFilter.Value}' SpikeTaskIndex={SpikeTaskIndex.Value} " +
@@ -520,6 +626,11 @@ public class Plugin : BasePlugin
             $"EnableWarehouseWatch={EnableWarehouseWatch.Value} WarehousePollSeconds={WarehousePollSeconds.Value} WarehouseClassList='{WarehouseClassList.Value}' " +
             $"ClogDominantSharePercent={ClogDominantSharePercent.Value} ClogRealertMinutes={ClogRealertMinutes.Value} ClogStallMinutes={ClogStallMinutes.Value} " +
             $"EnableQuotaSpike={EnableQuotaSpike.Value} QuotaSpikeHotkey='{QuotaSpikeHotkey.Value}' QuotaBoostMaxDelta={QuotaBoostMaxDelta.Value} " +
-            $"QuotaSpikeMaxHoldSeconds={QuotaSpikeMaxHoldSeconds.Value} QuotaMinStationStock={QuotaMinStationStock.Value} ClogForgeItem='{ClogForgeItem.Value}'.");
+            $"QuotaSpikeMaxHoldSeconds={QuotaSpikeMaxHoldSeconds.Value} QuotaMinStationStock={QuotaMinStationStock.Value} ClogForgeItem='{ClogForgeItem.Value}' " +
+            $"EnableClogController={EnableClogController.Value} ClogRetainSeconds={ClogRetainSeconds.Value} ClogHysteresisSeconds={ClogHysteresisSeconds.Value} " +
+            $"ClogBoostMaxDelta={ClogBoostMaxDelta.Value} ClogResponseWindowSeconds={ClogResponseWindowSeconds.Value} ClogHoldMaxSeconds={ClogHoldMaxSeconds.Value} " +
+            $"ClogCooldownSeconds={ClogCooldownSeconds.Value} ClogMaxCyclesPerItem={ClogMaxCyclesPerItem.Value} ClogCapacityLockoutMinutes={ClogCapacityLockoutMinutes.Value} " +
+            $"MaxConcurrentClogBoosts={MaxConcurrentClogBoosts.Value} " +
+            $"EnableMetabolicPlane={EnableMetabolicPlane.Value} MetabolicWindowSeconds={MetabolicWindowSeconds.Value} MetabolicStatusMinutes={MetabolicStatusMinutes.Value}.");
     }
 }

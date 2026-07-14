@@ -235,10 +235,11 @@ askamods/
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [COMPLETE v1.0.0 — docs/mods/outhouse-composter.md]
-  SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.5.2, Phase 0 + 1
+  SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.6.0, Phase 0 + 1
                                 (priority autopilot) + 2a (warehouse/clog diagnostics) + 2b
-                                (quota-raise drain actuator + clog-forge harness) complete,
-                                in-game-verified 2026-07-14, dev tool NOT for Nexus —
+                                (quota-raise drain actuator + clog-forge harness) complete
+                                in-game-verified, Phase 2c (metabolic plane + clog state machine)
+                                built ⚠️ pending in-game confirmation, dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
 ```
