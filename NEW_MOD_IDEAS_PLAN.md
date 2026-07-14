@@ -212,7 +212,12 @@ window, highlight the overlapping hours in the schedule panel and show e.g.
 
 ---
 
-## 12. Demand-driven supply-chain autopilot — new mod (planned; design v2 2026-07-12)
+## 12. Demand-driven supply-chain autopilot — new mod (planned; design v2 2026-07-12; end-goal refined 2026-07-14)
+
+**End-goal (user-decided 2026-07-14):** a steady-state flow autopilot. "Player creates buildings,
+assigns workers, sets basic material floors; the mod works out the rest." Steady phases: Phase 2c
+(episodic closed loop with rails), Phase 2d (continuous rate-based quota calibration), Phase 3
+(player-declared floors + mod-owned continuous priorities + persistent auto-clear capacity verdict).
 
 **Goal:** keep a settlement's whole supply chain running without micromanagement. The player's
 manually-set tasks/quotas are the demand declaration ("keep this many on hand") and the player owns
@@ -466,14 +471,23 @@ all-villager ticks (worst cohort 28 ms).
     + clog state machine in the existing arbiter — **BUILT as SupplyChainMod v0.6.0
     (2026-07-14) ⚠️ pending in-game confirmation** (see `docs/mods/supply-chain.md` for Phase 2c
     recipe/config); 2d uses 2c's metabolic data for quota calibration.
-- **Phase 2d — rate-based stock keeping / quota calibration (user-requested 2026-07-13):** use the
+- **Phase 2d — continuous rate-based quota calibration (user-requested 2026-07-13):** use the
   metabolic plane's per-item derivatives (consumption rate vs intake rate across sweeps) to
   auto-maintain warehouse allotment quotas at levels that keep the base self-sustaining — quotas
   sized from measured flow (steady-state target ≈ consumption × buffer window) instead of static
   player guesses, within the player-owned capacity cap and the quota mechanics above (raise-only
   effectiveness, never evicts, taskMaxQuota semantics still unknown ⚠️). Distinct from Phase 5
-  (player-DECLARED stock targets): 2d derives targets from observed usage. Builds on 2c's
-  derivatives; ships after 2b's quota actuator is proven.
+  (player-DECLARED stock targets): 2d derives targets from observed usage. Conceptually: shift from
+  episodic reaction (Phase 2c: player-triggered clog closure) to continuous proactive flow
+  balancing (2d: quotas auto-adjust to keep rates steady). Builds on 2c's derivatives; ships after
+  2b's quota actuator is proven.
+- **Phase 2e — producer-side priority lever (research phase; candidate failure mode, user-observed
+  2026-07-14):** a producer gathering bulky low-urgency items at equal priority with demanded items
+  starves the demanded item via winner-take-all priority (e.g., mine hut Iron Ore / Large Rocks).
+  No in-game lever exists — mod solution requires: (a) identifying competing items (metabolic-plane
+  rate inversion?); (b) reaching the producer's priority mechanism (is it VALUE-tier like
+  ResourceStorage or rank-index like CraftingStation?); (c) native structure class + priority RPC.
+  Open: mine hut native class, task structure, priority semantics. Research before design.
 - **Phase 3 — gathering tiers** (the second bump flavor).
 - **Phase 4 — task creation** (requires the ledger hardened + the add-task RPC verified;
   dead-inventory detection→alert at minimum, auto-create where derivable).

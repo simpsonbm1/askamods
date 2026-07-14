@@ -185,6 +185,9 @@ namespace SupplyChainMod;
 // armed, exactly like the other actuators in this mod. New WarehouseTasks.cs hoists the warehouse
 // row scan (BuildRows/FindQuotaTask/GetSupplyOwner) out of QuotaSpike so ClogController can reuse it
 // without duplicating the WarehouseClassList filter logic — no behavior change to QuotaSpike itself.
+//
+// v0.6.1: clog-ctl storage-full gates use registry-active (10 min) instead of 60/90 s freshness;
+// one-shot gate-skip log.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {

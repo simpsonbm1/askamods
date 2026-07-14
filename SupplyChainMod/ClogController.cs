@@ -44,6 +44,7 @@ internal static class ClogController
         public int NoTargetStrikes;
         public DateTime NextEligibleAt = DateTime.MinValue;
         public bool WouldBoostLogged;
+        public bool FreshGateLogged;
 
         // Boost bookkeeping — re-resolved by PosKey/TaskIndex/ItemName/SupplyOwner at watch/revert
         // time, never a cached wrapper.
@@ -219,7 +220,7 @@ internal static class ClogController
                 Revert(entry, stations, worldId, "target-met");
                 continue;
             }
-            if (!WarehouseWatch.IsStorageFullRecent(entry.StationPosKey, 60.0))
+            if (!WarehouseWatch.IsStorageFullActive(entry.StationPosKey))
             {
                 Revert(entry, stations, worldId, "clog-cleared");
                 continue;
@@ -297,7 +298,17 @@ internal static class ClogController
 
             if ((now - entry.FirstSeen).TotalSeconds < Plugin.ClogHysteresisSeconds.Value) continue;
             if (now < entry.NextEligibleAt) continue;
-            if (!WarehouseWatch.IsStorageFullRecent(entry.StationPosKey, 90.0)) continue; // still actually complaining
+            if (!WarehouseWatch.IsStorageFullActive(entry.StationPosKey))
+            {
+                if (!entry.FreshGateLogged)
+                {
+                    entry.FreshGateLogged = true;
+                    Plugin.Logger.LogInfo(
+                        $"[SupplyChain] [clog-ctl] '{entry.ItemName}' gated: station '{entry.StationName}' storage-full complaint no longer active — waiting");
+                }
+                continue;
+            }
+            entry.FreshGateLogged = false;
 
             if (boostingCount >= Plugin.MaxConcurrentClogBoosts.Value) break;
 

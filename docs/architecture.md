@@ -842,6 +842,17 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
      were eaten first, then storage filled with task-less raw food → same intake clog. ⚠️ Whether
      any native complaint fires in this state is unverified (the failure was noticed via the food
      shortage, not an alert).
+  3. **Producer-side priority contention (confirmed in-game 2026-07-14, SupplyChainMod Phase 2c
+     testing):** a producer whose task list mixes a bulky, low-urgency item at EQUAL priority with
+     a demanded item starves the demanded item. Observed: mine hut gathers Large Rocks at equal
+     priority with Iron Ore; large rocks are slow, bulky carries → ~1:1 hauling collapses ore
+     throughput and the downstream bloomery iron-starves despite ore being mineable. Winner-take-all
+     priority (detailed in F3) makes this acute: one monopolized worker produces nothing for the
+     actual demand. Vanilla mitigation: manually lower the competing item's priority or raise the
+     demanded one. General lesson: no producer-side lever exists in-game — mod solution requires
+     identifying the competing item (metabolic-plane rate inversion?) and a producer priority write
+     path (VALUE tier on native class `X`; research pending before design). ⚠️ Unconfirmed: whether
+     the native priority is VALUE-tier (like ResourceStorage) or rank-index (like CraftingStation).
 
 ### Warehouse (ResourceStorage) allotment/task machinery (idea-12 Phase 2a + 2b; Cecil + in-game 2026-07-13/14)
 
@@ -852,11 +863,16 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   Boolean removable, StorageSupply)` (+ shorter overloads) [Cecil 2026-07-13].
 - ResourceStorage serialization key props (Cecil): `c_taskDataArray, c_taskPriority, c_taskQuantity,
   c_taskQuantityRatio, c_itemInfo, c_storageSupply, c_taskVillagers` — task QUANTITY and priority
-  both persist in saves. Any quota-writing actuation must ledger-record/restore quotas exactly like
+  both persist in saves (confirmed in-game 2026-07-14: clamped quota rows restored to original
+  values at world load). Any quota-writing actuation must ledger-record/restore quotas exactly like
   priorities (idea-12 Phase 2b confirmed: write `ResourceStorageTaskData.itemInfoQuantity.quantity`
   directly, call `rst._RefreshQuantityRange()`, then `HostUpdateTasks()` on the network component
   via `GetComponent<NetworkCompositeResourceStorage>()` — readback confirmed, immediately visible
-  in UI, gameplay-effective, no renumber/squash unlike priority).
+  in UI, gameplay-effective, no renumber/squash unlike priority). **Single-warehouse quota clamps
+  for multi-sink items do NOT reliably forge clogs** — intake redirects to other warehouses' open
+  allotments plus in-settlement consumption, drawing flow away instead (SupplyChainMod v0.6.1
+  Phase 2c testing 2026-07-14). Clog forging requires either single-sink items (only one warehouse
+  has allotments for them) or all-warehouse clamps across the settlement.
 - Network components (confirmed in-game 2026-07-13/14): true warehouses (Warehouse/Improved Warehouse)
   carry `SSSGame.Network.NetworkCompositeResourceStorage`; gathering-hut storages carry weaved
   numbered variants of `NetworkSimpleResourceStorage` (e.g. `NetworkSimpleResourceStorage_12` —

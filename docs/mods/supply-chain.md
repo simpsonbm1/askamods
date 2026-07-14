@@ -1,8 +1,9 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.6.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (in-game-verified),
-Phase 2c (metabolic plane + clog controller) built ⚠️ pending in-game confirmation, dev tool
-NOT for Nexus
+**Status:** WIP v0.6.1, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (in-game-verified),
+Phase 2c largely in-game-verified 2026-07-14 (metabolic plane, clog demand/strike/verdict/
+stale/gate paths, quota ledger restore) EXCEPT armed BOOST→response→REVERT cycle ⚠️ still
+pending, dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -188,8 +189,11 @@ with hauler-response verification and a permanent clog-forge regression harness.
   (clogged station's current item count, room, ClogBoostMaxDelta); authority-gated (HasStateAuthority
   , unreadable → allow). Response detection every 5 s MasterTick: warehouse stored rises OR clogged
   station's count falls; logs hauler latency. Revert triggers (priority order): target-met
-  (warehouse stored ≥ storedAtBoost+delta), clog-cleared (station's storage-full complaint not
-  seen for 60 s), no-response (ClogResponseWindowSeconds elapsed, default 60 s), hold-elapsed
+  (warehouse stored ≥ storedAtBoost+delta), clog-cleared (v0.6.1 fix: station's storage-full
+  complaint is NOT present in registry within detector's 10-min staleness via new
+  `WarehouseWatch.IsStorageFullActive(posKey)` — replaces v0.6.0's 60-s gate that starved on
+  persistent non-cycling complaints; gate-reopen logs ONE line per stall via `ClogEntry.FreshGateLogged
+  ` flag), no-response (ClogResponseWindowSeconds elapsed, default 60 s), hold-elapsed
   (ClogHoldMaxSeconds). Then Cooldown; ClogMaxCyclesPerItem cycles with clog persisting →
   capacity VERDICT toast + ClogCapacityLockoutMinutes lockout; 3 consecutive no-target outcomes
   (no unlocked warehouse with room) → same verdict path. Entry staleness: VERDICT A refreshes
@@ -269,6 +273,37 @@ MetabolicWindowSeconds=180  # default window for rate-per-minute calculations
 MetabolicStatusMinutes=5    # throttle window for "top movers" log line
 ```
 
+## Phase 2c Findings & Dead-Ends
+
+**Confirmed (in-game 2026-07-14, runs 1-2):**
+- MetabolicPlane mover lines live and report correct rates (e.g. Firewood +13.2/min over 150 s
+  sample).
+- ClogController demand creation from VERDICT A fires; strikes and capacity verdict function.
+- Quota-kind ledger auto-restore at world load works — clamped allotment rows restore to
+  original values on load.
+- Single-warehouse quota clamps redirect flow to other storages' open allotments + consumption
+  rather than forging clogs for multi-sink items — only single-source items reliably clog.
+- Armed F11 reaches ClogController (armed=True in status lines).
+- v0.6.1 fix: persistent non-cycling complaints no longer starve via the `IsStorageFullActive`
+  gate — verified in-game run 2 (Pike completed its strike sequence instead of hanging).
+
+**Still pending (need favorable conditions to test):**
+- An actual armed BOOST → hauler response → REVERT cycle firing end-to-end (run 1 had no room
+  before quit; run 2 had no clog formed before F11 armed late). Precondition: armed F11 early,
+  unlocked warehouse with room, and a standing clog (e.g. Coal after its 15-min lockout expires).
+
+**Lessons for future phases:**
+1. (Dead-end, fixed in v0.6.1) Never gate on short freshness windows over the storage-full
+   registry — LastSeenUtc updates only on ADD; persistent non-cycling complaints starve.
+   Gate on registry-active within the detector's own 10-min staleness.
+2. (Lesson, confirmed 2026-07-14) Single-warehouse quota clamps do NOT reliably forge clogs for
+   items with many sinks — flow redirects to other allotments + consumption. Multi-sink clog
+   tests need either single-group items or all-groups clamped.
+3. (Known gap, not yet hit) ClogBoostMaxDelta=50 may not clear stored-minus-quota gaps after
+   DEEP manual clamps — intake reopens only when group quota sum exceeds warehouse stored,
+   so insufficient delta → no-response reverts + wrong verdicts. Future: require delta ≥
+   (stored − groupSum + margin) or skip with truthful log.
+
 ## Dead-Ends
 
 - **`Workstation.NetworkWorkstations` interop property lies:** returns null/empty at runtime even
@@ -285,6 +320,27 @@ MetabolicStatusMinutes=5    # throttle window for "top movers" log line
 - `ResourceStorage.GetGatheredItemQuantity(supply, info)` returns the task's QUOTA, not fill
   progress (gathered==qty on every row, in-game 2026-07-13) — no per-supply stored count exists on
   this API; warehouse-wide GetItemQuantity is the only stored measure found so far.
+
+## Design Direction (user-decided 2026-07-14)
+
+**End goal:** a steady-state flow autopilot. "Player creates buildings, assigns workers, sets basic
+material floors; the mod works out the rest." Stages:
+
+- **Phase 2c (current):** episodic closed loop with conservative rails — player manually triggers
+  the clog system; the mod detects and resolves known patterns under safety guards.
+- **Phase 2d:** CONTINUOUS rate-based quota calibration from MetabolicPlane derivatives with
+  floors-as-setpoints (not smarter episodic boosting) — quotas auto-size based on observed
+  consumption rates to keep the base self-sustaining.
+- **Phase 3:** invert ownership — player-declared per-material floors, mod owns quotas/priorities
+  continuously, reverts only on world unload/mod disable (write-ahead ledger handles restore).
+  Capacity verdict keeps its diagnosis role but evolves from timed lockout to persistent advisory.
+
+**Phase 2e research candidate (failure mode 3, observed 2026-07-14):** producer-side priority
+contention. Mine hut gathers Large Rocks at EQUAL priority with Iron Ore; large rocks are slow,
+bulky carries, so ~1:1 hauling collapses ore throughput. A producer-side priority lever (demote
+competing items, or promote demanded ones) is needed. Open: mine hut native structure, whether
+its priority is VALUE-tier (like warehouses) or rank-index (like crafting), and a reliable demand
+signal. Research before design — see docs/architecture.md Settlement Hauling section for details.
 
 ## Version History (compressed)
 
@@ -314,5 +370,10 @@ MetabolicStatusMinutes=5    # throttle window for "top movers" log line
   target met), zero errors across both runs. Confirmed: quota write path works, player deposits
   bypass quota, composite multi-row clamp distributes correctly, hauler response latency 13 s.
   (v0.5.0 was a build-only casualty of the SAC bump guard, never tested.)
-- **v0.6.0** (2026-07-14, Phase 2c) — MetabolicPlane + ClogController + WarehouseTasks hoist;
-  build-verified only (0 errors/0 warnings), no game run yet. ⚠️ pending in-game confirmation.
+- **v0.6.0–v0.6.1** (2026-07-14, Phase 2c) — MetabolicPlane + ClogController + WarehouseTasks
+  hoist. v0.6.0 run 1: starvation bug found (short gate window on persistent non-cycling
+  complaints); v0.6.1 fix: IsStorageFullActive gate on detector's 10-min staleness + FreshGateLogged
+  one-shot line. Run 2 (v0.6.1) verified: metabolic plane rates live, clog demand/strike/verdict
+  paths live, quota ledger restore live, gate fix confirmed (Pike completed strike sequence instead
+  of starving). Still pending: full armed BOOST→response→REVERT cycle. Lessons + Phase 2e
+  research note recorded above.

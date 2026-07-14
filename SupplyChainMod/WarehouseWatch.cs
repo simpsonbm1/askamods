@@ -86,6 +86,13 @@ internal static class WarehouseWatch
         return false;
     }
 
+    // Active = present in the registry and within the same 10-min staleness window the detector
+    // uses. LastSeenUtc only refreshes on complaint ADD, so tight freshness windows starve
+    // persistent non-cycling complaints — gate on this, never on IsStorageFullRecent with a
+    // short window.
+    internal static bool IsStorageFullActive(string posKey)
+        => IsStorageFullRecent(posKey, StaleStorageFullMinutes * 60.0);
+
     internal static void NoteWorldLeft()
     {
         _storageFull.Clear();
