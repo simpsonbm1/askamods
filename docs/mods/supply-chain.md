@@ -1,9 +1,11 @@
 # SupplyChainMod — Mod 26
 
 **Status:** WIP v0.6.1, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (in-game-verified),
-Phase 2c largely in-game-verified 2026-07-14 (metabolic plane, clog demand/strike/verdict/
-stale/gate paths, quota ledger restore) EXCEPT armed BOOST→response→REVERT cycle ⚠️ still
-pending, dev tool NOT for Nexus
+Phase 2c in-game-verified 2026-07-14 (metabolic plane, clog demand/strike/verdict/stale/gate
+paths, quota ledger restore, armed BOOST→response→REVERT cycle fired in-game run 3 but
+exposed wrong-lever finding; quota-raise retired as core lever), design pivoted to soft
+quota budgeting + ground-drop eviction + tier lever (user-decided 2026-07-14), dev tool
+NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -169,7 +171,7 @@ with hauler-response verification and a permanent clog-forge regression harness.
   warehouse-wide stored count 133) and all 4 restored cleanly — consistent with (and further
   confirming) the documented "effective allotment = SUM of per-supply quotas" fact.
 
-**Phase 2c metabolic plane + clog controller (v0.6.0, ⚠️ pending in-game confirmation):**
+**Phase 2c metabolic plane + clog controller (v0.6.0–v0.6.1, in-game-verified 2026-07-14):**
 
 - **MetabolicPlane module** — per-key ring buffer (fixed capacity 16) of (Time.time, count)
   samples, key format `<posKey>|<itemName>`. Fed by every WarehouseWatch poll: one sample per
@@ -275,7 +277,7 @@ MetabolicStatusMinutes=5    # throttle window for "top movers" log line
 
 ## Phase 2c Findings & Dead-Ends
 
-**Confirmed (in-game 2026-07-14, runs 1-2):**
+**Confirmed (in-game 2026-07-14, run 3 armed test):**
 - MetabolicPlane mover lines live and report correct rates (e.g. Firewood +13.2/min over 150 s
   sample).
 - ClogController demand creation from VERDICT A fires; strikes and capacity verdict function.
@@ -286,26 +288,43 @@ MetabolicStatusMinutes=5    # throttle window for "top movers" log line
 - Armed F11 reaches ClogController (armed=True in status lines).
 - v0.6.1 fix: persistent non-cycling complaints no longer starve via the `IsStorageFullActive`
   gate — verified in-game run 2 (Pike completed its strike sequence instead of hanging).
+- Armed BOOST→response→REVERT cycle FIRED end-to-end mechanically (run 3): clog demand
+  ('Coal' at 'Improved Coal Maker 2' and '4', x200) → BOOST quota write 300+50→350 on
+  'Improved Warehouse 4' (room=600) with readback → no hauler response → REVERT
+  (clog-cleared trigger) → quota restored 350→300 with readback, ledger clean, zero errors.
+- Bonus: capacity verdict via 3 consecutive no-target strikes live-fired (item 'Pike',
+  roomBlocked ×3 → "no warehouse can absorb" VERDICT + lockout), edge case previously untested.
 
-**Still pending (need favorable conditions to test):**
-- An actual armed BOOST → hauler response → REVERT cycle firing end-to-end (run 1 had no room
-  before quit; run 2 had no clog formed before F11 armed late). Precondition: armed F11 early,
-  unlocked warehouse with room, and a standing clog (e.g. Coal after its 15-min lockout expires).
+**Wrong-lever finding (run 3, design impact):**
+The armed boost worked mechanically but targeted the wrong lever: newly-built storage units
+default EVERY compatible item's quota = unit physical max (coal unit = 300). Therefore the
+boosted row was already UNMET (stored=0, qty=300): intake was already open, so raising the
+quota changed nothing; 350 exceeds physical capacity — double no-op. The REAL constraint was
+priority TIER: new coal rows were Med, shadowed by High-tier rows on the SAME warehouse.
+Haulers service High-tier rows first; Med row serviced only when High rows full. The Phase 2a
+detector diagnosed this live: STALL "unmet allotment NOT filling despite room — likely
+priority-shadowed". Diagnosis correct; quota-raise insufficient. **Law: quota-RAISE valid only
+when target group ACTUALLY MET (intake genuinely closed) AND raise ≤ physical capacity.** Organically
+rare — requires player-lowered quota + free room. Quota-raise RETIRED as core clog lever.
 
 **Lessons for future phases:**
 1. (Dead-end, fixed in v0.6.1) Never gate on short freshness windows over the storage-full
-   registry — LastSeenUtc updates only on ADD; persistent non-cycling complaints starve.
-   Gate on registry-active within the detector's own 10-min staleness.
+   registry — persistent non-cycling complaints starve. Gate on registry-active within the
+   detector's own 10-min staleness.
 2. (Lesson, confirmed 2026-07-14) Single-warehouse quota clamps do NOT reliably forge clogs for
    items with many sinks — flow redirects to other allotments + consumption. Multi-sink clog
    tests need either single-group items or all-groups clamped.
-3. (Known gap, not yet hit) ClogBoostMaxDelta=50 may not clear stored-minus-quota gaps after
-   DEEP manual clamps — intake reopens only when group quota sum exceeds warehouse stored,
-   so insufficient delta → no-response reverts + wrong verdicts. Future: require delta ≥
-   (stored − groupSum + margin) or skip with truthful log.
+3. (Dead-end, 2026-07-14) Quota-raise on UNMET rows is a no-op (intake already open); raise
+   beyond physical capacity is a no-op; new storage units default quota=physical max. Organic
+   boost preconditions too rare to justify quota-raise as core lever.
 
 ## Dead-Ends
 
+- **Quota-raise as core clog lever (2026-07-14):** quota raise on an UNMET row is a no-op since
+  intake is already open; raise beyond physical capacity is a no-op. Newly-built storage units
+  default every compatible item's quota = physical max, so organic rows sit unmet-at-max. Preconditions
+  too rare to justify raise as primary drain mechanism (confirmed in-game 2026-07-14,
+  SupplyChainMod Phase 2c run 3). Retired; see "Design Direction" below.
 - **`Workstation.NetworkWorkstations` interop property lies:** returns null/empty at runtime even
   when the `NetworkCraftingStation` component exists on the same GameObject (GetComponent finds
   it; confirmed in-game 2026-07-12). Reach network components via GetComponent, not cached link
@@ -328,19 +347,61 @@ material floors; the mod works out the rest." Stages:
 
 - **Phase 2c (current):** episodic closed loop with conservative rails — player manually triggers
   the clog system; the mod detects and resolves known patterns under safety guards.
-- **Phase 2d:** CONTINUOUS rate-based quota calibration from MetabolicPlane derivatives with
-  floors-as-setpoints (not smarter episodic boosting) — quotas auto-size based on observed
-  consumption rates to keep the base self-sustaining.
+- **Phase 2d (promoted to CORE of Phase 2):** continuous SOFT quota budgeting. Vanilla's default
+  (every item's quota = unit physical max) means any single item can crowd out whole storage — the
+  mod counters by sizing per-item quotas from measured need (metabolic-plane rates) + headroom for
+  future boosts, with per-item caps below unit max; the sum MAY exceed capacity (soft, keeps
+  flexibility). Common organic failure: bone-fragment shape (low/no-demand item maxes out storage).
+  Remedy = quota REDUCE plus NEW down-to-quota EVICTION routine: `ItemContainer.DropItem(Item,
+  Int32 count, Vector3 pos, ...)` drop-to-ground by default (mirrors player X-press drop;
+  GroundItemVacuumMod picks litter up); direct deletion via `ItemCollection.RemoveItems` deferred.
+  Tier lever stays critical: diagnose/rebalance priority-shadow starvation (the coal case from Phase
+  2c) and deliberate surge boosts. Budgeting mitigates shadowing: with sane quotas, High rows reach
+  met and haulers proceed down the tier list, so tier lever becomes rare corrective not primary
+  actuator. Bounds via `ItemCollection.GetMaximumStorageCapacity(ItemInfo)` (per-item physical max
+  warehouse-wide). Cecil-confirmed primitives recorded in architecture.md.
 - **Phase 3:** invert ownership — player-declared per-material floors, mod owns quotas/priorities
   continuously, reverts only on world unload/mod disable (write-ahead ledger handles restore).
   Capacity verdict keeps its diagnosis role but evolves from timed lockout to persistent advisory.
 
 **Phase 2e research candidate (failure mode 3, observed 2026-07-14):** producer-side priority
 contention. Mine hut gathers Large Rocks at EQUAL priority with Iron Ore; large rocks are slow,
-bulky carries, so ~1:1 hauling collapses ore throughput. A producer-side priority lever (demote
-competing items, or promote demanded ones) is needed. Open: mine hut native structure, whether
-its priority is VALUE-tier (like warehouses) or rank-index (like crafting), and a reliable demand
-signal. Research before design — see docs/architecture.md Settlement Hauling section for details.
+bulky carries, so ~1:1 hauling collapses ore throughput. Mechanism question answered (CaveResourceStorage
+rows carry WorkstationTaskPriority TIER values, confirmed in-game 2026-07-14); remaining opens =
+reliable demand signal + lever design. Research before design — see docs/architecture.md Settlement
+Hauling section for details.
+
+## Research spike (Cecil, 2026-07-14)
+
+Eviction/capacity machinery for Phase 2d, recorded with minimal filtering for next phase's
+implementation. See architecture.md for full API surface.
+- **Drop-to-ground eviction:** `ItemContainer.DropItem(Item item, Int32 count, Vector3 position,
+  Quaternion rotation, Transform parent)` recipe via `ResourceStorageTaskData.storageSupply.
+  interaction` (StorageInteraction) → `.Container : ItemContainer`. ⚠️ Runtime authority gating
+  + co-op ground-item replication unverified (fire-verify planned).
+- **Per-item capacity reads:** `ItemCollection.GetMaximumStorageCapacity(ItemInfo[, bool
+  includeHidden])` = warehouse-wide physical max per item; per-container: `ItemContainer.
+  capacity`, `GetRemainingCapacity(ItemInfo)`, `GetStackSize(ItemInfo)`, `IsFull(bool)`,
+  `GetFillRatio()`, `HasSpace(ItemInfo, Int32)`.
+- **Compatible-item sets:** `ItemContainer.GetAcceptedItemTypes() : List`, `CanStoreItemType
+  (ItemInfo)`; collection-level `GetMatchingContainers(...)`, `FindLargestMatchingContainer
+  (...)`, `HasMatchingContainer(...)`, `GetFreeContainer(...)`.
+- **Tier write path:** `NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32 taskIndex, Int32
+  newPriority)` inherited by NetworkCompositeResourceStorage + every NetworkSimpleResourceStorage
+  variant. Bulk shifts: `Rpc_ChangeAllTasksPriorities(NetworkBehaviourId containerId, Int32
+  amount)`, `Rpc_ChangeAllTasksQ(containerId, amount)`. ⚠️ Tier RPC not yet fire-verified at
+  runtime.
+- **taskMaxQuota hypothesis (superseding "unknown"):** likely per-spawned-task carry count (items
+  one villager trip moves), irrelevant to budgeting bounds either way. Live on `StorageSupply`
+  (per sub-storage), not per-task.
+- **Station self-storages (Woodcutter's House, Gatherer's House, Outhouse, Stonecutter's Hut):**
+  use the SAME ResourceStorage row machinery as warehouses (confirmed in-game 2026-07-14) —
+  quota/tier levers uniform across warehouses AND station storages.
+- **Villager cleanup FSM exists:** `FSM_CleanupInventory` with `StorageToDropIntoPredicate` — study
+  lead ONLY IF villager-labor eviction is ever wanted (not needed for ground-drop v1).
+- **Direct deletion:** `ItemCollection.RemoveItems(ItemInfo, Int32)` = deletion path (deferred).
+- **Events (do NOT subscribe — IL2CPP gotcha):** `ItemContainer.OnItemAdded/OnItemRemoved/
+  OnItemCountChanged` — poll instead.
 
 ## Version History (compressed)
 
@@ -375,5 +436,6 @@ signal. Research before design — see docs/architecture.md Settlement Hauling s
   complaints); v0.6.1 fix: IsStorageFullActive gate on detector's 10-min staleness + FreshGateLogged
   one-shot line. Run 2 (v0.6.1) verified: metabolic plane rates live, clog demand/strike/verdict
   paths live, quota ledger restore live, gate fix confirmed (Pike completed strike sequence instead
-  of starving). Still pending: full armed BOOST→response→REVERT cycle. Lessons + Phase 2e
-  research note recorded above.
+  of starving). Run 3 (v0.6.1) armed cycle fired mechanically but exposed wrong-lever finding
+  (quota-raise on unmet rows is no-op); triggered design pivot (Phases 2d/2e reshaped, quota-raise
+  retired as core lever). Lessons + Phase 2e research findings + Cecil spike recorded above.

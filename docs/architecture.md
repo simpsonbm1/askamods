@@ -885,6 +885,19 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   hut tasks have `storageSupply.OwnerStructure` = the hut itself and no `taskContainer`; warehouse
   tasks have OwnerStructure = a child sub-storage (e.g. 'Sticks Storage', 'Coal Storage') and a
   non-null `taskContainer`.
+- **Default quotas on newly-built storage units (confirmed in-game 2026-07-14):** every compatible
+  item's allotment quota defaults to that unit's PHYSICAL MAX (e.g. coal unit = 300). This means
+  organic rows sit unmet-at-max on creation — intake open, but hauler tier-service order determines
+  whether the row gets filled. Critical design consequence: quota-RAISE on an unmet row is a no-op
+  (intake already open); raise beyond physical capacity is also a no-op. Quota-raise valid only when
+  the target group is actually MET (intake genuinely closed) AND raise ≤ physical capacity — organically
+  rare (requires player-lowered quota + free room).
+- **Hauler priority-service order (confirmed in-game 2026-07-14):** haulers service warehouse
+  collect tasks in priority tier order — High-tier rows first, then Med, then Low, only when all
+  higher-tier rows are full. Winner-take-all: one starved High-tier row monopolizes until met.
+  Example: newly-built coal rows defaulted Med, shadowed by High-tier rows on same warehouse;
+  coal row serviced only after High rows full — quota-raise on the unmet coal row changed nothing
+  because intake was already open but tier-shadowed.
 - A composite warehouse holds MULTIPLE tasks for the same item — one per child sub-storage supply
   (observed: 2× Coal qty=300 each; warehouse-wide stored grew 530→600 = past a single task's quota
   → the effective allotment is the SUM of per-supply quotas). Comparing warehouse-wide
@@ -894,9 +907,15 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   0-based rank index. Evidence: ranks 0,1,2,3 observed across 1,430 warehouse rows, not matching
   list positions (e.g. task[0] rank=1 while task[1] rank=0); decisively, the user raised the Thatch
   collect task on 'Improved Warehouse 3' from Medium→High in the UI and that exact row then showed
-  rank=0. Consequence: any future warehouse priority lever is a VALUE write, not a list move.
-- ⚠️ `StorageSupply.taskMaxQuota` is NOT the quota ceiling (observed 1/5/15/20 against task
-  quantities 45–2250); semantics unknown.
+  rank=0. Consequence: any future warehouse priority lever is a VALUE write (via
+  `Rpc_ChangeTaskPriority`), not a list move. **Station self-storages (Woodcutter's House,
+  Gatherer's House, Outhouse, Stonecutter's Hut) use the SAME ResourceStorage row machinery
+  (confirmed in-game 2026-07-14)** — quota/tier levers uniform across warehouses AND station
+  storages.
+- `StorageSupply.taskMaxQuota` [likely per-spawned-task carry count — items one villager trip
+  moves, observed 1/5/15/50 against task quantities 45–2250; hypothesis supersedes "unknown",
+  Cecil 2026-07-14, irrelevant to budgeting bounds either way]. Field lives on `StorageSupply`
+  (per sub-storage), not per-task.
 - `ItemCollection.GetTotalRemainingCapacity(ItemInfo)` = remaining PHYSICAL container room for that
   item (confirmed in-game 2026-07-13): returns 0 on saturated storages including cases with
   stored=0 where no container can accept the item at all.
@@ -964,13 +983,26 @@ ItemCollection (a logical inventory = a set of ItemContainers)
   .GetCategoryItems(ItemCategoryInfo) / .GetCategoryItemsCount(...) / .HasCategoryItems(...)   ← by category
   .AddItems(ItemInfo, count) / .RemoveItems(ItemInfo, qty)  → int actually added/removed
   .GetTotalRemainingCapacity(ItemInfo) / .FindLargestMatchingContainer(ItemInfo)
-  .OnItemAdded / .OnItemRemoved (ItemEventHandler)
-ItemContainer (one physical bin)  .AddItems / .RemoveItem / .HasSpace(ItemInfo, qty) / .GetItemCount(...)
+  .GetMaximumStorageCapacity(ItemInfo[, bool includeHidden])  ← per-item physical max warehouse-wide
+  .OnItemAdded / .OnItemRemoved (ItemEventHandler)  ⚠️ do NOT subscribe — poll instead
+ItemContainer (one physical bin)
+  .DropItem(Item item, Int32 count, Vector3 position, Quaternion rotation, Transform parent)
+              ← eviction primitive (confirmed Cecil 2026-07-14, ⚠️ co-op replication unverified)
+  .capacity / .GetRemainingCapacity(ItemInfo) / .GetStackSize(ItemInfo) / .GetItemCount(...)
+  .IsFull(bool) / .GetFillRatio() / .HasSpace(ItemInfo, qty)
+  .GetAcceptedItemTypes() : List / .CanStoreItemType(ItemInfo)
+  .AddItems / .RemoveItem  ⚠️ do NOT Harmony-patch methods with inventory-family params
+Collection-level queries: .GetMatchingContainers(...) / .FindLargestMatchingContainer(...) /
+  .HasMatchingContainer(...) / .GetFreeContainer(...)
 ```
 ⚠️ Whether a direct `AddItems`/`RemoveItems` on a **networked** `ResourceStorage` replicates in
 co-op is UNVERIFIED. TorchFuelMod deliberately used the game's own RPC (`Rpc_AddFuel`) to stay
 network-safe — look for an analogous item RPC before writing storage state directly. Host/solo is
-unaffected either way.
+unaffected either way. **Eviction via `DropItem` (Cecil 2026-07-14):** reach the container from any
+storage row via `ResourceStorageTaskData.storageSupply.interaction` (StorageInteraction) → 
+`.Container : ItemContainer`; also `StorageInteraction.storageContainer : ItemContainerComponent`.
+Authority-gate the call (`HasAuthority`); co-op ground-item replication unverified (fire-verify
+planned).
 
 **`SandSailorStudio.Inventory.ItemManifest` — the counts / requirements struct**
 ```

@@ -1,0 +1,377 @@
+﻿########## Q1a: methods named *Drop* (excl. Dropdown) ##########
+  UltimateRope :: Void ExtendRope(ERopeExtensionMode eRopeExtensionMode, Single fIncrement)
+  UltimateRope :: Single ExtendRopeLinear(Single fLinearIncrement)
+  Controls/ILandCharacterActions :: Void OnDrop(CallbackContext context) [virtual]
+  SSSGame.CarryableCreatureMount :: Boolean _IsDropAvailable()
+  SSSGame.CharacterCarrySlot :: Void DropItems(Vector3 position, Quaternion rotation, Transform parent) [virtual]
+  SSSGame.CharacterCarrySlot :: Void _OnDropItem(ItemCollection inventory, Item item, Int32 count)
+  SSSGame.CharacterCarrySlot/__c__DisplayClass16_0 :: Void _DropItems_b__0()
+  SSSGame.CharacterInventory :: Void add_OnItemDropped(Action`2 value)
+  SSSGame.CharacterInventory :: Void remove_OnItemDropped(Action`2 value)
+  SSSGame.CharacterInventory :: Boolean DropSelectedItems(Boolean skipAnimation) [virtual]
+  SSSGame.CharacterInventory :: Boolean DropSelectedItems(IItemReceiver receiver) [virtual]
+  SSSGame.CharacterInventory :: Void _BeginDropItemsOperation(Boolean skipAnimation)
+  SSSGame.CharacterInventory :: Boolean _SpawnDropItems()
+  SSSGame.CharacterInventory :: Transform _GetDropLocationForStorageClass(ItemStorageClass storageClass, Vector3& velocity)
+  SSSGame.CharacterInventory :: IEnumerator _DropItemsOperation()
+  SSSGame.PetInventory :: Void add_OnItemDropped(Action`2 value)
+  SSSGame.PetInventory :: Void remove_OnItemDropped(Action`2 value)
+  SSSGame.PetInventory :: Boolean DropSelectedItems(Boolean skipAnimation) [virtual]
+  SSSGame.PetInventory :: Boolean DropSelectedItems(IItemReceiver receiver) [virtual]
+  SSSGame.PetInventory :: Void SetDropLocation(Transform target)
+  SSSGame.PetInventory :: Void _BeginDropItemsOperation()
+  SSSGame.PetInventory :: Boolean _SpawnDropItems()
+  SSSGame.PetInventory :: IEnumerator _DropItemsOperation()
+  SSSGame.PlayerInventory :: Void Drop_performed(CallbackContext obj)
+  SSSGame.PlayerInventory :: Void CharacterInventory_OnItemDropped(ItemStack arg1, IItemReceiver arg2)
+  SSSGame.PlayerInteractionAgent :: Void QuickDropActiveSlotItems()
+  SSSGame.Villager :: Void QuickDropActiveSlotItems()
+  SSSGame.GatherInteraction :: Int32 DropItemsCharge(IInteractionAgent interactionAgent, Int32 charges) [virtual]
+  SSSGame.FillContainerPanel :: Void _OnDropObjectAdded(DropPanel dropPanel, DragPanel itemDragPanel)
+  SSSGame.FillContainerPanel/__c__DisplayClass13_0 :: Void __OnDropObjectAdded_b__0(ConfirmActionMenu menu)
+  SSSGame.FillContainerPanel/__c__DisplayClass13_1 :: Void __OnDropObjectAdded_b__1(ConfirmActionMenu menu)
+  SSSGame.Water.PickupCreatureInteractionSession :: Void DropCreature(DamageData dd)
+  SSSGame.UI.DragPanel :: Void _PlayDropSonud()
+  SSSGame.UI.DropPanel :: Void OnDrop(PointerEventData eventData) [virtual]
+  SSSGame.UI.DropPanel :: Void OnDropSetup(GameObject go)
+  SSSGame.UI.ContextMenu :: Void _onDragAndDropPerformed(CallbackContext obj)
+  SSSGame.UI.ContextMenu :: Void HandleDragAndDrop(ItemThumbnailPanel panel)
+  SSSGame.UI.ContextMenu :: Void Drop(ItemThumbnailPanel destinationPanel)
+  SSSGame.UI.ActionTargetPanel :: Void _OnItemDropped(DropPanel dropPanel, DragPanel dragPanel)
+  SSSGame.UI.ItemContainerPanel :: Void _OnDropItemAdded(DropPanel panel, DragPanel item)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Boolean __OnDropItemAdded_b__1(EquipPoint point)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Boolean __OnDropItemAdded_b__2(EquipPoint point)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Boolean __OnDropItemAdded_b__0(ItemThumbnailPanel p)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Void __OnDropItemAdded_b__3(ConfirmActionMenu menu)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Void __OnDropItemAdded_b__4(ConfirmActionMenu menu)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0 :: Void __OnDropItemAdded_b__7(ConfirmActionMenu menu)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_1 :: Void __OnDropItemAdded_b__5(ConfirmActionMenu menu)
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_2 :: Void __OnDropItemAdded_b__6(ConfirmActionMenu menu)
+  SSSGame.UI.ItemInventoryPanel :: Void _OnDropItemAdded(DropPanel panel, DragPanel item)
+  SSSGame.UI.ItemInventoryPanel/__c__DisplayClass14_0 :: Void __OnDropItemAdded_b__0(ConfirmActionMenu menu)
+  SSSGame.UI.ItemThumbnailPanel :: Void CommandDropItem()
+  SSSGame.UI.ItemThumbnailPanel :: Void SetupDragAndDrop(Action`2 objectAddedCallback, Action`2 objectRemovedCallback, Vector2 inflateSize)
+  SSSGame.UI.ItemThumbnailPanel :: Void EnableDragAndDrop()
+  SSSGame.UI.ItemThumbnailPanel :: Void DisableDragAndDrop()
+  SSSGame.Combat.FishingMeleeObject :: Void DropHook()
+  SSSGame.AI.FSM.FSM_CleanupInventory/CleanupInventoryData :: Boolean StorageToDropIntoPredicate(StorageInteraction si)
+  Invector.vItemManager.vInventory :: Void OnDropItem(vItem item, Int32 amount) [virtual]
+  Invector.vItemManager.vItemManager :: Void DropItem(vItem item, Int32 amount) [virtual]
+  Invector.vItemManager.vItemManager :: Void DropAllItens() [virtual]
+  Invector.vItemManager.vItemManager :: Void DropCurrentEquippedItem(Int32 indexOfArea, Boolean ignoreItemAnimation) [virtual]
+  Invector.vItemManager.vItemManager/__c__DisplayClass88_0 :: Boolean _DropItem_b__0(vEquipArea e)
+  Invector.vItemManager.vItemManager/__c__DisplayClass88_0 :: Boolean _DropItem_b__1(vEquipSlot s)
+  Invector.vItemManager.vItemManager/__c__DisplayClass89_0 :: Boolean _DropAllItens_b__0(ItemReference _item)
+  Invector.vItemManager.vItemManager/__c__DisplayClass89_0 :: Boolean _DropAllItens_b__1(vItem _item)
+  Invector.vItemManager.vItemManager/__c__DisplayClass89_1 :: Boolean _DropAllItens_b__2(EquipPoint ep)
+  Invector.vItemManager.vItemManager/__c__DisplayClass89_1 :: Boolean _DropAllItens_b__3(vEquipArea e)
+  Invector.vItemManager.vItemManager/__c__DisplayClass89_1 :: Boolean _DropAllItens_b__4(vEquipSlot s)
+  Invector.vItemManager.vItemWindowDisplay :: Void DropItem() [virtual]
+  Invector.vItemManager.vLeaveDropItemExample :: Void vLeaveDropItensWindow(Int32 windowID)
+  SandSailorStudio.Inventory.ItemContainerComponent :: Void DropItems(Vector3 position, Quaternion rotation, Transform parent) [virtual]
+  SandSailorStudio.Inventory.ItemContainerComponent :: Void TryAddOneItemOrDropNearby(ItemInfo itemInfo)
+  SandSailorStudio.Inventory.ItemContainer :: Void DropAllItems(Vector3 pos, Quaternion rot, Transform parent)
+  SandSailorStudio.Inventory.ItemContainer :: Void DropItem(Item item, Int32 count, Vector3 position, Quaternion rotation, Transform parent)
+  SandSailorStudio.Inventory.EquipmentManager :: Void DropAllEquipment()
+  SandSailorStudio.Inventory.EquipmentManager :: Void DropAllEquipmentDecayed(Single ratio)
+  SandSailorStudio.Inventory.EquipmentManager :: Void DropAllEquipmentDecayedWithLootChance(Single decayRatio)
+  SandSailorStudio.Inventory.EquipmentManager/__c__DisplayClass77_0 :: Boolean _DropAllEquipment_b__0(EquipPoint point)
+  SandSailorStudio.Inventory.EquipmentManager/__c__DisplayClass78_0 :: Boolean _DropAllEquipmentDecayed_b__0(EquipPoint point)
+  SandSailorStudio.Inventory.EquipmentManager/__c__DisplayClass79_0 :: Boolean _DropAllEquipmentDecayedWithLootChance_b__0(EquipPoint point)
+  SandSailorStudio.Inventory.IInventoryManager :: Boolean DropSelectedItems(Boolean skipAnimation) [virtual]
+  SandSailorStudio.Inventory.IInventoryManager :: Boolean DropSelectedItems(IItemReceiver receiver) [virtual]
+  SandSailorStudio.WorldGen.ComputeBufferSet :: Void Drop(DataOutputChannels semantic)
+  SandSailorStudio.WorldGen.Deterministic.FixedDataBufferSet :: Void Drop(Int32 slotId)
+
+########## Q1b: methods named *Discard*/*Throw*/*Eject* ##########
+  SSSGame.Setting`1 :: Void Discard()
+  SSSGame.SettingsManager :: Void DiscardVideoSettings()
+  SSSGame.SettingsManager :: Void DiscardGameplaySettings()
+  SSSGame.GatherInteraction :: Int32 DiscardItemsCharge(IInteractionAgent interactionAgent, Int32 charges) [virtual]
+  SSSGame.Water.AnchorInteraction :: Void ThrowTheAnchor(Vector3& velocity)
+  SSSGame.UI.AudioSettingsTabPage :: Void DiscardSettings() [virtual]
+  SSSGame.UI.GameplaySettingsTabPage :: Void DiscardSettings() [virtual]
+  SSSGame.UI.KeyboardSettingsTabPage :: Void DiscardSettings() [virtual]
+  SSSGame.UI.SettingsTabPage :: Void DiscardSettings() [virtual]
+  SSSGame.UI.VideoSettingsTabPage :: Void DiscardSettings() [virtual]
+
+########## Q1c: WorldItemObject / DynamicItemObject creation surface ##########
+TYPE: SSSGame.WorldItemObject base=SandSailorStudio.Inventory.ItemComponent
+  M: Void .cctor() [static]
+  M: Void Setup(ItemObjectSpawnContext& context, Item item) [virtual]
+  M: Void _InvokeOnSetupEvent(ItemObjectSpawnContext& context, Item item) [virtual]
+
+TYPE: SSSGame.DynamicItemObject base=UnityEngine.MonoBehaviour
+  M: Void .cctor() [static]
+  M: Void ManualSetup(ItemObjectSpawnContext context, Item item)
+  M: Void _OnSetup(ItemObjectSpawnContext context, Item item)
+  M: Boolean get__setup()
+  M: Void set__setup(Boolean )
+  M: Boolean get__contextSpawn()
+  M: Void set__contextSpawn(Boolean )
+  M: Vector3 get__spawnPos()
+  M: Void set__spawnPos(Vector3 )
+  M: ItemObjectSpawnContext get__spawnContext()
+  M: Void set__spawnContext(ItemObjectSpawnContext )
+
+########## Q1d: who can spawn items into the world (ItemsManager-ish) ##########
+TYPE: SSSGame.CircularAreaItemSpawner base=SSSGame.ItemSpawner enum=False
+  P: minRange : Single
+  P: maxRange : Single
+  M: Void .cctor() [static]
+  M: Void Run() [virtual]
+  M: Void RunAtPosition(Vector3 pos)
+  M: Void Run(Vector3 pos, Quaternion rot, Vector3 scale) [virtual]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.ItemSpawner base=UnityEngine.MonoBehaviour enum=False
+  P: useRotation : Boolean
+  P: useScale : Boolean
+  P: sampleTerrain : Boolean
+  P: context : ItemObjectSpawnContext
+  P: checkStateAuthority : Boolean
+  P: _shouldSpawn : Boolean
+  P: _networkSession : NetworkSession
+  M: Void .cctor() [static]
+  M: Void Awake()
+  M: Void ActivateSpawning(Boolean activate) [virtual]
+  M: Void Run() [virtual]
+  M: Void Run(Vector3 pos, Quaternion rot, Vector3 scale) [virtual]
+  M: ItemInfoQuantity GetItemData() [virtual]
+  M: Void RunIfActivated() [virtual]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.VegetationItemSpawner base=SSSGame.ItemSpawner enum=False
+  P: vegetationData : ResourcePieces
+  P: checkTerrainHeight : Boolean
+  P: useLocalScale : Boolean
+  M: Void .cctor() [static]
+  M: Void Run() [virtual]
+  M: Void ProbabilityRun(Single chance)
+  M: Void RunAtPositions(Vector3 pos)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.CaveItemSpawner base=UnityEngine.MonoBehaviour enum=False
+  P: node : CaveNode
+  P: itemType : CaveBiomeItemType
+  P: points : List`1
+  M: Void .cctor() [static]
+  M: Void Run()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+
+########## Q2: ResourceStorageTaskData + WorkstationTaskData + tier enum ##########
+TYPE: SSSGame.AI.ResourceStorageTaskData base=SSSGame.AI.WorkstationTaskData enum=False
+  P: _quantityRange : Vector2Int
+  P: _storageSupply : StorageSupply
+  P: storageSupply : StorageSupply
+  M: Void .cctor() [static]
+  M: Void .ctor(List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(Int32 quantity, List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, StorageSupply storageSupply)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable, StorageSupply storageSupply)
+  M: Boolean CheckDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void _RefreshQuantityRange()
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.AI.WorkstationTaskData base=Il2CppSystem.Object enum=False
+  P: itemInfoQuantity : ItemInfoQuantity
+  P: VillagersInCharge : List`1
+  P: priority : Int32
+  P: isRemovable : Boolean
+  P: shouldUpdateFromNetwork : Boolean
+  P: pinnedTask : Boolean
+  P: onDataChanged : Action
+  M: Void .cctor() [static]
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable)
+  M: Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers)
+  M: Void .ctor(Int32 quantity, List`1 villagers)
+  M: Void .ctor(List`1 villagers)
+  M: Void .ctor()
+  M: Void SetPriority(Int32 value)
+  M: Boolean CheckDispatcher(ITaskDispatcher td) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Vector2Int GetQuantityRange() [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SSSGame.WorkstationTaskPriority base=System.Enum enum=True
+  E: High = 0
+  E: Med = 1
+  E: Low = 2
+  E: None = 3
+
+########## Q3: StorageSupply full + capacity surfaces ##########
+TYPE: SSSGame.StorageSupply base=SSSGame.AI.StructureTaskDispatcher enum=False
+  P: taskContainer : NetworkTaskContainer
+  P: interaction : StorageInteraction
+  P: workstationInteraction : WorkstationInteraction
+  P: taskDescriptionPrefix : String
+  P: taskMaxQuota : Int32
+  P: priorityDisplay : Boolean
+  P: defaultTaskPriority : WorkstationTaskPriority
+  P: alwaysAddContainerToStructureInventory : Boolean
+  P: hideTasksForUndiscoveredItems : Boolean
+  P: _slotItems : List`1
+  P: _parentedInventoryComponent : Boolean
+  P: _session : NetworkSession
+  M: Void .cctor() [static]
+  M: Void Awake() [virtual]
+  M: Void Start()
+  M: Boolean IsAvailable() [virtual]
+  M: String GetTaskDescription() [virtual]
+  M: Void Initialize(Structure ownerStructure) [virtual]
+  M: Void _OnDespawned(INetworkLifetimeTracker obj)
+  M: Void _StructureRemovedFromSettlement(Structure structure)
+  M: Void _LinkToStructure(Structure structure) [virtual]
+  M: Void Register() [virtual]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+CAPACITY MEMBERS of SSSGame.ResourceStorage:
+  M: Boolean _CanAddVillagerToTaskData(Villager villagerToAdd, WorkstationTaskData taskData) [virtual]
+
+CAPACITY MEMBERS of SandSailorStudio.Inventory.ItemCollection:
+  F: NativeMethodInfoPtr_GetTotalRemainingCapacity_Public_Int32_ItemInfo_Boolean_0 : IntPtr
+  F: NativeMethodInfoPtr_GetMaximumStorageCapacity_Public_Int32_ItemInfo_Boolean_0 : IntPtr
+  F: NativeMethodInfoPtr_GetTotalRemainingCapacity_Public_Int32_ItemInfo_0 : IntPtr
+  M: Int32 GetTotalRemainingCapacity(ItemInfo itemInfo, Boolean includeHidden)
+  M: Int32 GetMaximumStorageCapacity(ItemInfo itemInfo, Boolean includeHidden)
+  M: Int32 GetTotalRemainingCapacity(ItemInfo itemInfo)
+
+########## Q4: FiltersTaskData + item filter types ##########
+TYPE: SSSGame.AI.FiltersTaskData base=SSSGame.AI.WorkstationTaskData enum=False
+  P: c_taskFilterItemPriority : String
+  P: c_taskItemFilter : String
+  P: _workstation : IFilterTaskStation
+  P: _filterItemPriorityList : List`1
+  P: _itemFilter : Il2CppStructArray`1
+  P: TaskID : Int32
+  P: FilterItemPriorityList : List`1
+  P: FilterItemAvailabilities : Il2CppStructArray`1
+  M: Void .cctor() [static]
+  M: Void .ctor(IFilterTaskStation workstation, Int32 taskId)
+  M: Void InitializeFilterItems() [virtual]
+  M: Void OnAfterFiltersChanged() [virtual]
+  M: List`1 GetStationFilterItems() [virtual]
+  M: Int32 GetFilterItemPriority(ItemInfo itemFilterInfo) [virtual]
+  M: Sprite GetTaskIcon() [virtual]
+  M: String GetTaskName() [virtual]
+  M: DataObject Serialize(DataObject data) [virtual]
+  M: Boolean Deserialize(DataObject tdObj) [virtual]
+  M: Boolean ShouldBeHidden() [virtual]
+  M: Boolean GetFilterItemValidation(Int32 filterItemIndex, String& tooltipData) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+TYPE: SandSailorStudio.Inventory.IItemFilter base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase enum=False
+  P: HasIdempotence : Boolean
+  M: Void .cctor() [static]
+  M: Boolean Check(ItemInfo itemInfo) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+########## Q5a: storage network components - RPC/task surface ##########
+TYPE: SSSGame.Network.NetworkCompositeResourceStorage base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCompositeResourceStorage/NetworkTask>
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Void HostUpdateTasks() [virtual]
+  M: Void _HostUpdateNetworkTasksFromTask(NetworkTaskContainer taskContainer, ResourceStorageTaskData task, Int32 villagersInChargeMask)
+  M: Void ProxyUpdateTasks() [virtual]
+  M: Void _ProxyRemoveFromTaskContainer(NetworkTaskContainer taskContainer)
+  M: Void ProxyUpdateTasksFromTaskContainer(NetworkTaskContainer taskContainer)
+  M: ResourceStorageTaskData _FindTaskCorrespondingToNetworkTask(NetworkTaskContainer taskContainer, Int32 containerTaskIndex)
+  M: Task _GetNetworkTaskFromTask(WorkstationTaskData task)
+  M: Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  M: Boolean _TryGetNetworkTaskFromTask(WorkstationTaskData task, NetworkTask& networkTask) [virtual]
+  M: WorkstationTaskData _CreateTaskFromNetworkTask(Int32 networkTaskIndex) [virtual]
+  M: Void _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) [virtual]
+  M: NetworkArray`1 get___NetworkTasks_k__BackingField()
+  M: Void set___NetworkTasks_k__BackingField(NetworkArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask>
+  M: Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  M: Boolean _TryGetNetworkTaskFromTask(WorkstationTaskData task, NetworkTask& networkTask) [virtual]
+  M: WorkstationTaskData _CreateTaskFromNetworkTask(Int32 networkTaskIndex) [virtual]
+  M: Void _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) [virtual]
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_12 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_2 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_22 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_3 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_4 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_42 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_45 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_5 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+TYPE: SSSGame.Network.NetworkSimpleResourceStorage_8 base=SSSGame.Network.NetworkSimpleResourceStorage
+  M: NetworkArray`1 get__NetworkTasks() [virtual]
+  M: Il2CppStructArray`1 get___NetworkTasks()
+  M: Void set___NetworkTasks(Il2CppStructArray`1 )
+
+########## Q5b: NetworkWorkstation generic base - RPC surface ##########
+TYPE: SSSGame.Network.NetworkWorkstation`1 base=SSSGame.Network.NetworkComponent
+  M: Void Rpc_AddTask(TaskType task, Il2CppStructArray`1 villagersInChargeIDs) [virtual]
+  M: Void Rpc_RemoveTaskData(TaskType networkTask) [virtual]
+  M: Void Rpc_ReorderTasks(Int32 startIndex, Int32 endIndex)
+  M: Void Rpc_ChangeTaskPriority(Int32 taskIndex, Int32 newPriority)
+  M: Void Rpc_ChangeTaskVillagersInCharge(Int32 taskIndex, Il2CppStructArray`1 newVillagersInCharge)
+  M: Void Rpc_ChangeTaskQuantity(Int32 taskIndex, Int32 newQuantity)
+  M: Void Rpc_ChangeAllTasksQ(NetworkBehaviourId containerId, Int32 amount)
+  M: Void Rpc_ChangeAllTasksPriorities(NetworkBehaviourId containerId, Int32 amount)
+  M: Void HostUpdateTasks() [virtual]
+  M: Void _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) [virtual]
+  M: Void Rpc_ChangeTaskFilters(Int32 taskIndex, Int32 newFilters) [virtual]
+
+TYPE: SSSGame.Network.NetworkWorkstationEquipmentColor base=Fusion.NetworkBehaviour
+  M: Void Rpc_HostUpdateNetworkColors(Int32 equipHandleIndex, Byte targetDyeIndex)
+  M: Void _HostUpdateNetworkColors(Int32 equipHandleIndex, Byte targetDyeIndex)
+  M: Void _HostUpdateNetworkColors()
+  M: Void Rpc_HostUpdateNetworkColors(Il2CppStructArray`1 packedColorData)
+
+########## Q5c: UI tier-write path (panels/menus with Priority members) ##########
+  SSSGame.UI.TaskDataPanel :: Void _SetPriority(WorkstationTaskData taskData)
+  SSSGame.UI.TaskDataPanel :: Void _RefreshFilterItemPriority(WorkstationTaskData task)
+  SSSGame.UI.TaskDataPanel :: Void _onFilterItemPriorityValueChanged(Int32 index, Boolean firstTimeSetup)
+  SSSGame.UI.WorkstationMenu :: Void IncreaseTaskPriority(TaskDataPanel wtp)
+  SSSGame.UI.WorkstationMenu :: Void DecreaseTaskPriority(TaskDataPanel wtp)
+
+########## Q5d: ResourceStorage priority members ##########
+  F: NativeFieldInfoPtr_c_taskPriority : IntPtr
+  F: NativeMethodInfoPtr_GetGatheredItemPriority_Public_Virtual_New_Int32_ItemInfo_Villager_StorageSupply_0 : IntPtr
+  M: Int32 GetGatheredItemPriority(ItemInfo itemInfo, Villager villager, StorageSupply storageSupply) [virtual]
+  M: String get_c_taskPriority() [static]
+  M: Void set_c_taskPriority(String ) [static]

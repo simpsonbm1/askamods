@@ -443,12 +443,16 @@ all-villager ticks (worst cohort 28 ms).
     consumed; (b) therefore CAP the boost delta to the clog size read from the composition scan,
     never "boost to lots"; (c) the mod cannot free warehouse space — physically-full warehouse =
     capacity boundary = alert, never actuate.
-  - **Quota-raise effectiveness is priority-conditional.** Raising a met quota re-opens the intake
-    valve, but haulers act on it only if that collect task's priority beats other unfilled-quota
-    tasks. Precondition check: log/inspect the collect task's rank vs. the set of other
-    unfilled-quota tasks. Warehouse PRIORITY moves stay the dangerous secondary lever (F3c
-    winner-take-all: one raised collect priority starved all other hauling) — quota-raise-only is
-    tested first; quota+short-duty-cycled-priority only if that proves insufficient.
+  - **Quota-raise effectiveness is priority-conditional (PROVEN INSUFFICIENT, 2026-07-14).**
+    Raising a met quota re-opens the intake valve, but haulers act on it only if that collect
+    task's priority beats other unfilled-quota tasks. Precondition check: log/inspect the collect
+    task's rank vs. the set of other unfilled-quota tasks. Test run 3 exposed the real binding
+    constraint: priority TIER (newly-built coal rows Med, shadowed by High-tier rows on the same
+    warehouse). Quota-raise-only proved insufficient; **tier lever promoted per user decision**
+    (design pivot v2, 2026-07-14) — soft quota budgeting + ground-drop eviction now core, tier
+    lever for priority-shadow diagnosis + deliberate surge boosts. Warehouse PRIORITY moves stay a
+    dangerous secondary lever (winner-take-all), but budgeting mitigates shadowing so tier becomes
+    rare corrective not primary actuator.
   - **Test strategy (contrived clogs are expensive — planned around):** (1) the 2a detector is
     read-only and rides along passively in every session, validating against ORGANIC clogs;
     (2) the actuator micro-test needs no clog — any healthy settlement has (item X at a source
@@ -468,26 +472,33 @@ all-villager ticks (worst cohort 28 ms).
     latency 13 s (single datum), player deposits bypass quota, clog-forge end-to-end verified
     (clamp → storage-full → revert → target met). See `docs/mods/supply-chain.md` for Phase 2b
     recipe/config/findings. **2c** metabolic plane (snapshot ring buffer + net-rate derivatives)
-    + clog state machine in the existing arbiter — **BUILT as SupplyChainMod v0.6.0
-    (2026-07-14) ⚠️ pending in-game confirmation** (see `docs/mods/supply-chain.md` for Phase 2c
-    recipe/config); 2d uses 2c's metabolic data for quota calibration.
-- **Phase 2d — continuous rate-based quota calibration (user-requested 2026-07-13):** use the
-  metabolic plane's per-item derivatives (consumption rate vs intake rate across sweeps) to
-  auto-maintain warehouse allotment quotas at levels that keep the base self-sustaining — quotas
-  sized from measured flow (steady-state target ≈ consumption × buffer window) instead of static
-  player guesses, within the player-owned capacity cap and the quota mechanics above (raise-only
-  effectiveness, never evicts, taskMaxQuota semantics still unknown ⚠️). Distinct from Phase 5
-  (player-DECLARED stock targets): 2d derives targets from observed usage. Conceptually: shift from
-  episodic reaction (Phase 2c: player-triggered clog closure) to continuous proactive flow
-  balancing (2d: quotas auto-adjust to keep rates steady). Builds on 2c's derivatives; ships after
-  2b's quota actuator is proven.
-- **Phase 2e — producer-side priority lever (research phase; candidate failure mode, user-observed
-  2026-07-14):** a producer gathering bulky low-urgency items at equal priority with demanded items
-  starves the demanded item via winner-take-all priority (e.g., mine hut Iron Ore / Large Rocks).
-  No in-game lever exists — mod solution requires: (a) identifying competing items (metabolic-plane
-  rate inversion?); (b) reaching the producer's priority mechanism (is it VALUE-tier like
-  ResourceStorage or rank-index like CraftingStation?); (c) native structure class + priority RPC.
-  Open: mine hut native class, task structure, priority semantics. Research before design.
+    + clog state machine in the existing arbiter — **SHIPPED as SupplyChainMod v0.6.1,
+    in-game-verified 2026-07-14** (runs 1–3; armed cycle fired run 3 mechanically but exposed
+    wrong-lever finding; quota-raise retired as core lever; design pivot to soft budgeting +
+    eviction + tier lever, see `docs/mods/supply-chain.md` Phase 2c findings + design direction);
+    2d uses 2c's metabolic data for quota calibration.
+- **Phase 2d — continuous SOFT quota budgeting (promoted to CORE of Phase 2, user-decided 2026-07-14):**
+  Vanilla's default (every item's quota = unit physical max) means any single item crowds out whole
+  storage. Mod counters by sizing per-item quotas from measured need (metabolic-plane rates) +
+  headroom for boosts, with per-item caps below unit max; sum MAY exceed capacity (soft, keeps
+  flexibility). Common failure: bone-fragment shape (low/no-demand item maxes storage). Remedy =
+  quota REDUCE + NEW down-to-quota EVICTION routine: `ItemContainer.DropItem(...)` ground-drop
+  (player X-press analog; GroundItemVacuumMod picks up); direct deletion deferred. Tier lever stays
+  critical: diagnose/rebalance priority-shadow starvation + deliberate surge boosts. Budgeting
+  mitigates shadowing: with sane quotas, High rows reach met and haulers proceed tier-down, so tier
+  becomes rare corrective not primary. Bounds via `ItemCollection.GetMaximumStorageCapacity(ItemInfo)`
+  (per-item physical max warehouse-wide). Cecil-confirmed primitives recorded in architecture.md
+  (2026-07-14). Distinct from Phase 5 (player-DECLARED stock targets): 2d derives targets from
+  observed usage. Conceptually: shift from episodic reaction (Phase 2c) to continuous proactive flow
+  balancing (2d). Builds on 2c's metabolic data.
+- **Phase 2e — producer-side priority lever (research complete for mechanism, 2026-07-14):** a
+  producer gathering bulky low-urgency items at equal priority with demanded items starves the
+  demanded item via winner-take-all priority (e.g., mine hut Iron Ore / Large Rocks). No in-game
+  lever exists — mod solution requires identifying competing items + reaching producer priority.
+  **Mechanism ANSWERED (Cecil 2026-07-14):** CaveResourceStorage rows carry WorkstationTaskPriority
+  TIER values (High=0, Med=1, Low=2, None=3), NOT rank-index. Station self-storages (Woodcutter's,
+  Gatherer's, Outhouse, Stonecutter's) use the same ResourceStorage row machinery as warehouses.
+  **Remaining opens:** reliable demand signal + lever design. Research before design.
 - **Phase 3 — gathering tiers** (the second bump flavor).
 - **Phase 4 — task creation** (requires the ledger hardened + the add-task RPC verified;
   dead-inventory detection→alert at minimum, auto-create where derivable).
@@ -499,7 +510,7 @@ all-villager ticks (worst cohort 28 ms).
 - Deferred idea from v1, unchanged status: "priority softening" (patch task-selection into
   weighted/round-robin) — deeper + riskier; duty-cycling achieves most of it externally.
 
-*Open unknowns (Phase 0 + Phase 1 ANSWERED in-game 2026-07-12):*
+*Open unknowns (Phase 0 + Phase 1 ANSWERED in-game 2026-07-12; Phase 2 additions 2026-07-14):*
 **Answered:** `Rpc_ChangeTaskPriority` args (taskIndex, newPriority); gathering tier mechanism
 (FiltersTaskData filters + Rpc_ChangeTaskFilters); native add-task path exists (Rpc_AddTask +
 WorkstationMenu.AddTaskDataToWorkstation); no-production complaint payload (SettlementIssueTrackerWidget
@@ -509,14 +520,22 @@ complaint cadence (level signal, re-add ~50–100 ms, fresh id ~3 s, chronic 40�
 access (via _localBlueprints + CreateFromBlueprint; KnowsBlueprintForItem is a dead-end); sweep
 cost measured (6–20 ms per 31 stations, 10.8 ms per 61 stations); priority Int32 rank-vs-index
 semantics (= 0-based rank index mirroring list position, confirmed 2026-07-12); `NetworkWorkstation<T>`
-reachability (GetComponent works; property lies, confirmed 2026-07-12).
+reachability (GetComponent works; property lies, confirmed 2026-07-12); **storage priority
+semantics (storage-family = VALUE tier, Cecil + in-game 2026-07-14); tier enum values
+(High=0, Med=1, Low=2, None=3, confirmed in-game 2026-07-14); per-item capacity read
+(GetMaximumStorageCapacity + per-container APIs, Cecil 2026-07-14); accepted-item enumeration
+(GetAcceptedItemTypes, CanStoreItemType, container matching, Cecil 2026-07-14); drop-to-ground
+eviction (ItemContainer.DropItem recipe, Cecil 2026-07-14, ⚠️ runtime co-op replication
+unverified).** taskMaxQuota [likely per-spawned-task carry count per item-trip, irrelevant to
+budgeting, Cecil 2026-07-14; supersedes "unknown"].
 
 **Still open:** whether mod-created tasks serialize like player ones; dead-inventory native alert
 (untested; sweep-only detection assumed per design); research-task discriminator (no assigned
 workers + TaskDataPanel `_bgStudyTaskColor` are markers; Phase 1b controller excluded research tasks
 per user decision); untested Phase 1b edges (militia-alarm lockout no raid/test, StationBusy rotation
 no same-station contention observed, capacity verdict via 2 ineffective cycles all real boosts
-self-cleared early).
+self-cleared early); ⚠️ tier RPC runtime fire-verify; ⚠️ ground-drop co-op replication + authority
+gating.
 
 *Sequencing dependency:* do NOT start building while the stack's hitching investigation is open —
 land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,

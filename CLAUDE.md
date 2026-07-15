@@ -240,10 +240,10 @@ askamods/
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.6.1, Phase 0 + 1
                                 (priority autopilot) + 2a (warehouse/clog diagnostics) + 2b
                                 (quota-raise drain actuator + clog-forge harness) complete
-                                in-game-verified, Phase 2c (metabolic plane + clog state machine)
-                                largely in-game-verified 2026-07-14 EXCEPT armed BOOST→response→REVERT
-                                cycle ⚠️ still pending, dev tool NOT for Nexus —
-                                docs/mods/supply-chain.md]
+                                in-game-verified, Phase 2c in-game-verified 2026-07-14 (armed cycle
+                                fired but exposed wrong-lever finding; quota-raise retired; design
+                                pivoted to soft quota budgeting + ground-drop eviction + tier lever),
+                                dev tool NOT for Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
 ```
 

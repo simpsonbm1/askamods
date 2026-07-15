@@ -1,0 +1,223 @@
+﻿########## ItemContainer full ##########
+TYPE: SandSailorStudio.Inventory.ItemContainer base=Il2CppSystem.Object
+  P: containerType : ItemContainerType
+  P: itemConfig : BaseItemsConfig
+  P: capacity : Int32
+  P: canAddItems : Boolean
+  P: _inventory : ItemCollection
+  P: _ContainerItem_k__BackingField : IContainerContainer
+  P: _Owner_k__BackingField : Object
+  P: SerializationKeyProviderOverride : Func`1
+  P: _SerializationKeyAliases_k__BackingField : Il2CppStringArray
+  P: _CreationType_k__BackingField : InventoryType
+  P: _DisplayTargetTransform_k__BackingField : Transform
+  P: customData : ItemContainerData
+  P: _items : List`1
+  P: OnItemAdded : ItemEventHandler
+  P: OnItemRemoved : ItemEventHandler
+  P: OnItemBeforeMove : ItemEventHandler
+  P: OnItemCreated : Action`1
+  P: OnItemCountChanged : Action`1
+  P: OnBeforeItemSwap : Action`2
+  P: OnItemPropertyChanged : Action`2
+  P: _IsHidden_k__BackingField : Boolean
+  P: _NoActionTargets_k__BackingField : Boolean
+  P: _propContainerOvr : IPropertyContainer
+  P: _hadSetup : Boolean
+  P: _itemSerializeFactory : ItemSerializableFactory
+  P: _containerName : String
+  P: _serializationKeyDirty : Boolean
+  P: _id : Int32
+  P: _childSuffixKey : String
+  P: _serializationKey : String
+  P: c_ItemsKey : String
+  P: c_NotTradeable : String
+  P: ContainerItem : IContainerContainer
+  P: Inventory : ItemCollection
+  P: SerializationKey : String
+  P: Properties : IPropertyContainer
+  P: Owner : Object
+  P: SerializationKeyAliases : Il2CppStringArray
+  P: Name : String
+  P: Id : Int32
+  P: ChildSuffixKey : String
+  P: SerializationKeyDirty : Boolean
+  P: CreationType : InventoryType
+  P: DisplayTargetTransform : Transform
+  P: IsHidden : Boolean
+  P: NoActionTargets : Boolean
+  M: Void .cctor() [static]
+  M: Void add_OnItemAdded(ItemEventHandler value)
+  M: Void remove_OnItemAdded(ItemEventHandler value)
+  M: Void add_OnItemRemoved(ItemEventHandler value)
+  M: Void remove_OnItemRemoved(ItemEventHandler value)
+  M: Void add_OnItemBeforeMove(ItemEventHandler value)
+  M: Void remove_OnItemBeforeMove(ItemEventHandler value)
+  M: Void add_OnItemCreated(Action`1 value)
+  M: Void remove_OnItemCreated(Action`1 value)
+  M: Void add_OnItemCountChanged(Action`1 value)
+  M: Void remove_OnItemCountChanged(Action`1 value)
+  M: Void add_OnBeforeItemSwap(Action`2 value)
+  M: Void remove_OnBeforeItemSwap(Action`2 value)
+  M: Void add_OnItemPropertyChanged(Action`2 value)
+  M: Void remove_OnItemPropertyChanged(Action`2 value)
+  M: Void .ctor()
+  M: ItemContainer Clone() [virtual]
+  M: Void Setup() [virtual]
+  M: Boolean IsFull(Boolean checkFullStacks)
+  M: Boolean IsEmpty()
+  M: Single GetFillRatio()
+  M: Int32 GetAllUsedSlotsCount()
+  M: Int32 GetUsedSlotsCount(ItemInfo itemInfo)
+  M: Boolean CanStoreItemType(ItemInfo info) [virtual]
+  M: List`1 GetAcceptedItemTypes()
+  M: Boolean HasItem(IItemFilter itemFilter)
+  M: Boolean IsBagInABag()
+  M: Boolean HasItemSurplus(IItemFilter itemFilter)
+  M: Boolean HasSpace(ItemInfo itemInfo, Int32 quantity)
+  M: Int32 GetStackSize(ItemInfo itemInfo) [virtual]
+  M: Int32 GetRemainingCapacity(ItemInfo itemInfo) [virtual]
+  M: Int32 GetRemainingSlotFillCapacity(ItemInfo itemInfo) [virtual]
+  M: Int32 GetItemCount(ItemInfo itemInfo)
+  M: Int32 GetItemCount(IItemFilter itemFilter, Boolean checkStackSizes)
+  M: Int32 GetItemCount(Func`2 predicate)
+  M: Int32 GetItemCount()
+  M: Int32 GetEmptySlots()
+  M: Boolean AddItem(Item item, Int32 quantity, Int32 forcePosition, ItemEventContext context)
+  M: Void DropAllItems(Vector3 pos, Quaternion rot, Transform parent)
+  M: Void RemoveAllItems(IItemFilter itemFilter, ItemEventContext context)
+  M: Void UnregisterAllItems()
+  M: Boolean RemoveItem(Item item, Int32 quantity, ItemEventContext context)
+  M: Int32 MoveItem(Item item, Int32 quantity, Int32 newPosition)
+  M: Void ChangeItemPosition(Item item, Int32 position)
+  M: Void SwapItems(Item first, Item second)
+  M: Int32 MergeItem(Item item, Int32 quantity, Item destination)
+  M: Void DropItem(Item item, Int32 count, Vector3 position, Quaternion rotation, Transform parent)
+  M: Void ChangeItemAttribute(Item item, Int32& attributeId)
+  M: Void FillManifest(ItemManifest manifest)
+  M: Void FillItemInfoList(List`1 items)
+  M: Int32 AddItems(ItemInfo info, Int32 count) [virtual]
+  M: Int32 AddItems(Item item, Int32 count) [virtual]
+  M: Item GetItem(Int32 id)
+  M: Int32 GetItemsToList(List`1 items)
+  M: Int32 GetItemsToList(List`1 items, Func`2 predicate)
+  M: Int32 GetItemsToList(List`1 items, IItemFilter itemFilter)
+  M: IReadOnlyList`1 GetItems()
+  M: Item FindItem(Func`2 p)
+  M: Void ProcessItems(Action`1 p)
+  M: Item FindItem(IItemFilter itemFilter)
+  M: Boolean TryGetRepresentativeColor(Color& color)
+  M: Boolean Check(ItemInfo itemInfo) [virtual]
+  M: Void _SortItemsList()
+  M: Boolean _ValidateItemsList()
+  M: Void AddItemFromDeserialization(Item item)
+  M: Boolean Deserialize(DataObject source) [virtual]
+  M: DataObject Serialize(DataObject destination) [virtual]
+  M: Void WriteSnapshot(BinaryWriter writer) [virtual]
+  M: Void ReadSnapshot(BinaryReader reader) [virtual]
+  M: Void .ctor(IntPtr pointer)
+
+########## ItemContainerComponent full ##########
+TYPE: SandSailorStudio.Inventory.ItemContainerComponent base=UnityEngine.MonoBehaviour
+  P: container : ItemContainer
+  P: inventoryComponent : InventoryComponent
+  P: _initialized : Boolean
+  M: Void .cctor() [static]
+  M: Void Initialize() [virtual]
+  M: Void Awake() [virtual]
+  M: Void Destroy() [virtual]
+  M: Void DropItems(Vector3 position, Quaternion rotation, Transform parent) [virtual]
+  M: Void DepositItems(ItemTransactionManifest manifest) [virtual]
+  M: Void TryAddOneItemOrDropNearby(ItemInfo itemInfo)
+  M: Void RemoveAllItems()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+########## ItemObjectSpawnContext ##########
+TYPE: SandSailorStudio.Inventory.ItemObjectSpawnContext base=System.Enum
+  F: value__ : Byte
+  F: DEFAULT : ItemObjectSpawnContext
+  F: WORLD : ItemObjectSpawnContext
+  F: DISPLAY : ItemObjectSpawnContext
+  F: INSTANCE : ItemObjectSpawnContext
+
+########## ItemCollection: members typed ItemContainer / container-ish ##########
+  P: OnItemAdded : ItemEventHandler
+  P: OnItemRemoved : ItemEventHandler
+  P: OnContainerAdded : ContainerEventHandler
+  P: OnContainerRemoved : ContainerEventHandler
+  P: _inventoryManager : ItemDatabaseManager
+  P: _containers : List`1
+  P: _ownedItemsManifest : ItemManifest
+  P: _itemEntryBuffer : List`1
+  P: OwnedItems : ItemManifest
+  M: Void remove_OnItemAdded(ItemEventHandler value)
+  M: Void add_OnItemRemoved(ItemEventHandler value)
+  M: Void remove_OnItemRemoved(ItemEventHandler value)
+  M: Void add_OnContainerAdded(ContainerEventHandler value)
+  M: Void remove_OnContainerAdded(ContainerEventHandler value)
+  M: Void add_OnContainerRemoved(ContainerEventHandler value)
+  M: Void remove_OnContainerRemoved(ContainerEventHandler value)
+  M: Void AddContainer(ItemContainer container)
+  M: Void _ContainerAddProcess(Item itm)
+  M: Void RemoveContainer(ItemContainer container)
+  M: Void _ContainerRemoveProcess(Item itm)
+  M: ItemContainer FindLargestMatchingContainer(ItemInfo infoToStore, Boolean includeHidden)
+  M: ItemContainer FindContainer(ItemContainerType type, Boolean includeHidden)
+  M: ItemContainer FindContainer(Int32 id)
+  M: ItemContainer FindContainer(String& name)
+  M: ItemContainer FindContainer(Func`2 predicate, Boolean includeHidden)
+  M: IReadOnlyList`1 GetContainers()
+  M: ItemContainer GetFreeContainer(ItemInfo itemInfo, Boolean includeHidden)
+  M: Int32 GetMatchingContainers(ItemInfo item, List`1 containers, Boolean includeHidden)
+  M: List`1 GetMatchingContainers(ItemInfo item, Boolean includeHidden)
+  M: Boolean HasMatchingContainer(ItemInfo itemInfo, Boolean includeHidden)
+  M: Void RemoveAllItems(IItemFilter itemFilter, Boolean includeHidden)
+  M: Item FindItemInContainers(Func`2 predicate, Boolean includeHidden)
+  M: Void RemoveOwnedItemManifest(ItemManifest itemManifest)
+  M: Int32 RemoveItems(Item item, Int32 quantity)
+  M: Int32 RemoveItems(ItemInfo itemInfo, Int32 quantity)
+  M: Void RemovePercentageOfEveryItem(Single percentage)
+  M: Single GetContainersFillRatio(Predicate`1 predicate)
+  M: Void _ItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+
+########## StorageInteraction: container/collection surface ##########
+TYPE: SSSGame.StorageInteraction base=SSSGame.Interaction
+  P: storageType : StorageInteractionType
+  P: showPreviewAddon : Boolean
+  P: showCapacityBar : Boolean
+  P: storageContainer : ItemContainerComponent
+  P: openStructureOrder : InteractionOrder
+  P: openMilitiaOrder : InteractionOrder
+  P: villagerOrder : InteractionOrder
+  P: villagerAbortOrder : InteractionOrder
+  P: storageEvents : StorageEvents
+  P: showFullMessages : Boolean
+  P: showEmptyMessages : Boolean
+  P: depositByStackCount : Boolean
+  P: withdrawBySingleUnit : Boolean
+  P: _onItemAdded : Action`2
+  P: _onItemRemoved : Action`2
+  P: _hasSwitchedInteractable : Boolean
+  P: _worldInstance : WorldItemInstance
+  P: _interactionArea : IInteractionArea
+  P: _container : ItemContainer
+  P: Container : ItemContainer
+  M: Void add_OnItemAdded(Action`2 value)
+  M: Void remove_OnItemAdded(Action`2 value)
+  M: Void add_OnItemRemoved(Action`2 value)
+  M: Void remove_OnItemRemoved(Action`2 value)
+  M: ItemContainerComponent GetContainerComponent() [virtual]
+  M: Void _container_OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _container_OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+
+########## ItemThumbnailPanel.CommandDropItem + ContextMenu.Drop context ##########
+  P: mode : ItemThumbnailMode
+  P: parent : BaseContainerPanel
+  P: details : ItemDetailsPanel
+  P: _itemStack : ItemInfoQuantity
+  P: _item : Item
+  P: _currentItemMode : ItemThumbnailMode
+  P: _click : ItemClickBehaviour
+  P: ItemInfo : ItemInfo
+  P: Item : Item
