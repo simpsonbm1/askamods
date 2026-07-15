@@ -189,6 +189,23 @@ namespace SupplyChainMod;
 // v0.6.1: clog-ctl storage-full gates use registry-active (10 min) instead of 60/90 s freshness;
 // one-shot gate-skip log.
 //
+// v0.8.0 — Phase 2d dry-run budget engine (BudgetPlane): the READ-ONLY brain the v0.7.0 spike
+// fire-verified write levers were built for. Per (warehouse, item) true-warehouse group (hut
+// self-storage rows excluded — never a budgeting target), it computes a need-based quota target
+// from MetabolicPlane's measured drain rate (MinQuota floor + HeadroomMinutes of drain, capped at
+// MaxQuotaShareOfMaxPct of the item's physical max via GetMaximumStorageCapacity(info, false) —
+// only the 2-arg overload exists) and classifies the group: HOG (quota already crowding storage
+// far beyond what's consumed — proposes a quota reduce + the excess to evict), SHADOWED (unmet,
+// room to fill, low/no rank, but not filling — proposes a tier bump to High), or healthy/no-data.
+// Every proposal is LOGGED ONLY, throttled to when the proposal set actually changes (or on a full
+// table dump) to keep steady-state log volume sane — no arming path exists in this version at all;
+// nothing is written, no quota, no DropItem eviction, no SetPriority. WarehouseWatch grew the two
+// new AllotmentRow fields BudgetPlane needs (HasTaskContainer, MaxCapacity — the latter read-once-
+// per-item-per-warehouse-poll and gated behind EnableBudgetPlane so the capacity call is skipped
+// entirely when the plane is off) and now calls BudgetPlane.Evaluate after its own clog detector
+// each poll. The v0.7.0-proven write levers (quota write, DropItem eviction, tier
+// SetPriority+HostUpdateTasks) are wired to this brain in a later version.
+//
 // v0.7.0 — Phase 2d fire-verify spike: the reshaped Phase 2d design (soft quota budgeting +
 // down-to-quota eviction + a tier lever, docs/mods/supply-chain.md "Design Direction") depends on
 // two runtime unknowns that were only Cecil-confirmed, never fire-verified: (a) does
@@ -287,6 +304,17 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> TierRpcTimeoutSeconds = null!;
     internal static ConfigEntry<float> TierHoldSeconds = null!;
     internal static ConfigEntry<float> TierAbortSeconds = null!;
+
+    // ── [Phase2dBudget] ──────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableBudgetPlane = null!;
+    internal static ConfigEntry<float> BudgetWindowSeconds = null!;
+    internal static ConfigEntry<int> MinQuota = null!;
+    internal static ConfigEntry<float> HeadroomMinutes = null!;
+    internal static ConfigEntry<int> MaxQuotaShareOfMaxPct = null!;
+    internal static ConfigEntry<int> HogQuotaShareOfMaxPct = null!;
+    internal static ConfigEntry<int> HogMinStored = null!;
+    internal static ConfigEntry<float> HogMaxAbsRate = null!;
+    internal static ConfigEntry<float> ShadowMaxFillRate = null!;
 
     public override void Load()
     {
@@ -658,6 +686,60 @@ public class Plugin : BasePlugin
             defaultValue: 180f,
             description: "Absolute abort rail (seconds) for the tier test state machine — if the test is still running after this long (any phase), it attempts one direct-write revert and force-clears, regardless of confirmation.");
 
+        EnableBudgetPlane = Config.Bind(
+            section: "Phase2dBudget",
+            key: "EnableBudgetPlane",
+            defaultValue: true,
+            description: "Master switch for the v0.8.0 dry-run budget engine (BudgetPlane) — shipped default TRUE (dev/diagnostic convention). v0.8.0 is READ-ONLY analytics: no arming path exists in this version, it only computes and logs quota/tier proposals. Also gates WarehouseWatch's per-item MaxCapacity reads (GetMaximumStorageCapacity), which are otherwise skipped entirely.");
+
+        BudgetWindowSeconds = Config.Bind(
+            section: "Phase2dBudget",
+            key: "BudgetWindowSeconds",
+            defaultValue: 480f,
+            description: "Lookback window (seconds) used when reading a group's net rate from MetabolicPlane. Ceiling is the metabolic ring's ~8 minute depth (16 samples at the ~30s WarehousePollSeconds cadence) — a larger window just means fewer samples land inside it.");
+
+        MinQuota = Config.Bind(
+            section: "Phase2dBudget",
+            key: "MinQuota",
+            defaultValue: 20,
+            description: "Floor of every proposed quota target, regardless of measured drain rate.");
+
+        HeadroomMinutes = Config.Bind(
+            section: "Phase2dBudget",
+            key: "HeadroomMinutes",
+            defaultValue: 30f,
+            description: "A proposed quota target holds this many minutes of measured drain above MinQuota — sizing the buffer so a quota isn't shaved down to exactly current consumption.");
+
+        MaxQuotaShareOfMaxPct = Config.Bind(
+            section: "Phase2dBudget",
+            key: "MaxQuotaShareOfMaxPct",
+            defaultValue: 50,
+            description: "Proposed quota targets are capped at this percent (0-100) of the item's physical max (ItemCollection.GetMaximumStorageCapacity) — keeps a single item's proposed quota from ever crowding out the whole warehouse.");
+
+        HogQuotaShareOfMaxPct = Config.Bind(
+            section: "Phase2dBudget",
+            key: "HogQuotaShareOfMaxPct",
+            defaultValue: 90,
+            description: "A group only counts as a HOG when its quotaSum is at least this percent (0-100) of the item's physical max — catches vanilla's default behavior of quota == unit max.");
+
+        HogMinStored = Config.Bind(
+            section: "Phase2dBudget",
+            key: "HogMinStored",
+            defaultValue: 100,
+            description: "Minimum stockpile (stored count) for a group to count as a HOG — a maxed-out quota on a barely-stocked item isn't a real problem yet.");
+
+        HogMaxAbsRate = Config.Bind(
+            section: "Phase2dBudget",
+            key: "HogMaxAbsRate",
+            defaultValue: 0.2f,
+            description: "A group only counts as a HOG when |rate|/min is at or below this — a static stockpile, not one still actively filling or draining.");
+
+        ShadowMaxFillRate = Config.Bind(
+            section: "Phase2dBudget",
+            key: "ShadowMaxFillRate",
+            defaultValue: 0.2f,
+            description: "A group only counts as SHADOWED when |rate|/min is at or below this on an unmet allotment with room to fill — the stall signal that haulers aren't going despite room and demand (rank >= Med).");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -710,6 +792,9 @@ public class Plugin : BasePlugin
             $"MaxConcurrentClogBoosts={MaxConcurrentClogBoosts.Value} " +
             $"EnableMetabolicPlane={EnableMetabolicPlane.Value} MetabolicWindowSeconds={MetabolicWindowSeconds.Value} MetabolicStatusMinutes={MetabolicStatusMinutes.Value} " +
             $"EnableEvictSpike={EnableEvictSpike.Value} EvictSpikeHotkey='{EvictSpikeHotkey.Value}' EvictItem='{EvictItem.Value}' EvictDropCount={EvictDropCount.Value} " +
-            $"TierItem='{TierItem.Value}' TierRpcTimeoutSeconds={TierRpcTimeoutSeconds.Value} TierHoldSeconds={TierHoldSeconds.Value} TierAbortSeconds={TierAbortSeconds.Value}.");
+            $"TierItem='{TierItem.Value}' TierRpcTimeoutSeconds={TierRpcTimeoutSeconds.Value} TierHoldSeconds={TierHoldSeconds.Value} TierAbortSeconds={TierAbortSeconds.Value} " +
+            $"EnableBudgetPlane={EnableBudgetPlane.Value} BudgetWindowSeconds={BudgetWindowSeconds.Value} MinQuota={MinQuota.Value} HeadroomMinutes={HeadroomMinutes.Value} " +
+            $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogQuotaShareOfMaxPct={HogQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
+            $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value}.");
     }
 }

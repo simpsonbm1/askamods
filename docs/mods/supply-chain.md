@@ -1,8 +1,9 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.7.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b + Phase 2c complete
+**Status:** WIP v0.8.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b + Phase 2c complete
 (in-game-verified), Phase 2d fire-verify spike in-game-verified 2026-07-15 (ground-drop
-eviction + tier direct-write lever proven; tier RPC dead-end), dev tool NOT for Nexus
+eviction + tier direct-write lever proven; tier RPC dead-end), v0.8.0 BudgetPlane dry-run
+brain built 2026-07-15 ⚠️ pending in-game confirmation, dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -280,6 +281,17 @@ TierAbortSeconds=180        # absolute abort rail for the tier state machine
 EnableMetabolicPlane=true   # Phase 2d future data layer (ring buffer samples)
 MetabolicWindowSeconds=180  # default window for rate-per-minute calculations
 MetabolicStatusMinutes=5    # throttle window for "top movers" log line
+
+[Phase2dBudget]
+EnableBudgetPlane=true      # v0.8.0 read-only budget analytics (also gates MaxCapacity reads)
+BudgetWindowSeconds=480     # rate lookback; ceiling = metabolic ring depth (16 @ 30 s)
+MinQuota=20                 # floor of every proposed quota target
+HeadroomMinutes=30          # proposed target holds this many minutes of measured drain
+MaxQuotaShareOfMaxPct=50    # proposed targets capped at this % of item physical max
+HogQuotaShareOfMaxPct=90    # hog requires quotaSum >= this % of physical max
+HogMinStored=100            # hog requires at least this stockpile
+HogMaxAbsRate=0.2           # |rate|/min at or below = static stockpile
+ShadowMaxFillRate=0.2       # |rate|/min at or below on unmet+room group = not filling
 ```
 
 ## Phase 2c Findings & Dead-Ends
@@ -420,6 +432,25 @@ empty after the session. Conclusion: the warehouse tier lever recipe = direct va
 called from a host-side mod joins the interop dead-end family (like the lying
 `NetworkWorkstations` property).
 
+**Phase 2d step 1 — BudgetPlane dry-run brain (v0.8.0, built 2026-07-15, ⚠️ pending in-game
+confirmation):**
+
+READ-ONLY budget engine — no writes, no arming path, no ledger. Rides WarehouseWatch's poll:
+AllotmentRow gained HasTaskContainer + MaxCapacity (via GetMaximumStorageCapacity(info, false)
+— only the 2-arg overload exists; the read is skipped entirely when EnableBudgetPlane=false,
+and deduped to one call per item group per warehouse). Groups true-warehouse rows by
+PosKey|Item (= the metabolic key), reads the MetabolicPlane rate over BudgetWindowSeconds
+(480 s ≈ the 16-sample ring's depth at the 30 s poll). Need target = MinQuota +
+drainRate×HeadroomMinutes, capped at MaxQuotaShareOfMaxPct of maxCap. Classes: hog (quotaSum ≥
+HogQuotaShareOfMaxPct of maxCap AND stored ≥ HogMinStored AND |rate| ≤ HogMaxAbsRate →
+proposes quota reduce quotaSum→target + eviction excess = stored−target), shadowed (unmet +
+room>0 + |rate| ≤ ShadowMaxFillRate + rank ≥ Med → proposes tier→High), healthy, no-data.
+Output: one summary line per poll; proposal lines only when the proposal set changes
+(sorted-fingerprint compare) or on F9; F9 adds the full per-group table + a
+maxCap-vs-(stored+room) cross-check (first-ever runtime read of GetMaximumStorageCapacity —
+mismatches on shared containers are expected data, not failures) + a [Perf] line. Log prefix
+`[SupplyChain] [budget]`.
+
 ## Research spike (Cecil, 2026-07-14)
 
 Eviction/capacity machinery for Phase 2d, recorded with minimal filtering for implementation.
@@ -493,3 +524,7 @@ See architecture.md for full API surface.
   tier test), 1 test run, zero errors. Confirmed: DropItem ground-drop eviction recipe (spawn +
   exact decrement, solo host), tier lever = direct SetPriority + HostUpdateTasks (synchronous,
   no squash), Rpc_ChangeTaskPriority inert from host-side call (dead-end).
+- **v0.8.0** (2026-07-15, Phase 2d step 1) — BudgetPlane dry-run brain (read-only need-based
+  quota targets + hog/shadowed/healthy classification from metabolic rates; proposals logged,
+  nothing written), AllotmentRow HasTaskContainer/MaxCapacity extension. Built clean, ⚠️
+  pending in-game confirmation (test: play ≥10 min on a real save, F9 once, review proposals).

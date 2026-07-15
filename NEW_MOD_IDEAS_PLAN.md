@@ -493,7 +493,8 @@ all-villager ticks (worst cohort 28 ms).
   (player-DECLARED stock targets): 2d derives targets from observed usage. Conceptually: shift from
   episodic reaction (Phase 2c) to continuous proactive flow balancing (2d). Builds on 2c's metabolic
   data. Fire-verify spike SHIPPED as SupplyChainMod v0.7.0, in-game-verified 2026-07-15 — both
-  levers proven; core budgeting build is next.
+  levers proven; core budgeting build started: dry-run brain (BudgetPlane) in v0.8.0, built
+  2026-07-15, ⚠️ pending in-game confirmation.
 - **Phase 2e — producer-side priority lever (research complete for mechanism, 2026-07-14):** a
   producer gathering bulky low-urgency items at equal priority with demanded items starves the
   demanded item via winner-take-all priority (e.g., mine hut Iron Ore / Large Rocks). No in-game

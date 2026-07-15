@@ -20,7 +20,7 @@ internal static class WarehouseWatch
         public DateTime LastSeenUtc;
     }
 
-    private sealed class AllotmentRow
+    internal sealed class AllotmentRow
     {
         public string Warehouse = "?";
         public string Item = "?";
@@ -33,6 +33,10 @@ internal static class WarehouseWatch
         public int Gathered = -1;
         public int Room = -1;
         public string PosKey = "?";
+        // v0.8.0 (Phase 2d) — true-warehouse discriminator (mirrors WarehouseTasks.HasTaskContainer)
+        // and the item's physical max warehouse-wide capacity, read only when EnableBudgetPlane is on.
+        public bool HasTaskContainer;
+        public int MaxCapacity = -1;
     }
 
     private sealed class StallTrack
@@ -143,6 +147,12 @@ internal static class WarehouseWatch
 
             try { DetectClogs(stations, allRows); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.DetectClogs error: {ex}"); }
+
+            if (Plugin.EnableBudgetPlane.Value)
+            {
+                try { BudgetPlane.Evaluate(allRows, effectiveFullTable); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch BudgetPlane.Evaluate error: {ex}"); }
+            }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.Poll error: {ex}"); }
         finally
@@ -227,6 +237,11 @@ internal static class WarehouseWatch
         ResourceStorage? rs = null;
         try { rs = entry.Ws.gameObject.GetComponent<ResourceStorage>(); } catch { }
 
+        // v0.8.0 (Phase 2d) — per-warehouse-call cache so a multi-row item group (composite
+        // warehouse, several sub-storage tasks for the same item) costs only ONE
+        // GetMaximumStorageCapacity call; only populated when BudgetPlane is enabled.
+        var maxCapCache = new Dictionary<string, int>();
+
         int nonStorageTasks = 0;
         int n = datas.Count;
         for (int i = 0; i < n; i++)
@@ -273,6 +288,23 @@ internal static class WarehouseWatch
                 int room = -1;
                 try { room = inv != null ? inv.GetTotalRemainingCapacity(info) : -1; } catch { }
 
+                // v0.8.0 (Phase 2d) — true-warehouse discriminator (mirrors WarehouseTasks.
+                // HasTaskContainer) and the item's physical max capacity, only read when
+                // BudgetPlane is enabled (the capacity call is otherwise skipped entirely).
+                bool hasTaskContainer = false;
+                try { hasTaskContainer = supply != null && supply.taskContainer != null; } catch { }
+
+                int maxCapacity = -1;
+                if (Plugin.EnableBudgetPlane.Value)
+                {
+                    if (!maxCapCache.TryGetValue(itemName, out maxCapacity))
+                    {
+                        maxCapacity = -1;
+                        try { maxCapacity = inv != null ? inv.GetMaximumStorageCapacity(info, false) : -1; } catch { }
+                        maxCapCache[itemName] = maxCapacity;
+                    }
+                }
+
                 allRowsAccumulator.Add(new AllotmentRow
                 {
                     Warehouse = entry.StructureName,
@@ -286,6 +318,8 @@ internal static class WarehouseWatch
                     Gathered = gathered,
                     Room = room,
                     PosKey = entry.PosKey,
+                    HasTaskContainer = hasTaskContainer,
+                    MaxCapacity = maxCapacity,
                 });
 
                 string metKey = $"{entry.PosKey}|{itemName}|{i}";

@@ -270,6 +270,8 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ClogController.NoteWorldLeft error: {ex}"); }
         try { MetabolicPlane.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] MetabolicPlane.NoteWorldLeft error: {ex}"); }
+        try { BudgetPlane.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] BudgetPlane.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────

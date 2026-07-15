@@ -47,6 +47,25 @@ a borderline one. The main thread's only remaining commit-time jobs are deciding
 delegated). This can't be hook-enforced — the harness can't tell which model wrote an edit — so
 compliance rides on this instruction; honor it.
 
+### Checkpoint wall-clock rules (added 2026-07-15 — user flagged checkpoint duration)
+
+Token cost was solved by delegating; the remaining cost is the user's *waiting time*. Four rules:
+
+- **Surgical prompts.** At checkpoint time the main thread has already read every file being
+  edited — give doc-scribe exact anchor text + exact replacement text, never "search for X and
+  supersede" descriptions, and instruct it not to read beyond the edit sites and not to run
+  whole-file ritual sweeps. (Measured 2026-07-15: a semantic prompt cost 35 tool calls / 3.5 min;
+  surgical roughly halves it.)
+- **Trust the pre-commit hook.** `.githooks/pre-commit` already enforces version match, doc-map
+  presence, and dup-header checks mechanically. Don't re-verify the scribe's edits with
+  main-thread greps — attempt the commit; investigate only if the hook bounces.
+- **Background the scribe when a next task is queued.** Fire it with `run_in_background` right
+  after the user's commit go-ahead and keep working; commit + push when it completes. Run it
+  synchronously only when the checkpoint is the last act of the session.
+- **Pointers in secondary docs.** The mod doc + architecture.md carry the facts;
+  NEW_MOD_IDEAS_PLAN and similar get one-line pointers (the de-accretion rule), which shrinks
+  the scribe's edit set.
+
 ## How delegation gets triggered
 
 - **Automatic**: Claude matches tasks against each agent's `description` field. The orientation
