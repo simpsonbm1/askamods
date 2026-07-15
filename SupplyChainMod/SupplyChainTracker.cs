@@ -30,6 +30,7 @@ public class SupplyChainTracker : MonoBehaviour
     private KeyCode _spikeKey = KeyCode.F10;
     private KeyCode _controllerArmKey = KeyCode.F11;
     private KeyCode _quotaSpikeKey = KeyCode.F7;
+    private KeyCode _evictSpikeKey = KeyCode.F6;
     private bool _ledgerRestoreDone;
 
     // Never cache per-world native wrappers across world sessions (project-wide gotcha) — only
@@ -63,6 +64,7 @@ public class SupplyChainTracker : MonoBehaviour
         _spikeKey = ParseKey(Plugin.SpikeHotkey.Value, KeyCode.F10, "SpikeHotkey");
         _controllerArmKey = ParseKey(Plugin.ControllerArmHotkey.Value, KeyCode.F11, "ControllerArmHotkey");
         _quotaSpikeKey = ParseKey(Plugin.QuotaSpikeHotkey.Value, KeyCode.F7, "QuotaSpikeHotkey");
+        _evictSpikeKey = ParseKey(Plugin.EvictSpikeHotkey.Value, KeyCode.F6, "EvictSpikeHotkey");
     }
 
     private static KeyCode ParseKey(string raw, KeyCode fallback, string keyName)
@@ -130,6 +132,29 @@ public class SupplyChainTracker : MonoBehaviour
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Quota spike hotkey check error: {ex}"); }
+
+        try
+        {
+            if (Plugin.EnableEvictSpike.Value && !Common.IsTextInputFocused() && Input.GetKeyDown(_evictSpikeKey))
+            {
+                if (_currentWorldId == null)
+                {
+                    Plugin.Logger.LogInfo("[SupplyChain] [evict] Hotkey pressed but skipped — no active world session.");
+                    ShowMessage("Evict spike: no active world.", 4f);
+                }
+                else
+                {
+                    try
+                    {
+                        bool tier = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                        ResolveStationsIfDue(force: true);
+                        EvictionSpike.OnHotkey(_stations, _currentWorldId, tier);
+                    }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] EvictionSpike.OnHotkey error: {ex}"); }
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Evict spike hotkey check error: {ex}"); }
 
         try
         {
@@ -235,6 +260,8 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] ActuationSpike.NoteWorldLeft error: {ex}"); }
         try { QuotaSpike.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.NoteWorldLeft error: {ex}"); }
+        try { EvictionSpike.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] EvictionSpike.NoteWorldLeft error: {ex}"); }
         try { SupplyController.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteWorldLeft error: {ex}"); }
         try { WarehouseWatch.NoteWorldLeft(); }
@@ -273,6 +300,11 @@ public class SupplyChainTracker : MonoBehaviour
                 try { QuotaSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.OnWorldReady error: {ex}"); }
             }
+            if (Plugin.EnableEvictSpike.Value)
+            {
+                try { EvictionSpike.OnWorldReady(_currentWorldId!, _stations); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] EvictionSpike.OnWorldReady error: {ex}"); }
+            }
         }
 
         if (Plugin.EnableSpike.Value)
@@ -285,6 +317,12 @@ public class SupplyChainTracker : MonoBehaviour
         {
             try { QuotaSpike.TickWatch(_stations); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.TickWatch error: {ex}"); }
+        }
+
+        if (Plugin.EnableEvictSpike.Value)
+        {
+            try { EvictionSpike.Tick(_stations); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] EvictionSpike.Tick error: {ex}"); }
         }
 
         if (Plugin.EnableController.Value)

@@ -20,6 +20,13 @@ namespace SupplyChainMod;
 // bookkeeping (the ResourceStorageTaskData's supply owner name), "-" for rank entries. Both new
 // fields are backward-compatible: a pre-v0.5.0 8-field line has no Kind/SupplyOwner columns and
 // parses as Kind="rank" SupplyOwner="-" (see LoadAll).
+//
+// v0.7.0 — Phase 2d fire-verify spike (EvictionSpike) adds a third Kind: "tier". Schema unchanged —
+// for Kind=="tier", OrigPriority/BoostPriority carry the ORIGINAL and BOOSTED TIER VALUES (High=0/
+// Med=1/Low=2/None=3, NOT rank indices) of a warehouse ResourceStorageTaskData row, written via
+// Rpc_ChangeTaskPriority/SetPriority. SupplyOwner is populated the same way "quota" entries populate
+// it. The ground-drop eviction half of EvictionSpike writes no ledger entries at all (nothing to
+// restore — a dropped item just lives in the world; see EvictionSpike.cs).
 internal sealed class LedgerEntry
 {
     public string WorldId = "?";

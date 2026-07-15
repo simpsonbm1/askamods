@@ -907,8 +907,11 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   0-based rank index. Evidence: ranks 0,1,2,3 observed across 1,430 warehouse rows, not matching
   list positions (e.g. task[0] rank=1 while task[1] rank=0); decisively, the user raised the Thatch
   collect task on 'Improved Warehouse 3' from Medium→High in the UI and that exact row then showed
-  rank=0. Consequence: any future warehouse priority lever is a VALUE write (via
-  `Rpc_ChangeTaskPriority`), not a list move. **Station self-storages (Woodcutter's House,
+  rank=0. The warehouse tier lever recipe = direct value write via `rst.SetPriority(tier)` +
+  `HostUpdateTasks()` (confirmed in-game 2026-07-15, SupplyChainMod v0.7.0: applies
+  synchronously, readback immediate, no squash/renumber; revert identical). `Rpc_ChangeTaskPriority`
+  fired host-side without exception but was INERT (readback unchanged for 15 s) — dead-end, same
+  family as the lying NetworkWorkstations property. **Station self-storages (Woodcutter's House,
   Gatherer's House, Outhouse, Stonecutter's Hut) use the SAME ResourceStorage row machinery
   (confirmed in-game 2026-07-14)** — quota/tier levers uniform across warehouses AND station
   storages.
@@ -1001,8 +1004,11 @@ network-safe — look for an analogous item RPC before writing storage state dir
 unaffected either way. **Eviction via `DropItem` (Cecil 2026-07-14):** reach the container from any
 storage row via `ResourceStorageTaskData.storageSupply.interaction` (StorageInteraction) → 
 `.Container : ItemContainer`; also `StorageInteraction.storageContainer : ItemContainerComponent`.
-Authority-gate the call (`HasAuthority`); co-op ground-item replication unverified (fire-verify
-planned).
+Recipe confirmed in-game 2026-07-15 (SupplyChainMod v0.7.0 EvictionSpike, solo host): DropItem
+from `storageSupply.interaction.Container` spawned real player-visible ground items and
+decremented container + warehouse-wide counts exactly (500→498→496 / 700→698→696 across two
+2-unit drops, decrement held at delayed re-check). Host-gate the call; ⚠️ co-op CLIENT
+replication of the spawned ground item still unverified.
 
 **`SandSailorStudio.Inventory.ItemManifest` — the counts / requirements struct**
 ```

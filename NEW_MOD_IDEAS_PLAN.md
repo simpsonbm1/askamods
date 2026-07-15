@@ -483,14 +483,17 @@ all-villager ticks (worst cohort 28 ms).
   headroom for boosts, with per-item caps below unit max; sum MAY exceed capacity (soft, keeps
   flexibility). Common failure: bone-fragment shape (low/no-demand item maxes storage). Remedy =
   quota REDUCE + NEW down-to-quota EVICTION routine: `ItemContainer.DropItem(...)` ground-drop
-  (player X-press analog; GroundItemVacuumMod picks up); direct deletion deferred. Tier lever stays
-  critical: diagnose/rebalance priority-shadow starvation + deliberate surge boosts. Budgeting
-  mitigates shadowing: with sane quotas, High rows reach met and haulers proceed tier-down, so tier
-  becomes rare corrective not primary. Bounds via `ItemCollection.GetMaximumStorageCapacity(ItemInfo)`
-  (per-item physical max warehouse-wide). Cecil-confirmed primitives recorded in architecture.md
-  (2026-07-14). Distinct from Phase 5 (player-DECLARED stock targets): 2d derives targets from
-  observed usage. Conceptually: shift from episodic reaction (Phase 2c) to continuous proactive flow
-  balancing (2d). Builds on 2c's metabolic data.
+  (recipe runtime-confirmed 2026-07-15, v0.7.0 spike) (player X-press analog; GroundItemVacuumMod
+  picks up); direct deletion deferred. Tier lever stays critical: diagnose/rebalance priority-shadow
+  starvation + deliberate surge boosts (lever = direct SetPriority + HostUpdateTasks, runtime-confirmed
+  2026-07-15; tier RPC inert). Budgeting mitigates shadowing: with sane quotas, High rows reach met
+  and haulers proceed tier-down, so tier becomes rare corrective not primary. Bounds via
+  `ItemCollection.GetMaximumStorageCapacity(ItemInfo)` (per-item physical max warehouse-wide).
+  Cecil-confirmed primitives recorded in architecture.md (2026-07-14). Distinct from Phase 5
+  (player-DECLARED stock targets): 2d derives targets from observed usage. Conceptually: shift from
+  episodic reaction (Phase 2c) to continuous proactive flow balancing (2d). Builds on 2c's metabolic
+  data. Fire-verify spike SHIPPED as SupplyChainMod v0.7.0, in-game-verified 2026-07-15 — both
+  levers proven; core budgeting build is next.
 - **Phase 2e — producer-side priority lever (research complete for mechanism, 2026-07-14):** a
   producer gathering bulky low-urgency items at equal priority with demanded items starves the
   demanded item via winner-take-all priority (e.g., mine hut Iron Ore / Large Rocks). No in-game
@@ -525,17 +528,19 @@ semantics (storage-family = VALUE tier, Cecil + in-game 2026-07-14); tier enum v
 (High=0, Med=1, Low=2, None=3, confirmed in-game 2026-07-14); per-item capacity read
 (GetMaximumStorageCapacity + per-container APIs, Cecil 2026-07-14); accepted-item enumeration
 (GetAcceptedItemTypes, CanStoreItemType, container matching, Cecil 2026-07-14); drop-to-ground
-eviction (ItemContainer.DropItem recipe, Cecil 2026-07-14, ⚠️ runtime co-op replication
+eviction (Cecil 2026-07-14; runtime-confirmed in-game 2026-07-15, ⚠️ co-op client replication
 unverified).** taskMaxQuota [likely per-spawned-task carry count per item-trip, irrelevant to
-budgeting, Cecil 2026-07-14; supersedes "unknown"].
+budgeting, Cecil 2026-07-14; supersedes "unknown"]; **tier lever runtime-confirmed (direct
+SetPriority + HostUpdateTasks, synchronous, in-game 2026-07-15; Rpc_ChangeTaskPriority host-side
+call INERT = dead-end); ground-drop eviction runtime-confirmed (spawn + exact decrement, solo
+host, in-game 2026-07-15).**
 
 **Still open:** whether mod-created tasks serialize like player ones; dead-inventory native alert
 (untested; sweep-only detection assumed per design); research-task discriminator (no assigned
 workers + TaskDataPanel `_bgStudyTaskColor` are markers; Phase 1b controller excluded research tasks
 per user decision); untested Phase 1b edges (militia-alarm lockout no raid/test, StationBusy rotation
 no same-station contention observed, capacity verdict via 2 ineffective cycles all real boosts
-self-cleared early); ⚠️ tier RPC runtime fire-verify; ⚠️ ground-drop co-op replication + authority
-gating.
+self-cleared early); ⚠️ ground-drop co-op CLIENT replication.
 
 *Sequencing dependency:* do NOT start building while the stack's hitching investigation is open —
 land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,

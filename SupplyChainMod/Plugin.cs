@@ -188,6 +188,22 @@ namespace SupplyChainMod;
 //
 // v0.6.1: clog-ctl storage-full gates use registry-active (10 min) instead of 60/90 s freshness;
 // one-shot gate-skip log.
+//
+// v0.7.0 — Phase 2d fire-verify spike: the reshaped Phase 2d design (soft quota budgeting +
+// down-to-quota eviction + a tier lever, docs/mods/supply-chain.md "Design Direction") depends on
+// two runtime unknowns that were only Cecil-confirmed, never fire-verified: (a) does
+// ItemContainer.DropItem actually spawn a ground item and decrement the container when reached from
+// a warehouse row's storageSupply.interaction.Container, and (b) does Rpc_ChangeTaskPriority
+// actually move a warehouse row's TIER (High=0/Med=1/Low=2/None=3 VALUE — never a rank/list-move).
+// New EvictionSpike answers both behind one hotkey (EvictSpikeHotkey, default F6): the plain key
+// runs a one-shot, unledgered drop test (auto-picks the best-stocked true-warehouse row, drops
+// EvictDropCount units, schedules a one-tick-later delayed re-check); Shift+key runs a stateful,
+// write-ahead-ledgered (Kind="tier") tier test that boosts a Med row to High, watches which write
+// path actually lands (RPC first, direct SetPriority fallback, with a WRONG-ROW detector), holds,
+// then reverts — logging every phase transition LOUDLY so both unknowns come back unambiguously
+// proven or disproven. No new Harmony patches (DropItem/Setup have inventory-family params, a
+// forbidden patch target) — this is a pure hotkey/tick call-and-observe spike, same discipline as
+// every other actuator in this mod.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -261,6 +277,16 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> EnableMetabolicPlane = null!;
     internal static ConfigEntry<float> MetabolicWindowSeconds = null!;
     internal static ConfigEntry<float> MetabolicStatusMinutes = null!;
+
+    // ── [Phase2dSpike] ───────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableEvictSpike = null!;
+    internal static ConfigEntry<string> EvictSpikeHotkey = null!;
+    internal static ConfigEntry<string> EvictItem = null!;
+    internal static ConfigEntry<int> EvictDropCount = null!;
+    internal static ConfigEntry<string> TierItem = null!;
+    internal static ConfigEntry<float> TierRpcTimeoutSeconds = null!;
+    internal static ConfigEntry<float> TierHoldSeconds = null!;
+    internal static ConfigEntry<float> TierAbortSeconds = null!;
 
     public override void Load()
     {
@@ -584,6 +610,54 @@ public class Plugin : BasePlugin
             defaultValue: 5f,
             description: "How often (minutes) the metabolic plane logs its top 5 fastest-moving (|rate| >= 0.1/min) keys. 0 = disable the movers status line entirely (sampling itself is unaffected).");
 
+        EnableEvictSpike = Config.Bind(
+            section: "Phase2dSpike",
+            key: "EnableEvictSpike",
+            defaultValue: true,
+            description: "Master switch for the v0.7.0 Phase 2d fire-verify spike (EvictionSpike) — shipped default TRUE (dev/diagnostic convention). Gates the hotkey (plain + Shift) AND the tier test's ledger restore at world load; set false to fully disarm the write machinery.");
+
+        EvictSpikeHotkey = Config.Bind(
+            section: "Phase2dSpike",
+            key: "EvictSpikeHotkey",
+            defaultValue: "F6",
+            description: "Hotkey (UnityEngine.KeyCode name) for the Phase 2d spike. Plain key = one-shot ground-drop eviction test (ItemContainer.DropItem). Shift+key = stateful tier test (Rpc_ChangeTaskPriority boost/revert) — pressing Shift+key again while a tier test is active reverts it early.");
+
+        EvictItem = Config.Bind(
+            section: "Phase2dSpike",
+            key: "EvictItem",
+            defaultValue: "",
+            description: "Item display name for the drop test. Empty = auto-select the best-stocked true-warehouse row's container.");
+
+        EvictDropCount = Config.Bind(
+            section: "Phase2dSpike",
+            key: "EvictDropCount",
+            defaultValue: 2,
+            description: "Units to drop per drop-test press. Clamped to 1-5 at use time, and further capped by the target stack's actual count.");
+
+        TierItem = Config.Bind(
+            section: "Phase2dSpike",
+            key: "TierItem",
+            defaultValue: "",
+            description: "Item display name for the tier test. Empty = auto-select the first Med-tier true-warehouse row.");
+
+        TierRpcTimeoutSeconds = Config.Bind(
+            section: "Phase2dSpike",
+            key: "TierRpcTimeoutSeconds",
+            defaultValue: 15f,
+            description: "Per-phase confirmation window (seconds) before the tier test falls back to the next write path, or concludes a write/revert was ineffective.");
+
+        TierHoldSeconds = Config.Bind(
+            section: "Phase2dSpike",
+            key: "TierHoldSeconds",
+            defaultValue: 15f,
+            description: "How long (seconds) the tier test holds the boosted row at High before automatically reverting it back to its original tier.");
+
+        TierAbortSeconds = Config.Bind(
+            section: "Phase2dSpike",
+            key: "TierAbortSeconds",
+            defaultValue: 180f,
+            description: "Absolute abort rail (seconds) for the tier test state machine — if the test is still running after this long (any phase), it attempts one direct-write revert and force-clears, regardless of confirmation.");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -634,6 +708,8 @@ public class Plugin : BasePlugin
             $"ClogBoostMaxDelta={ClogBoostMaxDelta.Value} ClogResponseWindowSeconds={ClogResponseWindowSeconds.Value} ClogHoldMaxSeconds={ClogHoldMaxSeconds.Value} " +
             $"ClogCooldownSeconds={ClogCooldownSeconds.Value} ClogMaxCyclesPerItem={ClogMaxCyclesPerItem.Value} ClogCapacityLockoutMinutes={ClogCapacityLockoutMinutes.Value} " +
             $"MaxConcurrentClogBoosts={MaxConcurrentClogBoosts.Value} " +
-            $"EnableMetabolicPlane={EnableMetabolicPlane.Value} MetabolicWindowSeconds={MetabolicWindowSeconds.Value} MetabolicStatusMinutes={MetabolicStatusMinutes.Value}.");
+            $"EnableMetabolicPlane={EnableMetabolicPlane.Value} MetabolicWindowSeconds={MetabolicWindowSeconds.Value} MetabolicStatusMinutes={MetabolicStatusMinutes.Value} " +
+            $"EnableEvictSpike={EnableEvictSpike.Value} EvictSpikeHotkey='{EvictSpikeHotkey.Value}' EvictItem='{EvictItem.Value}' EvictDropCount={EvictDropCount.Value} " +
+            $"TierItem='{TierItem.Value}' TierRpcTimeoutSeconds={TierRpcTimeoutSeconds.Value} TierHoldSeconds={TierHoldSeconds.Value} TierAbortSeconds={TierAbortSeconds.Value}.");
     }
 }

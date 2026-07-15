@@ -1,11 +1,8 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.6.1, Phase 0 + Phase 1 + Phase 2a + Phase 2b complete (in-game-verified),
-Phase 2c in-game-verified 2026-07-14 (metabolic plane, clog demand/strike/verdict/stale/gate
-paths, quota ledger restore, armed BOOST→response→REVERT cycle fired in-game run 3 but
-exposed wrong-lever finding; quota-raise retired as core lever), design pivoted to soft
-quota budgeting + ground-drop eviction + tier lever (user-decided 2026-07-14), dev tool
-NOT for Nexus
+**Status:** WIP v0.7.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b + Phase 2c complete
+(in-game-verified), Phase 2d fire-verify spike in-game-verified 2026-07-15 (ground-drop
+eviction + tier direct-write lever proven; tier RPC dead-end), dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -269,6 +266,16 @@ ClogMaxCyclesPerItem=2      # max cycles with clog persisting before VERDICT
 ClogCapacityLockoutMinutes=15  # lockout duration after capacity VERDICT
 MaxConcurrentClogBoosts=1   # max simultaneous clog boosts (mutual exclusion)
 
+[Phase2dSpike]
+EnableEvictSpike=true       # v0.7.0 fire-verify spike (hotkey + tier ledger restore)
+EvictSpikeHotkey=F6         # plain = ground-drop test; Shift+key = tier test
+EvictItem=                  # empty = auto-select best-stocked true-warehouse row
+EvictDropCount=2            # units per press (clamped 1-5, capped by stack + container count)
+TierItem=                   # empty = auto-select first Med-tier true-warehouse row
+TierRpcTimeoutSeconds=15    # per-phase confirmation window before fallback/conclusion
+TierHoldSeconds=15          # hold at High after confirmed apply before auto-revert
+TierAbortSeconds=180        # absolute abort rail for the tier state machine
+
 [Metabolic]
 EnableMetabolicPlane=true   # Phase 2d future data layer (ring buffer samples)
 MetabolicWindowSeconds=180  # default window for rate-per-minute calculations
@@ -325,6 +332,11 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
   default every compatible item's quota = physical max, so organic rows sit unmet-at-max. Preconditions
   too rare to justify raise as primary drain mechanism (confirmed in-game 2026-07-14,
   SupplyChainMod Phase 2c run 3). Retired; see "Design Direction" below.
+- **`Rpc_ChangeTaskPriority` is inert from a host-side mod call (2026-07-15):** fired without
+  exception on the GetComponent-probed NetworkCompositeResourceStorage but the row's priority
+  never changed (readback Med for 15 s); direct SetPriority + HostUpdateTasks applied
+  synchronously. Prefer direct host-side state writes + HostUpdateTasks over the task RPC
+  surface.
 - **`Workstation.NetworkWorkstations` interop property lies:** returns null/empty at runtime even
   when the `NetworkCraftingStation` component exists on the same GameObject (GetComponent finds
   it; confirmed in-game 2026-07-12). Reach network components via GetComponent, not cached link
@@ -371,14 +383,52 @@ rows carry WorkstationTaskPriority TIER values, confirmed in-game 2026-07-14); r
 reliable demand signal + lever design. Research before design — see docs/architecture.md Settlement
 Hauling section for details.
 
+**Phase 2d fire-verify spike (v0.7.0, in-game-verified 2026-07-15):**
+
+Fire-verify spike hotkey F6, config section `[Phase2dSpike]`. Plain F6 = ground-drop test:
+auto-selects the best-stocked true-warehouse row (or config `EvictItem`), resolves the
+container via `rst.storageSupply.interaction.Container`, calls `ItemContainer.DropItem(item,
+count, pos, Quaternion.identity, null)` (count = min(EvictDropCount clamped 1–5, stack
+count, container count); pos = interaction transform + forward*1.2 + up*0.6), host-gated,
+no ledger, immediate + one-tick-delayed count readback. Shift+F6 = tier test: picks the
+first Med-tier true-warehouse row (or config `TierItem`), write-ahead SpikeLedger entry
+Kind="tier" (OrigPriority/BoostPriority columns carry orig/boosted TIER values), tries
+`Rpc_ChangeTaskPriority(taskIndex, 0)` on the GetComponent-probed storage network component,
+falls back to direct `rst.SetPriority(0)` + `HostUpdateTasks()` after a 15 s window, holds
+15 s, auto-reverts via the proven path (retry via the other path if unconfirmed), whole-
+warehouse rank-snapshot diff detects wrong-row application, 180 s abort rail,
+BoostedStationKeys mutual exclusion, world-load restore of stranded tier entries
+(warehouse-not-found KEEPS the ledger entry, task-not-found DROPS it).
+
+**Finding 1 — ground-drop eviction CONFIRMED (in-game 2026-07-15):** two F6 presses on
+auto-selected item Feathers: container 500→498→496, warehouse-wide stored 700→698→696,
+delayed re-check 3–4 s later showed the decrement held both times, and the user visually
+confirmed 2 dropped feather items on the ground outside the storage after each press
+(recoverable by GroundItemVacuum). Solo host only — co-op CLIENT replication of the spawned
+ground item remains ⚠️ unverified.
+
+**Finding 2 — tier lever CONFIRMED via DIRECT WRITE; the RPC is a DEAD-END (in-game
+2026-07-15):** target Beetroot task[0] on 'Improved Warehouse 2'; network probe found
+`NetworkCompositeResourceStorage` via gameObject/composite. `Rpc_ChangeTaskPriority(0, 0)`
+fired without exception but was INERT — readback stayed Med=1 for the full 15 s window.
+Fallback direct write `rst.SetPriority(0)` + `HostUpdateTasks()` applied SYNCHRONOUSLY
+(immediate readback 0 — tier values are NOT squashed by any renumber mechanism, unlike
+crafting-station rank). Revert `SetPriority(1)` + `HostUpdateTasks()` likewise confirmed.
+Log verdict: `TIER CYCLE COMPLETE: boost + revert both confirmed (path=direct)`. Ledger
+empty after the session. Conclusion: the warehouse tier lever recipe = direct value write +
+`HostUpdateTasks()` (the exact same pattern as the proven quota write); `Rpc_ChangeTaskPriority`
+called from a host-side mod joins the interop dead-end family (like the lying
+`NetworkWorkstations` property).
+
 ## Research spike (Cecil, 2026-07-14)
 
-Eviction/capacity machinery for Phase 2d, recorded with minimal filtering for next phase's
-implementation. See architecture.md for full API surface.
-- **Drop-to-ground eviction:** `ItemContainer.DropItem(Item item, Int32 count, Vector3 position,
-  Quaternion rotation, Transform parent)` recipe via `ResourceStorageTaskData.storageSupply.
-  interaction` (StorageInteraction) → `.Container : ItemContainer`. ⚠️ Runtime authority gating
-  + co-op ground-item replication unverified (fire-verify planned).
+Eviction/capacity machinery for Phase 2d, recorded with minimal filtering for implementation.
+See architecture.md for full API surface.
+- **Drop-to-ground eviction:** `ItemContainer.DropItem(Item item, Int32 count, Vector3
+  position, Quaternion rotation, Transform parent)` recipe via
+  `ResourceStorageTaskData.storageSupply.interaction` (StorageInteraction) → `.Container :
+  ItemContainer`. Recipe confirmed in-game 2026-07-15 (v0.7.0 spike); ⚠️ co-op CLIENT
+  replication of the spawned ground item still unverified.
 - **Per-item capacity reads:** `ItemCollection.GetMaximumStorageCapacity(ItemInfo[, bool
   includeHidden])` = warehouse-wide physical max per item; per-container: `ItemContainer.
   capacity`, `GetRemainingCapacity(ItemInfo)`, `GetStackSize(ItemInfo)`, `IsFull(bool)`,
@@ -386,19 +436,19 @@ implementation. See architecture.md for full API surface.
 - **Compatible-item sets:** `ItemContainer.GetAcceptedItemTypes() : List`, `CanStoreItemType
   (ItemInfo)`; collection-level `GetMatchingContainers(...)`, `FindLargestMatchingContainer
   (...)`, `HasMatchingContainer(...)`, `GetFreeContainer(...)`.
-- **Tier write path:** `NetworkWorkstation<T>.Rpc_ChangeTaskPriority(Int32 taskIndex, Int32
-  newPriority)` inherited by NetworkCompositeResourceStorage + every NetworkSimpleResourceStorage
-  variant. Bulk shifts: `Rpc_ChangeAllTasksPriorities(NetworkBehaviourId containerId, Int32
-  amount)`, `Rpc_ChangeAllTasksQ(containerId, amount)`. ⚠️ Tier RPC not yet fire-verified at
-  runtime.
-- **taskMaxQuota hypothesis (superseding "unknown"):** likely per-spawned-task carry count (items
-  one villager trip moves), irrelevant to budgeting bounds either way. Live on `StorageSupply`
-  (per sub-storage), not per-task.
-- **Station self-storages (Woodcutter's House, Gatherer's House, Outhouse, Stonecutter's Hut):**
-  use the SAME ResourceStorage row machinery as warehouses (confirmed in-game 2026-07-14) —
-  quota/tier levers uniform across warehouses AND station storages.
-- **Villager cleanup FSM exists:** `FSM_CleanupInventory` with `StorageToDropIntoPredicate` — study
-  lead ONLY IF villager-labor eviction is ever wanted (not needed for ground-drop v1).
+- **Tier write path:** the warehouse tier lever = direct `rst.SetPriority(tier)` +
+  `HostUpdateTasks()` (recipe confirmed in-game 2026-07-15, applies synchronously, no squash,
+  revert identical). `Rpc_ChangeTaskPriority` fired host-side without exception but was
+  INERT (readback unchanged for 15 s) — dead-end, same family as the lying
+  `NetworkWorkstations` property.
+- **taskMaxQuota hypothesis (superseding "unknown"):** likely per-spawned-task carry count
+  (items one villager trip moves), irrelevant to budgeting bounds either way. Live on
+  `StorageSupply` (per sub-storage), not per-task.
+- **Station self-storages (Woodcutter's House, Gatherer's House, Outhouse, Stonecutter's
+  Hut):** use the SAME ResourceStorage row machinery as warehouses (confirmed in-game
+  2026-07-14) — quota/tier levers uniform across warehouses AND station storages.
+- **Villager cleanup FSM exists:** `FSM_CleanupInventory` with `StorageToDropIntoPredicate`
+  — study lead ONLY IF villager-labor eviction is ever wanted (not needed for ground-drop v1).
 - **Direct deletion:** `ItemCollection.RemoveItems(ItemInfo, Int32)` = deletion path (deferred).
 - **Events (do NOT subscribe — IL2CPP gotcha):** `ItemContainer.OnItemAdded/OnItemRemoved/
   OnItemCountChanged` — poll instead.
@@ -439,3 +489,7 @@ implementation. See architecture.md for full API surface.
   of starving). Run 3 (v0.6.1) armed cycle fired mechanically but exposed wrong-lever finding
   (quota-raise on unmet rows is no-op); triggered design pivot (Phases 2d/2e reshaped, quota-raise
   retired as core lever). Lessons + Phase 2e research findings + Cecil spike recorded above.
+- **v0.7.0** (2026-07-15, Phase 2d fire-verify spike) — EvictionSpike (F6 drop test + Shift+F6
+  tier test), 1 test run, zero errors. Confirmed: DropItem ground-drop eviction recipe (spawn +
+  exact decrement, solo host), tier lever = direct SetPriority + HostUpdateTasks (synchronous,
+  no squash), Rpc_ChangeTaskPriority inert from host-side call (dead-end).
