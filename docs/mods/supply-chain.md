@@ -1,10 +1,10 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.9.2, Phases 0–2c complete (in-game-verified), Phase 2d fire-verify spike
-in-game-verified 2026-07-15; v0.8.0–v0.9.1 BudgetPlane classifier iterations tested in-game
-2026-07-15 and SUPERSEDED (see Dead-Ends) — Phase 2d proceeds per the approved demand-model
-redesign in `SupplyChainMod/DEMAND_MODEL_PLAN.md`; v0.9.2 container-layout probe
-in-game-verified 2026-07-15. Dev tool NOT for Nexus
+**Status:** WIP v0.11.1, Phases 0–2c complete (in-game-verified); Phase 2d demand-model rebuild
+in progress per `SupplyChainMod/DEMAND_MODEL_PLAN.md`: v0.9.2 container probe + v0.10.0
+DemandGraph structural demand in-game-verified 2026-07-15; v0.11.0 classifier v3 tested in-game
+2026-07-15 (ran clean; two spec bugs found in audit — see Dead-Ends); v0.11.1 fixes + cooking/
+transform demand built ⚠️ pending in-game test. Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -292,11 +292,17 @@ MaxQuotaShareOfMaxPct=50    # proposed targets capped at this % of item physical
 HogMinStored=100            # hog requires at least this stockpile
 HogMaxAbsRate=0.2           # |rate|/min at or below = static stockpile
 ShadowMaxFillRate=0.2       # |rate|/min at or below on unmet+room group = not filling
-DemandDrainPerMin=0.2       # settlement net drain at/above this = in-demand (vetoes eviction)
-DemandChurnPerMin=1.0       # settlement gross churn at/above this = in-demand
+DemandDrainPerMin=0.2       # ORPHANED since v0.11.0 (old flow demand-gate retired)
+DemandChurnPerMin=1.0       # ORPHANED since v0.11.0 (old flow demand-gate retired)
 ShadowMinSourceStock=30     # SHADOWED needs this much piled at producer self-storages
 VictimMaxRoom=0             # HOG victim: unmet group sharing a container with room <= this
 MaxProposalLinesPerPoll=12  # severity-sorted proposal-line cap per poll (F9 = full set)
+MaxSlotsPerCycle=2          # eviction quantum cap (slots per proposal cycle, response-gated at arming)
+
+[Phase2dDemand]
+EnableDemandGraph=true      # v0.10.0 structural-demand extractor (wantedBy table)
+DemandRefreshMinutes=5      # auto-rebuild cadence outside F9 dumps
+TransformMap=Cured Leather Hide<-Leather Hide;Cured Pelt<-Pelt;Cured Heavy Pelt<-Heavy Pelt
 
 [Phase2dProbe]
 EnableContainerProbe=true   # v0.9.2 container-layout probe on each F9/first-poll full dump
@@ -390,6 +396,23 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
 - **maxCap-vs-(stored+room) cross-check (answered 2026-07-15):** `GetMaximumStorageCapacity` is
   THEORETICAL (Σ over compatible containers of slots × that container's per-item stack size),
   ignoring occupancy — mismatched on all 517 groups; check removed in v0.9.0.
+- **Storage/filter tasks as production demand (2026-07-15):** Workstation-generic task reading
+  swept warehouse collect tasks + FiltersTaskData into DemandGraph (929 "tasks", quota=max
+  allotments became fake production orders; Fibers structural inflated 21204 vs true ~810 and
+  exploded transitively). Production tasks ONLY: exclude ResourceStorageTaskData/FiltersTaskData
+  casts and skip WarehouseClassList-class structures entirely.
+- **`ItemContainer.HasSpace(info, 1)` is NOT "has a free slot" (2026-07-15):** returned false on
+  containers at fill 0.94–0.98 with free slots (semantics unknown). Blocked-for-item primitive =
+  `GetRemainingCapacity(ItemInfo) == 0` (⚠️ v0.11.1 replacement pending in-game confirmation).
+- **`cookingRequirements` lives ONLY on `CrockpotRecipeInfo`** (Cecil 2026-07-15): type is
+  `Il2CppReferenceArray<CrockpotRecipeInfo.CookingRecipeRequirement>` (a NESTED type); base
+  CookingRecipeInfo has no requirements member and no other subclass exists. Requirement enum
+  `CookingRecipeRequirementType { Specific=0, Table=1, Unfiltered_Table=2 }` — Table types imply
+  category/table acceptance (acceptedInfo may be empty; ⚠️ attribution behavior pending in-game
+  data). Plain CookingRecipeInfo meals (grill/barbecue style) fall through to the TransformMap.
+- **Cured leather items are recipe-less in data (2026-07-15):** unmatched even via the blueprint
+  UNION across 10 table-bearing stations — the curing rack has no blueprint; the TransformMap
+  config exists because of this.
 
 ## Design Direction (user-decided 2026-07-14)
 
@@ -481,6 +504,39 @@ across 19 structures / 116 containers on the big save), groups rows by container
 plus an independent hierarchy-walk cross-check collecting `ItemContainerComponent.container`
 per node. Perf ~35-37 ms per dump.
 
+**DemandGraph (v0.10.0–v0.11.1) — the structural-demand layer (plan step 2):** per structure,
+reads production tasks (Workstation-generic; SKIPS structures whose class is in
+WarehouseClassList and tasks castable to ResourceStorageTaskData/FiltersTaskData — storage and
+filter tasks are NOT production demand, see Dead-Ends) and joins each task's output item against
+recipe sources in order: station-local blueprint tables (`_craftingTables→_localBlueprints`,
+BomDump-proven) → global blueprint UNION across all read tables (also found via a
+CraftInteraction hierarchy walk on stations without a CraftingStation component) → cooking
+(task item's native class chain = CrockpotRecipeInfo → read `cookingRequirements[]`) → the
+`TransformMap` config (non-blueprint conversions, default = the curing trio) → unmatched
+(logged). structuralQty = inputQty × ceil(quota / outputPerCraft); outputPerCraft primary source
+= `BlueprintInfo.quantity` (in-game-confirmed == batch size on all 418 blueprints, 2026-07-15),
+name-prefix `Nx ` parse as fallback. Transitive propagation carries demand down chains (Hot Iron
+Bloom → Iron Bloom → ore/coal; breadth-first, cycle-guarded, depth 8; derived tracked separately
+from direct, `derivedVia=` logged). Auto-rebuild via `EnsureFresh()` every DemandRefreshMinutes +
+F9 full dump; accessor `TryGetStructuralDemand(item, out direct, out derived, out wantedByCount)`.
+v0.10.0 in-game-verified 2026-07-15: 47/51 tasks matched, 23 inputs, table audited TRUE
+(Feathers demanded by arrow tasks despite zero flow; Bone Fragments/Seeds correctly absent).
+
+**Classifier v3 (v0.11.0–v0.11.1, plan step 3, ⚠️ v0.11.1 pending in-game test):** BudgetPlane
+rebuilt on container map + structural demand. Per-poll container map (interaction.Container per
+row, transient same-call-stack only; AllotmentRow gained ContainerKey/Info). Demanded(item) =
+structural > 0 OR noProduction present. Classes: HOG (container-scoped: blocked demanded victim
++ undemanded static hog sharing the container; would-evict sized
+min(ceil(min(structTotal, victim rowUnmet)/stackV), MaxSlotsPerCycle) × stackX, clamped to the
+hog's stored count; sizing=incremental one-slot fallback for distress-only demand), BLOCKAGE
+(full dedicated container of undemanded item stalls producer of demanded sibling), SHADOWED
+(demanded + unmet + room + rank Med/Low + hut source stock; one destination per item),
+OFF-CONFLICT and STARVED (informational). Blocked primitive = `GetRemainingCapacity(vInfo)==0`
+(fill>=0.999 fallback; line token blk=cap|fill) — v0.11.0's HasSpace was wrong (Dead-Ends).
+v0.11.0 in-game 2026-07-15: mechanically clean (poll 13-16 ms typical, evaluate 42-50 ms), HOGs
+correctly named genuinely-shared containers, but demand pollution + blocked-detection bugs
+(fixed in v0.11.1, retest pending).
+
 ## Research spike (Cecil, 2026-07-14)
 
 Eviction/capacity machinery for Phase 2d, recorded with minimal filtering for implementation.
@@ -571,3 +627,14 @@ See architecture.md for full API surface.
   all container APIs confirmed at runtime; container ground truth mapped (59/116 shared,
   family-line sharing, meat+bones@Hunter's House confirmed shared pool; capacity = slots,
   stack size per-(container,item)).
+- **v0.10.0** (2026-07-15, in-game-verified) — DemandGraph structural-demand extractor (plan
+  step 2): blueprint-manifest join, wantedBy rollup, TryGetStructuralDemand accessor. Audit read
+  TRUE (47/51 matched; Feathers demanded, bones/seeds absent).
+- **v0.11.0** (2026-07-15, tested in-game, logic superseded) — classifier v3 (plan step 3):
+  per-poll container map, HOG/BLOCKAGE/SHADOWED/OFF/STARVED on structural demand + transitive
+  propagation + widened recipe discovery. Ran clean; audit found demand pollution (storage tasks)
+  + HasSpace blocked-detection bugs.
+- **v0.11.1** (2026-07-15, built clean, ⚠️ pending in-game test) — production-task filter,
+  GetRemainingCapacity blocked primitive + evict clamp, BlueprintInfo.quantity primary batch
+  source, TransformMap config (curing trio default), CrockpotRecipeInfo cooking-requirements
+  demand, derivedVia labels, BLOCKAGE reword.

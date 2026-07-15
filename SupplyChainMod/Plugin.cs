@@ -248,6 +248,61 @@ namespace SupplyChainMod;
 // SSSGame.Network.NetworkTaskContainer) — the only path to the physical container, for both
 // true-warehouse and hut rows alike, is storageSupply.interaction.Container (the same accessor
 // EvictionSpike v0.7.0 fire-verified). Still fully READ-ONLY.
+//
+// v0.10.0 — Phase2dDemand: new DemandGraph, a read-only structural-demand extractor
+// (DEMAND_MODEL_PLAN.md step 2). Mirrors BomDump's proven crafting-table path
+// (_craftingTables -> _localBlueprints -> ItemManifest.CreateFromBlueprint; KnowsBlueprintForItem
+// remains a confirmed dead-end) but builds a per-station produced-item-name -> recipe-inputs
+// lookup and joins it against that station's configured GetWorkstationTaskDatas() by output item
+// NAME, accumulating a global per-item wantedBy table: structuralQty = recipe input qty x task
+// quota (user-approved v1 magnitude formula). Fires on the same F9/DumpHotkey full-dump path as
+// BomDump, gated behind EnableDemandGraph. Retains only two plain string/int dictionaries
+// (structuralQty sum, wantedBy count per item) across polls for the future Phase 2d classifier,
+// via TryGetStructuralDemand. Still fully READ-ONLY — no writes.
+//
+// v0.11.0 — DEMAND_MODEL_PLAN.md step 3: the classifier rebuilt on VERIFIED container data +
+// structural demand. DemandGraph (Part A) widens recipe discovery to EVERY structure (not just
+// CraftingStation-owned ones — a hierarchy walk for CraftInteraction covers Bloomstation-style
+// stations too), adds a global blueprint-UNION fallback (a task can now resolve via a recipe that
+// only physically exists at a DIFFERENT station — the Rope/Workshop Pit 3 vs Workshop House 4
+// case), a batch-correction outputPerCraft (name-prefix parse, "10x Iron Tipped Arrow" -> 10; the
+// interop CraftBlueprintInfo/BlueprintInfo `quantity` member was inspected and logged as a cross-
+// check only — judged not conclusive, see DemandGraph.cs header), and breadth-first transitive
+// propagation so demand for an intermediate (Hot Iron Bloom) now reaches ITS OWN inputs (Iron
+// Bloom, ore, coal). New EnsureFresh() lets BudgetPlane silently auto-rebuild the demand table on a
+// slow cadence (DemandRefreshMinutes) instead of only on F9. WarehouseWatch (Part B) resolves each
+// row's PHYSICAL container (storageSupply.interaction.Container, same accessor ContainerProbe/
+// EvictionSpike proved) into a new AllotmentRow.ContainerKey, and Poll() now builds a transient
+// per-container snapshot map (capacity/fill/live ItemContainer, built fresh per poll, never static)
+// passed into BudgetPlane. BudgetPlane (Part C) is rewritten as classifier v3 on top of both: HOG
+// and the new BLOCKAGE class are now container-scoped and victim-gated via the real
+// ItemContainer.HasSpace/GetStackSize instead of SupplyOwner-name inference; SHADOWED/OFF-
+// CONFLICT/STARVED are demand-gated by DemandGraph's structural total (+ the widget's distress
+// signal) instead of the old net/churn DemandActive heuristic; VictimMaxRoom is retired (superseded
+// by the real blocked-space check). Still fully READ-ONLY — every proposal is LOGGED ONLY, no
+// quota write, no DropItem eviction, no SetPriority.
+//
+// v0.11.1 — six user-approved fixes to the v0.11.0 dry-run classifier (DEMAND_MODEL_PLAN.md
+// review), still fully READ-ONLY: (1) DemandGraph's structure walk now skips task-reading ENTIRELY
+// for WarehouseClassList structures, and per-task TryCasts skip+tally ResourceStorageTaskData/
+// FiltersTaskData rows everywhere else — fixes the v0.11.0 demand-pollution bug where storage
+// collect tasks were read as production orders (929 tasks; Fibers structural inflated 21204 vs a
+// true ~810); (2) BudgetPlane's blocked check is now IsBlocked (ItemContainer.
+// GetRemainingCapacity(item)==0, own try/catch, falls back to FillRatio>=0.999) instead of
+// HasSpace(item,1), which fired on containers at fill 0.94-0.98; the decisive primitive is logged
+// as blk=cap|fill, and the would-evict quantity is hard-clamped to the hog item's structure-wide
+// Stored (v0.11.0 could propose evicting more than a structure held); (3) outputPerCraft's PRIMARY
+// source flips to BlueprintInfo.quantity (the v0.11.0 cross-check proved 0 mismatches against the
+// name-prefix parse across 418 blueprints), the name-prefix parse becomes the fallback; (4) a new
+// TransformMap config (curing-rack-style non-blueprint conversions) is the last resolution step
+// before a task output is logged unmatched, and also feeds transitive propagation; (5) cooking/
+// barbecue production tasks are now demand-matched via a native class-walk to CookingRecipeInfo/
+// CrockpotRecipeInfo, reading cookingRequirements (Cecil signature surprise: it lives on
+// CrockpotRecipeInfo, not CookingRecipeInfo — see DemandGraph.cs); (6) logging polish — BLOCKAGE's
+// proposal line is reworded to name the stall mechanism, and DemandGraph's derivedVia=[...] now
+// shows on any item with derived>0, not just pure-derived ones. Task matching order is now:
+// station-local blueprints -> union -> cooking -> transform map -> unmatched. Full detail in
+// DemandGraph.cs and BudgetPlane.cs file headers.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -344,11 +399,16 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> DemandDrainPerMin = null!;
     internal static ConfigEntry<float> DemandChurnPerMin = null!;
     internal static ConfigEntry<int> ShadowMinSourceStock = null!;
-    internal static ConfigEntry<int> VictimMaxRoom = null!;
     internal static ConfigEntry<int> MaxProposalLinesPerPoll = null!;
+    internal static ConfigEntry<int> MaxSlotsPerCycle = null!;
 
     // ── [Phase2dProbe] ───────────────────────────────────────────────────────────────────────
     internal static ConfigEntry<bool> EnableContainerProbe = null!;
+
+    // ── [Phase2dDemand] ──────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableDemandGraph = null!;
+    internal static ConfigEntry<float> DemandRefreshMinutes = null!;
+    internal static ConfigEntry<string> TransformMap = null!;
 
     public override void Load()
     {
@@ -787,23 +847,45 @@ public class Plugin : BasePlugin
             defaultValue: 30,
             description: "SHADOWED requires at least this many units of the item piled in hut/producer self-storages settlement-wide — the 'supply exists elsewhere and should be flowing here' evidence gate.");
 
-        VictimMaxRoom = Config.Bind(
-            section: "Phase2dBudget",
-            key: "VictimMaxRoom",
-            defaultValue: 0,
-            description: "HOG requires a victim: another unmet item group at the same structure, sharing a physical container with the hog, whose room is at or below this.");
-
         MaxProposalLinesPerPoll = Config.Bind(
             section: "Phase2dBudget",
             key: "MaxProposalLinesPerPoll",
             defaultValue: 12,
             description: "Cap on proposal lines logged per poll on set-change (severity-sorted; the F9 full dump always logs the complete set).");
 
+        MaxSlotsPerCycle = Config.Bind(
+            section: "Phase2dBudget",
+            key: "MaxSlotsPerCycle",
+            defaultValue: 2,
+            description: "v0.11.0 classifier v3: cap on slots a single HOG/BLOCKAGE proposal would free per cycle — the response-gated " +
+                "eviction quantum (see SupplyChainMod/DEMAND_MODEL_PLAN.md). This version is dry-run only; the cap is logged, never acted on.");
+
         EnableContainerProbe = Config.Bind(
             section: "Phase2dProbe",
             key: "EnableContainerProbe",
             defaultValue: true,
             description: "v0.9.2 read-only container-layout probe: on each full-table dump (F9 / first poll per world), logs every storage structure's physical containers — which item rows resolve to which container, capacity/fill, GetAcceptedItemTypes — to build the shared-vs-dedicated container inventory. First runtime use of the container APIs; failures are logged findings, not errors.");
+
+        EnableDemandGraph = Config.Bind(
+            section: "Phase2dDemand",
+            key: "EnableDemandGraph",
+            defaultValue: true,
+            description: "v0.10.0 read-only structural-demand extractor (plan step 2): on each F9/auto dump, joins every crafting station's configured tasks against its crafting tables' blueprint manifests and logs the per-item wantedBy table (structuralQty = recipe input qty × task quota). The demand cornerstone for the Phase 2d classifier rebuild.");
+
+        DemandRefreshMinutes = Config.Bind(
+            section: "Phase2dDemand",
+            key: "DemandRefreshMinutes",
+            defaultValue: 5f,
+            description: "v0.11.0: how often (minutes) DemandGraph.EnsureFresh silently auto-rebuilds the structural-demand table outside " +
+                "F9/hotkey full dumps (also rebuilds once, immediately, the first time BudgetPlane runs each world). Tasks change rarely, " +
+                "so this can be fairly slow without staling the demand gate.");
+
+        TransformMap = Config.Bind(
+            section: "Phase2dDemand",
+            key: "TransformMap",
+            defaultValue: "Cured Leather Hide<-Leather Hide;Cured Pelt<-Pelt;Cured Heavy Pelt<-Heavy Pelt",
+            description: "Non-blueprint conversions (e.g. the curing rack): when a production task's output has no recipe anywhere, this map " +
+                "supplies its inputs (qty 1 each) so demand still propagates. Format: Output<-Input[,Input2];Output2<-...");
 
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
@@ -862,7 +944,8 @@ public class Plugin : BasePlugin
             $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
             $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value} " +
             $"DemandDrainPerMin={DemandDrainPerMin.Value} DemandChurnPerMin={DemandChurnPerMin.Value} ShadowMinSourceStock={ShadowMinSourceStock.Value} " +
-            $"VictimMaxRoom={VictimMaxRoom.Value} MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} " +
-            $"EnableContainerProbe={EnableContainerProbe.Value}.");
+            $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} " +
+            $"EnableContainerProbe={EnableContainerProbe.Value} EnableDemandGraph={EnableDemandGraph.Value} DemandRefreshMinutes={DemandRefreshMinutes.Value} " +
+            $"TransformMap='{TransformMap.Value}'.");
     }
 }

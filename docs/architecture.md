@@ -902,6 +902,10 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   container no task rows touch — exclude it from container maps.
   `GetMaximumStorageCapacity(info,·)` = theoretical Σ(slots × per-container stack size) across
   compatible containers, ignoring occupancy — never equals stored+room in practice.
+  ⚠️ `HasSpace(info, 1)` returned false on containers with free slots (fill 0.94–0.98, in-game
+  2026-07-15) — semantics unknown, do NOT use it as a "has free slot" test; per-item
+  blocked-detection uses `GetRemainingCapacity(ItemInfo) == 0` (v0.11.1, pending in-game
+  confirmation).
 - **Production-station self-storages carry the same ResourceStorageTaskData rows** (confirmed
   in-game 2026-07-15): HuntingStation, FishingStation, CaveResourceStorage rows scan/resolve
   identically to ResourceStorage structures (SupplyChain WarehouseClassList default now includes
@@ -1052,7 +1056,14 @@ static .CreateFromContainer(ItemContainer) / .CreateFromFilter(ItemCollection, f
 SandSailorStudio.Inventory.BlueprintInfo (base "recipe") — ingredients via ItemManifest.CreateFromBlueprint(bp)
   SSSGame.CraftBlueprintInfo : BlueprintInfo   .GetItemInfo() → produced ItemInfo, .craftVolume, .interaction (CraftInteraction)
   SSSGame.CookingRecipeInfo : BlueprintInfo  /  SSSGame.CrockpotRecipeInfo : CookingRecipeInfo
-     .cookingRequirements : CookingRecipeRequirement[] { ItemInfo acceptedInfo; int count; type; ItemTableConfig tableConfig }
+     cookingRequirements lives ONLY on CrockpotRecipeInfo (Cecil 2026-07-15):
+     Il2CppReferenceArray<CrockpotRecipeInfo.CookingRecipeRequirement> (NESTED type)
+     { ItemInfo acceptedInfo; int count; CookingRecipeRequirementType type (Specific=0, Table=1,
+       Unfiltered_Table=2); ItemTableConfig tableConfig; int allowedError } — base
+     CookingRecipeInfo has NO requirements member; no other subclass exists.
+  BlueprintInfo.quantity : Int32 = the recipe's OUTPUT-PER-CRAFT batch size (confirmed in-game
+     2026-07-15: equals the 'Nx ' name-prefix on all 418 blueprints of a live save; task quota
+     counts OUTPUT items, so crafts = ceil(quota / quantity)).
   Forging / Dyeing / Painting / Workshop / Structure variants also derive from Blueprint(Info)
 ```
 `ItemInfo`s are ScriptableObjects (not constructable) — get a reference by name (`item.info.Name`)

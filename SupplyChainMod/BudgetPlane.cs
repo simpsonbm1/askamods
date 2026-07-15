@@ -1,54 +1,82 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SandSailorStudio.Inventory;
 
 namespace SupplyChainMod;
 
-// BudgetPlane (v0.9.0, Phase 2d) — the READ-ONLY dry-run budget engine, redesigned after the
-// v0.8.0 in-game test showed the first classifier was noise: 219/323 groups flagged SHADOWED
-// (no demand gate — it bumped every non-High-rank row regardless of whether anything actually
-// needed it), a single-type stick storage flagged HOG (no container-composition awareness — a
-// container that can only ever hold one item can never crowd out another item), and in-demand
-// items proposed for eviction (no settlement-wide demand signal at all).
+// BudgetPlane (v0.11.1, DEMAND_MODEL_PLAN.md step 3 part C) — classifier v3, rebuilt on VERIFIED
+// container data (WarehouseWatch's per-poll physical container map, Part B) + structural demand
+// (DemandGraph's direct+derived structural-demand table, Part A) instead of v0.9.x's inference
+// (SupplyOwner display names, which fabricated shared pools out of separate physical bins — proven
+// wrong in-game 2026-07-15, see DEMAND_MODEL_PLAN.md's "Container ground truth" section).
 //
-// v0.9.0 groups ALL rows (warehouse AND hut/station self-storage — hut rows were previously
-// filtered out entirely) by (PosKey, Item) and adds three new dimensions on top of the v0.8.0
-// per-group rate/quota mechanics:
-//   - demand-aware: a per-item, settlement-wide net-rate + gross-churn signal (fed by
-//     WarehouseWatch's "ALL|<item>" MetabolicPlane key) marks an item "in demand" when it's
-//     draining OR churning — demand vetoes HOG eviction and gates SHADOWED/STARVED on real
-//     upstream supply (hutStock), instead of bumping every idle row.
-//   - container-composition-aware: a group only counts as "multi-type" when at least one of its
-//     rows' physical containers (keyed by PosKey+SupplyOwner) is known to accept >= 2 distinct
-//     items — vanilla emits one quota row per item a container can accept, so the row set IS the
-//     container's compatibility list. A single-type container (e.g. stick storage) can never
-//     physically crowd out another item and is never eligible as a HOG.
-//   - victim-gated eviction: a HOG proposal additionally requires a concrete victim — another
-//     unmet item group at the same structure, sharing a physical container, with little room —
-//     so eviction is only ever proposed when it can plausibly free space for something that needs
-//     it, never as an abstract "this quota looks generous" judgment.
+// v0.11.1 fixes 2 and 6 (DEMAND_MODEL_PLAN.md user review; fixes 1/3/4/5 live in DemandGraph.cs):
+//   2. Blocked primitive + quantum clamp — v0.11.0's HasSpace(v,1)==false fired on containers at
+//      fill 0.94-0.98 (its semantics evidently aren't "no free slot"). Replaced with
+//      ItemContainer.GetRemainingCapacity(item)==0 (IsBlocked below; first runtime use of this
+//      primitive, own try/catch, falls back to FillRatio>=0.999 on a read failure) for BOTH HOG
+//      (checked against the victim V) and BLOCKAGE (checked against the dedicated item X itself —
+//      BLOCKAGE has no shared-container victim-space question, it's "is X's own output container
+//      full"). Which primitive decided is logged as a short blk=cap|fill token. Eviction sizing
+//      also gained a hard clamp: q = min(slots*stackX, X's structure-wide Stored) — v0.11.0 could
+//      propose evicting more of X than the structure actually held (e.g. 200 of a stored=100 item);
+//      the displayed slot count is recomputed FROM the clamped q, never shown pre-clamp.
+//   6. Logging polish — BLOCKAGE's proposal line is reworded to name the mechanism ("full container
+//      of undemanded X stalls producer of demanded sibling V") instead of reusing HOG's generic
+//      "X vs victim V" template; DemandGraph's per-item [demand] lines gain a derivedVia=[...] list
+//      whenever derived>0 (previously only pure-derived items showed it — see DemandGraph.cs).
 //
-// v0.9.1 — the v0.9.0 in-game run showed three more false positives:
-//   - SHADOWED fired on pure supply-push (stock piling at hunter lodges with nothing settlement-
-//     wide actually consuming it, e.g. Feathers). Fix: SHADOWED/STARVED now also require a
-//     demand-pull signal — drain/churn OR the game's own "not being produced, needed by X"
-//     issue-tracker complaint (WidgetWatcher.TryGetNoProductionNeededBy) — before proposing.
-//   - Tier bumps were proposed onto rank=3 groups — rank 3 is the UI's "Off"
-//     (WorkstationTaskPriority.None), i.e. the player's own choice to disable that allotment,
-//     which must never be second-guessed. Fix: SHADOWED's rank eligibility is now strictly
-//     Med/Low (1-2); an Off-ranked group that would otherwise qualify is logged informationally
-//     as class "off", never proposed. When several warehouse groups for the same item are all
-//     SHADOWED-eligible, only the one with the most room is proposed (one destination per item);
-//     the rest are logged as "shadowed-alt" and counted but not proposed.
-//   - 7 of 12 HOG proposals were seed types at one warehouse accusing EACH OTHER as victims
-//     (flax seeds hog with beetroot seeds as victim and vice versa) — evicting one undemanded
-//     item to make room for another undemanded item is pointless. Fix: a HOG victim is only
-//     eligible when the VICTIM item's own demand-pull is also true; a group with no
-//     demand-passing victim is not a hog.
+// Three signal layers per item, same roles as the demand-loop design doc:
+//   - STRUCTURAL (DemandGraph.TryGetStructuralDemand: direct+derived) — the gate. An item is
+//     Demanded() when structTotal > 0 OR the game's own "not being produced, needed by X" widget
+//     complaint names it.
+//   - FLOW (MetabolicPlane net/churn, same "ALL|<item>"-style per-group rate as v0.9.x) — now used
+//     ONLY for sizing/static checks (is this group actively filling/draining right now?), never as
+//     part of the demand gate itself.
+//   - DISTRESS (WidgetWatcher.TryGetNoProductionNeededBy) — folds into Demanded() above and drives
+//     the "distress-only" incremental-eviction fallback when structural magnitude is unknown.
 //
-// Still fully READ-ONLY dry-run: every classification and proposed number is LOGGED ONLY. No
-// quota write, no DropItem eviction, no SetPriority — same discipline as every other module in
-// this mod (no interop wrappers held across polls; every body exception-wrapped).
+// Classes, evaluated in this priority order per group/container (HOG and BLOCKAGE are CONTAINER-
+// level; a container can never be both — HOG requires >=2 effective items, BLOCKAGE requires
+// exactly 1 — so the two passes cannot double-fire on the same container):
+//   1. HOG — a container with >= 2 effective (non-Off) items holds an undemanded, static item
+//      crowding out a demanded, blocked one. Victim-gated: IsBlocked(victim) —
+//      GetRemainingCapacity(victim)==0 (own try/catch, falls back to FillRatio>=0.999 on a read
+//      failure) — is the PRIMARY blocked check (v0.11.1; HasSpace(victim,1) proved unreliable,
+//      firing at fill 0.94-0.98).
+//   2. BLOCKAGE — a DEDICATED (single-effective-item) hut/producer container is full of its own
+//      undemanded output (IsBlocked(X) — same primitive/fallback as HOG, checked against the
+//      dedicated item itself) while a SIBLING allotment at the same structure is demanded and
+//      unmet (the Hunter's House bones-vs-meat case, when bones' own container turns out dedicated).
+//   3. SHADOWED — warehouse-only: item demanded, group unmet, room, rank Med/Low (never Off),
+//      static-or-slow fill, and real upstream evidence (hut stock >= ShadowMinSourceStock). One
+//      destination proposed per item (most room); others logged "shadowed-alt".
+//   4. OFF-CONFLICT (informational only, no proposal/fingerprint) — demanded item whose row is
+//      player-Off (rank 3) while supply visibly wants to flow there.
+//   5. STARVED (informational only) — demanded, already High, unmet, room, static, hut source
+//      exists despite the top rank — a hauler-capacity symptom, not a priority problem.
+//   6. healthy / no-data — no-data now fires ONLY when a group is otherwise SHADOWED/STARVED-
+//      ELIGIBLE but lacks rate data to confirm the static condition (HOG doesn't need this: a
+//      group with no rate data counts as static there by design — see the HOG pass below — so a
+//      quick post-load F9 before any metabolic samples exist doesn't hide every hog).
+//   OFF-CONFLICT/STARVED (and SHADOWED, matching v0.9.1) inherit the "warehouse-only" scope: hut/
+//   producer self-storage rows don't carry the "hauler destination, room, rank" semantics these
+//   classes reason about.
+//
+// Eviction sizing (both HOG and BLOCKAGE, identical formula): Yneed = min(victim structTotal,
+// victim's unmet row quota); slots = ceil(Yneed / C.GetStackSize(victim)), capped at
+// MaxSlotsPerCycle; q = slots * C.GetStackSize(hog). When the victim's demand is distress-only
+// (structTotal==0, a noProd complaint only), slots=1 (incremental fallback, "sizing=incremental").
+// v0.11.1: q is then HARD-CLAMPED to hogGroup's own structure-wide Stored (q = min(q, X's Stored))
+// — v0.11.0 could propose evicting more of X than the structure actually held — and the displayed
+// slot count is recomputed FROM that clamped q, never shown pre-clamp. "gate=ready" is a fixed
+// marker — this version has NO response-gated state machine (that's the separate "arming design"
+// step in DEMAND_MODEL_PLAN.md); every proposal here is still LOGGED ONLY.
+//
+// Still fully READ-ONLY dry-run: no quota write, no DropItem eviction, no SetPriority — same
+// discipline as every module in this mod. VictimMaxRoom (v0.9.1's crude victim-room gate) is
+// retired — superseded by the real IsBlocked (GetRemainingCapacity/fill) check above.
 internal static class BudgetPlane
 {
     private sealed class BudgetGroup
@@ -62,53 +90,40 @@ internal static class BudgetPlane
         public int MaxCapacity = -1;
         public int RowCount;
         public int MinRank = int.MaxValue;
-        // true when NO row in this group has HasTaskContainer (a hut/station self-storage group).
-        // A mixed group (shouldn't occur) counts as warehouse — cleared false the moment any row
-        // with a task container is seen.
         public bool IsHut = true;
-        public readonly HashSet<string> OwnerKeys = new();
+        public readonly HashSet<string> ContainerKeys = new();
+        // Interop wrapper — legal here ONLY because `groups` (the dictionary holding every
+        // BudgetGroup) is a local variable of Evaluate(), never a static field; nothing here
+        // survives past this one Evaluate() call (project-wide "call-stack only" rule).
+        public ItemInfo? Info;
     }
 
-    // Per-item settlement-wide signals, computed once per Evaluate from the "ALL|<item>"
-    // MetabolicPlane key (fed by WarehouseWatch.FeedMetabolicSamples) plus a pass over this
-    // item's own groups (hut stock, settlement-wide stored total).
+    // Per-item settlement-wide signals, computed once per Evaluate: structural demand from
+    // DemandGraph, distress from the widget, plus a pass over this item's own groups (hut stock,
+    // settlement-wide stored total, top hut source).
     private sealed class ItemSignal
     {
-        public bool HasNet;
-        public float Net;
-        public bool HasChurn;
-        public float Churn;
-        public bool DemandActive;
-        // v0.9.1 — the game's own "not being produced, needed by X" issue-tracker complaint for
-        // this item (WidgetWatcher.TryGetNoProductionNeededBy); null when the widget has no
-        // complaint for it right now.
+        public int StructDirect;
+        public int StructDerived;
+        public int StructTotal => StructDirect + StructDerived;
         public string? NoProdNeededBy;
-        // v0.9.1 — demand-pull gate for SHADOWED/STARVED/HOG-victim: true when EITHER the
-        // drain/churn signal (DemandActive) fires OR the widget names this item as not being
-        // produced. Pure supply-push at the huts (stock piling with no consumer anywhere) no
-        // longer qualifies as demand.
-        public bool DemandPull;
-        public string DemandEvidence = "none";
+        public bool Demanded => StructTotal > 0 || NoProdNeededBy != null;
         public int HutStock;
         public int SettleStored;
         public string TopSource = "?";
         public int TopSourceStored = -1;
     }
 
-    // v0.9.1 — per-group scratch computed during pass A, read again in pass B (per-item SHADOWED
-    // winner selection) and pass C (full-table dump) once every group's final class is settled.
     private sealed class GroupEval
     {
         public BudgetGroup Group = null!;
         public bool HasRate;
         public float Rate;
-        public bool IsMultiType;
         public string Class = "healthy";
     }
 
-    // Fingerprint of the last-logged proposal set ("class|posKey|item", sorted, comma-joined) —
-    // proposal lines (HOG/SHADOWED) are only re-logged when this changes, to keep log volume sane
-    // on a steady-state settlement where the same groups classify the same way poll after poll.
+    // Fingerprint of the last-logged proposal set — proposal lines are only re-logged when this
+    // changes, to keep log volume sane on a steady-state settlement (same throttle as v0.8.0/v0.9.x).
     private static string _lastProposalSet = "";
 
     internal static void NoteWorldLeft()
@@ -117,16 +132,17 @@ internal static class BudgetPlane
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] NoteWorldLeft error: {ex}"); }
     }
 
-    internal static void Evaluate(List<WarehouseWatch.AllotmentRow> allRows, bool fullTable)
+    internal static void Evaluate(List<WarehouseWatch.AllotmentRow> allRows, Dictionary<string, WarehouseWatch.ContainerSnapshot> containerMap, bool fullTable)
     {
+        try { DemandGraph.EnsureFresh(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] DemandGraph.EnsureFresh error: {ex}"); }
+
         var sw = Stopwatch.StartNew();
         int groupCount = 0;
         try
         {
-            // ── Group ALL rows (warehouse AND hut) by (PosKey, Item); build the container-
-            // composition map alongside it ─────────────────────────────────────────────────────
+            // ── Group ALL rows (warehouse AND hut) by (PosKey, Item) ────────────────────────────
             var groups = new Dictionary<string, BudgetGroup>();
-            var containerItems = new Dictionary<string, HashSet<string>>();
             foreach (var row in allRows)
             {
                 string key = row.PosKey + "|" + row.Item;
@@ -142,26 +158,16 @@ internal static class BudgetPlane
                 g.RowCount++;
                 if (row.Rank < g.MinRank) g.MinRank = row.Rank;
                 if (row.HasTaskContainer) g.IsHut = false;
-
-                if (row.SupplyOwner != "?" && row.SupplyOwner.Length > 0)
-                {
-                    string ownerKey = row.PosKey + "|" + row.SupplyOwner;
-                    g.OwnerKeys.Add(ownerKey);
-
-                    if (!containerItems.TryGetValue(ownerKey, out var itemSet))
-                    {
-                        itemSet = new HashSet<string>();
-                        containerItems[ownerKey] = itemSet;
-                    }
-                    itemSet.Add(row.Item);
-                }
+                if (row.Info != null) g.Info = row.Info;
+                if (row.ContainerKey.Length > 0) g.ContainerKeys.Add(row.ContainerKey);
             }
 
             groupCount = groups.Count;
-            if (groupCount == 0) return; // summary line only fires when at least one group existed
+            if (groupCount == 0) return;
 
-            // ── Groups-by-PosKey index (for the HOG victim search) ─────────────────────────────
+            // ── Groups-by-PosKey (BLOCKAGE sibling search) and groups-by-container (HOG/BLOCKAGE) ─
             var groupsByPosKey = new Dictionary<string, List<BudgetGroup>>();
+            var containerGroups = new Dictionary<string, List<BudgetGroup>>();
             foreach (var kv in groups)
             {
                 var g = kv.Value;
@@ -171,32 +177,31 @@ internal static class BudgetPlane
                     groupsByPosKey[g.PosKey] = list;
                 }
                 list.Add(g);
+
+                foreach (var ck in g.ContainerKeys)
+                {
+                    if (!containerGroups.TryGetValue(ck, out var clist))
+                    {
+                        clist = new List<BudgetGroup>();
+                        containerGroups[ck] = clist;
+                    }
+                    clist.Add(g);
+                }
             }
 
-            // ── Per-item settlement signals (net/churn from "ALL|<item>"; no-production demand-
-            // pull from the widget; hut stock + settlement stored total from a pass over this
-            // item's own groups) ────────────────────────────────────────────────────────────────
+            // ── Per-item signals: structural (DemandGraph) + distress (widget) + hut/settle stock ─
             var itemSignals = new Dictionary<string, ItemSignal>();
             foreach (var kv in groups)
             {
                 var g = kv.Value;
                 if (itemSignals.ContainsKey(g.Item)) continue;
                 var sig = new ItemSignal();
-                sig.HasNet = MetabolicPlane.TryGetRatePerMinute("ALL|" + g.Item, Plugin.BudgetWindowSeconds.Value, out sig.Net, out _);
-                sig.HasChurn = MetabolicPlane.TryGetChurnPerMinute("ALL|" + g.Item, Plugin.BudgetWindowSeconds.Value, out sig.Churn, out _);
 
-                bool demandDrain = sig.HasNet && sig.Net <= -Plugin.DemandDrainPerMin.Value;
-                bool demandChurn = sig.HasChurn && sig.Churn >= Plugin.DemandChurnPerMin.Value;
-                sig.DemandActive = demandDrain || demandChurn;
+                try { DemandGraph.TryGetStructuralDemand(g.Item, out sig.StructDirect, out sig.StructDerived, out _); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] TryGetStructuralDemand '{g.Item}' error: {ex}"); }
 
-                if (WidgetWatcher.TryGetNoProductionNeededBy(g.Item, out var neededBy))
-                    sig.NoProdNeededBy = neededBy;
-
-                sig.DemandPull = sig.DemandActive || sig.NoProdNeededBy != null;
-                sig.DemandEvidence = demandDrain ? "drain"
-                    : demandChurn ? "churn"
-                    : sig.NoProdNeededBy != null ? $"noProd('{sig.NoProdNeededBy}')"
-                    : "none";
+                try { if (WidgetWatcher.TryGetNoProductionNeededBy(g.Item, out var neededBy)) sig.NoProdNeededBy = neededBy; }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] TryGetNoProductionNeededBy '{g.Item}' error: {ex}"); }
 
                 itemSignals[g.Item] = sig;
             }
@@ -216,13 +221,115 @@ internal static class BudgetPlane
                 }
             }
 
-            // ── Classification pass A: no-data / hog / starved / off / healthy are decided here;
-            // SHADOWED-eligible groups are collected per item and deferred to pass B ─────────────
-            int noData = 0, healthy = 0, hogs = 0, shadowed = 0, starved = 0, off = 0;
-            int warehouseGroups = 0, hutGroups = 0;
-            var proposals = new List<(string Line, int Severity, string Key)>();
-            var itemsWithFinding = new HashSet<string>();
+            // ── Per-group rate (flow — sizing/static checks only, never the demand gate) ─────────
             var evalByKey = new Dictionary<string, GroupEval>();
+            foreach (var kv in groups)
+            {
+                bool hasRate = MetabolicPlane.TryGetRatePerMinute(kv.Key, Plugin.BudgetWindowSeconds.Value, out float rate, out _);
+                evalByKey[kv.Key] = new GroupEval { Group = kv.Value, HasRate = hasRate, Rate = rate };
+            }
+
+            var proposals = new List<(string Line, int Severity, string Key)>();
+            int hogs = 0, blockage = 0, shadowed = 0, starved = 0, off = 0;
+
+            // ── Pass 1: HOG (containers with >= 2 effective items) ──────────────────────────────
+            foreach (var ckv in containerGroups)
+            {
+                try
+                {
+                    string containerKey = ckv.Key;
+                    if (!containerMap.TryGetValue(containerKey, out var snap)) continue;
+
+                    var effective = new List<BudgetGroup>();
+                    foreach (var g in ckv.Value) if (g.MinRank != 3) effective.Add(g);
+                    if (effective.Count < 2) continue;
+
+                    BudgetGroup? bestVictim = null;
+                    string bestVictimBlk = "fill";
+                    foreach (var v in effective)
+                    {
+                        var vSig = itemSignals[v.Item];
+                        if (!vSig.Demanded) continue;
+                        if (v.Stored >= v.QuotaSum) continue; // must be unmet
+
+                        bool blocked = IsBlocked(snap, v.Info, out string vBlk);
+                        if (!blocked) continue;
+
+                        if (bestVictim == null || vSig.StructTotal > itemSignals[bestVictim.Item].StructTotal)
+                        {
+                            bestVictim = v;
+                            bestVictimBlk = vBlk;
+                        }
+                    }
+                    if (bestVictim == null) continue;
+
+                    BudgetGroup? bestHog = null;
+                    foreach (var x in effective)
+                    {
+                        if (ReferenceEquals(x, bestVictim)) continue;
+                        if (itemSignals[x.Item].Demanded) continue;
+                        if (x.Stored < Plugin.HogMinStored.Value) continue;
+
+                        // No-rate counts as static here (see class header) — a fresh-load F9 before
+                        // any metabolic samples exist would otherwise hide every hog candidate.
+                        var xEval = evalByKey[x.PosKey + "|" + x.Item];
+                        bool staticOk = !xEval.HasRate || Math.Abs(xEval.Rate) <= Plugin.HogMaxAbsRate.Value;
+                        if (!staticOk) continue;
+
+                        if (bestHog == null || x.Stored > bestHog.Stored) bestHog = x;
+                    }
+                    if (bestHog == null) continue;
+
+                    var proposal = BuildEvictionProposal("HOG", "hog", containerKey, snap, bestHog, bestVictim, itemSignals[bestVictim.Item], bestVictimBlk);
+                    proposals.Add(proposal);
+                    evalByKey[bestHog.PosKey + "|" + bestHog.Item].Class = "hog";
+                    hogs++;
+                }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] HOG pass container '{ckv.Key}' error: {ex}"); }
+            }
+
+            // ── Pass 2: BLOCKAGE (dedicated hut/producer containers, exactly 1 effective item) ──
+            foreach (var ckv in containerGroups)
+            {
+                try
+                {
+                    string containerKey = ckv.Key;
+                    if (!containerMap.TryGetValue(containerKey, out var snap)) continue;
+
+                    var effective = new List<BudgetGroup>();
+                    foreach (var g in ckv.Value) if (g.MinRank != 3) effective.Add(g);
+                    if (effective.Count != 1) continue;
+
+                    var xGroup = effective[0];
+                    if (!xGroup.IsHut) continue;
+                    bool xBlocked = IsBlocked(snap, xGroup.Info, out string xBlk);
+                    if (!xBlocked) continue;
+                    if (itemSignals[xGroup.Item].Demanded) continue;
+
+                    if (!groupsByPosKey.TryGetValue(xGroup.PosKey, out var siblings)) continue;
+
+                    BudgetGroup? bestY = null;
+                    foreach (var y in siblings)
+                    {
+                        if (ReferenceEquals(y, xGroup)) continue;
+                        var ySig = itemSignals[y.Item];
+                        if (!ySig.Demanded) continue;
+                        if (y.Stored >= y.QuotaSum) continue;
+                        if (bestY == null || ySig.StructTotal > itemSignals[bestY.Item].StructTotal) bestY = y;
+                    }
+                    if (bestY == null) continue;
+
+                    var proposal = BuildEvictionProposal("BLOCKAGE", "blockage", containerKey, snap, xGroup, bestY, itemSignals[bestY.Item], xBlk);
+                    proposals.Add(proposal);
+                    evalByKey[xGroup.PosKey + "|" + xGroup.Item].Class = "blockage";
+                    blockage++;
+                }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] BLOCKAGE pass container '{ckv.Key}' error: {ex}"); }
+            }
+
+            // ── Pass 3: SHADOWED / OFF-CONFLICT / STARVED / healthy / no-data (remaining groups) ─
+            int noData = 0, healthy = 0, warehouseGroups = 0, hutGroups = 0;
+            var itemsWithFinding = new HashSet<string>();
             var shadowedCandidatesByItem = new Dictionary<string, List<string>>();
 
             foreach (var kv in groups)
@@ -230,95 +337,26 @@ internal static class BudgetPlane
                 var g = kv.Value;
                 if (g.IsHut) hutGroups++; else warehouseGroups++;
 
-                bool hasRate = MetabolicPlane.TryGetRatePerMinute(kv.Key, Plugin.BudgetWindowSeconds.Value, out float rate, out float span);
+                var ev = evalByKey[kv.Key];
+                if (ev.Class == "hog" || ev.Class == "blockage") continue; // already decided, passes 1-2
+
                 var sig = itemSignals[g.Item];
-
-                bool isMultiType = false;
-                foreach (var ok in g.OwnerKeys)
+                bool unmet = g.Stored < g.QuotaSum;
+                bool anyContainerFull = false;
+                foreach (var ck in g.ContainerKeys)
                 {
-                    if (containerItems.TryGetValue(ok, out var itemSet) && itemSet.Count >= 2) { isMultiType = true; break; }
+                    if (containerMap.TryGetValue(ck, out var s) && s.FillRatio >= 0.999f) { anyContainerFull = true; break; }
                 }
 
-                var ev = new GroupEval { Group = g, HasRate = hasRate, Rate = rate, IsMultiType = isMultiType };
-
-                if (!hasRate)
+                if (!g.IsHut && sig.Demanded && unmet && g.Room > 0 && g.MinRank >= 1 && g.MinRank <= 2)
                 {
-                    ev.Class = "no-data";
-                    noData++;
-                }
-                else
-                {
-                    bool hogEligible = isMultiType
-                        && g.Stored >= Plugin.HogMinStored.Value
-                        && Math.Abs(rate) <= Plugin.HogMaxAbsRate.Value
-                        && sig.HasNet && sig.HasChurn
-                        && !sig.DemandActive;
-
-                    bool isHog = false;
-                    List<string>? victimNames = null;
-                    if (hogEligible)
+                    if (!ev.HasRate)
                     {
-                        victimNames = new List<string>();
-                        if (groupsByPosKey.TryGetValue(g.PosKey, out var siblings))
-                        {
-                            foreach (var other in siblings)
-                            {
-                                if (other.Item == g.Item) continue; // excludes g itself (unique per PosKey|Item)
-                                if (other.Stored >= other.QuotaSum) continue;
-                                if (other.Room > Plugin.VictimMaxRoom.Value) continue;
-
-                                // v0.9.1 — the victim item must itself be demand-pulled (drain/churn
-                                // or a no-production complaint). Two undemanded items (e.g. two idle
-                                // seed types) can never be victim of one another.
-                                if (!itemSignals.TryGetValue(other.Item, out var otherSig) || !otherSig.DemandPull) continue;
-
-                                bool shared = false;
-                                foreach (var ok in g.OwnerKeys)
-                                {
-                                    if (other.OwnerKeys.Contains(ok)) { shared = true; break; }
-                                }
-                                if (!shared) continue;
-
-                                if (victimNames.Count < 3) victimNames.Add(other.Item);
-                            }
-                        }
-                        isHog = victimNames.Count > 0;
+                        ev.Class = "no-data";
+                        noData++;
                     }
-
-                    bool shadowedGateBase = !g.IsHut
-                        && g.Stored < g.QuotaSum
-                        && g.Room > 0
-                        && rate <= Plugin.ShadowMaxFillRate.Value
-                        && rate >= -Plugin.ShadowMaxFillRate.Value
-                        && sig.HutStock >= Plugin.ShadowMinSourceStock.Value;
-
-                    if (isHog)
+                    else if (Math.Abs(ev.Rate) <= Plugin.ShadowMaxFillRate.Value && sig.HutStock >= Plugin.ShadowMinSourceStock.Value)
                     {
-                        ev.Class = "hog";
-                        hogs++;
-                        itemsWithFinding.Add(g.Item);
-
-                        float drainRate = Math.Max(0f, -sig.Net);
-                        int target = Plugin.MinQuota.Value + (int)Math.Ceiling(drainRate * Plugin.HeadroomMinutes.Value);
-                        if (g.MaxCapacity > 0)
-                        {
-                            int cap = (int)(g.MaxCapacity * Plugin.MaxQuotaShareOfMaxPct.Value / 100f);
-                            if (target > cap) target = cap;
-                        }
-                        if (target < Plugin.MinQuota.Value) target = Plugin.MinQuota.Value;
-                        int evictExcess = Math.Max(0, g.Stored - target);
-
-                        string kindStr = g.IsHut ? "hut" : "wh";
-                        string victimsStr = victimNames!.Count > 0 ? string.Join(",", victimNames) : "none";
-                        string line =
-                            $"[SupplyChain] [budget] HOG '{g.Item}' @ '{g.Warehouse}' kind={kindStr}: stored={g.Stored} quotaSum={g.QuotaSum} " +
-                            $"rate={FormatRate(rate)}/min churn={FormatOptional(sig.HasChurn, sig.Churn)}/min net={FormatOptional(sig.HasNet, sig.Net)}/min " +
-                            $"victims={victimsStr} -> propose quota {g.QuotaSum}->{target}; evict excess={evictExcess} (dry-run)";
-                        proposals.Add((line, evictExcess, $"hog|{g.PosKey}|{g.Item}"));
-                    }
-                    else if (shadowedGateBase && sig.DemandPull && g.MinRank >= 1 && g.MinRank <= 2)
-                    {
-                        // SHADOWED-eligible — one destination per item is decided in pass B below.
                         if (!shadowedCandidatesByItem.TryGetValue(g.Item, out var cands))
                         {
                             cands = new List<string>();
@@ -326,22 +364,29 @@ internal static class BudgetPlane
                         }
                         cands.Add(kv.Key);
                     }
-                    else if (shadowedGateBase && sig.DemandPull && g.MinRank == 0)
+                    else
                     {
-                        // STARVED — informational only: already High rank, demand-pull confirmed,
-                        // yet not filling despite hut supply. No tier bump can fix this; it's a
-                        // hauler-capacity symptom.
+                        ev.Class = "healthy";
+                        healthy++;
+                    }
+                }
+                else if (!g.IsHut && sig.Demanded && g.MinRank == 3 && (sig.HutStock >= Plugin.ShadowMinSourceStock.Value || anyContainerFull))
+                {
+                    ev.Class = "off";
+                    off++;
+                    itemsWithFinding.Add(g.Item);
+                }
+                else if (!g.IsHut && sig.Demanded && g.MinRank == 0 && unmet && g.Room > 0)
+                {
+                    if (!ev.HasRate)
+                    {
+                        ev.Class = "no-data";
+                        noData++;
+                    }
+                    else if (Math.Abs(ev.Rate) <= Plugin.ShadowMaxFillRate.Value && sig.HutStock > 0)
+                    {
                         ev.Class = "starved";
                         starved++;
-                        itemsWithFinding.Add(g.Item);
-                    }
-                    else if (shadowedGateBase && sig.DemandPull && g.MinRank == 3)
-                    {
-                        // OFF — informational only: demand-pull confirmed and supply is piling at
-                        // producers, but the player switched this allotment's rank to Off. Their
-                        // choice is respected; never proposed.
-                        ev.Class = "off";
-                        off++;
                         itemsWithFinding.Add(g.Item);
                     }
                     else
@@ -350,13 +395,14 @@ internal static class BudgetPlane
                         healthy++;
                     }
                 }
-
-                evalByKey[kv.Key] = ev;
+                else
+                {
+                    ev.Class = "healthy";
+                    healthy++;
+                }
             }
 
-            // ── Classification pass B: per item, propose only the SHADOWED candidate with the
-            // most room (tie-break: lower MinRank); the rest are "shadowed-alt" — counted, not
-            // proposed ───────────────────────────────────────────────────────────────────────────
+            // ── SHADOWED winner selection (one destination per item; the rest = "shadowed-alt") ──
             foreach (var kv in shadowedCandidatesByItem)
             {
                 var cands = kv.Value;
@@ -386,11 +432,12 @@ internal static class BudgetPlane
                     {
                         ev.Class = "shadowed";
                         string altsStr = altCount > 0 ? $" (+{altCount} other candidate destination(s))" : "";
+                        string structStr = $"{sig.StructTotal}";
                         string line =
                             $"[SupplyChain] [budget] SHADOWED '{g.Item}' @ '{g.Warehouse}': stored={g.Stored}/quotaSum={g.QuotaSum} room={g.Room} " +
-                            $"rank={g.MinRank} rate={FormatRate(ev.Rate)}/min source='{sig.TopSource}' hutStock={sig.HutStock} demand={sig.DemandEvidence} " +
+                            $"rank={g.MinRank} rate={FormatRate(ev.Rate)}/min structural={structStr} source='{sig.TopSource}' hutStock={sig.HutStock} " +
                             $"-> propose tier {g.MinRank}->0 (High) (dry-run){altsStr}";
-                        proposals.Add((line, sig.HutStock, $"shadowed|{g.PosKey}|{g.Item}"));
+                        proposals.Add((line, sig.StructTotal, $"shadowed|{g.PosKey}|{g.Item}"));
                     }
                     else
                     {
@@ -399,20 +446,27 @@ internal static class BudgetPlane
                 }
             }
 
-            Plugin.Logger.LogInfo(
-                $"[SupplyChain] [budget] groups={groupCount} (wh={warehouseGroups} hut={hutGroups}) noData={noData} healthy={healthy} " +
-                $"hogs={hogs} shadowed={shadowed} starved={starved} off={off} (dry-run)");
+            // ── Summary + throttled proposal logging (same fingerprint/severity-cap mechanics) ──
+            int demandItems = 0, demandDirect = 0, demandDerived = 0;
+            foreach (var kv in itemSignals)
+            {
+                if (!kv.Value.Demanded) continue;
+                demandItems++;
+                if (kv.Value.StructDirect > 0) demandDirect++;
+                if (kv.Value.StructDerived > 0) demandDerived++;
+            }
 
-            // Fingerprint on classification keys only (unaffected by the severity sort/truncation
-            // below) — the same "did the proposal SET change" throttle as v0.8.0.
+            Plugin.Logger.LogInfo(
+                $"[SupplyChain] [budget] groups={groupCount} (wh={warehouseGroups} hut={hutGroups}) " +
+                $"demandItems={demandItems}(direct={demandDirect} derived={demandDerived}) hogs={hogs} blockage={blockage} " +
+                $"shadowed={shadowed} starved={starved} off={off} healthy={healthy} noData={noData} (dry-run)");
+
             var proposalKeys = new List<string>();
             foreach (var p in proposals) proposalKeys.Add(p.Key);
             proposalKeys.Sort(StringComparer.Ordinal);
             string proposalSetString = string.Join(",", proposalKeys);
             bool proposalSetChanged = proposalSetString != _lastProposalSet;
 
-            // Plain manual sort by severity descending (short list, ticked infrequently) — no
-            // LINQ on this poll path.
             proposals.Sort((a, b) => b.Severity.CompareTo(a.Severity));
 
             if (fullTable)
@@ -438,13 +492,13 @@ internal static class BudgetPlane
                     var ev = evalByKey[kv.Key];
                     var sig = itemSignals[g.Item];
                     string rateStr = ev.HasRate ? FormatRate(ev.Rate) : "n/a";
-                    string churnStr = FormatOptional(sig.HasChurn, sig.Churn);
-                    string netStr = FormatOptional(sig.HasNet, sig.Net);
                     string kindStr = g.IsHut ? "hut" : "wh";
+                    string containerStr = "-";
+                    foreach (var ck in g.ContainerKeys) { containerStr = LastSix(ck); break; }
                     Plugin.Logger.LogInfo(
                         $"[SupplyChain] [budget] row: '{g.Item}' @ '{g.Warehouse}' kind={kindStr} stored={g.Stored} quotaSum={g.QuotaSum} " +
-                        $"rows={g.RowCount} room={g.Room} maxCap={g.MaxCapacity} rank={g.MinRank} rate={rateStr} churn={churnStr} net={netStr} " +
-                        $"multi={(ev.IsMultiType ? "T" : "F")} class={ev.Class}");
+                        $"rows={g.RowCount} room={g.Room} maxCap={g.MaxCapacity} rank={g.MinRank} rate={rateStr} container={containerStr} " +
+                        $"structural={sig.StructTotal}({sig.StructDirect}/{sig.StructDerived}) class={ev.Class}");
                 }
 
                 int shownItems = 0;
@@ -453,8 +507,8 @@ internal static class BudgetPlane
                     if (shownItems >= 40) break;
                     var sig = itemSignals[item];
                     Plugin.Logger.LogInfo(
-                        $"[SupplyChain] [budget] item '{item}': settleStored={sig.SettleStored} net={FormatOptional(sig.HasNet, sig.Net)}/min " +
-                        $"churn={FormatOptional(sig.HasChurn, sig.Churn)}/min hutStock={sig.HutStock} demand={(sig.DemandActive ? "T" : "F")}");
+                        $"[SupplyChain] [budget] item '{item}': structural={sig.StructTotal}({sig.StructDirect}/{sig.StructDerived}) " +
+                        $"settleStored={sig.SettleStored} hutStock={sig.HutStock} noProd={(sig.NoProdNeededBy ?? "none")}");
                     shownItems++;
                 }
             }
@@ -469,11 +523,109 @@ internal static class BudgetPlane
         }
     }
 
+    // v0.11.1 fix 2 — blocked(item at container C) = C.GetRemainingCapacity(item)==0 (first runtime
+    // use of this primitive; own try/catch). Falls back to FillRatio>=0.999 when the item is null or
+    // the read throws. `primitive` tells the caller which one decided ("cap" vs "fill") for the
+    // blk=cap|fill log token — replaces v0.11.0's HasSpace(item,1)==false, which fired on containers
+    // at fill 0.94-0.98 (its semantics evidently aren't "no free slot").
+    private static bool IsBlocked(WarehouseWatch.ContainerSnapshot snap, ItemInfo? info, out string primitive)
+    {
+        if (info != null)
+        {
+            try
+            {
+                int remaining = snap.Container.GetRemainingCapacity(info);
+                primitive = "cap";
+                return remaining == 0;
+            }
+            catch { }
+        }
+        primitive = "fill";
+        return snap.FillRatio >= 0.999f;
+    }
+
+    // Shared HOG/BLOCKAGE proposal builder — identical sizing formula for both classes (see file
+    // header): Yneed = min(victim structTotal, victim's unmet row quota), slots =
+    // ceil(Yneed / C.GetStackSize(victim)) capped at MaxSlotsPerCycle, q = slots * C.GetStackSize(hog),
+    // then HARD-CLAMPED to hogGroup's own structure-wide Stored (v0.11.1 — never propose evicting
+    // more of X than the structure actually holds); the displayed slot count is recomputed FROM
+    // that clamped q. Falls back to slots=1 ("sizing=incremental") when the victim's demand is
+    // distress-only (structTotal==0, a noProd complaint only — no computable magnitude yet).
+    // `blkToken` ("cap"|"fill") is the primitive IsBlocked used to gate this proposal — logged
+    // verbatim so sizing is auditable, not recomputed here (must match what gated selection).
+    private static (string Line, int Severity, string Key) BuildEvictionProposal(
+        string classLabel, string keyClass, string containerKey, WarehouseWatch.ContainerSnapshot snap,
+        BudgetGroup hogGroup, BudgetGroup victimGroup, ItemSignal victimSig, string blkToken)
+    {
+        int rowUnmet = Math.Max(0, victimGroup.QuotaSum - victimGroup.Stored);
+        int structTotal = victimSig.StructTotal;
+        bool distressOnly = structTotal == 0 && victimSig.NoProdNeededBy != null;
+
+        int stackV = 1;
+        try { if (victimGroup.Info != null) stackV = Math.Max(1, snap.Container.GetStackSize(victimGroup.Info)); } catch { }
+
+        int stackX = 1;
+        try { if (hogGroup.Info != null) stackX = Math.Max(1, snap.Container.GetStackSize(hogGroup.Info)); } catch { }
+
+        int slots;
+        string sizingSuffix;
+        if (distressOnly)
+        {
+            slots = 1;
+            sizingSuffix = " sizing=incremental";
+        }
+        else
+        {
+            int need = Math.Min(structTotal, rowUnmet);
+            slots = need > 0 ? (int)Math.Ceiling(need / (double)stackV) : 0;
+            sizingSuffix = "";
+        }
+        int cap = Math.Max(0, Plugin.MaxSlotsPerCycle.Value);
+        if (slots > cap) slots = cap;
+        if (slots < 0) slots = 0;
+
+        // v0.11.1 quantum clamp: never propose evicting more of X than the structure holds.
+        int qRaw = slots * stackX;
+        int q = Math.Min(qRaw, Math.Max(0, hogGroup.Stored));
+        int displaySlots = stackX > 0 ? (int)Math.Ceiling(q / (double)stackX) : slots;
+
+        string containerKeyLast6 = LastSix(containerKey);
+        string structStr = $"{structTotal}({victimSig.StructDirect}/{victimSig.StructDerived})";
+
+        string line;
+        if (classLabel == "BLOCKAGE")
+        {
+            line =
+                $"[SupplyChain] [budget] BLOCKAGE '{hogGroup.Item}' @ '{victimGroup.Warehouse}' [{containerKeyLast6}]: " +
+                $"full container of undemanded '{hogGroup.Item}' stalls producer of demanded sibling '{victimGroup.Item}' " +
+                $"(V structural={structStr} rowUnmet={rowUnmet} blk={blkToken}) " +
+                $"-> would-evict {q} (={displaySlots} slot(s), cap={cap}) gate=ready (dry-run){sizingSuffix}";
+        }
+        else
+        {
+            line =
+                $"[SupplyChain] [budget] {classLabel} '{hogGroup.Item}' vs victim '{victimGroup.Item}' @ '{victimGroup.Warehouse}' [{containerKeyLast6}]: " +
+                $"X stored={hogGroup.Stored} V structural={structStr} V rowUnmet={rowUnmet} fill={snap.FillRatio:F2} blk={blkToken} stackX={stackX} " +
+                $"-> would-evict {q} (={displaySlots} slot(s), cap={cap}) gate=ready (dry-run){sizingSuffix}";
+        }
+
+        string key = keyClass == "hog"
+            ? $"hog|{containerKey}|{hogGroup.Item}|{victimGroup.Item}"
+            : $"blockage|{containerKey}|{hogGroup.Item}";
+
+        return (line, structTotal, key);
+    }
+
+    private static string LastSix(string hexKey)
+    {
+        if (string.IsNullOrEmpty(hexKey)) return "?";
+        string h = hexKey.StartsWith("0x") ? hexKey.Substring(2) : hexKey;
+        return h.Length <= 6 ? h : h.Substring(h.Length - 6);
+    }
+
     private static string FormatRate(float rate)
     {
         string sign = rate >= 0 ? "+" : "";
         return $"{sign}{rate:F1}";
     }
-
-    private static string FormatOptional(bool has, float val) => has ? FormatRate(val) : "n/a";
 }

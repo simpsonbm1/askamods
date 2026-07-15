@@ -37,6 +37,24 @@ internal static class WarehouseWatch
         // and the item's physical max warehouse-wide capacity, read only when EnableBudgetPlane is on.
         public bool HasTaskContainer;
         public int MaxCapacity = -1;
+        // v0.11.0 (Phase2d classifier v3) — the PHYSICAL container this row resolves to (pointer
+        // hex via storageSupply.interaction.Container, the ContainerProbe-proven accessor; "" when
+        // unresolved), and the row's own ItemInfo. Both read only when EnableBudgetPlane is on. Info
+        // is an interop wrapper but AllotmentRow instances live only within one poll's call stack
+        // (a fresh List<AllotmentRow> built and discarded per Poll() call, never held statically) —
+        // legal under the project's "wrappers only within a single call stack" rule.
+        public string ContainerKey = "";
+        public ItemInfo? Info;
+    }
+
+    // v0.11.0 — per-poll, per-container snapshot (Part B). Built fresh inside Poll() (never a
+    // static field) and passed down the SAME call stack into BudgetPlane.Evaluate — legal to hold
+    // the live ItemContainer reference here for exactly that reason (never survives past the poll).
+    internal sealed class ContainerSnapshot
+    {
+        public float FillRatio = -1f;
+        public int Capacity = -1;
+        public ItemContainer Container = null!;
     }
 
     private sealed class StallTrack
@@ -129,12 +147,15 @@ internal static class WarehouseWatch
             warehouseCount = warehouses.Count;
 
             var allRows = new List<AllotmentRow>();
+            // v0.11.0 — transient per-poll container map (Part B). Only populated when
+            // EnableBudgetPlane is on; never stored statically (see ContainerSnapshot's own note).
+            var containerMap = new Dictionary<string, ContainerSnapshot>();
             foreach (var wh in warehouses)
             {
                 try
                 {
                     ProbeNetwork(wh);
-                    BuildWarehouseRows(wh, effectiveFullTable, allRows);
+                    BuildWarehouseRows(wh, effectiveFullTable, allRows, containerMap);
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch warehouse '{wh.StructureName}' error: {ex}"); }
             }
@@ -150,7 +171,7 @@ internal static class WarehouseWatch
 
             if (Plugin.EnableBudgetPlane.Value)
             {
-                try { BudgetPlane.Evaluate(allRows, effectiveFullTable); }
+                try { BudgetPlane.Evaluate(allRows, containerMap, effectiveFullTable); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch BudgetPlane.Evaluate error: {ex}"); }
             }
 
@@ -241,7 +262,8 @@ internal static class WarehouseWatch
     }
 
     // ── Allotment table build (per warehouse) ───────────────────────────────────────────────────
-    private static void BuildWarehouseRows(StationEntry entry, bool fullTable, List<AllotmentRow> allRowsAccumulator)
+    private static void BuildWarehouseRows(StationEntry entry, bool fullTable, List<AllotmentRow> allRowsAccumulator,
+        Dictionary<string, ContainerSnapshot> containerMap)
     {
         Il2CppSystem.Collections.Generic.List<WorkstationTaskData>? datas = null;
         try { datas = entry.Ws.GetWorkstationTaskDatas(); }
@@ -324,6 +346,37 @@ internal static class WarehouseWatch
                     }
                 }
 
+                // v0.11.0 (Phase2d classifier v3, Part B) — resolve the PHYSICAL container via
+                // storageSupply.interaction.Container (the ContainerProbe/EvictionSpike-proven
+                // accessor — mirrors ContainerProbe's exact member usage and Il2CppObjectBase
+                // boxing pattern via Common.PointerHex). Only when BudgetPlane is enabled; one
+                // capacity/fill read per DISTINCT container per poll (containerMap dedupes by key).
+                string containerKey = "";
+                if (Plugin.EnableBudgetPlane.Value)
+                {
+                    try
+                    {
+                        StorageInteraction? interaction = supply != null ? supply.interaction : null;
+                        ItemContainer? container = interaction != null ? interaction.Container : null;
+                        if (container != null)
+                        {
+                            string key = Common.PointerHex(container);
+                            if (key != "n/a")
+                            {
+                                containerKey = key;
+                                if (!containerMap.ContainsKey(key))
+                                {
+                                    var snap = new ContainerSnapshot { Container = container };
+                                    try { snap.Capacity = container.capacity; } catch { }
+                                    try { snap.FillRatio = container.GetFillRatio(); } catch { }
+                                    containerMap[key] = snap;
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch container resolve '{entry.StructureName}' error: {ex}"); }
+                }
+
                 allRowsAccumulator.Add(new AllotmentRow
                 {
                     Warehouse = entry.StructureName,
@@ -339,6 +392,8 @@ internal static class WarehouseWatch
                     PosKey = entry.PosKey,
                     HasTaskContainer = hasTaskContainer,
                     MaxCapacity = maxCapacity,
+                    ContainerKey = containerKey,
+                    Info = Plugin.EnableBudgetPlane.Value ? info : null,
                 });
 
                 string metKey = $"{entry.PosKey}|{itemName}|{i}";

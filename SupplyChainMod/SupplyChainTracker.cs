@@ -272,6 +272,8 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] MetabolicPlane.NoteWorldLeft error: {ex}"); }
         try { BudgetPlane.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] BudgetPlane.NoteWorldLeft error: {ex}"); }
+        try { DemandGraph.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] DemandGraph.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────
@@ -391,6 +393,12 @@ public class SupplyChainTracker : MonoBehaviour
 
         try { BomDump.Dump(trigger); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] BomDump({trigger}) error: {ex}"); }
+
+        if (Plugin.EnableDemandGraph.Value)
+        {
+            try { DemandGraph.Dump(trigger); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] DemandGraph.Dump error: {ex}"); }
+        }
 
         try { WarehouseWatch.Poll(_stations, fullTable: true); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.Poll({trigger}) error: {ex}"); }
