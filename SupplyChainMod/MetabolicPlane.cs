@@ -108,6 +108,59 @@ internal static class MetabolicPlane
         }
     }
 
+    // Gross-churn rate (v0.9.0, Phase 2d BudgetPlane redesign) — same window/validity mechanics as
+    // TryGetRatePerMinute (>= 2 samples in window, span >= MinSpanSeconds), but instead of an
+    // endpoint delta it sums the ABSOLUTE deltas between each pair of CONSECUTIVE in-window
+    // samples: churn = (sum |count[i+1] - count[i]|) / span * 60. This measures gross throughput —
+    // an item consumed and refilled in equal measure has net rate ~0 but high churn.
+    internal static bool TryGetChurnPerMinute(string key, float windowSeconds, out float churnPerMin, out float spanSeconds)
+    {
+        churnPerMin = 0f;
+        spanSeconds = 0f;
+        try
+        {
+            if (!_rings.TryGetValue(key, out var ring) || ring.Size < 2) return false;
+
+            float now = Time.time;
+            float cutoff = now - windowSeconds;
+
+            int oldestInWindowLogical = -1;
+            for (int i = 0; i < ring.Size; i++)
+            {
+                var s = ring.At(i);
+                if (s.Time >= cutoff) { oldestInWindowLogical = i; break; }
+            }
+            if (oldestInWindowLogical < 0) return false; // nothing in window
+
+            int newestLogical = ring.Size - 1;
+            if (newestLogical <= oldestInWindowLogical) return false; // need >= 2 samples in window
+
+            var oldest = ring.At(oldestInWindowLogical);
+            var newest = ring.At(newestLogical);
+
+            float span = newest.Time - oldest.Time;
+            if (span < MinSpanSeconds) return false;
+
+            int churnSum = 0;
+            var prev = oldest;
+            for (int i = oldestInWindowLogical + 1; i <= newestLogical; i++)
+            {
+                var cur = ring.At(i);
+                churnSum += Math.Abs(cur.Count - prev.Count);
+                prev = cur;
+            }
+
+            spanSeconds = span;
+            churnPerMin = churnSum / span * 60f;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[SupplyChain] [metabolic] TryGetChurnPerMinute error: {ex}");
+            return false;
+        }
+    }
+
     // Convenience for other modules' log lines. Uses Plugin.MetabolicWindowSeconds as the window.
     internal static string DescribeRate(string key)
     {

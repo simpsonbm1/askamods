@@ -221,6 +221,33 @@ namespace SupplyChainMod;
 // proven or disproven. No new Harmony patches (DropItem/Setup have inventory-family params, a
 // forbidden patch target) — this is a pure hotkey/tick call-and-observe spike, same discipline as
 // every other actuator in this mod.
+//
+// v0.9.0 — BudgetPlane redesign after the v0.8.0 in-game test showed the classifier was noise
+// (219/323 groups SHADOWED, a single-type stick storage flagged HOG, in-demand items proposed for
+// eviction). Now demand-aware (a new "ALL|<item>" MetabolicPlane key, fed by WarehouseWatch, gives
+// a settlement-wide net-rate + gross-churn signal per item; TryGetChurnPerMinute is new on
+// MetabolicPlane) and container-composition-aware (a group only counts as a HOG candidate when at
+// least one of its physical containers is known to accept >= 2 distinct items — single-type
+// containers can never crowd out anything). Hut/station self-storage rows are grouped too (no
+// longer filtered out) so SHADOWED/HOG can read hut piles as upstream supply evidence. HOG now
+// also requires a concrete victim (another unmet, low-room item group sharing a container) before
+// proposing eviction. Config: removed HogQuotaShareOfMaxPct (proved no signal — vanilla defaults
+// nearly every quota to physical max); added DemandDrainPerMin/DemandChurnPerMin (demand gate),
+// ShadowMinSourceStock (SHADOWED's new upstream-evidence gate), VictimMaxRoom (HOG's victim gate),
+// MaxProposalLinesPerPoll (severity-sorted proposal-line cap on set-change). Still fully
+// READ-ONLY — no arming path in this version.
+//
+// v0.9.2 — Phase2dProbe: new ContainerProbe, a read-only per-structure PHYSICAL container inventory
+// (which item task rows resolve to which container, capacity/fill/GetAcceptedItemTypes, plus a
+// hierarchy-walk cross-check), fired on each full-table dump (F9 / first poll). Built to replace
+// SupplyOwner display-name inference (proven wrong in-game 2026-07-15 — hut rows' SupplyOwner is
+// the hut itself, fabricating shared pools out of separate physical bins) with ground truth for the
+// future hog classifier. First runtime use of ItemContainer.capacity/GetFillRatio/
+// GetAcceptedItemTypes/CanStoreItemType (Cecil-confirmed 2026-07-14, never yet called). Implementation
+// finding: ResourceStorageTaskData.storageSupply.taskContainer is NOT an ItemContainer (it's
+// SSSGame.Network.NetworkTaskContainer) — the only path to the physical container, for both
+// true-warehouse and hut rows alike, is storageSupply.interaction.Container (the same accessor
+// EvictionSpike v0.7.0 fire-verified). Still fully READ-ONLY.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -311,10 +338,17 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> MinQuota = null!;
     internal static ConfigEntry<float> HeadroomMinutes = null!;
     internal static ConfigEntry<int> MaxQuotaShareOfMaxPct = null!;
-    internal static ConfigEntry<int> HogQuotaShareOfMaxPct = null!;
     internal static ConfigEntry<int> HogMinStored = null!;
     internal static ConfigEntry<float> HogMaxAbsRate = null!;
     internal static ConfigEntry<float> ShadowMaxFillRate = null!;
+    internal static ConfigEntry<float> DemandDrainPerMin = null!;
+    internal static ConfigEntry<float> DemandChurnPerMin = null!;
+    internal static ConfigEntry<int> ShadowMinSourceStock = null!;
+    internal static ConfigEntry<int> VictimMaxRoom = null!;
+    internal static ConfigEntry<int> MaxProposalLinesPerPoll = null!;
+
+    // ── [Phase2dProbe] ───────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableContainerProbe = null!;
 
     public override void Load()
     {
@@ -503,8 +537,9 @@ public class Plugin : BasePlugin
         WarehouseClassList = Config.Bind(
             section: "Phase2Warehouse",
             key: "WarehouseClassList",
-            defaultValue: "ResourceStorage",
-            description: "Comma-separated, case-sensitive, EXACT native class names (Common.NativeClassName(entry.Ws)) treated as warehouses.");
+            defaultValue: "ResourceStorage,HuntingStation,FishingStation,CaveResourceStorage",
+            description: "Comma-separated, case-sensitive, EXACT native class names (Common.NativeClassName(entry.Ws)) treated as warehouses. " +
+                "Production-station self-storages (hunting/fishing/mine) carry the same ResourceStorageTaskData rows and are scanned as hut-kind groups.");
 
         ClogDominantSharePercent = Config.Bind(
             section: "Phase2Warehouse",
@@ -716,12 +751,6 @@ public class Plugin : BasePlugin
             defaultValue: 50,
             description: "Proposed quota targets are capped at this percent (0-100) of the item's physical max (ItemCollection.GetMaximumStorageCapacity) — keeps a single item's proposed quota from ever crowding out the whole warehouse.");
 
-        HogQuotaShareOfMaxPct = Config.Bind(
-            section: "Phase2dBudget",
-            key: "HogQuotaShareOfMaxPct",
-            defaultValue: 90,
-            description: "A group only counts as a HOG when its quotaSum is at least this percent (0-100) of the item's physical max — catches vanilla's default behavior of quota == unit max.");
-
         HogMinStored = Config.Bind(
             section: "Phase2dBudget",
             key: "HogMinStored",
@@ -739,6 +768,42 @@ public class Plugin : BasePlugin
             key: "ShadowMaxFillRate",
             defaultValue: 0.2f,
             description: "A group only counts as SHADOWED when |rate|/min is at or below this on an unmet allotment with room to fill — the stall signal that haulers aren't going despite room and demand (rank >= Med).");
+
+        DemandDrainPerMin = Config.Bind(
+            section: "Phase2dBudget",
+            key: "DemandDrainPerMin",
+            defaultValue: 0.2f,
+            description: "An item counts as IN-DEMAND when its settlement-wide net rate is at or below minus this (stock draining) — demand vetoes HOG eviction proposals.");
+
+        DemandChurnPerMin = Config.Bind(
+            section: "Phase2dBudget",
+            key: "DemandChurnPerMin",
+            defaultValue: 1.0f,
+            description: "An item also counts as IN-DEMAND when its settlement-wide gross churn (sum of |sample-to-sample deltas| per minute) is at least this — high throughput vetoes eviction even when net rate is ~0 (produce/consume balance).");
+
+        ShadowMinSourceStock = Config.Bind(
+            section: "Phase2dBudget",
+            key: "ShadowMinSourceStock",
+            defaultValue: 30,
+            description: "SHADOWED requires at least this many units of the item piled in hut/producer self-storages settlement-wide — the 'supply exists elsewhere and should be flowing here' evidence gate.");
+
+        VictimMaxRoom = Config.Bind(
+            section: "Phase2dBudget",
+            key: "VictimMaxRoom",
+            defaultValue: 0,
+            description: "HOG requires a victim: another unmet item group at the same structure, sharing a physical container with the hog, whose room is at or below this.");
+
+        MaxProposalLinesPerPoll = Config.Bind(
+            section: "Phase2dBudget",
+            key: "MaxProposalLinesPerPoll",
+            defaultValue: 12,
+            description: "Cap on proposal lines logged per poll on set-change (severity-sorted; the F9 full dump always logs the complete set).");
+
+        EnableContainerProbe = Config.Bind(
+            section: "Phase2dProbe",
+            key: "EnableContainerProbe",
+            defaultValue: true,
+            description: "v0.9.2 read-only container-layout probe: on each full-table dump (F9 / first poll per world), logs every storage structure's physical containers — which item rows resolve to which container, capacity/fill, GetAcceptedItemTypes — to build the shared-vs-dedicated container inventory. First runtime use of the container APIs; failures are logged findings, not errors.");
 
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
@@ -794,7 +859,10 @@ public class Plugin : BasePlugin
             $"EnableEvictSpike={EnableEvictSpike.Value} EvictSpikeHotkey='{EvictSpikeHotkey.Value}' EvictItem='{EvictItem.Value}' EvictDropCount={EvictDropCount.Value} " +
             $"TierItem='{TierItem.Value}' TierRpcTimeoutSeconds={TierRpcTimeoutSeconds.Value} TierHoldSeconds={TierHoldSeconds.Value} TierAbortSeconds={TierAbortSeconds.Value} " +
             $"EnableBudgetPlane={EnableBudgetPlane.Value} BudgetWindowSeconds={BudgetWindowSeconds.Value} MinQuota={MinQuota.Value} HeadroomMinutes={HeadroomMinutes.Value} " +
-            $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogQuotaShareOfMaxPct={HogQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
-            $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value}.");
+            $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
+            $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value} " +
+            $"DemandDrainPerMin={DemandDrainPerMin.Value} DemandChurnPerMin={DemandChurnPerMin.Value} ShadowMinSourceStock={ShadowMinSourceStock.Value} " +
+            $"VictimMaxRoom={VictimMaxRoom.Value} MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} " +
+            $"EnableContainerProbe={EnableContainerProbe.Value}.");
     }
 }

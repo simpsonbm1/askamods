@@ -547,6 +547,9 @@ self-cleared early); ⚠️ ground-drop co-op CLIENT replication.
 land the TreeRespawn v1.6.1 verdict and the `bisect-plugins.ps1 -DisableAll` FPS baseline first,
 so this mod starts against a known-clean performance baseline.
 
+Phase 2d demand-model redesign plan (approved 2026-07-15, supersedes earlier Phase 2d classifier
+notes here): `SupplyChainMod/DEMAND_MODEL_PLAN.md`.
+
 ---
 
 ## 13. Outhouse composter — BUILT as OuthouseComposterMod v0.2.0 (⚠️ pending in-game confirmation); Phases 2–3 unbuilt

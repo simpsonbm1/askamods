@@ -1,9 +1,10 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.8.0, Phase 0 + Phase 1 + Phase 2a + Phase 2b + Phase 2c complete
-(in-game-verified), Phase 2d fire-verify spike in-game-verified 2026-07-15 (ground-drop
-eviction + tier direct-write lever proven; tier RPC dead-end), v0.8.0 BudgetPlane dry-run
-brain built 2026-07-15 ⚠️ pending in-game confirmation, dev tool NOT for Nexus
+**Status:** WIP v0.9.2, Phases 0–2c complete (in-game-verified), Phase 2d fire-verify spike
+in-game-verified 2026-07-15; v0.8.0–v0.9.1 BudgetPlane classifier iterations tested in-game
+2026-07-15 and SUPERSEDED (see Dead-Ends) — Phase 2d proceeds per the approved demand-model
+redesign in `SupplyChainMod/DEMAND_MODEL_PLAN.md`; v0.9.2 container-layout probe
+in-game-verified 2026-07-15. Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -242,7 +243,7 @@ ControllerTickSeconds=5    # State machine polling interval
 [Phase2Warehouse]
 EnableWarehouseWatch=true   # Phase 2a read-only warehouse diagnostics + clog detector
 WarehousePollSeconds=30     # WarehouseWatch poll cadence
-WarehouseClassList=ResourceStorage  # comma-sep exact native class names treated as warehouses
+WarehouseClassList=ResourceStorage,HuntingStation,FishingStation,CaveResourceStorage  # comma-sep exact native class names treated as warehouses
 ClogDominantSharePercent=40 # dominant-item share threshold for clog verdicts
 ClogRealertMinutes=10       # per-(station,item) toast dedupe window
 ClogStallMinutes=3          # unchanged stored-count window before a STALL diagnosis fires
@@ -288,10 +289,17 @@ BudgetWindowSeconds=480     # rate lookback; ceiling = metabolic ring depth (16 
 MinQuota=20                 # floor of every proposed quota target
 HeadroomMinutes=30          # proposed target holds this many minutes of measured drain
 MaxQuotaShareOfMaxPct=50    # proposed targets capped at this % of item physical max
-HogQuotaShareOfMaxPct=90    # hog requires quotaSum >= this % of physical max
 HogMinStored=100            # hog requires at least this stockpile
 HogMaxAbsRate=0.2           # |rate|/min at or below = static stockpile
 ShadowMaxFillRate=0.2       # |rate|/min at or below on unmet+room group = not filling
+DemandDrainPerMin=0.2       # settlement net drain at/above this = in-demand (vetoes eviction)
+DemandChurnPerMin=1.0       # settlement gross churn at/above this = in-demand
+ShadowMinSourceStock=30     # SHADOWED needs this much piled at producer self-storages
+VictimMaxRoom=0             # HOG victim: unmet group sharing a container with room <= this
+MaxProposalLinesPerPoll=12  # severity-sorted proposal-line cap per poll (F9 = full set)
+
+[Phase2dProbe]
+EnableContainerProbe=true   # v0.9.2 container-layout probe on each F9/first-poll full dump
 ```
 
 ## Phase 2c Findings & Dead-Ends
@@ -363,6 +371,25 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
 - `ResourceStorage.GetGatheredItemQuantity(supply, info)` returns the task's QUOTA, not fill
   progress (gathered==qty on every row, in-game 2026-07-13) — no per-supply stored count exists on
   this API; warehouse-wide GetItemQuantity is the only stored measure found so far.
+- **SupplyOwner display names as container identity (2026-07-15):** hut rows' OwnerStructure is
+  the hut itself, so name-grouping collapses a hut's SEPARATE physical containers into one
+  pseudo-container (fabricated resin→sticks "victims" at Woodcutter's House 2); warehouse-side,
+  multiple sub-storages can share a display name. Physical identity = the row's
+  `storageSupply.interaction.Container` object, never a name.
+- **`storageSupply.taskContainer` is NOT the physical container (Cecil, 2026-07-15):** it is
+  `SSSGame.Network.NetworkTaskContainer`, a task-sync object with no capacity/accepted-types
+  surface. Non-null taskContainer remains valid ONLY as the true-warehouse-row discriminator.
+- **Flat/floor quota targets (2026-07-15):** `MinQuota + headroom×drain` collapses to ~MinQuota
+  for static items — behaves as a ~90% flat cut. Eviction must be victim-deficit-sized and
+  SLOT-GRANULAR (see DEMAND_MODEL_PLAN.md container semantics).
+- **Supply-push-only SHADOWED gate (2026-07-15):** hut-stock piling without demand-pull evidence
+  proposes tier bumps nobody needs (Feathers@Outpost1, incl. flipping rank 3 = Off — player
+  intent). Demand-pull (drain/churn/noProd) is mandatory; Off rows are never proposed.
+- **`HogQuotaShareOfMaxPct` (2026-07-15):** carried no signal — vanilla defaults every quota to
+  physical max, so the test was near-always true. Config key removed in v0.9.1.
+- **maxCap-vs-(stored+room) cross-check (answered 2026-07-15):** `GetMaximumStorageCapacity` is
+  THEORETICAL (Σ over compatible containers of slots × that container's per-item stack size),
+  ignoring occupancy — mismatched on all 517 groups; check removed in v0.9.0.
 
 ## Design Direction (user-decided 2026-07-14)
 
@@ -432,24 +459,27 @@ empty after the session. Conclusion: the warehouse tier lever recipe = direct va
 called from a host-side mod joins the interop dead-end family (like the lying
 `NetworkWorkstations` property).
 
-**Phase 2d step 1 — BudgetPlane dry-run brain (v0.8.0, built 2026-07-15, ⚠️ pending in-game
-confirmation):**
+**Phase 2d step 1 — BudgetPlane dry-run classifier (v0.8.0–v0.9.1, SUPERSEDED 2026-07-15):**
 
-READ-ONLY budget engine — no writes, no arming path, no ledger. Rides WarehouseWatch's poll:
-AllotmentRow gained HasTaskContainer + MaxCapacity (via GetMaximumStorageCapacity(info, false)
-— only the 2-arg overload exists; the read is skipped entirely when EnableBudgetPlane=false,
-and deduped to one call per item group per warehouse). Groups true-warehouse rows by
-PosKey|Item (= the metabolic key), reads the MetabolicPlane rate over BudgetWindowSeconds
-(480 s ≈ the 16-sample ring's depth at the 30 s poll). Need target = MinQuota +
-drainRate×HeadroomMinutes, capped at MaxQuotaShareOfMaxPct of maxCap. Classes: hog (quotaSum ≥
-HogQuotaShareOfMaxPct of maxCap AND stored ≥ HogMinStored AND |rate| ≤ HogMaxAbsRate →
-proposes quota reduce quotaSum→target + eviction excess = stored−target), shadowed (unmet +
-room>0 + |rate| ≤ ShadowMaxFillRate + rank ≥ Med → proposes tier→High), healthy, no-data.
-Output: one summary line per poll; proposal lines only when the proposal set changes
-(sorted-fingerprint compare) or on F9; F9 adds the full per-group table + a
-maxCap-vs-(stored+room) cross-check (first-ever runtime read of GetMaximumStorageCapacity —
-mismatches on shared containers are expected data, not failures) + a [Perf] line. Log prefix
-`[SupplyChain] [budget]`.
+Read-only classifier riding WarehouseWatch's poll; two in-game audits (2026-07-15) showed its
+classification logic wrong at each iteration (see Dead-Ends: name-based container identity,
+supply-push-only shadowing, flat quota targets). Retained machinery that IS current: per-item
+settlement series `ALL|<item>` fed into MetabolicPlane (net rate + gross churn via
+`TryGetChurnPerMinute`), the game's noProduction map exposed via
+`WidgetWatcher.TryGetNoProductionNeededBy` (latent demand), rank 3 = Off never proposed,
+severity-sorted proposal lines capped per poll. Classification rules are being rebuilt per
+`SupplyChainMod/DEMAND_MODEL_PLAN.md` (demand loop: structural demand gates, flow sizes,
+distress prioritizes; hog/victim requires verified effectively-shared containers).
+
+**ContainerProbe (v0.9.2, in-game-verified 2026-07-15):** read-only container-layout probe on
+each full-table dump (F9/first poll), config `[Phase2dProbe] EnableContainerProbe`. Per
+WarehouseClassList structure: resolves every storage row's PHYSICAL container via
+`storageSupply.interaction.Container` (uniform for warehouse AND hut rows — 0 unresolved rows
+across 19 structures / 116 containers on the big save), groups rows by container pointer
+(Il2CppObjectBase boxing pattern, never cached across polls), logs per container: items+ranks,
+`capacity`, `GetFillRatio()`, `GetAcceptedItemTypes()` (+ one `CanStoreItemType` cross-check),
+plus an independent hierarchy-walk cross-check collecting `ItemContainerComponent.container`
+per node. Perf ~35-37 ms per dump.
 
 ## Research spike (Cecil, 2026-07-14)
 
@@ -528,3 +558,16 @@ See architecture.md for full API surface.
   quota targets + hog/shadowed/healthy classification from metabolic rates; proposals logged,
   nothing written), AllotmentRow HasTaskContainer/MaxCapacity extension. Built clean, ⚠️
   pending in-game confirmation (test: play ≥10 min on a real save, F9 once, review proposals).
+- **v0.9.0** (2026-07-15) — classifier redesign #1: hut groups included, multi-type gate via row
+  composition, settlement `ALL|item` net+churn, victim requirement, severity-capped proposals;
+  maxCap cross-check removed, HogQuotaShareOfMaxPct retired. In-game same day: noise 230→~26
+  standing proposals, but victims/demand still wrong (name-based containers, no demand-pull).
+- **v0.9.1** (2026-07-15) — demand-pull gates (drain/churn/noProd accessor), rank 3 = Off
+  respected (+`off` class), one-destination-per-item (+`shadowed-alt`), victim demand gate,
+  WarehouseClassList default widened (+HuntingStation,FishingStation,CaveResourceStorage),
+  nonStorageTasks line gated to F9. Loaded clean in-game; classifier logic superseded by the
+  DEMAND_MODEL_PLAN redesign before a rate-bearing audit.
+- **v0.9.2** (2026-07-15, in-game-verified) — ContainerProbe module + [Phase2dProbe] config;
+  all container APIs confirmed at runtime; container ground truth mapped (59/116 shared,
+  family-line sharing, meat+bones@Hunter's House confirmed shared pool; capacity = slots,
+  stack size per-(container,item)).

@@ -38,6 +38,28 @@ internal static class WidgetWatcher
     private static int _prevSizeMineExhausted = -1;
     private static int _prevSizeFarm = -1;
 
+    // v0.9.1 — BudgetPlane demand-pull signal: the game's own "not being produced, needed by X"
+    // issue list. Strings only; snapshot is replaced wholesale each widget poll so entries are live.
+    internal static bool TryGetNoProductionNeededBy(string itemName, out string neededBy)
+    {
+        neededBy = "";
+        try
+        {
+            if (_prevNoProduction.TryGetValue(itemName, out var val))
+            {
+                neededBy = val ?? "";
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[SupplyChain] [widget] TryGetNoProductionNeededBy error: {ex}");
+            neededBy = "";
+            return false;
+        }
+    }
+
     // Called by SupplyChainTracker on world-leave — the widget itself is a per-world singleton, and
     // holding stale prior-snapshot keys across worlds would produce bogus "disappeared" deltas on
     // the next world's first poll.

@@ -153,6 +153,12 @@ internal static class WarehouseWatch
                 try { BudgetPlane.Evaluate(allRows, effectiveFullTable); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch BudgetPlane.Evaluate error: {ex}"); }
             }
+
+            if (effectiveFullTable && Plugin.EnableContainerProbe.Value)
+            {
+                try { ContainerProbe.Dump(warehouses); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch ContainerProbe error: {ex}"); }
+            }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.Poll error: {ex}"); }
         finally
@@ -180,14 +186,27 @@ internal static class WarehouseWatch
     }
 
     // ── Metabolic plane feed (Phase 2c) — one sample per (warehouse, item) pair per poll ─────────
+    // v0.9.0: also accumulates a settlement-wide per-item total (across every deduped group,
+    // warehouse AND hut alike) and feeds it under an "ALL|"-prefixed key — BudgetPlane's demand
+    // gate needs a settlement-wide net/churn signal, not just a single warehouse's. The "ALL|"
+    // prefix can't collide with a real PosKey (those are formatted like "(98.90, 50.29, 432.86)").
     private static void FeedMetabolicSamples(List<AllotmentRow> allRows)
     {
         var seen = new HashSet<string>();
+        var itemTotals = new Dictionary<string, int>();
         foreach (var row in allRows)
         {
             string key = row.PosKey + "|" + row.Item;
             if (!seen.Add(key)) continue;
             MetabolicPlane.NoteSample(key, row.Stored);
+
+            itemTotals.TryGetValue(row.Item, out int existing);
+            itemTotals[row.Item] = existing + row.Stored;
+        }
+
+        foreach (var kv in itemTotals)
+        {
+            MetabolicPlane.NoteSample("ALL|" + kv.Key, kv.Value);
         }
     }
 
@@ -344,7 +363,10 @@ internal static class WarehouseWatch
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch task[{i}] '{entry.StructureName}' error: {ex}"); }
         }
 
-        if (nonStorageTasks > 0)
+        // v0.9.1 — gated to fullTable only: the widened WarehouseClassList (HuntingStation/
+        // FishingStation/CaveResourceStorage) adds ~20 structures/poll that may legitimately carry
+        // non-ResourceStorageTaskData rows, which turned this into per-poll log spam.
+        if (fullTable && nonStorageTasks > 0)
             Plugin.Logger.LogInfo($"[SupplyChain] [warehouse] '{entry.StructureName}' nonStorageTasks={nonStorageTasks}");
     }
 

@@ -885,6 +885,30 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   hut tasks have `storageSupply.OwnerStructure` = the hut itself and no `taskContainer`; warehouse
   tasks have OwnerStructure = a child sub-storage (e.g. 'Sticks Storage', 'Coal Storage') and a
   non-null `taskContainer`.
+- **Physical storage containers (confirmed in-game 2026-07-15, SupplyChain v0.9.2 probe):**
+  `SandSailorStudio.Inventory.ItemContainer` is a PLAIN class (base Il2CppSystem.Object), not a
+  Component — reach it per storage row via `storageSupply.interaction.Container` (works for
+  warehouse AND hut rows; 0 unresolved of ~477 rows), or per hierarchy node via
+  `ItemContainerComponent.container` (a MonoBehaviour; singular GetComponent walk).
+  `storageSupply.taskContainer` is `SSSGame.Network.NetworkTaskContainer` — task-list sync, NOT
+  the physical container; its non-nullness is only the true-warehouse-row discriminator.
+  Confirmed working at runtime: `GetAcceptedItemTypes()`, `CanStoreItemType(ItemInfo)`,
+  `GetFillRatio()`, `capacity`. `capacity` = INVENTORY SQUARES (slots); each slot holds one
+  stack; **stack size is per-(container, item)** — `container.GetStackSize(ItemInfo)`, never a
+  global constant (25-slot container × 50 bones/slot = 1250 bones). Sharing is common and
+  follows item-family lines (big save: 59 of 116 containers multi-item — e.g. Raw Red Meat +
+  Bone Fragments in one hunter-house container; 9 seed types per warehouse seed container).
+  Every structure also has one walk-only `capacity=9999, acceptedTypes=0` internal catch-all
+  container no task rows touch — exclude it from container maps.
+  `GetMaximumStorageCapacity(info,·)` = theoretical Σ(slots × per-container stack size) across
+  compatible containers, ignoring occupancy — never equals stored+room in practice.
+- **Production-station self-storages carry the same ResourceStorageTaskData rows** (confirmed
+  in-game 2026-07-15): HuntingStation, FishingStation, CaveResourceStorage rows scan/resolve
+  identically to ResourceStorage structures (SupplyChain WarehouseClassList default now includes
+  them). Full station-class census in the 2026-07-15 SupplyChain log triage: FarmingStation,
+  CraftingStation, CookingStation, CharcoalStation, Bloomstation, PatrolStation,
+  DefensiveStation, AnimalPen, DiningStation, Marketplace, HarboringStation,
+  BoatBuildingStation, HealingStation, VehicleResourceStorage.
 - **Default quotas on newly-built storage units (confirmed in-game 2026-07-14):** every compatible
   item's allotment quota defaults to that unit's PHYSICAL MAX (e.g. coal unit = 300). This means
   organic rows sit unmet-at-max on creation — intake open, but hauler tier-service order determines
@@ -908,6 +932,10 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   list positions (e.g. task[0] rank=1 while task[1] rank=0); decisively, the user raised the Thatch
   collect task on 'Improved Warehouse 3' from Medium→High in the UI and that exact row then showed
   rank=0. The warehouse tier lever recipe = direct value write via `rst.SetPriority(tier)` +
+  `None=3` renders as "Off" in the UI — player intent that mods must never write over; it is
+  also the player's manual container-DEDICATION lever (confirmed 2026-07-15: e.g. two shared
+  ore/bloom containers with ore Off on one and bloom Off on the other become effectively
+  dedicated and cannot hog each other).
   `HostUpdateTasks()` (confirmed in-game 2026-07-15, SupplyChainMod v0.7.0: applies
   synchronously, readback immediate, no squash/renumber; revert identical). `Rpc_ChangeTaskPriority`
   fired host-side without exception but was INERT (readback unchanged for 15 s) — dead-end, same
