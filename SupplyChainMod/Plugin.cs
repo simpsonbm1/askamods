@@ -349,8 +349,6 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> WarehousePollSeconds = null!;
     internal static ConfigEntry<string> WarehouseClassList = null!;
     internal static ConfigEntry<int> ClogDominantSharePercent = null!;
-    internal static ConfigEntry<float> ClogRealertMinutes = null!;
-    internal static ConfigEntry<float> ClogStallMinutes = null!;
 
     // ── [Phase2Spike] ────────────────────────────────────────────────────────────────────────
     internal static ConfigEntry<bool> EnableQuotaSpike = null!;
@@ -396,13 +394,12 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> HogMinStored = null!;
     internal static ConfigEntry<float> HogMaxAbsRate = null!;
     internal static ConfigEntry<float> ShadowMaxFillRate = null!;
-    internal static ConfigEntry<float> DemandDrainPerMin = null!;
-    internal static ConfigEntry<float> DemandChurnPerMin = null!;
     internal static ConfigEntry<int> ShadowMinSourceStock = null!;
     internal static ConfigEntry<int> MaxProposalLinesPerPoll = null!;
     internal static ConfigEntry<int> MaxSlotsPerCycle = null!;
     internal static ConfigEntry<int> CoProductFloorSlots = null!;
     internal static ConfigEntry<float> SurplusFactor = null!;
+    internal static ConfigEntry<int> InertMinutes = null!;
 
     // ── [Phase2dProbe] ───────────────────────────────────────────────────────────────────────
     internal static ConfigEntry<bool> EnableContainerProbe = null!;
@@ -609,18 +606,6 @@ public class Plugin : BasePlugin
             defaultValue: 40,
             description: "A complaining station's inventory is considered 'dominated' by its single largest item when that item's share of total stored quantity is at least this percent (0-100).");
 
-        ClogRealertMinutes = Config.Bind(
-            section: "Phase2Warehouse",
-            key: "ClogRealertMinutes",
-            defaultValue: 10.0f,
-            description: "Minutes between repeat on-screen toasts for the same clog VERDICT (station+item). The log line still fires every poll regardless — this only throttles the toast.");
-
-        ClogStallMinutes = Config.Bind(
-            section: "Phase2Warehouse",
-            key: "ClogStallMinutes",
-            defaultValue: 3f,
-            description: "Minutes a watching-case unmet allotment must show an unchanged warehouse stored-count before a STALL diagnosis line/toast fires — distinguishes capacity-blocked (warehouse has no room) from priority-shadowed (room exists, haulers just aren't going).");
-
         EnableQuotaSpike = Config.Bind(
             section: "Phase2Spike",
             key: "EnableQuotaSpike",
@@ -660,8 +645,12 @@ public class Plugin : BasePlugin
         EnableClogController = Config.Bind(
             section: "Phase2Clog",
             key: "EnableClogController",
-            defaultValue: true,
-            description: "Master switch for the v0.6.0 automated clog drain controller (ClogController) — shipped default TRUE (dev/diagnostic convention). Only ever actuates when armed (shares SupplyController's ControllerStartArmed/ControllerArmHotkey F11 flag) — writes nothing in dry-run.");
+            defaultValue: false,
+            description: "Master switch for the v0.6.0 automated clog drain controller (ClogController) — v0.14.0: the quota-raise " +
+                "lever this fed was retired 2026-07-14 and the Clog/STALL toast/log vocabulary was removed from WarehouseWatch, so " +
+                "this now defaults OFF. Left in place only so the controller can be deliberately re-enabled; when true it still " +
+                "only actuates when armed (shares SupplyController's ControllerStartArmed/ControllerArmHotkey F11 flag) and writes " +
+                "nothing in dry-run.");
 
         ClogRetainSeconds = Config.Bind(
             section: "Phase2Clog",
@@ -831,18 +820,6 @@ public class Plugin : BasePlugin
             defaultValue: 0.2f,
             description: "A group only counts as SHADOWED when |rate|/min is at or below this on an unmet allotment with room to fill — the stall signal that haulers aren't going despite room and demand (rank >= Med).");
 
-        DemandDrainPerMin = Config.Bind(
-            section: "Phase2dBudget",
-            key: "DemandDrainPerMin",
-            defaultValue: 0.2f,
-            description: "An item counts as IN-DEMAND when its settlement-wide net rate is at or below minus this (stock draining) — demand vetoes HOG eviction proposals.");
-
-        DemandChurnPerMin = Config.Bind(
-            section: "Phase2dBudget",
-            key: "DemandChurnPerMin",
-            defaultValue: 1.0f,
-            description: "An item also counts as IN-DEMAND when its settlement-wide gross churn (sum of |sample-to-sample deltas| per minute) is at least this — high throughput vetoes eviction even when net rate is ~0 (produce/consume balance).");
-
         ShadowMinSourceStock = Config.Bind(
             section: "Phase2dBudget",
             key: "ShadowMinSourceStock",
@@ -873,9 +850,20 @@ public class Plugin : BasePlugin
             section: "Phase2dBudget",
             key: "SurplusFactor",
             defaultValue: 2.0f,
-            description: "v0.13.0 surplus gate: an item is SURPLUS (and thus HOG-eligible) when its settlement-wide stock exceeds " +
-                "structural-demand x this factor. Zero-demand items are surplus at any stock. Resin (demand 3, stock 1900) -> surplus; " +
-                "Fibers (300 vs 484x2=968) -> not surplus. Replaces the old binary demanded/undemanded hog gate.");
+            description: "v0.13.0 surplus gate, v0.14.0 keep-target basis changed: an item is OverTarget (and, combined with the " +
+                "flow Verdict, SURPLUS/HOG-eligible) when its settlement-wide stock exceeds this factor x the item's RATCHETED " +
+                "structural demand (session high-water mark of StructTotal, cleared on world-leave — a task-completion dip in " +
+                "demand no longer condemns stock sized against a higher demand moments earlier). Zero-demand items are OverTarget " +
+                "at any stock. Resin (demand 3, stock 1900) -> OverTarget; Fibers (300 vs 484x2=968) -> not.");
+
+        InertMinutes = Config.Bind(
+            section: "Phase2dBudget",
+            key: "InertMinutes",
+            defaultValue: 20,
+            description: "v0.14.0 verdict observation window (AWAKE minutes): an item must show zero settlement-wide movement for " +
+                "this long to read DEAD (or only increases to read GROWING) before it can be SURPLUS/HOG-eligible. One observed " +
+                "decrease instantly returns it to ALIVE. Clocks only advance while the settlement is awake (>=1 item moving that " +
+                "poll), so night/sleep/pauses don't count.");
 
         EnableContainerProbe = Config.Bind(
             section: "Phase2dProbe",
@@ -947,7 +935,7 @@ public class Plugin : BasePlugin
             $"MaxConcurrentBoosts={MaxConcurrentBoosts.Value} BoostToRank={BoostToRank.Value} StationClassAllowList='{StationClassAllowList.Value}' " +
             $"AlarmLockoutSeconds={AlarmLockoutSeconds.Value} " +
             $"EnableWarehouseWatch={EnableWarehouseWatch.Value} WarehousePollSeconds={WarehousePollSeconds.Value} WarehouseClassList='{WarehouseClassList.Value}' " +
-            $"ClogDominantSharePercent={ClogDominantSharePercent.Value} ClogRealertMinutes={ClogRealertMinutes.Value} ClogStallMinutes={ClogStallMinutes.Value} " +
+            $"ClogDominantSharePercent={ClogDominantSharePercent.Value} " +
             $"EnableQuotaSpike={EnableQuotaSpike.Value} QuotaSpikeHotkey='{QuotaSpikeHotkey.Value}' QuotaBoostMaxDelta={QuotaBoostMaxDelta.Value} " +
             $"QuotaSpikeMaxHoldSeconds={QuotaSpikeMaxHoldSeconds.Value} QuotaMinStationStock={QuotaMinStationStock.Value} ClogForgeItem='{ClogForgeItem.Value}' " +
             $"EnableClogController={EnableClogController.Value} ClogRetainSeconds={ClogRetainSeconds.Value} ClogHysteresisSeconds={ClogHysteresisSeconds.Value} " +
@@ -959,9 +947,9 @@ public class Plugin : BasePlugin
             $"TierItem='{TierItem.Value}' TierRpcTimeoutSeconds={TierRpcTimeoutSeconds.Value} TierHoldSeconds={TierHoldSeconds.Value} TierAbortSeconds={TierAbortSeconds.Value} " +
             $"EnableBudgetPlane={EnableBudgetPlane.Value} BudgetWindowSeconds={BudgetWindowSeconds.Value} MinQuota={MinQuota.Value} HeadroomMinutes={HeadroomMinutes.Value} " +
             $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
-            $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value} " +
-            $"DemandDrainPerMin={DemandDrainPerMin.Value} DemandChurnPerMin={DemandChurnPerMin.Value} ShadowMinSourceStock={ShadowMinSourceStock.Value} " +
-            $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} CoProductFloorSlots={CoProductFloorSlots.Value} SurplusFactor={SurplusFactor.Value} " +
+            $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value} ShadowMinSourceStock={ShadowMinSourceStock.Value} " +
+            $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} CoProductFloorSlots={CoProductFloorSlots.Value} " +
+            $"SurplusFactor={SurplusFactor.Value} InertMinutes={InertMinutes.Value} " +
             $"EnableContainerProbe={EnableContainerProbe.Value} EnableDemandGraph={EnableDemandGraph.Value} DemandRefreshMinutes={DemandRefreshMinutes.Value} " +
             $"TransformMap='{TransformMap.Value}'.");
     }

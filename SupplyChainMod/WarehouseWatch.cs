@@ -9,9 +9,18 @@ using SSSGame.Network;
 namespace SupplyChainMod;
 
 // WarehouseWatch (Phase 2a, v0.4.0, READ-ONLY) — warehouse (ResourceStorage) allotment
-// diagnostics + a dry-run clog detector. Fed by the storage-full widget events (WidgetPatches),
-// polled from SupplyChainTracker's master tick and the F9 full-dump path. No game-state writes —
-// observes and logs only, same as every other Phase 0/2a component.
+// diagnostics. Fed by the storage-full widget events (WidgetPatches), polled from
+// SupplyChainTracker's master tick and the F9 full-dump path. No game-state writes — observes and
+// logs only, same as every other Phase 0/2a component.
+//
+// v0.14.0 — the clog VERDICT A/B and STALL toast/log vocabulary is retired (BudgetPlane's HOG/
+// BLOCKAGE/SHADOWED lines now carry the storage-full signal directly via a `distress=storage-full`
+// tag). DetectClogs keeps only: the storage-full registry (Add/RemoveStorageFullComplaint feed,
+// IsStorageFullActive — BudgetPlane's distress-tag source) and the dominant-item composition scan
+// that feeds MetabolicPlane samples. The minimal VERDICT-A detection (dominant item's warehouse
+// allotment fully met) survives solely to call ClogController.NoteVerdictA, and only when
+// EnableClogController is explicitly re-enabled (default false as of v0.14.0 — the quota-raise
+// lever it fed was retired 2026-07-14); no toast/log fires from this path any more.
 internal static class WarehouseWatch
 {
     private sealed class StorageFullEntry
@@ -57,24 +66,12 @@ internal static class WarehouseWatch
         public ItemContainer Container = null!;
     }
 
-    private sealed class StallTrack
-    {
-        public int LastStored;
-        public DateTime FirstSeenUtc;
-        public DateTime LastChangeUtc;
-    }
-
     // ── Storage-full registry (fed by WidgetPatches) ────────────────────────────────────────────
     private static readonly Dictionary<string, StorageFullEntry> _storageFull = new();
 
     // ── Per-world caches ─────────────────────────────────────────────────────────────────────────
     private static readonly HashSet<string> _probed = new();
     private static readonly Dictionary<string, bool> _metCache = new();
-    private static readonly Dictionary<string, DateTime> _lastVerdictToast = new();
-    // Keyed "stationPosKey|itemName" — tracks how long a "watching" (unmet allotment, haulers
-    // should be draining) case has shown an unchanged warehouse stored-count, to discriminate
-    // capacity-blocked (no room) from priority-shadowed (room exists, haulers just aren't going).
-    private static readonly Dictionary<string, StallTrack> _stallTracks = new();
     private static bool _firstPollDone;
 
     private const double StaleStorageFullMinutes = 10.0;
@@ -120,8 +117,6 @@ internal static class WarehouseWatch
         _storageFull.Clear();
         _probed.Clear();
         _metCache.Clear();
-        _lastVerdictToast.Clear();
-        _stallTracks.Clear();
         _firstPollDone = false;
     }
 
@@ -425,7 +420,14 @@ internal static class WarehouseWatch
             Plugin.Logger.LogInfo($"[SupplyChain] [warehouse] '{entry.StructureName}' nonStorageTasks={nonStorageTasks}");
     }
 
-    // ── Dry-run clog detection ───────────────────────────────────────────────────────────────────
+    // ── Dominant-item composition scan (v0.14.0: clog VERDICT/STALL toast+log vocabulary retired) ──
+    // Still runs for every registered storage-full station every poll to feed two things: (1) the
+    // MetabolicPlane sample for the dominant item (kept — other diagnostics read this rate), and
+    // (2) — only when EnableClogController is explicitly re-enabled — ClogController.NoteVerdictA,
+    // the sole remaining consumer of a "dominant item's warehouse allotment is met" verdict. No
+    // toast, no VERDICT/STALL log line fires from this path any more; BudgetPlane's HOG/BLOCKAGE/
+    // SHADOWED lines now carry the storage-full signal instead, via a `distress=storage-full` tag
+    // fed by IsStorageFullActive (kept, below).
     private static void DetectClogs(List<StationEntry> stations, List<AllotmentRow> allRows)
     {
         if (_storageFull.Count == 0) return;
@@ -437,23 +439,23 @@ internal static class WarehouseWatch
         {
             try
             {
-                if (!_storageFull.TryGetValue(posKey, out var full)) { ClearStallTrack(posKey, null); continue; }
-                if ((now - full.LastSeenUtc).TotalMinutes > StaleStorageFullMinutes) { ClearStallTrack(posKey, null); continue; }
+                if (!_storageFull.TryGetValue(posKey, out var full)) continue;
+                if ((now - full.LastSeenUtc).TotalMinutes > StaleStorageFullMinutes) continue;
 
                 StationEntry? station = null;
                 foreach (var s in stations)
                 {
                     if (s.PosKey == posKey) { station = s; break; }
                 }
-                if (station == null) { ClearStallTrack(posKey, null); continue; }
+                if (station == null) continue;
 
                 ItemCollection? inv = null;
                 try { inv = station.Ws.GetInventory(); } catch { }
-                if (inv == null) { ClearStallTrack(posKey, null); continue; }
+                if (inv == null) continue;
 
                 var infos = inv.GetItemInfos();
                 int n = infos != null ? infos.Count : 0;
-                if (n == 0) { ClearStallTrack(posKey, null); continue; }
+                if (n == 0) continue;
 
                 long total = 0;
                 string dominantName = "?";
@@ -471,10 +473,10 @@ internal static class WarehouseWatch
                     }
                     catch { }
                 }
-                if (total <= 0 || dominantQty <= 0) { ClearStallTrack(posKey, null); continue; }
+                if (total <= 0 || dominantQty <= 0) continue;
 
                 int sharePercent = (int)(dominantQty * 100L / total);
-                if (sharePercent < Plugin.ClogDominantSharePercent.Value) { ClearStallTrack(posKey, null); continue; }
+                if (sharePercent < Plugin.ClogDominantSharePercent.Value) continue;
 
                 if (Plugin.EnableMetabolicPlane.Value)
                 {
@@ -482,145 +484,20 @@ internal static class WarehouseWatch
                     catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch metabolic sample error: {ex}"); }
                 }
 
+                if (!Plugin.EnableClogController.Value) continue; // retired lever, off unless deliberately re-enabled
+
                 var matches = new List<AllotmentRow>();
                 foreach (var r in allRows) { if (r.Item == dominantName) matches.Add(r); }
+                if (matches.Count == 0) continue;
+
+                bool allMet = matches.TrueForAll(r => r.Met);
+                if (!allMet) continue;
 
                 string stationName = full.StructureName;
-                if (matches.Count == 0)
-                {
-                    ClearStallTrack(posKey, null);
-                    Plugin.Logger.LogInfo(
-                        $"[SupplyChain] [clog] VERDICT: '{stationName}' clogged by '{dominantName}' x{dominantQty} ({sharePercent}%) — NO warehouse allotment task for it");
-                    MaybeToast(posKey, dominantName, $"Clog: '{stationName}' full of '{dominantName}' — no warehouse allotment");
-                }
-                else
-                {
-                    bool allMet = matches.TrueForAll(r => r.Met);
-                    if (allMet)
-                    {
-                        ClearStallTrack(posKey, null);
-                        string rowsStr = FormatGroupedRows(matches);
-                        Plugin.Logger.LogInfo(
-                            $"[SupplyChain] [clog] VERDICT: '{stationName}' clogged by '{dominantName}' x{dominantQty} ({sharePercent}%) — " +
-                            $"warehouse allotment(s) met ({rowsStr}) — drain-boost candidate, delta={dominantQty}");
-                        MaybeToast(posKey, dominantName, $"Clog: '{stationName}' full of '{dominantName}' — warehouse allotment met");
-
-                        if (Plugin.EnableClogController.Value)
-                        {
-                            try { ClogController.NoteVerdictA(posKey, stationName, dominantName, dominantQty); }
-                            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch ClogController.NoteVerdictA error: {ex}"); }
-                        }
-                    }
-                    else
-                    {
-                        AllotmentRow? unmet = null;
-                        foreach (var r in matches) { if (!r.Met) { unmet = r; break; } }
-                        Plugin.Logger.LogInfo(
-                            $"[SupplyChain] [clog] '{stationName}' dominated by '{dominantName}' ({sharePercent}%) but an unmet allotment " +
-                            $"exists ('{unmet!.Warehouse}' qty={unmet.Qty} stored={unmet.Stored}) — haulers should drain; watching.");
-
-                        // Stall escalation: distinguishes "warehouse physically out of room" from
-                        // "collect task priority-shadowed" for a persistently-unmet watching case.
-                        string stallKey = $"{posKey}|{dominantName}";
-                        ClearStallTrack(posKey, stallKey);
-
-                        int watchStored = unmet!.Stored;
-                        int watchRoom = unmet.Room;
-                        if (!_stallTracks.TryGetValue(stallKey, out var track))
-                        {
-                            track = new StallTrack { LastStored = watchStored, FirstSeenUtc = now, LastChangeUtc = now };
-                            _stallTracks[stallKey] = track;
-                        }
-                        else if (track.LastStored != watchStored)
-                        {
-                            track.LastStored = watchStored;
-                            track.LastChangeUtc = now;
-                        }
-
-                        if ((now - track.LastChangeUtc).TotalMinutes >= Plugin.ClogStallMinutes.Value)
-                        {
-                            if (watchRoom == 0)
-                            {
-                                Plugin.Logger.LogInfo(
-                                    $"[SupplyChain] [clog] STALL: '{stationName}' clogged by '{dominantName}' — unmet allotment NOT filling and " +
-                                    $"warehouse has NO room for it ('{unmet.Warehouse}' qty={unmet.Qty} stored={unmet.Stored} room=0) — capacity-blocked");
-                                MaybeToast(posKey, dominantName, $"Clog stall: '{stationName}' '{dominantName}' — warehouse out of room");
-                            }
-                            else
-                            {
-                                Plugin.Logger.LogInfo(
-                                    $"[SupplyChain] [clog] STALL: '{stationName}' clogged by '{dominantName}' — unmet allotment NOT filling despite " +
-                                    $"room ('{unmet.Warehouse}' qty={unmet.Qty} stored={unmet.Stored} room={watchRoom} rank={unmet.Rank}) — likely priority-shadowed");
-                                MaybeToast(posKey, dominantName, $"Clog stall: '{stationName}' '{dominantName}' — haulers not draining (priority?)");
-                            }
-                            track.LastChangeUtc = now;
-                        }
-                    }
-                }
+                try { ClogController.NoteVerdictA(posKey, stationName, dominantName, dominantQty); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch ClogController.NoteVerdictA error: {ex}"); }
             }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch clog-check '{posKey}' error: {ex}"); }
         }
-    }
-
-    // Groups identical (Warehouse, Qty, Stored) rows into "N× '<W>' qty=Q stored=S gathered=G"
-    // (comma-separated Gathered values when a group's rows disagree) — a composite warehouse can
-    // hold multiple tasks for the same item, one per child sub-storage supply (confirmed in-game
-    // 2026-07-13, v0.4.1).
-    private static string FormatGroupedRows(List<AllotmentRow> rows)
-    {
-        var groups = new List<(string Warehouse, int Qty, int Stored, List<int> Gathereds)>();
-        foreach (var r in rows)
-        {
-            bool found = false;
-            for (int i = 0; i < groups.Count; i++)
-            {
-                if (groups[i].Warehouse == r.Warehouse && groups[i].Qty == r.Qty && groups[i].Stored == r.Stored)
-                {
-                    groups[i].Gathereds.Add(r.Gathered);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) groups.Add((r.Warehouse, r.Qty, r.Stored, new List<int> { r.Gathered }));
-        }
-
-        var parts = new List<string>();
-        foreach (var g in groups)
-        {
-            bool differ = false;
-            for (int i = 1; i < g.Gathereds.Count; i++) { if (g.Gathereds[i] != g.Gathereds[0]) { differ = true; break; } }
-            string gStr = differ ? string.Join(",", g.Gathereds) : g.Gathereds[0].ToString();
-            string prefix = g.Gathereds.Count > 1 ? $"{g.Gathereds.Count}× " : "";
-            parts.Add($"{prefix}'{g.Warehouse}' qty={g.Qty} stored={g.Stored} gathered={gStr}");
-        }
-        return string.Join("; ", parts);
-    }
-
-    // Removes all _stallTracks entries for a station (posKey) whose key doesn't match exceptKey —
-    // called whenever a poll's clog check for that station doesn't land in the "watching" case
-    // (no clog, stale, verdict A/B), or to drop a now-stale different-item watch at the same station.
-    private static void ClearStallTrack(string posKey, string? exceptKey)
-    {
-        string prefix = posKey + "|";
-        List<string>? toRemove = null;
-        foreach (var k in _stallTracks.Keys)
-        {
-            if (k.StartsWith(prefix) && k != exceptKey) (toRemove ??= new List<string>()).Add(k);
-        }
-        if (toRemove != null) foreach (var k in toRemove) _stallTracks.Remove(k);
-    }
-
-    private static void MaybeToast(string posKey, string item, string message)
-    {
-        try
-        {
-            string key = $"{posKey}|{item}";
-            var now = DateTime.UtcNow;
-            if (_lastVerdictToast.TryGetValue(key, out var last) && (now - last).TotalMinutes < Plugin.ClogRealertMinutes.Value)
-                return;
-            _lastVerdictToast[key] = now;
-            SupplyChainTracker.ShowMessage(message, 5f);
-        }
-        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch.MaybeToast error: {ex}"); }
     }
 }

@@ -3,5 +3,5 @@ public static class MyPluginInfo
 {
     public const string PLUGIN_GUID = "com.askamods.supplychain";
     public const string PLUGIN_NAME = "SupplyChainMod";
-    public const string PLUGIN_VERSION = "0.13.0";
+    public const string PLUGIN_VERSION = "0.14.2";
 }

@@ -79,6 +79,9 @@ internal static class DemandGraph
     // only (project-wide static-state rule); derived-only demand has no direct wantedBy label here.
     private static Dictionary<string, List<string>> _wantedByLabels = new();
     private static float _lastRebuildTime = -1f;
+    // v0.14.0 — matched production-task count from the last completed EnsureFresh rebuild; -1 =
+    // none yet this world. Feeds the zero-match retry cadence below (world-streaming race at load).
+    private static int _lastMatchedCount = -1;
 
     internal static void NoteWorldLeft()
     {
@@ -89,6 +92,7 @@ internal static class DemandGraph
             _wantedByCount = new Dictionary<string, int>();
             _wantedByLabels = new Dictionary<string, List<string>>();
             _lastRebuildTime = -1f;
+            _lastMatchedCount = -1;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] NoteWorldLeft error: {ex}"); }
     }
@@ -141,6 +145,9 @@ internal static class DemandGraph
     // Plugin.DemandRefreshMinutes (Time.time-based, pause-robust) or immediately if never built this
     // world; otherwise a no-op. Logs exactly one summary line on an actual rebuild — the verbose
     // per-station/rollup logging stays exclusive to Dump() (F9/hotkey/auto).
+    // v0.14.0 — zero-match retry: if the LAST completed rebuild matched 0 production tasks (a
+    // world-streaming race at load — structures not all instantiated yet), the next rebuild becomes
+    // eligible after a fast fixed 60s instead of waiting a full DemandRefreshMinutes.
     internal static void EnsureFresh()
     {
         try
@@ -148,7 +155,9 @@ internal static class DemandGraph
             if (!Plugin.EnableDemandGraph.Value) return;
 
             float now = Time.time;
-            float refreshSeconds = Math.Max(0f, Plugin.DemandRefreshMinutes.Value) * 60f;
+            float refreshSeconds = _lastMatchedCount == 0
+                ? 60f
+                : Math.Max(0f, Plugin.DemandRefreshMinutes.Value) * 60f;
             bool due = _lastRebuildTime < 0f || (refreshSeconds > 0f && (now - _lastRebuildTime) >= refreshSeconds);
             if (!due) return;
 
@@ -158,6 +167,11 @@ internal static class DemandGraph
             Plugin.Logger.LogInfo(
                 $"[SupplyChain] [demand] rebuilt: items={stats.ItemCount} (direct={stats.DirectCount} derived={stats.DerivedCount}) " +
                 $"in {sw.Elapsed.TotalMilliseconds:F0} ms");
+
+            // Logged only on the transition INTO a zero streak, not on every 60s retry while it persists.
+            if (stats.MatchedCount == 0 && _lastMatchedCount != 0)
+                Plugin.Logger.LogInfo("[SupplyChain] [demand] rebuild matched 0 tasks — world may still be streaming; retrying in 60 s");
+            _lastMatchedCount = stats.MatchedCount;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] EnsureFresh error: {ex}"); }
     }
@@ -181,11 +195,15 @@ internal static class DemandGraph
         public readonly int ItemCount;
         public readonly int DirectCount;
         public readonly int DerivedCount;
-        public RebuildStats(int itemCount, int directCount, int derivedCount)
+        // v0.14.0 — total matched production tasks (local+union+cooking+transform) this rebuild;
+        // feeds EnsureFresh's zero-match retry cadence.
+        public readonly int MatchedCount;
+        public RebuildStats(int itemCount, int directCount, int derivedCount, int matchedCount)
         {
             ItemCount = itemCount;
             DirectCount = directCount;
             DerivedCount = derivedCount;
+            MatchedCount = matchedCount;
         }
     }
 
@@ -427,7 +445,8 @@ internal static class DemandGraph
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] ReplaceState error: {ex}"); }
 
         _lastRebuildTime = Time.time;
-        return new RebuildStats(allItems.Count, directCount, derivedCount);
+        int totalMatched = totalMatchedLocal + totalMatchedUnion + totalMatchedCooking + totalMatchedTransform;
+        return new RebuildStats(allItems.Count, directCount, derivedCount, totalMatched);
     }
 
     // v0.11.1 fix 1 — mirrors WarehouseWatch.ParseClassList (private there, so a small local copy

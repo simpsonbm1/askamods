@@ -273,31 +273,69 @@ cycling becomes a tunable, eventually per-item.
    cycles — only after the dry-run proposals read as consistently sane.
 5. **Phase 3 / task creation research** — after the read-side is trustworthy.
 
-## Status & open next steps (updated 2026-07-15, post-v0.13.0)
+## v0.14.x — SURPLUS v2: flow-aware surplus + riders (built as v0.14.1 2026-07-16, ⚠️ pending in-game test)
 
-SHIPPED + in-game-verified: sequence steps 1–3. v0.9.2 container probe → v0.10.0 DemandGraph →
-v0.11.x classifier v3 + cooking/transform demand → v0.12.0 demand-grounded HOG sizing + BLOCKAGE
-rewritten to a routing diagnostic → v0.13.0 IsSurplus gate + SURPLUS class + BLOCKAGE cause tokens.
-The HOG/BLOCKAGE/SURPLUS taxonomy is settled and read-side-trustworthy for END products and truly-
-undemanded items. Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
+Replaces v0.13.0's single magnitude predicate (`IsSurplus`) with two orthogonal predicates. Closes
+former open items 1 (base-material keep-target) and 2 (demand-blind window); rides item 4 (clog
+retirement) plus the per-container Off fix found in the 2026-07-16 code audit.
 
-Open, in rough priority (first three all BLOCK arming):
-1. **Base-material keep-target.** `structural × SurplusFactor` mislabels heavily-buffered base
-   materials as surplus (Fibers 4900 stored vs demand 484 — likely a healthy buffer; contrast Resin
-   2050 vs 3 — genuine over-production). Make the SURPLUS keep-target consumption-rate/flow-aware
-   (the chain-capacity rollup / time element in the structural-demand section) so it separates
-   over-production from a wanted buffer.
-2. **Demand-blind window gate.** For ~5 min post-load (until DemandGraph builds / F9), demand=0 →
-   everything reads surplus (keepTarget=0). Actuation must be gated until demand has built.
-3. **Farming demand modeling.** Seeds read structural=0 (FarmingStation crop demand unmodeled) →
-   flagged surplus though used for planting.
-4. **v0.13.1 clog-detector retirement.** WarehouseWatch.DetectClogs is a parallel, complaint-driven,
-   station-level detector whose "Clog"/"STALL priority-shadowed" toasts duplicate BLOCKAGE's meaning.
-   Reconcile: storage-full complaint → a DISTRESS TAG that boosts urgency + drives toasts worded by
-   the demand-model class; retire the Clog/STALL toast vocabulary; ClogController (quota-raise lever)
-   already retired — leave default-off; keep the forge regression harness.
-5. **Arming design** (was step 4) — which classes auto-apply, rails, duty cycles — only after 1–3.
-6. **Phase 3 / task creation research** (was step 5).
+- **OverTarget(item)** = settleStored > keepTarget, keepTarget = RATCHETED structural ×
+  SurplusFactor. Ratchet = session high-water mark of StructTotal (task-completion dips must not
+  condemn stock; errs toward keeping; cleared on world-leave).
+- **Verdict(item)** — directional and threshold-free (per-item rate constants rejected: rates
+  differ by resource — user decision 2026-07-16). Over the last InertMinutes of AWAKE time:
+  - **ALIVE** — any observed DECREASE of the settlement-wide total (consumption or in-flight
+    hauling; either means the item participates in flow). Never surplus. Re-evaluated every poll:
+    one decrease instantly rescues a dead/growing item — dead is NEVER a permanent judgment.
+    **Consumption memory (v0.14.2):** a REAL observed decrease keeps the item ALIVE for
+    6 × InertMinutes of awake time (internal multiplier, no config key), not just one window.
+    Why (v0.14.1 test finding, 2026-07-16): accumulation is continuous but consumption is
+    EVENTFUL — a base material's consumers run on task cadence, so a window short enough to
+    condemn a dead pile misses slow consumers (Fibers read GROWING: no fiber-consuming craft ran
+    within the window while gatherers trickled a few in; same pattern on mushrooms/sticks/eggs).
+    The load-time "assumed alive" seed still expires after ONE window (warmup unchanged), and
+    never-consumed co-products (bones) are never rescued by it.
+  - **GROWING** — increases only (co-products arriving with no consumer: bones, resin trickle).
+  - **DEAD** — no movement at all.
+  - AWAKE gate: verdict clocks advance only on polls where ≥1 item's settlement total moved, so
+    vanilla night/sleep, pauses, and menu time age nothing. Behavior-adaptive — correct for both
+    vanilla and DVN sleep patterns with no mod detection (user requirement 2026-07-16).
+  - Warmup: at world load every item initializes "assumed alive" → no surplus/HOG verdict can
+    exist until InertMinutes of observed awake inactivity. This closes the demand-blind post-load
+    window (former item 2) with no separate gate.
+- **Gate reassignment:** hog eligibility + SURPLUS class = OverTarget AND (DEAD or GROWING);
+  HOG-victim neediness = NOT OverTarget; BLOCKAGE/SHADOWED/pass-3 exclusions = OverTarget.
+  Flow-awareness applies ONLY to "what may be evicted"; "what deserves rescuing" stays
+  magnitude-based — preserving v0.13.0's verified false-hog suppression (seeds→Fibers stays gone).
+- **Config:** user-facing tuning = SurplusFactor alone (user decision 2026-07-16); InertMinutes
+  (default 20, awake-minutes) is the only other knob. The draft's ActiveChurnPerMin/GrowthNetPerMin
+  are DROPPED (never built); orphaned DemandDrainPerMin/DemandChurnPerMin keys deleted.
+- **Riders:** clog-detector retirement (Clog/STALL toast vocabulary deleted; storage-full registry
+  becomes a `distress=storage-full` severity-boost tag on HOG/BLOCKAGE/SHADOWED lines; forge
+  harness kept; EnableClogController default → false); per-container Off overlay (HOG effective
+  set + BLOCKAGE stuck-scan use per-(container,item) row rank, not structure-level MinRank — an
+  Off'd container is player-frozen, not stuck); DemandGraph zero-match rebuild retry at 60 s
+  (world-streaming race).
+- Side effect: actively-planted seeds show decreases → ALIVE → protected. True farming demand
+  modeling (open item 1 below) is still required before arming seed eviction (seasonality).
+
+## Status & open next steps (updated 2026-07-16)
+
+SHIPPED + in-game-verified: sequence steps 1–3 (v0.9.2 probe → v0.10.0 DemandGraph → v0.11.x
+classifier v3 → v0.12.0 HOG sizing + BLOCKAGE rewrite → v0.13.0 IsSurplus/SURPLUS/cause tokens).
+SURPLUS v2 + riders (section above) approved 2026-07-16, built as v0.14.1, in-game-tested same
+day: 9/10 expectations passed (warmup gate, Resin dead, bones HOG, clog vocabulary gone, streaming
+retry, distress tags, zero errors) — but Fibers read SURPLUS verdict=growing (bursty-consumption
+gap, see the ALIVE consumption-memory rule above). v0.14.2 fix ⚠️ pending build + in-game retest.
+Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
+
+Open after v0.14.x:
+1. **Farming demand modeling** (blocks arming seed reduction) — seeds read structural=0
+   (FarmingStation crop demand unmodeled); v0.14.0's ALIVE protection mitigates casual mislabeling
+   but seasonal planting means real modeling is required before arming any seed eviction.
+2. **Arming design** — which classes auto-apply, rails, duty cycles, the response-gated eviction
+   state machine — only after v0.14.0's dry-run audit reads consistently sane.
+3. **Phase 3 / task creation research.**
 
 ## User decisions (2026-07-15, all four open questions answered)
 

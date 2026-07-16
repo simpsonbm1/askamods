@@ -1,12 +1,11 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.13.0, Phases 0–2c complete + Phase 2d demand-model classifier reconciled, all
-in-game-verified 2026-07-15 (still dry-run/read-only). Per `SupplyChainMod/DEMAND_MODEL_PLAN.md`:
-v0.9.2 container probe → v0.10.0 DemandGraph structural demand → v0.11.x classifier v3 + cooking/
-transform demand → v0.12.0 demand-grounded HOG sizing + BLOCKAGE rewritten to a routing diagnostic
-→ v0.13.0 IsSurplus gate + SURPLUS class + BLOCKAGE cause tokens (the HOG/BLOCKAGE/SURPLUS taxonomy).
-Open next steps: base-material keep-target refinement, clog-detector retirement (v0.13.1), arming —
-see DEMAND_MODEL_PLAN.md. Dev tool NOT for Nexus
+**Status:** WIP v0.14.2 — SURPLUS v2 flow-aware classifier (ratcheted keep-target ×
+ALIVE/GROWING/DEAD verdicts) + clog-toast retirement + per-container Off fix, per
+`SupplyChainMod/DEMAND_MODEL_PLAN.md` → "v0.14.x — SURPLUS v2". v0.14.1 in-game-tested 2026-07-16
+(9/10 expectations passed; Fibers-GROWING finding, see Dead-Ends); v0.14.2 consumption-memory fix
+⚠️ pending in-game test. Still 100% dry-run/read-only. Open next steps: farming demand modeling,
+arming design — see DEMAND_MODEL_PLAN.md. Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -247,8 +246,6 @@ EnableWarehouseWatch=true   # Phase 2a read-only warehouse diagnostics + clog de
 WarehousePollSeconds=30     # WarehouseWatch poll cadence
 WarehouseClassList=ResourceStorage,HuntingStation,FishingStation,CaveResourceStorage  # comma-sep exact native class names treated as warehouses
 ClogDominantSharePercent=40 # dominant-item share threshold for clog verdicts
-ClogRealertMinutes=10       # per-(station,item) toast dedupe window
-ClogStallMinutes=3          # unchanged stored-count window before a STALL diagnosis fires
 
 [Phase2Spike]
 EnableQuotaSpike=true       # F7 micro-test + Shift+F7 forge mode
@@ -259,7 +256,7 @@ QuotaMinStationStock=10     # minimum source-station stock to trigger spike
 ClogForgeItem=              # empty = forge disabled; item name to forge as permanent clog
 
 [Phase2Clog]
-EnableClogController=true   # Phase 2c clog automation
+EnableClogController=false  # retired lever (v0.14.x): off unless deliberately re-enabled
 ClogRetainSeconds=240       # VERDICT A staleness threshold before entry removed
 ClogHysteresisSeconds=45    # min window between samples for rate calculation
 ClogBoostMaxDelta=50        # max single-row quota delta per clog boost
@@ -294,14 +291,13 @@ MaxQuotaShareOfMaxPct=50    # proposed targets capped at this % of item physical
 HogMinStored=100            # hog requires at least this stockpile
 HogMaxAbsRate=0.2           # |rate|/min at or below = static stockpile
 ShadowMaxFillRate=0.2       # |rate|/min at or below on unmet+room group = not filling
-DemandDrainPerMin=0.2       # ORPHANED since v0.11.0 (old flow demand-gate retired)
-DemandChurnPerMin=1.0       # ORPHANED since v0.11.0 (old flow demand-gate retired)
 ShadowMinSourceStock=30     # SHADOWED needs this much piled at producer self-storages
 VictimMaxRoom=0             # HOG victim: unmet group sharing a container with room <= this
 MaxProposalLinesPerPoll=12  # severity-sorted proposal-line cap per poll (F9 = full set)
 MaxSlotsPerCycle=2          # eviction quantum cap (slots per proposal cycle, response-gated at arming)
 CoProductFloorSlots=1       # v0.12.0 HOG sizing: reduce a surplus hog toward max(this×stack, its demand)
-SurplusFactor=2.0           # v0.13.0 surplus gate: item is surplus when settleStored > structural × this
+SurplusFactor=2.0           # v0.14.x surplus gate: over-target when settleStored > RATCHETED structural × this
+InertMinutes=20             # v0.14.x verdict window (awake-minutes); real decreases protect 6× this (internal)
 
 [Phase2dDemand]
 EnableDemandGraph=true      # v0.10.0 structural-demand extractor (wantedBy table)
@@ -433,6 +429,13 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
   flow-aware (the deferred chain-capacity rollup) before SURPLUS/HOG eviction is armed, or it would
   dump useful stock. Related: the demand-blind post-load window (DemandGraph builds after ~5 min / F9)
   reads EVERYTHING as surplus (keepTarget=0) — arming must be gated until demand has built.
+- **Single-window flow verdicts misread bursty consumers (2026-07-16, v0.14.1):** consumption is
+  EVENTFUL (crafts consume in task-cadence bursts) while accumulation is continuous — with a
+  10-min window, Fibers (4903 stored, demand 484) read GROWING because no fiber-consuming craft
+  ran inside the window while gatherers trickled arrivals (same pattern: Gray Mushrooms, Stick,
+  Wild Egg). Fix: a REAL observed decrease grants ALIVE for 6 × InertMinutes (v0.14.2 consumption
+  memory). A settlement genuinely idle on an item for longer still reads growing/dead — the full
+  fix remains consumption-rate-aware demand (chain-capacity rollup, deferred).
 
 ## Design Direction (user-decided 2026-07-14)
 
@@ -542,18 +545,30 @@ F9 full dump; accessor `TryGetStructuralDemand(item, out direct, out derived, ou
 v0.10.0 in-game-verified 2026-07-15: 47/51 tasks matched, 23 inputs, table audited TRUE
 (Feathers demanded by arrow tasks despite zero flow; Bone Fragments/Seeds correctly absent).
 
-**Classifier (v0.11.0 → v0.13.0, plan step 3, in-game-verified 2026-07-15):** BudgetPlane rebuilt on
+**Classifier (v0.11.0 → v0.14.2, plan step 3):** BudgetPlane rebuilt on
 a per-poll container map (interaction.Container per row, transient same-call-stack only; AllotmentRow
 carries ContainerKey/Info) + structural demand. It reasons about ONE central signal and separates
 three storage pathologies:
 
-- **IsSurplus(item)** (v0.13.0) = settlementStored > structural × `SurplusFactor` (config, default
-  2.0); a zero-demand item is surplus at any stock. First-class hog-eligibility signal — replaced the
-  earlier binary demanded/undemanded gate, which had misfiled over-supplied-but-demanded items.
+- **OverTarget × Verdict** (v0.14.x, replaces v0.13.0's single IsSurplus): OverTarget(item) =
+  settleStored > RatchetTotal × `SurplusFactor`, where RatchetTotal = session HIGH-WATER mark of
+  structural demand (task-completion dips don't condemn stock; cleared on world-leave).
+  Verdict(item), directional and threshold-free over the last `InertMinutes` of AWAKE time
+  (clocks advance only on polls where ≥1 item's settlement total moved — night/sleep/pause-proof,
+  DVN-agnostic): ALIVE = any observed decrease (real decreases grant ALIVE for 6 × InertMinutes —
+  v0.14.2 consumption memory, internal constant); GROWING = increases only; DEAD = no movement.
+  Items initialize "assumed alive" at world load (expires after ONE window) → no surplus/HOG
+  verdict before InertMinutes of observed awake inactivity (closes the demand-blind post-load
+  window). Hog eligibility + SURPLUS class = OverTarget AND (DEAD or GROWING); HOG-victim
+  neediness and the BLOCKAGE/pass-3 exclusions stay OverTarget-only (magnitude-based — preserves
+  the verified seeds→Fibers false-hog suppression). SURPLUS/HOG lines carry `verdict=` tokens;
+  storage-full complaints add a `distress=storage-full` tag + severity boost on HOG/BLOCKAGE/
+  SHADOWED lines. HOG/BLOCKAGE read player Off-dedication per (container,item) row rank
+  (v0.14.x), not structure-wide MinRank.
 - **HOG** (eviction) — a SURPLUS, static item crowds a demanded, NON-surplus, blocked item in a
   SHARED container (real physical crowding). Blocked = `GetRemainingCapacity(victim)==0` (fill>=0.999
   fallback; blk=cap|fill token — v0.11.0's HasSpace was wrong, see Dead-Ends). Sizing DEMAND-GROUNDED
-  (v0.12.0): reduce the hog toward max(CoProductFloorSlots × stack, its own demand), paced at
+  (v0.12.0): reduce the hog toward max(CoProductFloorSlots × stack, its own RATCHETED demand), paced at
   MaxSlotsPerCycle; full target + per-cycle step both logged (bones 1250→50).
 - **BLOCKAGE** (diagnostic, v0.12.0 rewrite) — a demanded, NON-surplus material SITTING (stored>0) in
   a full, static container while its downstream BOM consumers rely on it (Hardwood Long Stick jammed
@@ -571,6 +586,8 @@ mislabeled BLOCKAGE); 5 clean cause-tokened BLOCKAGEs; the false seed→Fibers h
 (Fibers over-supplied settlement-wide, so not a needy victim). Finding: `structural × SurplusFactor`
 mislabels heavily-buffered BASE MATERIALS as surplus (Fibers 4900 vs demand 484) — keep-target must
 become consumption-aware before SURPLUS/HOG eviction is armed (see Dead-Ends + DEMAND_MODEL_PLAN.md).
+v0.14.1 re-test 2026-07-16: warmup gate, Resin dead, bones HOG + distress tag, cause tokens, clog
+vocabulary gone, streaming retry all verified; Fibers finding → v0.14.2 (Dead-Ends).
 
 ## Research spike (Cecil, 2026-07-14)
 
@@ -686,3 +703,15 @@ See architecture.md for full API surface.
   victim must be non-surplus. Loaded clean, zero errors: Resin (2050 vs demand 3) → SURPLUS (was
   mislabeled BLOCKAGE); seed→Fibers hogs correctly vanished (Fibers over-supplied). Surfaced the
   base-material keep-target gap (Dead-Ends + DEMAND_MODEL_PLAN.md next steps).
+- **v0.14.0–v0.14.1** (2026-07-16, in-game-tested) — SURPLUS v2 (DEMAND_MODEL_PLAN.md "v0.14.x"):
+  OverTarget (ratcheted keep-target) × directional ALIVE/GROWING/DEAD verdicts on awake-gated
+  clocks replace magnitude-only IsSurplus as the hog/SURPLUS gate (victim + BLOCKAGE exclusions
+  stay magnitude-based); riders: clog VERDICT/STALL toast vocabulary retired (storage-full →
+  `distress=storage-full` severity tag; EnableClogController default false), per-container Off
+  overlay, DemandGraph zero-match 60 s retry; +InertMinutes config, 4 orphaned keys removed.
+  (v0.14.0 superseded pre-test by a cosmetic rebuild bump — no behavior difference.) Test 9/10:
+  warmup gate, Resin dead, bones HOG + distress, cause tokens, no clog vocabulary, streaming
+  retry, zero errors; FINDING: Fibers read GROWING (bursty consumption — see Dead-Ends).
+- **v0.14.2** (2026-07-16) — consumption memory: a REAL observed decrease keeps an item ALIVE for
+  6 × InertMinutes (internal constant); warmup seed still expires after one window. ⚠️ pending
+  in-game test.
