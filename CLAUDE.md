@@ -48,53 +48,48 @@ Whenever you add a configuration option for a diagnostic or debug logger, **alwa
 ## Never Consider an Issue Resolved Until Confirmed In-Game (standing instruction)
 Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
 
-## Keep CLAUDE.md ↔ AGENTS.md In Sync — and VERIFY it, don't just intend to (standing instruction)
-The user works with **both Claude Code (`CLAUDE.md`) and Antigravity (`.agents/AGENTS.md`)** across
-two machines, switching tools when a token budget runs out. These two files are the same orientation
-for different tools and **WILL silently drift unless every session actively runs the checks below.**
-This has already bitten the project: a whole mod (SeedHarvesterMod) went missing from both files, a
-version + technique change (JotunBloodYieldMod v1.1.0) went unrecorded, and CLAUDE.md ended up with a
-duplicated copy of its own body. Treat the three rituals here as non-optional.
+## Single-source orientation — CLAUDE.md is canonical (standing instruction, restructured 2026-07-16)
+**This file is the ONLY full orientation copy.** `AGENTS.md` (repo root, non-Claude agent
+onboarding) and `.agents/AGENTS.md` (Antigravity's auto-load path — Antigravity is now a
+break-glass fallback the user rarely opens) are **pointer stubs**: each carries the exact marker
+`ORIENTATION-STUB` (an HTML comment the pre-commit hook greps for) plus only the must-not-miss
+rules. **Never add project content to a stub** — it belongs here.
+(History: until 2026-07-16, `.agents/AGENTS.md` was a full parallel copy maintained by a
+dual-write ritual. The per-commit sync ceremony was expensive enough to deter checkpoint commits
+— worse than the drift it prevented — and Antigravity's demotion to emergency use removed the
+need. The old drift incidents that motivated the ritual can't recur: there is no second copy to
+drift.)
 
-**Ritual 1 — Drift check at session START (and again before any commit).** Do not trust the
-orientation files; reconcile them against ground truth first. Verify (commands illustrative — adapt
-to your shell):
-- `ls -d */` → **every** mod folder must appear in BOTH files' Project Structure.
-- `grep -r PLUGIN_VERSION */MyPluginInfo.cs` → the version shown for each mod in BOTH files must match the code.
-- `ls *HANDOFF*.md docs/mods/*.md` → every handoff/mod doc must be in BOTH Documentation Maps.
-- `git log --oneline` since you last worked → scan for new mods, version bumps, status changes,
-  new gotchas, or new docs that never made it into the orientation files.
-Fix every mismatch in BOTH files before starting new work.
+**The commit guard — `.githooks/pre-commit`** (one-time per clone: `git config core.hooksPath
+.githooks`; active on both machines):
+- **AUTO-FIXES** a stale mod version token in this file's Project Structure from the csproj
+  `<Version>` (rewrites the token, re-stages CLAUDE.md, reports `AUTO-FIXED: ...`). A plain
+  version bump therefore needs **zero** manual orientation editing at commit time.
+- **BLOCKS** on real drift: a mod folder or handoff/mod doc missing from this file,
+  `PLUGIN_VERSION` ≠ csproj `<Version>` (the SAC half-bump — needs a rebuild, not a text fix),
+  a duplicated `# AskaMods` header, or a pointer stub losing its `ORIENTATION-STUB` marker /
+  re-growing a `## Project Structure` body. Do NOT bypass with `--no-verify` — fix the drift;
+  that's the point.
 
-**Ritual 2 — Definition of Done (dual-write, blocks the commit).** A change is **NOT done and must
-NOT be committed** until BOTH `CLAUDE.md` AND `.agents/AGENTS.md` reflect it. Edit them in the same
-change whenever you:
-- add / rename / remove a mod folder, or change a mod's status (WIP→COMPLETE, COMPLETE→PARKED/BLOCKED, new blocker) — if a mod is PARKED or un-parked, also update `$ParkedByDefault` in `sync-plugins.ps1`;
-- bump a mod version, or change its core technique/approach (update the mod's `docs/mods/*.md` too);
-- add a new IL2CPP gotcha or a dead-end;
-- add a handoff doc or a `docs/mods/` file → add it to BOTH Documentation Maps.
-Tag in-game-verified facts with `confirmed in-game (YYYY-MM-DD)`.
+**Doc cadence (replaces the old per-commit dual-write ritual):**
+- **As-you-go, when confirmed:** new game/interop facts, dead-ends, and design decisions land in
+  `docs/architecture.md` / the mod's `docs/mods/*.md` / the active plan doc **during the work**,
+  while the facts are hot (tag `confirmed in-game (YYYY-MM-DD)`).
+- **On status/approach change only:** rewrite the mod's bracketed status blurb in Project
+  Structure (WIP→COMPLETE, PARKED, new technique, new blocker). If parked-status changes, also
+  update `$ParkedByDefault` in `sync-plugins.ps1`. New mod folders and new docs still get added
+  here immediately (the hook blocks the commit otherwise).
+- **At natural milestones** (shipped / parked / phase complete — NOT every checkpoint commit):
+  the mod doc's status header + a compressed version-history entry. Delegate milestone doc
+  passes to doc-scribe; skip the ceremony for ordinary checkpoints.
+- **Net effect:** a checkpoint commit is ~30 seconds — stage, commit (hook auto-fixes version
+  tokens), push. At most one small inline blurb edit when a status genuinely changed.
 
-**Ritual 3 — Integrity guard (catch accidental duplication).** After rewriting a whole orientation
-file, confirm you didn't append a second copy instead of replacing: `grep -c "^# AskaMods" CLAUDE.md`
-and `grep -c "^# AskaMods" .agents/AGENTS.md` must each return **1**.
-
-**Rituals 1+3 are mechanically enforced at commit** by `.githooks/pre-commit` (one-time per clone:
-`git config core.hooksPath .githooks` — set on the laptop 2026-07-05; the desktop must run it once).
-It blocks commits on: mod folder missing from either file, stated version ≠ csproj `<Version>`,
-PLUGIN_VERSION ≠ csproj `<Version>` (the SAC half-bump), doc missing from either Documentation Map,
-duplicated `# AskaMods` header. Do NOT bypass with `--no-verify` — fix the drift; that's the point.
-
-**Cadence — these rituals are commit-gated, NOT build-gated.** In an iterative build→test→build loop,
-each cycle do only: edit code, bump the version (`PLUGIN_VERSION` + csproj `<Version>` — needed so Smart
-App Control re-evaluates the new DLL hash and so the loaded version is confirmable), build, and convey
-test steps in chat. **Defer the dual-write sync (Ritual 2), the integrity guard (Ritual 3), and any
-handoff/`docs/` prose to the commit checkpoint, and do them once** — uncommitted edits don't reach the
-other machine until a push, so nothing is lost. A full doc pass on every build is wasted token cost
-(the user runs every task, including doc cleanup, on Opus).
-
-If unsure whether a detail belongs in the orientation file vs. deeper docs, match what the other file
-does — both stay parallel in scope and structure.
+**Drift check at session START (single file now).** Reconcile THIS file against ground truth:
+`ls -d */` → every mod folder present in Project Structure; `ls *HANDOFF*.md docs/mods/*.md` →
+every doc in the Documentation Map; `git log --oneline` since last work → scan for status
+changes/new gotchas that never landed here. The hook re-verifies mechanically at every commit,
+so trust it rather than re-running checks before committing.
 
 ## Session Handoff Doc (standing instruction — see global convention)
 This project follows the global session-handoff practice (`~/.claude/CLAUDE.md`): maintain a
@@ -155,14 +150,15 @@ It copies only when the hash differs, preserves each mod's live enabled/`.dll.of
 replaced DLLs under `%TEMP%\askamods-sync-backups\`, and reminds you to confirm the loaded versions in
 `LogOutput.log` — it can't dodge SAC, so a blocked DLL still needs a version bump + rebuild. Its
 `$ParkedByDefault` list (CookingStationFixMod, SeedHarvesterMod, TimeWarpMod) makes parked spikes install disabled
-on a fresh machine — keep that list in step with mod parked-status changes (see Ritual 2).
+on a fresh machine — keep that list in step with mod parked-status changes (see the doc-cadence
+rules in "Single-source orientation" above).
 
 ## Model-tiered subagent delegation (Claude Code only)
 Three project subagents live in `.claude/agents/` so a main session on an expensive model (Opus)
 can delegate cheap, self-contained subtasks instead of doing everything inline — added 2026-07-06,
 confirmed in real workflow 2026-07-06 (mod-implementer ×4 incl. a resume and correct SAC-guard refusal, log-analyst triage, doc-scribe checkpoint pass):
 - **`mod-implementer`** (Sonnet) — a fully-planned code change: edit source, bump `PLUGIN_VERSION` + csproj `<Version>`, build, report.
-- **`doc-scribe`** (Haiku) — doc-only work incl. the commit-checkpoint dual-write rituals.
+- **`doc-scribe`** (Haiku) — doc-only work: milestone doc passes (mod-doc status/history), architecture/mod-doc updates from supplied facts. (The retired dual-write ritual was its old main job.)
 - **`log-analyst`** (Haiku) — post-test-run `LogOutput.log` triage (loaded versions, exceptions, fire-verification markers).
 **Delegate to them proactively when a task matches**; planning, research, and root-cause debugging
 stay in the main thread. Delegation prompts must be fully self-contained — subagents load CLAUDE.md
@@ -237,13 +233,13 @@ askamods/
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [COMPLETE v1.0.0 — docs/mods/outhouse-composter.md]
-  SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.15.1 — case layer
-                                (CaseTracker: findings → persistent CANDIDATE→OPEN→RESOLVED
-                                cases, chain/merge tags, SURPLUS slot floor) in-game-verified
-                                2026-07-16; arming design approved (failure-mode → lever routing,
-                                see SupplyChainMod/DEMAND_MODEL_PLAN.md → "Arming design"); next:
-                                food/farming demand modeling, then arming (tier first); dry-run
-                                only, dev tool NOT for Nexus — docs/mods/supply-chain.md]
+  SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.16.0 — food-demand
+                                riders in-game-verified 2026-07-16 (barbecue/curing edges via
+                                BlueprintInfo parts, any-of table protection, farm-task seed
+                                demand) on top of the verified case layer; arming design approved
+                                (SupplyChainMod/DEMAND_MODEL_PLAN.md → "Arming design"); next:
+                                arming implementation (tier first); dry-run only,
+                                dev tool NOT for Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
 ```
 

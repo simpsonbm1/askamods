@@ -74,6 +74,14 @@ namespace SupplyChainMod;
 // RebuildCore call, so AreChainRelated (new) can walk the same graph PropagateTransitive walks —
 // breadth-first, cycle-guarded, depth <=8 — to tell CaseTracker whether two OPEN cases' items are
 // BOM-related (a stuck intermediate and its own stuck input, tagged with a shared chain=#k).
+//
+// v0.16.0 (food-demand riders) — three closes on the v0.15.1 probe's food-pipeline gaps:
+// TryMatchCookingRecipe gains a BlueprintInfo parts/cost fallback (matchKind="parts") for plain
+// CookingRecipeInfo items (barbecue, curing rack) that have no cookingRequirements at all; the same
+// method's Table/Unfiltered_Table requirement reads now feed a new `_anyOfProtected` set (eviction
+// protection only, no structural demand — see IsAnyOfProtected / BudgetPlane.cs); and
+// DumpStationTasks short-circuits FarmingStation/ForestryStation tasks into SEED demand (the task
+// consumes its item rather than producing it) before the normal match cascade runs.
 internal static class DemandGraph
 {
     private static Dictionary<string, int> _directQty = new();
@@ -90,6 +98,11 @@ internal static class DemandGraph
     // was previously local-only and discarded) so AreChainRelated can walk it between rebuilds too.
     // Plain strings only (project-wide static-state rule).
     private static Dictionary<string, List<string>> _retainedInputs = new();
+    // v0.16.0 — items accepted by an any-of cooking Table/Unfiltered_Table requirement: eviction
+    // PROTECTION only (never selectable as a HOG), no structural demand (see TryMatchCookingRecipe
+    // header / BudgetPlane.cs's hog-gate + SURPLUS-tail any-of handling). Plain strings only
+    // (project-wide static-state rule).
+    private static HashSet<string> _anyOfProtected = new();
     private static float _lastRebuildTime = -1f;
     // v0.14.0 — matched production-task count from the last completed EnsureFresh rebuild; -1 =
     // none yet this world. Feeds the zero-match retry cadence below (world-streaming race at load).
@@ -104,6 +117,7 @@ internal static class DemandGraph
             _wantedByCount = new Dictionary<string, int>();
             _wantedByLabels = new Dictionary<string, List<string>>();
             _retainedInputs = new Dictionary<string, List<string>>();
+            _anyOfProtected = new HashSet<string>();
             _lastRebuildTime = -1f;
             _lastMatchedCount = -1;
         }
@@ -152,6 +166,23 @@ internal static class DemandGraph
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] TryGetWantedByLabels error: {ex}"); }
         return false;
+    }
+
+    // v0.16.0 — true when `itemName` is accepted by a cooking Table/Unfiltered_Table any-of
+    // requirement (see TryMatchCookingRecipe). Eviction PROTECTION only — callers must never
+    // select a protected item as a HOG; it carries no structural demand of its own.
+    internal static bool IsAnyOfProtected(string itemName)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(itemName)) return false;
+            return _anyOfProtected.Contains(itemName);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[SupplyChain] [demand] IsAnyOfProtected error: {ex}");
+            return false;
+        }
     }
 
     // v0.15.0 (case layer) — true if EITHER item reaches the other walking blueprint inputs (the
@@ -250,8 +281,8 @@ internal static class DemandGraph
         public readonly int ItemCount;
         public readonly int DirectCount;
         public readonly int DerivedCount;
-        // v0.14.0 — total matched production tasks (local+union+cooking+transform) this rebuild;
-        // feeds EnsureFresh's zero-match retry cadence.
+        // v0.14.0 — total matched production tasks (local+union+cooking+parts+transform+farm, as of
+        // v0.16.0) this rebuild; feeds EnsureFresh's zero-match retry cadence.
         public readonly int MatchedCount;
         public RebuildStats(int itemCount, int directCount, int derivedCount, int matchedCount)
         {
@@ -401,10 +432,16 @@ internal static class DemandGraph
 
         // ── Pass 2: match each station's configured tasks: local -> union -> cooking -> transform ─
         var wantedBy = new Dictionary<string, List<WantedByEntry>>();
+        // v0.16.0 any-of protection — items accepted by a cooking Table/Unfiltered_Table
+        // requirement, collected during this pass (see TryMatchCookingRecipe / IsAnyOfProtected).
+        var anyOfProtected = new HashSet<string>();
         var directQty = new Dictionary<string, int>();
         var stillUnmatched = new List<string>();
         var loggedCookingRecipes = new HashSet<string>();
-        int totalTasks = 0, totalMatchedLocal = 0, totalMatchedUnion = 0, totalMatchedCooking = 0, totalMatchedTransform = 0;
+        // v0.16.0 — dedup set for the once-per-distinct-table any-of protection log line.
+        var loggedTables = new HashSet<string>();
+        int totalTasks = 0, totalMatchedLocal = 0, totalMatchedUnion = 0, totalMatchedCooking = 0;
+        int totalMatchedParts = 0, totalMatchedTransform = 0, totalMatchedFarm = 0;
         int totalUnmatched = 0, totalStorageTasks = 0, totalFilterTasks = 0, stationsSkippedWarehouseClass = 0;
 
         foreach (var sw in stationWorks)
@@ -417,8 +454,10 @@ internal static class DemandGraph
                     continue;
                 }
 
-                DumpStationTasks(sw, union, transformMap, wantedBy, directQty, stillUnmatched, loggedCookingRecipes, verbose,
-                    ref totalTasks, ref totalMatchedLocal, ref totalMatchedUnion, ref totalMatchedCooking, ref totalMatchedTransform,
+                DumpStationTasks(sw, union, transformMap, wantedBy, directQty, stillUnmatched, loggedCookingRecipes,
+                    loggedTables, anyOfProtected, verbose,
+                    ref totalTasks, ref totalMatchedLocal, ref totalMatchedUnion, ref totalMatchedCooking,
+                    ref totalMatchedParts, ref totalMatchedTransform, ref totalMatchedFarm,
                     ref totalUnmatched, ref totalStorageTasks, ref totalFilterTasks, ref bpQuantityAvailable, ref bpQuantityMismatches);
             }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] station '{sw.StructureName}' error: {ex}"); }
@@ -461,8 +500,8 @@ internal static class DemandGraph
                     $"blueprints={totalLocalBlueprints} (unionAdded={totalUnionAdded} unionDup={totalUnionDup}) " +
                     $"tasks={totalTasks} storageTasksSkipped={totalStorageTasks} filterTasksSkipped={totalFilterTasks} " +
                     $"matched={totalMatchedLocal} matchedViaUnion={totalMatchedUnion} matchedViaCooking={totalMatchedCooking} " +
-                    $"matchedViaTransform={totalMatchedTransform} unmatched={totalUnmatched} " +
-                    $"distinctInputs={allItems.Count} {bpXCheck}");
+                    $"matchedViaParts={totalMatchedParts} matchedViaTransform={totalMatchedTransform} matchedViaFarm={totalMatchedFarm} " +
+                    $"unmatched={totalUnmatched} distinctInputs={allItems.Count} anyOfProtected={anyOfProtected.Count} {bpXCheck}");
             }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] TOTAL log error: {ex}"); }
         }
@@ -507,16 +546,22 @@ internal static class DemandGraph
                 foreach (var (input, _) in kv.Value) if (!names.Contains(input)) names.Add(input);
             }
 
+            // v0.16.0 any-of protection — snapshot the fresh set built during Pass 2's cooking-recipe
+            // Table requirement reads (see TryMatchCookingRecipe).
+            var newAnyOfProtected = new HashSet<string>(anyOfProtected);
+
             _directQty = newDirect;
             _derivedQty = newDerived;
             _wantedByCount = newCount;
             _wantedByLabels = newLabels;
             _retainedInputs = newInputs;
+            _anyOfProtected = newAnyOfProtected;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] ReplaceState error: {ex}"); }
 
         _lastRebuildTime = Time.time;
-        int totalMatched = totalMatchedLocal + totalMatchedUnion + totalMatchedCooking + totalMatchedTransform;
+        int totalMatched = totalMatchedLocal + totalMatchedUnion + totalMatchedCooking + totalMatchedParts
+            + totalMatchedTransform + totalMatchedFarm;
         return new RebuildStats(allItems.Count, directCount, derivedCount, totalMatched);
     }
 
@@ -723,12 +768,26 @@ internal static class DemandGraph
     // read failure. On success, logs ONE line per DISTINCT cooking recipe (F9 only): every
     // requirement's raw `type` enum value is collected verbatim — category-acceptance data, not yet
     // interpreted.
+    //
+    // v0.16.0 additions: (a) a plain CookingRecipeInfo (barbecue "Cooked X", curing-rack items) has
+    // no cookingRequirements at all, but DOES descend from SandSailorStudio.Inventory.BlueprintInfo
+    // (same as any other craftable) — its `parts`/`cost` manifest is now tried as a fallback before
+    // the item falls through to the transform map / unmatched (Cecil-confirmed 2026-07-16:
+    // BlueprintInfo.parts : Il2CppReferenceArray<ItemInfoQuantity>, .cost : ItemInfoQuantity,
+    // ItemInfoQuantity.{itemInfo,quantity}). The new `viaBlueprintParts` out param signals this
+    // path to the caller for matchKind="parts". (b) Table/Unfiltered_Table requirements are an
+    // ANY-OF acceptance list (any item in `req.tableConfig.GetItemsList()` satisfies the slot,
+    // Cecil-confirmed) — user-approved semantics: those items get eviction PROTECTION only via the
+    // `anyOfProtected` collector, no hard structural demand (the existing NAMED-requirement
+    // `inputs.Add` below is unchanged).
     private static bool TryMatchCookingRecipe(ItemInfo item, string outputName, bool verbose, HashSet<string> loggedRecipes,
+        HashSet<string> loggedTables, HashSet<string> anyOfProtected,
         ref int bpQuantityAvailable, ref int bpQuantityMismatches,
-        out List<(string input, int qty)> inputs, out int outputPerCraft)
+        out List<(string input, int qty)> inputs, out int outputPerCraft, out bool viaBlueprintParts)
     {
         inputs = new List<(string input, int qty)>();
         outputPerCraft = 1;
+        viaBlueprintParts = false;
         try
         {
             // ItemInfo's compile-time chain doesn't reach Il2CppObjectBase (same unity-libs-stub
@@ -759,8 +818,68 @@ internal static class DemandGraph
 
             if (ownClass != "CrockpotRecipeInfo")
             {
+                // v0.16.0 — not a Crockpot recipe: try the BlueprintInfo parts/cost manifest before
+                // giving up (this is what brings the barbecue and curing-rack items into demand;
+                // the transform-map fallback downstream still catches whatever this misses).
+                try
+                {
+                    var bp = new SandSailorStudio.Inventory.BlueprintInfo(baseObj.Pointer);
+                    var bpInputs = new List<(string input, int qty)>();
+
+                    Il2CppReferenceArray<ItemInfoQuantity>? parts = null;
+                    try { parts = bp.parts; } catch { }
+                    if (parts != null)
+                    {
+                        int pn = parts.Length;
+                        for (int p = 0; p < pn; p++)
+                        {
+                            try
+                            {
+                                var part = parts[p];
+                                if (part == null) continue;
+                                string partName = Common.SafeItemName(part.itemInfo);
+                                int partQty = part.quantity;
+                                if (!string.IsNullOrEmpty(partName) && partName != "?" && partQty > 0)
+                                    bpInputs.Add((partName, partQty));
+                            }
+                            catch { }
+                        }
+                    }
+
+                    try
+                    {
+                        var cost = bp.cost;
+                        if (cost != null)
+                        {
+                            string costName = Common.SafeItemName(cost.itemInfo);
+                            int costQty = cost.quantity;
+                            if (!string.IsNullOrEmpty(costName) && costName != "?" && costQty > 0)
+                                bpInputs.Add((costName, costQty));
+                        }
+                    }
+                    catch { }
+
+                    if (bpInputs.Count > 0)
+                    {
+                        inputs = bpInputs;
+                        viaBlueprintParts = true;
+                        if (verbose && loggedRecipes.Add(outputName))
+                        {
+                            var partsSb = new System.Text.StringBuilder();
+                            foreach (var (inName, inQty) in bpInputs)
+                            {
+                                if (partsSb.Length > 0) partsSb.Append(", ");
+                                partsSb.Append($"req '{inName}' x{inQty}");
+                            }
+                            Plugin.Logger.LogInfo($"[SupplyChain] [demand] cooking recipe '{outputName}' via blueprint-parts: {partsSb}");
+                        }
+                        return true;
+                    }
+                }
+                catch { }
+
                 if (verbose && loggedRecipes.Add(outputName))
-                    Plugin.Logger.LogInfo($"[SupplyChain] [demand] cookingRequirements UNAVAILABLE(not CrockpotRecipeInfo, class='{ownClass}') for '{outputName}'");
+                    Plugin.Logger.LogInfo($"[SupplyChain] [demand] cookingRequirements UNAVAILABLE(not CrockpotRecipeInfo, class='{ownClass}', parts=empty) for '{outputName}'");
                 return false;
             }
 
@@ -806,6 +925,45 @@ internal static class DemandGraph
                     string typeStr = "?";
                     try { typeStr = req.type.ToString(); } catch { }
 
+                    // v0.16.0 — Table/Unfiltered_Table requirements are an ANY-OF acceptance list
+                    // (any item in the table satisfies this slot). User-approved semantics: eviction
+                    // PROTECTION only — no hard structural demand (a single any-of item would
+                    // otherwise inflate demand across the whole table). Does not affect the NAMED
+                    // acceptedName path below.
+                    if (typeStr == "Table" || typeStr == "Unfiltered_Table")
+                    {
+                        try
+                        {
+                            var tableConfig = req.tableConfig;
+                            if (tableConfig != null)
+                            {
+                                string tableName = "?";
+                                try { tableName = tableConfig.Name ?? "?"; } catch { }
+
+                                var tableItems = tableConfig.GetItemsList();
+                                int tin = tableItems != null ? tableItems.Count : 0;
+                                var acceptedNames = new List<string>();
+                                for (int ti = 0; ti < tin; ti++)
+                                {
+                                    try
+                                    {
+                                        string tableItemName = Common.SafeItemName(tableItems![ti]);
+                                        if (!string.IsNullOrEmpty(tableItemName) && tableItemName != "?")
+                                        {
+                                            anyOfProtected.Add(tableItemName);
+                                            acceptedNames.Add(tableItemName);
+                                        }
+                                    }
+                                    catch { }
+                                }
+
+                                if (verbose && loggedTables.Add(tableName))
+                                    Plugin.Logger.LogInfo($"[SupplyChain] [demand] table '{tableName}': accepts [{string.Join(", ", acceptedNames)}] (any-of protection)");
+                            }
+                        }
+                        catch { }
+                    }
+
                     if (logSb != null)
                     {
                         if (logSb.Length > 0) logSb.Append(", ");
@@ -835,9 +993,10 @@ internal static class DemandGraph
     private static void DumpStationTasks(StationWork sw, Dictionary<string, BlueprintEntry> union,
         Dictionary<string, List<(string input, int qty)>> transformMap,
         Dictionary<string, List<WantedByEntry>> wantedBy, Dictionary<string, int> directQty, List<string> stillUnmatched,
-        HashSet<string> loggedCookingRecipes, bool verbose,
+        HashSet<string> loggedCookingRecipes, HashSet<string> loggedTables, HashSet<string> anyOfProtected, bool verbose,
         ref int totalTasks, ref int totalMatchedLocal, ref int totalMatchedUnion, ref int totalMatchedCooking,
-        ref int totalMatchedTransform, ref int totalUnmatched, ref int totalStorageTasks, ref int totalFilterTasks,
+        ref int totalMatchedParts, ref int totalMatchedTransform, ref int totalMatchedFarm,
+        ref int totalUnmatched, ref int totalStorageTasks, ref int totalFilterTasks,
         ref int bpQuantityAvailable, ref int bpQuantityMismatches)
     {
         Il2CppSystem.Collections.Generic.List<WorkstationTaskData>? datas = null;
@@ -847,7 +1006,8 @@ internal static class DemandGraph
 
         int n = datas.Count;
 
-        int stationMatched = 0, stationMatchedUnion = 0, stationMatchedCooking = 0, stationMatchedTransform = 0;
+        int stationMatched = 0, stationMatchedUnion = 0, stationMatchedCooking = 0;
+        int stationMatchedParts = 0, stationMatchedTransform = 0, stationMatchedFarm = 0;
         int stationUnmatched = 0, stationStorageTasks = 0, stationFilterTasks = 0, stationProductionTasks = 0;
         var stationUnmatchedNames = new List<string>();
 
@@ -879,6 +1039,25 @@ internal static class DemandGraph
 
             string outputName = Common.SafeItemName(item);
 
+            // v0.16.0 — FarmingStation tasks CONSUME their item (the seed being planted); they
+            // don't produce it. Task quota = structural demand for the seed itself.
+            if (sw.NativeClass == "FarmingStation" || sw.NativeClass == "ForestryStation")
+            {
+                if (quota > 0 && !string.IsNullOrEmpty(outputName) && outputName != "?")
+                {
+                    if (!wantedBy.TryGetValue(outputName, out var flist))
+                    {
+                        flist = new List<WantedByEntry>();
+                        wantedBy[outputName] = flist;
+                    }
+                    flist.Add(new WantedByEntry { Station = sw.StructureName, Output = $"{sw.StructureName} planting", Qty = quota });
+                    directQty.TryGetValue(outputName, out int fex);
+                    directQty[outputName] = fex + quota;
+                    stationMatchedFarm++;
+                }
+                continue;
+            }
+
             // v0.11.1 fix 4 — match order: station-local blueprints -> union -> cooking -> transform map.
             List<(string input, int qty)>? inputs = null;
             int outputPerCraft = 1;
@@ -896,12 +1075,13 @@ internal static class DemandGraph
                 outputPerCraft = unionEntry.OutputPerCraft > 0 ? unionEntry.OutputPerCraft : 1;
                 matchKind = "union";
             }
-            else if (TryMatchCookingRecipe(item, outputName, verbose, loggedCookingRecipes,
-                         ref bpQuantityAvailable, ref bpQuantityMismatches, out var cookingInputs, out int cookingOutputPerCraft))
+            else if (TryMatchCookingRecipe(item, outputName, verbose, loggedCookingRecipes, loggedTables, anyOfProtected,
+                         ref bpQuantityAvailable, ref bpQuantityMismatches, out var cookingInputs, out int cookingOutputPerCraft,
+                         out bool viaBlueprintParts))
             {
                 inputs = cookingInputs;
                 outputPerCraft = cookingOutputPerCraft;
-                matchKind = "cooking";
+                matchKind = viaBlueprintParts ? "parts" : "cooking";
             }
             else if (transformMap.TryGetValue(outputName, out var transformInputs))
             {
@@ -923,6 +1103,7 @@ internal static class DemandGraph
                 case "local": stationMatched++; break;
                 case "union": stationMatchedUnion++; break;
                 case "cooking": stationMatchedCooking++; break;
+                case "parts": stationMatchedParts++; break;
                 case "transform": stationMatchedTransform++; break;
             }
 
@@ -950,7 +1131,9 @@ internal static class DemandGraph
         totalMatchedLocal += stationMatched;
         totalMatchedUnion += stationMatchedUnion;
         totalMatchedCooking += stationMatchedCooking;
+        totalMatchedParts += stationMatchedParts;
         totalMatchedTransform += stationMatchedTransform;
+        totalMatchedFarm += stationMatchedFarm;
         totalUnmatched += stationUnmatched;
         totalStorageTasks += stationStorageTasks;
         totalFilterTasks += stationFilterTasks;
@@ -966,7 +1149,8 @@ internal static class DemandGraph
                 $"[SupplyChain] [demand] station '{sw.StructureName}' class='{sw.NativeClass}': tables={sw.TableCount}{walkStr} " +
                 $"blueprints={sw.LocalBlueprintCount} dupNames={sw.DupNames} tasks={stationProductionTasks}{storageFilterStr} " +
                 $"matched={stationMatched} matchedViaUnion={stationMatchedUnion} matchedViaCooking={stationMatchedCooking} " +
-                $"matchedViaTransform={stationMatchedTransform} unmatched={stationUnmatched}{unmatchedStr}");
+                $"matchedViaParts={stationMatchedParts} matchedViaTransform={stationMatchedTransform} matchedViaFarm={stationMatchedFarm} " +
+                $"unmatched={stationUnmatched}{unmatchedStr}");
         }
     }
 

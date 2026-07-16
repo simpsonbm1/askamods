@@ -1,12 +1,12 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.15.1 — case layer (new CaseTracker: per-poll findings → persistent
-CANDIDATE→OPEN→RESOLVED cases with chain/merge tags + RESOLVED observation summaries; riders:
-item-named STARVED/OFF lines, SURPLUS re-termed as the hog-eligibility pool + MinSurplusSlots
-reporting floor). v0.15.1 in-game-verified 2026-07-16 (core spec passed: zero errors, opens at
-exactly 4/6 polls, bones HOG opened once; tuning: MinSurplusSlots default 4→10, CaseClosePolls
-kept 4). Still 100% dry-run/read-only. Next: food/farming demand modeling (pre-arm blocker 2),
-then arming per DEMAND_MODEL_PLAN.md → "Arming design". Dev tool NOT for Nexus
+**Status:** WIP v0.16.0 — food-demand riders in-game-verified 2026-07-16 (pre-arm blocker 2:
+barbecue/curing raw→cooked edges via the BlueprintInfo `parts` fallback, protection-only any-of
+semantics for cooking Table requirements, farm tasks = seed demand) on top of the v0.15.1 case
+layer (CaseTracker: per-poll findings → persistent CANDIDATE→OPEN→RESOLVED cases with chain/merge
+tags + observation summaries; in-game-verified 2026-07-16, tuning: MinSurplusSlots default 4→10,
+CaseClosePolls kept 4). Still 100% dry-run/read-only. Next: arming implementation (tier first)
+per DEMAND_MODEL_PLAN.md → "Arming design". Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -749,3 +749,16 @@ See architecture.md for full API surface.
   accepted; genuine resolutions also observed). Known v1 approximation: ComputeSlotFootprint
   splits a group's structure-wide Stored evenly across its containers — affects line suppression
   only, never eligibility.
+- **v0.16.0** (2026-07-16, in-game-verified same day) — food-demand riders (pre-arm blocker 2,
+  DEMAND_MODEL_PLAN.md → "Food-demand probe findings"): (1) plain-CookingRecipeInfo recipes
+  (barbecue Cooked X, curing racks) resolve inputs via the inherited BlueprintInfo `parts`/`cost`
+  manifest (new matchKind "parts"; TransformMap kept as fallback net but now redundant —
+  matchedViaTransform=0); (2) cooking Table/Unfiltered_Table requirements resolve their
+  ItemTableConfig accepted-item lists into an any-of protection set — protected items are never
+  hog candidates and their SURPLUS tail reads "any-of-protected" (protection-only, zero hard
+  demand — user decision); (3) FarmingStation/ForestryStation tasks read as seed CONSUMERS
+  (task quota = structural demand for the seed). Test (quick F9 run): Campfire matchedViaParts=9
+  unmatched=0, Farm ×2 matchedViaFarm=16 unmatched=0, seeds structural>0 (Beetroot 12, Onion 8,
+  Garlic 8, Flax 4), 7 tables → anyOfProtected=19 (Raw Food table = 14 items), TOTAL unmatched
+  8, zero errors. Known gap (accepted): animal-pen feed (smolkrs eat seeds) has no structural
+  term — flow-protection covers it; probe pen feed configs when later pens are reached.

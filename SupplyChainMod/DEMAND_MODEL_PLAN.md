@@ -413,9 +413,15 @@ competitor" advisory/lever.
 1. **Case layer build (dry-run):** persistence gate + item/chain case merge + case lifecycle log
    lines, with riders (starved/off emit proposal lines; SURPLUS reporting floor). The natural
    next build — pure code on top of the current classifier, testable dry-run.
-2. **Food/farming demand modeling** — blocks arming eviction of any food item or seed (case 2);
+2. **Food demand modeling** — blocks arming eviction of any food item or seed (case 2);
    seeds additionally read structural=0 (FarmingStation crop demand unmodeled) and planting is
-   seasonal, so ALIVE protection alone is not sufficient to arm seed eviction.
+   seasonal, so ALIVE protection alone is not sufficient to arm seed eviction. Modeling priority
+   (user, 2026-07-16): the hunting/gathering→cooking pipeline outranks seeds/farming→cooking.
+   As a food SOURCE a farm is a more deterministic duplicate of the gatherer huts (it just grows
+   more of what gatherers pick up anyway), so model raw-food demand (cooking-recipe inputs +
+   population eating) against gathered/hunted items first; farming stays first-class only as the
+   SEED CONSUMER (the fix for seeds reading structural=0 is FarmingStation crop selections, a
+   separable sub-task).
 3. **Co-op drop replication test** — blocks eviction outside solo.
 4. **Crafting-station container visibility** — blocks chain advisories (case 4); not needed for
    tier or HOG arming.
@@ -436,6 +442,57 @@ cards use the routing-table classes. ⚠️ UI research unresearched: toasts are
 injection into the game HUD is unexplored territory (research item when the time comes; keep
 expectations gated on that spike).
 
+## Food-demand probe findings (2026-07-16, Cecil + v0.15.1 live log — build not yet approved)
+
+Probe pass for pre-arm blocker 2 (user priority: hunting/gathering→cooking first; farming =
+seed consumer). Game facts recorded in architecture.md (Cooking Station Pipeline → "Cooking
+recipe classes"; Settlement Hauling → "Gatherer/Hunting/Fishing/Dining huts are
+ResourceStorage"). Design implications:
+1. **Cob oven is free.** Pies/cheese are `CrockpotRecipeInfo` — already fully read (19/19
+   Cooking House + 3/3 Cheesemaker matchedViaCooking in the v0.15.1 run). No work needed.
+2. **Barbecue is the one real coverage gap.** Campfire products (Cooked Red/Fish Meat, Cooked
+   Mushrooms ×3 — 9 tasks) are plain `CookingRecipeInfo` → all unmatched before v0.16.0. Fixed:
+   BlueprintInfo `parts` fallback in TryMatchCookingRecipe — confirmed in-game 2026-07-16, parts
+   populated for all 9 barbecue AND the 3 curing recipes (matchedViaParts=12,
+   matchedViaTransform=0; TransformMap now a redundant safety net).
+3. **Table ('?') requirements are resolvable** via `tableConfig.GetItemsList()` /
+   `_occurenceTableManifest`. Any-of semantics DECIDED (user 2026-07-16): protection-only — every
+   accepted item counts as demanded for eviction PROTECTION (never selectable as a HOG), but an
+   any-of requirement creates hard tier-bump demand for no single item (demand would otherwise
+   inflate across the whole table).
+4. **Gathered-item supply lever confirmed, no new pipeline needed.** Gatherer huts are plain
+   `ResourceStorage`: supply levers are their per-item quota rows + rank — the warehouse scan
+   already reads these, and BLOCKAGE cause=priority-shadowed at 'Gatherer's Hut 4' already names
+   them as tier targets. Hunting = HuntingStation's unique prey-filter task (gear/proficiency
+   gated per entry).
+5. **Seed demand is an interpretation rule away.** FarmingStation production tasks already
+   enumerate seed items + quotas (16/farm in the run, currently all 'unmatched') → rule: a farm
+   task = structural demand for its seed item. The crop-production edge (Beetroot Seeds →
+   Beetroot) stays deferred — farms duplicate gatherer supply (user call 2026-07-16).
+   KNOWN UNMODELED CONSUMER (user, 2026-07-16): animal-pen feed — smolkrs eat seeds at the
+   Smolkr Pen (`AnimalPen : Kennel`; its feed selection is a FILTER task, correctly skipped by
+   the production-task reader; its one production task 'Smolkr' is unmatched). Later pens' diets
+   unknown (user hasn't progressed there). Coverage today is flow-protection only (an observed
+   decrease → ALIVE for 6×InertMinutes), which is consumer-agnostic; structural pen-feed demand
+   is DEFERRED until the user reaches later pens — probe AnimalPen's feed config/filter then.
+   Accepted seed posture (user): keep working stock (farm demand × ratchet), let genuinely
+   hoarded mountains (respawn-mod gathering can reach thousands) become hog-eligible for
+   eventual cleanup — the ALIVE-vs-DEAD split already encodes this.
+6. **Population eating: model as measured drain, not first principles.** No per-item nutrition
+   exists on ItemInfo; eat pacing lives in `VillagerDiningInteractionConfig`. v1 stance: the
+   metabolic layer's measured per-item drain rates ARE the eating term; note DVN's
+   `HungerRateMultiplier` scales villager hunger drain and thus functions as a scalar on the
+   entire food pipeline (user note 2026-07-16).
+v0.16.0 build APPROVED (user 2026-07-16, all three riders): barbecue BlueprintInfo-parts
+fallback (+ probe line; TransformMap stays as the safety net — user note: the barbecue is
+mechanically a transform like the curing racks, and curing items are indeed the SAME plain
+CookingRecipeInfo shape, so the parts path auto-derives both if populated); table-req resolution
+with protection-only any-of semantics; farm-task seed demand. User-confirmed chain (2026-07-16):
+the barbecue worker pulls ANY raw food from storage and cooks by the station's per-item task
+priority; the downstream consumer is the tavern (DiningStation), which stocks cooked food for
+villagers to eat — so with the barbecue edge added, gathering/hunting→barbecue→tavern→eating
+becomes structurally connected end to end.
+
 ## Status & open next steps (updated 2026-07-16)
 
 SHIPPED + in-game-verified: sequence steps 1–3 (v0.9.2 probe → v0.10.0 DemandGraph → v0.11.x
@@ -450,7 +507,8 @@ summaries live, zero errors); tuning: MinSurplusSlots default 4→10, CaseCloseP
 accepted). Recipe + version history in docs/mods/supply-chain.md.
 
 Open next steps (arming design above approved 2026-07-16):
-1. **Food/farming demand modeling** (pre-arm blocker 2).
+1. **Food demand modeling** (pre-arm blocker 2) — hunting/gathering→cooking pipeline first,
+   farming demoted to seed-consumer role (user call 2026-07-16; see pre-arm blockers below).
 2. **Arming implementation** — tier first, per the routing table + rails above.
 3. **Phase 3 / task creation research.**
 

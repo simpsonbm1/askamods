@@ -1,0 +1,184 @@
+﻿===== BlueprintInfo (manifest surface) =====
+TYPE: SandSailorStudio.Inventory.BlueprintInfo base=ItemInfo
+  P: result : ItemInfo
+  P: quantity : Int32
+  P: cost : ItemInfoQuantity
+  P: parts : Il2CppReferenceArray`1
+  P: autoConstruct : Boolean
+  P: consumeOnUse : Boolean
+  P: Name : String
+  P: Localized : Boolean
+  M: Item CreateItem()
+  M: Boolean CanBeAcquired(ItemCollection container)
+  M: Boolean CanBeUsed(ItemCollection container)
+  M: Int32 NeedsPart(ItemInfo itemInfo)
+  M: Single GetAvailablePartsPercent(ItemCollection container)
+  M: Void FillManifest(ItemManifest manifest, Int32& multiplier)
+  M: Int32 _GetPartsCount(ItemCollection container)
+  M: Boolean _CheckParts(ItemCollection container)
+  M: Boolean _CheckCost(ItemCollection container)
+  M: String Loc(String keyToken, Il2CppStringArray interpStrings)
+  M: String GetKey(String token)
+  M: Dictionary`2 GetLocalizationStrings()
+  M: String Loc(String keyToken, String[] interpStrings)
+
+===== ItemTableConfig =====
+TYPE: SandSailorStudio.Inventory.ItemTableConfig base=BaseItemsConfig
+  P: items : List`1
+  P: categories : List`1
+  P: excludedItems : List`1
+  P: icon : Sprite
+  P: localizedName : String
+  P: localizedDescription : String
+  P: _table : ItemTable
+  P: _localized : Boolean
+  P: Name : String
+  P: Description : String
+  P: Localized : Boolean
+  M: Void _ResetAsset()
+  M: ItemTable GetTable()
+  M: IItemFilter GetItemFilter()
+  M: List`1 GetItemsList()
+  M: Void FillManifest(ItemManifest manifest, Int32& multiplier, IItemFilter itemFilter)
+  M: String Loc(String keyToken, Il2CppStringArray interpStrings)
+  M: String GetKey(String token)
+  M: Dictionary`2 GetLocalizationStrings()
+  M: String Loc(String keyToken, String[] interpStrings)
+
+===== ResourceStorage (task/quota row API only) =====
+  P: _Structure_k__BackingField : Structure
+  P: _WhitelistNewVillagers_k__BackingField : Boolean
+  P: OnWhitelistDataReceived : Action
+  P: inventory : InventoryComponent
+  P: fetchBehaviour : vFSMBehaviour
+  P: idleBehaviour : vFSMBehaviour
+  P: complainBehaviour : vFSMBehaviour
+  P: findNeededItemsBehaviour : vFSMBehaviour
+  P: cleanupInventoryBehaviour : vFSMBehaviour
+  P: excludedResourcesList : ItemInfoList
+  P: keepStorageRegisteredAfterDeath : Boolean
+  P: requiredMarkerType : HarvestMarkerAreaType
+  P: requiredMarker : NodeTemplate
+  P: onlyGatherNativeItems : Boolean
+  P: hasTasksOnChildren : Boolean
+  P: ravenHarvestTool : ItemCategoryInfo
+  P: _idleQuest : WorkstationIdleQuest
+  P: _complaintQuest : ResourceStorageComplainQuest
+  P: _gatherAndHarvestQuest : GatherAndHarvestQuest
+  P: _findNeededItemsQuest : FindHarvestingToolsQuest
+  P: _cleanupInventoryQuest : CleanupInventoryQuest
+  P: _registeredToTaskManager : Boolean
+  P: _villagersWhitelist : HashSet`1
+  P: _whitelistAllVillagers : Boolean
+  P: _whitelistDataReceived : Boolean
+  P: _jobNameAreaDescription : InteractionAreaDescription
+  P: s_outpostIdEvData : SettlementEventData`1
+  P: _nativeItemsFilter : NativeItemsFilter
+  P: c_taskDataArray : String
+  P: c_taskPriority : String
+  P: c_taskQuantity : String
+  P: c_taskQuantityRatio : String
+  P: c_itemInfo : String
+  P: c_storageSupply : String
+  P: c_taskVillagers : String
+  P: c_whitelistAll : String
+  P: c_whitelistedVillagers : String
+  P: field_CompilerControlled_Static_Changed_1_ResourceStorage_0 : Changed`1
+  P: field_CompilerControlled_Static_ChangedDelegate_1_ResourceStorage_0 : ChangedDelegate`1
+  P: field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_ResourceStorage_0 : NetworkBehaviourCallbacks`1
+  P: Structure : Structure
+  P: WhitelistNewVillagers : Boolean
+  P: IsMobile : Boolean
+  P: WhitelistedAllVillagers : Boolean
+  P: WhitelistDataReceived : Boolean
+  P: ShowWhitelistedVillagers : Boolean
+  P: LinkedComponentType : ComponentType
+  M: Void _PrepareNativeItemsFilter()
+  M: Boolean AddTaskDispatcher(ITaskDispatcher td)
+  M: Void RemoveTaskDispatcher(ITaskDispatcher td)
+  M: Boolean SetTaskAgent(ITaskAgent agent)
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent)
+  M: Void CreateTaskDispatcherData(ITaskDispatcher taskDispatcher)
+  M: Boolean CanCreateStorageTaskForItemInfo(StorageSupply storageSupply, ItemInfo info)
+  M: Void CreateOrUpdateTasksFromStorageSupply(StorageSupply storageSupply, List`1 taskAgentsToVillagers, Boolean shouldAddForChildrenTasks)
+  M: Boolean _CanAddVillagerToTaskData(Villager villagerToAdd, WorkstationTaskData taskData)
+  M: Void RemoveTaskDispatcherData(ITaskDispatcher td)
+  M: Int32 GetGatheredItemPriority(ItemInfo itemInfo, Villager villager, StorageSupply storageSupply)
+  M: Int32 GetGatheredItemQuantity(StorageSupply ss, ItemInfo itemInfo)
+  M: Void FillResourceStorageTaskDatas(List`1 taskDatas)
+  M: StorageInteraction FindStorageInteraction(Func`2 predicate)
+  M: Void GetAllStorageInteractions(List`1 result, Func`2 predicate)
+  M: ItemManifest GetItemManifest()
+  M: ResourceStorageTaskData GetResourceTaskData(Int32 itemInfoID, String ContainerKey)
+  M: ResourceStorageTaskData GetResourceTaskData(ItemInfo itemInfo, StorageSupply storageSupply)
+  M: ResourceStorageTaskData GetResourceStorageTaskData(Int32 itemInfoID, Structure taskDispatcherOwner)
+  M: ResourceStorageTaskData GetResourceStorageTaskData(Int32 itemInfoID, StorageSupply storageSupply)
+  M: Boolean DeserializeTaskData(DataObject source)
+  M: DataObject SerializeTaskData(DataObject destination)
+  M: DataObject SerializeTaskDataForRecreation(DataObject destination)
+  M: Boolean DeserializeTaskDataForRecreation(DataObject source)
+  M: DataObject SerializeTasksPreset(Structure targetStructure)
+  M: Boolean DeserializeTasksPresetData(DataObject tasksPresetData, Structure targetStructure)
+
+===== HuntingStation + HuntingData + HunterFiltersTaskData =====
+TYPE: SSSGame.HuntingStation base=ResourceStorage
+  P: c_uniqueTaskData : String
+  P: _combatBehaviour : vFSMBehaviour
+  P: _combatQuest : HunterCombatQuest
+  P: _uniqueTaskIcon : Sprite
+  P: _uniqueTaskName : String
+  P: huntingList : HuntingList
+  P: _uniqueTaskFilterItems : List`1
+  P: _uniqueTaskData : HunterFiltersTaskData
+  P: field_CompilerControlled_Static_Changed_1_HuntingStation_0 : Changed`1
+  P: field_CompilerControlled_Static_ChangedDelegate_1_HuntingStation_0 : ChangedDelegate`1
+  P: field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_HuntingStation_0 : NetworkBehaviourCallbacks`1
+  P: UniqueTask : HunterFiltersTaskData
+  M: Void Awake()
+  M: Void Spawned()
+  M: DataObject SerializeTaskData(DataObject destination)
+  M: Boolean DeserializeTaskData(DataObject source)
+  M: Boolean SetTaskAgent(ITaskAgent agent)
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent)
+  M: Void _OnUniqueTaskChanged()
+  M: Void _PrepareHuntingList(ITaskAgent agent)
+  M: Void CreateFilterWithoutDangerousPreyAndPrepareProficiencyComplaint(HuntingData actionData, Int32 tier, Int32 proficiencyLevel)
+  M: List`1 GetFilterItemList(Int32 taskId)
+  M: Sprite GetTaskIcon(Int32 taskId)
+  M: String GetTaskName(Int32 taskId)
+  M: FiltersTaskData CreateFilterTask(Int32 taskId)
+  M: Void CopyBackingFieldsToState(Boolean )
+  M: Void CopyStateToBackingFields()
+
+TYPE: SSSGame.HuntingStation/HuntingData base=Object
+  P: station : HuntingStation
+  P: dangerousPreyFilter : ItemManifest
+  P: huntingMarkers : List`1
+  P: huntingManifest : ItemManifest
+  P: requestedSpawner : PopulationSpawner
+  P: spawnersOfInterest : List`1
+  P: seekTimeStart : Single
+  P: prey : Creature
+  P: requiredGearTier : Int32
+  P: requiredProficiencyLevel : Int32
+  P: _preyFilter : PriorityItemFilter
+  M: PriorityItemFilter HuntingList()
+  M: Void Reset()
+
+TYPE: SSSGame.AI.HunterFiltersTaskData base=FiltersTaskData
+  P: _huntingList : HuntingList
+  P: _huntingStation : HuntingStation
+  P: requiredProfciency : AttributeConfig
+  P: entryRequiredGearTier : List`1
+  P: entryRequiredProficiencyLevel : List`1
+  M: Void OnAfterFiltersChanged()
+  M: Boolean GetFilterItemValidation(Int32 filterItemIndex, String& tooltip)
+
+===== VillagerDiningInteractionConfig (eat restore magnitude?) =====
+TYPE: SSSGame.VillagerDiningInteractionConfig base=VillagerRestInteractionConfig
+  P: startConsumeDelay : Single
+  P: consumeInterval : Single
+  P: maxFill : Single
+  M: Boolean CheckInteractionType(Interaction interaction)
+  M: InteractionSession CreateSession(Interaction interaction, IInteractionAgent agent)
+

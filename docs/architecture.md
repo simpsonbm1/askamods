@@ -979,6 +979,29 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   QUOTA, not fill progress** — gathered==qty on every row across all warehouses (in-game
   2026-07-13). Useless as a per-supply stored count.
 
+### Gatherer/Hunting/Fishing/Dining huts are ResourceStorage stations (Cecil + live log, 2026-07-16)
+
+- **There is NO dedicated "GathererStation" class.** Gatherer huts are plain
+  `SSSGame.ResourceStorage` (: `Workstation`); `HuntingStation`, `FishingStation`,
+  `DiningStation`, `CaveResourceStorage`, `VehicleResourceStorage` all derive from it. A gatherer
+  hut has no production tasks — its "tasks" are per-item storage quota rows
+  (`ResourceStorageTaskData`: quota + priority rank), and workers fill them via its
+  `_gatherAndHarvestQuest` (`GatherAndHarvestQuest`). This is why SupplyChainMod's demand station
+  census never lists gatherer huts while its warehouse scan reads their rows (quotaSum/rank) like
+  any storage (log-confirmed 2026-07-16).
+- Row API: `GetResourceTaskData(itemInfo, storageSupply)` / `(itemInfoID, containerKey)`;
+  `GetGatheredItemPriority(itemInfo, villager, storageSupply)`. (`GetGatheredItemQuantity`
+  returns quota, not fill — dead-end above.)
+- `HuntingStation` adds one "unique task" (`UniqueTask : HunterFiltersTaskData`) holding a prey
+  list (`huntingList : HuntingList`) with per-entry required gear tier + proficiency
+  (`entryRequiredGearTier` / `entryRequiredProficiencyLevel`); hunts run via `HunterCombatQuest`
+  + `HuntingStation.HuntingData` (prey filter manifests, hunting markers, spawners of interest).
+- `DiningStation` (: ResourceStorage) stocks MEALS via storage rows (43 storageTasks observed on
+  'Tomaso's'); villagers eat via `DiningAttendeeQuest`; `DiningStationSupplyQuest :
+  GatherAndHarvestQuest` restocks it. Villager eat pacing lives in
+  `VillagerDiningInteractionConfig` (`startConsumeDelay`, `consumeInterval`, `maxFill`) — there
+  is NO per-item nutrition field on `ItemInfo` (only `_decayRateAttrData` spoilage).
+
 ---
 
 ## Inventory, Settlement Queries & Recipes (general — storage/crafting toolkit)
@@ -1222,6 +1245,28 @@ completed dish. This is a UI-discoverability issue, **not a code or mod bug.** (
   TaskRunner act/run empty) can still be pulled out to deliver finished dishes (the `FSM_ReturnCookingResults` /
   `CookingReturnQuest` step), then returns to leisure after. New-dish starts do NOT happen off-schedule; only
   retrieval of already-cooking results fires, protected by the delivered-dish safety logic (vanilla `OvercookingQuest`).
+
+### Cooking recipe classes & requirement resolution (Cecil + live log, 2026-07-16)
+
+- Class hierarchy: `SSSGame.CookingRecipeInfo : BlueprintInfo : ItemInfo`; the sole subclass is
+  `SSSGame.CrockpotRecipeInfo`. ALL cooking-house recipes — crockpot soups/stews AND cob-oven
+  pies AND cheesemaker cheeses — are `CrockpotRecipeInfo` (log-confirmed 2026-07-16: 19/19
+  Cooking House + 3/3 Cheesemaker tasks matched via `cookingRequirements`; the crockpot vs
+  cob-oven split is purely presentational).
+- **The barbecue is a `CookingStation` named 'Campfire'**; its raw→cooked products (Cooked
+  Red/Fish Meat, Cooked Mushrooms ×3) are PLAIN `CookingRecipeInfo` — no `cookingRequirements`
+  property exists there. But `CookingRecipeInfo` IS a `BlueprintInfo`, and **`parts` IS populated
+  for plain cooking recipes** — confirmed in-game (2026-07-16, SupplyChainMod v0.16.0): all 9
+  barbecue recipes AND the three curing-rack recipes (Cured Leather Hide/Pelt/Heavy Pelt ← 1:1
+  from their raw item) resolved via `parts`, making a hand-kept transform map redundant for both
+  families (SupplyChainMod keeps its TransformMap only as a fallback net).
+- `CrockpotRecipeInfo.CookingRecipeRequirement` (nested struct): `type :
+  CookingRecipeRequirementType` (Specific=0, Table=1, Unfiltered_Table=2), `acceptedInfo :
+  ItemInfo` (null for pure Table reqs — renders '?' in logs), `tableConfig : ItemTableConfig`,
+  `count`, `allowedError`. Table reqs resolve to concrete item sets via
+  `tableConfig.GetItemsList()` (`ItemTableConfig` carries `items`/`categories`/`excludedItems`)
+  or the recipe's precomputed `_occurenceTableManifest` / `_occurenceSpecificManifest`.
+- Every crockpot recipe requires Water (log-confirmed across all 19 dumped recipes).
 
 ---
 

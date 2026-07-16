@@ -11,7 +11,7 @@ below verified against `code.claude.com/docs/en/sub-agents` (2026-07-06).
 | Agent | Model | Delegate | Never delegate |
 |---|---|---|---|
 | `mod-implementer` | Sonnet | A fully-planned code change: edit source, bump `PLUGIN_VERSION` + csproj `<Version>`, build, report | Anything whose approach is undecided; debugging with an unknown root cause |
-| `doc-scribe` | Haiku | Doc-only work: dual-write CLAUDE.md ↔ AGENTS.md, `docs/` updates, drift-check + integrity rituals at commit checkpoints | Deciding *what* is true — it records only facts stated in its prompt |
+| `doc-scribe` | Haiku | Doc-only work: milestone doc passes (mod-doc status/history), `docs/` updates from supplied facts | Deciding *what* is true — it records only facts stated in its prompt. Ordinary commits need no doc pass (see below) |
 | `log-analyst` | Haiku | Post-test-run `LogOutput.log` triage: loaded versions, exceptions, fire-verification markers; `check-loaded.ps1` | Interpreting *why* something failed — it reports evidence, the main thread diagnoses |
 | Explore (built-in) | inherits (≤ Opus) | Broad codebase/interop-assembly searches where only the conclusion matters | — |
 
@@ -22,49 +22,37 @@ thread — those need the strongest model *and* the conversation context.
 > **Two rosters coexist here.** A generic user-level roster (`implementer`, `doc-worker`,
 > `log-triager` in `~/.claude/agents/` — master list in its `README.md`, routing table in the
 > global `~/.claude/CLAUDE.md`) is available in every project. In askamods, **prefer the three
-> project agents above** for matching tasks — they encode this project's rituals (dual-write,
-> SAC bump, BepInEx paths) that the generic ones only know indirectly via CLAUDE.md.
+> project agents above** for matching tasks — they encode this project's rituals (SAC bump,
+> BepInEx paths, doc conventions) that the generic ones only know indirectly via CLAUDE.md.
 
-## The commit-checkpoint dual-write ALWAYS goes to doc-scribe (cost-critical)
+## Commit checkpoints are fast-path; doc-scribe handles MILESTONE doc passes (restructured 2026-07-16)
 
-This is the single most expensive doc task in the project and the one most often skipped, so it gets
-its own rule: **at every commit checkpoint, delegate the whole Ritual-2 dual-write pass to
-`doc-scribe` — do not do it inline on the main (Opus) model.** Measured 2026-07-07: doing it inline
-cost ~10% of a 5h session. Why it's costly on the main thread (and cheap on Haiku):
+The old rule here — "the commit-checkpoint dual-write ALWAYS goes to doc-scribe" — is retired
+along with the dual-write itself: `.agents/AGENTS.md` is now a pointer stub, CLAUDE.md is the
+single orientation copy, and `.githooks/pre-commit` auto-fixes stale version tokens at commit.
+(History: the dual-write cost ~10% of a 5h session inline, measured 2026-07-07; delegating it
+to Haiku fixed tokens but still left the user waiting ~10 minutes per checkpoint, which deterred
+committing at all — the restructure removed the work instead of optimizing it.)
 
-- It writes **CLAUDE.md + `.agents/AGENTS.md`** — near-duplicate 277-line files — so the same info is
-  generated *twice*, plus a new `docs/mods/*.md` and often an `architecture.md` subsection (1221
-  lines). That is a large volume of **output** tokens (≈5× input cost).
-- It runs at **end of session**, when the main context is at its largest and often past the 5-min
-  prompt-cache TTL → full-price re-reads on every one of its 6–10 turns.
-- `doc-scribe` sidesteps both: output is generated on **Haiku (~1/10–1/15 the cost)**, in a **fresh,
-  tiny context** that never carries the session history — only its short report returns to Opus.
+**An ordinary checkpoint commit involves NO doc pass**: stage → commit (hook auto-fixes) → push,
+plus at most one inline blurb edit when a mod's status/approach genuinely changed. Narrative
+docs are written as-you-go during the work (see CLAUDE.md → "Single-source orientation" →
+doc cadence).
 
-Do **not** rationalize this as a "micro-edit that's cheaper inline" (the "Delegation isn't free"
-gotcha below) — it is multi-file, high-output, peak-context work: the canonical delegation case, not
-a borderline one. The main thread's only remaining commit-time jobs are deciding *what* is true
-(stated to doc-scribe in the prompt), then asking the user and running `git commit/push` (never
-delegated). This can't be hook-enforced — the harness can't tell which model wrote an edit — so
-compliance rides on this instruction; honor it.
+**doc-scribe's remaining job — milestone doc passes** (mod shipped/parked/phase complete:
+mod-doc status header + compressed version-history entry, architecture.md subsections from
+supplied facts). When dispatching one, the old wall-clock rules still apply:
 
-### Checkpoint wall-clock rules (added 2026-07-15 — user flagged checkpoint duration)
-
-Token cost was solved by delegating; the remaining cost is the user's *waiting time*. Four rules:
-
-- **Surgical prompts.** At checkpoint time the main thread has already read every file being
-  edited — give doc-scribe exact anchor text + exact replacement text, never "search for X and
-  supersede" descriptions, and instruct it not to read beyond the edit sites and not to run
-  whole-file ritual sweeps. (Measured 2026-07-15: a semantic prompt cost 35 tool calls / 3.5 min;
-  surgical roughly halves it.)
-- **Trust the pre-commit hook.** `.githooks/pre-commit` already enforces version match, doc-map
-  presence, and dup-header checks mechanically. Don't re-verify the scribe's edits with
-  main-thread greps — attempt the commit; investigate only if the hook bounces.
-- **Background the scribe when a next task is queued.** Fire it with `run_in_background` right
-  after the user's commit go-ahead and keep working; commit + push when it completes. Run it
-  synchronously only when the checkpoint is the last act of the session.
+- **Surgical prompts.** Give exact anchor text + exact replacement text, never "search for X and
+  supersede" descriptions; instruct it not to read beyond the edit sites. (Measured 2026-07-15:
+  a semantic prompt cost 35 tool calls / 3.5 min; surgical roughly halves it.)
+- **Trust the pre-commit hook.** Don't re-verify the scribe's edits with main-thread greps —
+  attempt the commit; investigate only if the hook bounces.
+- **Background the scribe when a next task is queued.** Fire it with `run_in_background` and
+  keep working; run synchronously only when it's the last act of the session.
 - **Pointers in secondary docs.** The mod doc + architecture.md carry the facts;
   NEW_MOD_IDEAS_PLAN and similar get one-line pointers (the de-accretion rule), which shrinks
-  the scribe's edit set.
+  the edit set.
 
 ## How delegation gets triggered
 
@@ -122,9 +110,8 @@ delegate a task containing an open decision.
   directly (or ask Claude to).
 - **Delegation isn't free**: each spawn re-reads CLAUDE.md and re-derives context, and each result
   consumes main-thread context on return. Delegate meaty self-contained chunks (a whole
-  implementation cycle, a whole doc pass), not one-file micro-edits — a tiny task is cheaper done
-  inline on the main model than paid for twice. **Do NOT misapply this to the commit-checkpoint
-  dual-write** — it is *not* a micro-edit (see below) and must always be delegated.
+  implementation cycle, a whole milestone doc pass), not one-file micro-edits — a tiny task is
+  cheaper done inline on the main model than paid for twice.
 - **Tight build→test loops stay coordinated by the main thread**: the user tests in-game between
   cycles and reports back to the main conversation. Delegate the mechanical inside of a cycle
   (edit + bump + build → implementer; log triage → log-analyst) when it's fully specified; keep the

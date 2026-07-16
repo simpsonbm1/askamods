@@ -418,6 +418,7 @@ internal static class BudgetPlane
                     {
                         if (ReferenceEquals(x, bestVictim)) continue;
                         if (!IsSurplusV2(x.Item, itemSignals[x.Item])) continue; // v0.14.0 — OverTarget AND dead/growing
+                        if (DemandGraph.IsAnyOfProtected(x.Item)) continue; // v0.16.0 any-of protection: a cooking table accepts this item — never evict it
                         if (x.Stored < Plugin.HogMinStored.Value) continue;
 
                         // No-rate counts as static here (see class header) — a fresh-load F9 before
@@ -580,9 +581,14 @@ internal static class BudgetPlane
                     string ratchetStr = sig.RatchetTotal > sig.StructTotal ? $" ratchet={sig.RatchetTotal}" : "";
                     string demStr = sig.StructTotal > 0 ? $"demand={sig.StructTotal}" : "undemanded";
                     string verdict = VerdictFor(item);
+                    // v0.16.0 — an any-of-protected item can never escalate to HOG (see the hog-gate
+                    // above), so the generic "escalates to HOG if it crowds" tail would lie for it.
+                    string tail = DemandGraph.IsAnyOfProtected(item)
+                        ? "any-of-protected (a cooking table accepts it; never evictable), not currently crowding; reporting only (dry-run)"
+                        : "hog-eligible (over-target + static), not currently crowding; reporting only - escalates to HOG if it crowds a demanded item (dry-run)";
                     string line =
                         $"[SupplyChain] [budget] SURPLUS '{item}': settleStored={sig.SettleStored} {demStr}{ratchetStr} keepTarget={keepTarget:F0} " +
-                        $"verdict={verdict} top='{sig.TopSource}' -> hog-eligible (over-target + static), not currently crowding; reporting only - escalates to HOG if it crowds a demanded item (dry-run)";
+                        $"verdict={verdict} top='{sig.TopSource}' -> {tail}";
                     proposals.Add((line, sig.StructTotal, $"surplus|{item}"));
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] SURPLUS '{skv.Key}' error: {ex}"); }

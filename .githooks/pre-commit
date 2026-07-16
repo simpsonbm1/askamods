@@ -1,6 +1,10 @@
 #!/bin/sh
-# askamods pre-commit: mechanizes CLAUDE.md's Ritual 1 (CLAUDE.md <-> AGENTS.md drift) and
-# Ritual 3 (duplication guard). Blocks the commit with a specific report on any mismatch.
+# askamods pre-commit: single-source orientation guard — CLAUDE.md is the canonical orientation.
+# - AUTO-FIXES stale mod version tokens in CLAUDE.md from each csproj <Version> (and re-stages).
+# - BLOCKS on structural drift: mod folder or doc missing from CLAUDE.md, PLUGIN_VERSION !=
+#   csproj <Version> (the SAC half-bump — a text fix can't fix a DLL, it needs a rebuild),
+#   duplicated CLAUDE.md body, or an AGENTS.md stub that lost its pointer marker / started
+#   re-growing a full orientation body.
 # Enable once per clone:  git config core.hooksPath .githooks
 # (Do NOT bypass with --no-verify; fix the drift instead — that's the whole point.)
 
@@ -8,59 +12,72 @@ set -u
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
 C="CLAUDE.md"
-A=".agents/AGENTS.md"
 fail=0
 err() { echo "RITUAL FAIL: $1" >&2; fail=1; }
 
 [ -f "$C" ] || { echo "RITUAL FAIL: $C missing" >&2; exit 1; }
-[ -f "$A" ] || { echo "RITUAL FAIL: $A missing" >&2; exit 1; }
 
-# --- Ritual 3: integrity guard (exactly one body per orientation file) ---
-for f in "$C" "$A"; do
-    n=$(grep -c "^# AskaMods" "$f")
-    [ "$n" -eq 1 ] || err "$f contains $n '# AskaMods' headers (must be exactly 1 — duplicated body?)"
+# --- Integrity guard: exactly one body in the canonical file ---
+n=$(grep -c "^# AskaMods" "$C")
+[ "$n" -eq 1 ] || err "$C contains $n '# AskaMods' headers (must be exactly 1 — duplicated body?)"
+
+# --- Stub guard: the AGENTS.md pointer files must stay stubs ---
+for s in AGENTS.md .agents/AGENTS.md; do
+    if [ ! -f "$s" ]; then err "$s missing"; continue; fi
+    grep -q "ORIENTATION-STUB" "$s" || \
+        err "$s lost its ORIENTATION-STUB marker (it must stay a pointer stub — see CLAUDE.md)"
+    if grep -q "^## Project Structure" "$s"; then
+        err "$s is re-growing a full orientation body ('## Project Structure' found) — project content belongs ONLY in $C"
+    fi
 done
 
-# --- Ritual 1a: every mod folder appears in BOTH files ---
-# A "mod" is a top-level directory containing <Dir>/<Dir>.csproj.
+# --- Every mod folder appears in CLAUDE.md; stale version tokens are AUTO-FIXED from csproj ---
+fixed=0
 for csproj in */*.csproj; do
     [ -f "$csproj" ] || continue
     mod=$(dirname "$csproj")
     [ "$mod" = "_explore" ] && continue
-    grep -q "$mod/" "$C" || err "$mod missing from $C Project Structure"
-    grep -q "$mod/" "$A" || err "$mod missing from $A Project Structure"
+    if ! grep -q "$mod/" "$C"; then
+        err "$mod missing from $C Project Structure"
+        continue
+    fi
 
-    # --- Ritual 1b: stated version matches the code ---
-    # Ground truth = csproj <Version>. If the mod's tree line states a version (first vN.N.N
-    # on the line matching '<mod>/'), it must equal the csproj.
     ver=$(sed -n 's/.*<Version>\([0-9][0-9.]*\)<\/Version>.*/\1/p' "$csproj" | head -1)
     if [ -n "$ver" ]; then
-        for f in "$C" "$A"; do
-            line=$(grep "  $mod/" "$f" | head -1)
-            [ -z "$line" ] && line=$(grep "$mod/" "$f" | head -1)
-            stated=$(printf '%s' "$line" | grep -o 'v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1 | tr -d 'v')
-            if [ -n "$stated" ] && [ "$stated" != "$ver" ]; then
-                err "$mod: $f states v$stated but $csproj says $ver"
+        line=$(grep "  $mod/" "$C" | head -1)
+        [ -z "$line" ] && line=$(grep "$mod/" "$C" | head -1)
+        stated=$(printf '%s' "$line" | grep -o 'v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1 | tr -d 'v')
+        if [ -n "$stated" ] && [ "$stated" != "$ver" ]; then
+            # Auto-fix: replace the FIRST version token on the mod's tree line only.
+            # -b (binary) is REQUIRED: without it, MSYS sed silently rewrites the whole
+            # CRLF file to LF (caught in scratch testing 2026-07-16).
+            sed -b -i "/  $mod\//s/v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/v$ver/" "$C"
+            line2=$(grep "  $mod/" "$C" | head -1)
+            stated2=$(printf '%s' "$line2" | grep -o 'v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1 | tr -d 'v')
+            if [ "$stated2" = "$ver" ]; then
+                echo "AUTO-FIXED: $C $mod v$stated -> v$ver (from $csproj)" >&2
+                fixed=1
+            else
+                err "$mod: $C states v$stated, csproj says $ver, and auto-fix failed — fix by hand"
             fi
-        done
+        fi
 
-        # --- Ritual 1c: PLUGIN_VERSION (if the mod defines one) matches csproj <Version> ---
-        # Catches the half-bump that Smart App Control punishes with a stale-looking load.
+        # PLUGIN_VERSION half-bump stays BLOCKING: the DLL hash is wrong, not the text.
         pv=$(grep -rh 'PLUGIN_VERSION = "' "$mod" --include="*.cs" 2>/dev/null \
              | sed -n 's/.*PLUGIN_VERSION = "\([0-9.]*\)".*/\1/p' | head -1)
         if [ -n "$pv" ] && [ "$pv" != "$ver" ]; then
-            err "$mod: PLUGIN_VERSION=$pv but csproj <Version>=$ver (bump BOTH — SAC gotcha)"
+            err "$mod: PLUGIN_VERSION=$pv but csproj <Version>=$ver (bump BOTH — SAC gotcha; needs a rebuild, not a text fix)"
         fi
     fi
 done
+[ "$fixed" -eq 1 ] && git add "$C"
 
-# --- Ritual 1d: every handoff/mod doc is referenced in BOTH Documentation Maps ---
+# --- Every handoff/mod doc is referenced in CLAUDE.md's Documentation Map ---
 for doc in *HANDOFF*.md docs/mods/*.md; do
     [ -f "$doc" ] || continue
     base=$(basename "$doc")
     [ "$base" = "SESSION_HANDOFF.md" ] && continue   # gitignored continuity buffer, not a doc
     grep -q "$base" "$C" || err "$base not referenced in $C Documentation Map"
-    grep -q "$base" "$A" || err "$base not referenced in $A Documentation Map"
 done
 
 # --- Parked-mod consistency: PARKED in the tree line => in sync-plugins.ps1 ParkedByDefault ---
@@ -74,8 +91,7 @@ fi
 
 if [ "$fail" -ne 0 ]; then
     echo "" >&2
-    echo "Commit blocked by .githooks/pre-commit (Rituals 1+3, see CLAUDE.md)." >&2
-    echo "Fix the drift in BOTH orientation files, then commit again." >&2
+    echo "Commit blocked by .githooks/pre-commit (see CLAUDE.md rituals)." >&2
     exit 1
 fi
 exit 0

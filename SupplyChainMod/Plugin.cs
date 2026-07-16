@@ -326,6 +326,18 @@ namespace SupplyChainMod;
 // BudgetPlane's own full-table row dump (so an F9 press reads raw rows before the case summary/F9
 // dump) after the v0.15.0 DLL had already deployed, so the SAC bump guard required a further
 // version bump to redeploy the corrected build (same pattern as v0.4.3/v0.5.1).
+//
+// v0.16.0 — food-demand riders (DEMAND_MODEL_PLAN.md "Food-demand probe findings", user-approved
+// 2026-07-16), closing the barbecue/table/farm gaps found by the v0.15.1 probe pass: (1) a
+// BlueprintInfo parts/cost fallback in TryMatchCookingRecipe for plain (non-Crockpot)
+// CookingRecipeInfo items — the barbecue's "Cooked X" outputs and the curing rack's items were
+// previously unmatched entirely; (2) cooking Table/Unfiltered_Table requirements now resolve their
+// accepted-item list via ItemTableConfig.GetItemsList() and grant those items eviction PROTECTION
+// only (never HOG-selectable) with no hard structural demand — an any-of requirement shouldn't
+// inflate demand across a whole table; (3) FarmingStation/ForestryStation tasks are now read as
+// structural demand for the SEED being planted (a consumer, not a producer) instead of an
+// unmatched output. Read-only demand-graph + reporting changes; no new writes, no new Harmony
+// patches. Full detail in DemandGraph.cs and BudgetPlane.cs file headers.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {

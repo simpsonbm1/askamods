@@ -1,5 +1,8 @@
 # Agent Onboarding — start here if you are new to this project
 
+<!-- ORIENTATION-STUB: pointer file — the single orientation source is CLAUDE.md. Enforced by
+     .githooks/pre-commit (marker + no-accretion checks). Do not add project knowledge here. -->
+
 This file bootstraps ANY coding agent (OpenAI Codex reads this path natively; Claude Code loads
 `CLAUDE.md`; Antigravity loads `.agents/AGENTS.md`). It is deliberately a THIN POINTER plus the
 context that lives nowhere else — the project knowledge itself is NOT here.
@@ -8,7 +11,8 @@ context that lives nowhere else — the project knowledge itself is NOT here.
 
 1. **[`CLAUDE.md`](CLAUDE.md)** — the canonical orientation: what the project is, every mod's
    status/version, the IL2CPP gotcha list, build/SAC/commit rules, and the Documentation map.
-   (`.agents/AGENTS.md` is a byte-identical copy; read either, keep BOTH in sync when editing.)
+   (It is the ONLY full orientation copy — `.agents/AGENTS.md` is a pointer stub like this file;
+   the pre-2026-07-16 dual-write ritual is retired.)
 2. **[`SESSION_HANDOFF.md`](SESSION_HANDOFF.md)** (repo root, gitignored, may be absent) — the live
    "what was in flight when the last session ended". If it exists, read it before doing anything.
 3. **[`docs/architecture.md`](docs/architecture.md)** — before touching ANY game subsystem, read
@@ -35,9 +39,9 @@ context that lives nowhere else — the project knowledge itself is NOT here.
     "automatic"/recurring or writing standing instructions.
 
 **Everything else in CLAUDE.md is tool-agnostic project truth and binding**: the IL2CPP interop
-gotchas, the Smart App Control version-bump rule, the CLAUDE.md↔.agents/AGENTS.md sync rituals
-(mechanically enforced by `.githooks/pre-commit`), the commit/push policy, and the documentation
-maintenance rules.
+gotchas, the Smart App Control version-bump rule, the single-source orientation rituals
+(CLAUDE.md canonical, mechanically enforced by `.githooks/pre-commit`), the commit/push policy,
+and the documentation maintenance rules.
 
 ## Working agreement with the user (Ben) — conventions that lived in assistant memory
 
@@ -49,9 +53,11 @@ maintenance rules.
 - **Never commit or push without his go-ahead**, and only at verified-success or end-of-session
   checkpoints. He works desktop + laptop synced ONLY through `origin`; when he approves a commit,
   push it too (source + built DLL + docs) so the other machine gets it.
-- **Batch doc-sync to commit checkpoints.** In a build→test loop, per cycle only: edit code, bump
-  version (BOTH `PLUGIN_VERSION` and csproj `<Version>` — the SAC gotcha), build, give him test
-  steps. The dual-write rituals and docs prose happen ONCE at the commit checkpoint.
+- **Commits are lightweight; docs update as-you-go.** In a build→test loop, per cycle only: edit
+  code, bump version (BOTH `PLUGIN_VERSION` and csproj `<Version>` — the SAC gotcha), build, give
+  him test steps. Confirmed facts land in `docs/` when confirmed, during the work; the pre-commit
+  hook auto-fixes CLAUDE.md's version tokens at commit; status blurbs change only when a mod's
+  status/approach actually changes; mod-doc version history batches to natural milestones.
 - **New diagnostic/debug config options default to `true`** while unverified; flip to `false`
   before shipping to Nexus.
 - **Lean orientation, deep knowledge in `docs/architecture.md`** — record confirmed facts and
@@ -81,11 +87,13 @@ twice under your tooling, mechanize it the same way. Two groups:
 ### In the repo — these work for ANY agent as-is. Use them; do not rebuild or bypass them.
 
 - **`.githooks/pre-commit`** (activate once per clone: `git config core.hooksPath .githooks`) —
-  blocks a commit when the orientation files drift from ground truth: mod folder missing from
-  either file, stated version ≠ csproj `<Version>`, `PLUGIN_VERSION` ≠ csproj `<Version>` (the
-  Smart App Control half-bump), a handoff/mod doc missing from either Documentation Map, or a
-  duplicated `# AskaMods` header. GOAL: the always-loaded orientation can never silently lie.
-  Never bypass with `--no-verify`; fix the drift.
+  keeps CLAUDE.md (the single orientation source) honest: AUTO-FIXES a stale mod version token
+  from the csproj `<Version>` (re-stages, reports `AUTO-FIXED`), and BLOCKS on real drift: mod
+  folder or handoff/mod doc missing from CLAUDE.md, `PLUGIN_VERSION` ≠ csproj `<Version>` (the
+  Smart App Control half-bump — needs a rebuild, not a text fix), a duplicated `# AskaMods`
+  header, or a pointer stub (this file, `.agents/AGENTS.md`) losing its `ORIENTATION-STUB`
+  marker / re-growing a body. GOAL: the always-loaded orientation can never silently lie, at
+  zero per-commit ceremony. Never bypass with `--no-verify`; fix the drift.
 - **`Directory.Build.targets` (SAC BUMP GUARD)** — fails any build whose `<Version>` is already
   deployed in the live plugins folder (deliberate same-version rebuild: `-p:SkipSacGuard=true`).
   GOAL: make it impossible to test a rebuilt DLL whose unchanged hash Smart App Control will

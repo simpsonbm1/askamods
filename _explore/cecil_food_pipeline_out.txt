@@ -1,0 +1,167 @@
+﻿===== 1. CookingRecipeInfo subclass census =====
+SSSGame.CrockpotRecipeInfo  base=[CookingRecipeInfo -> BlueprintInfo -> ItemInfo -> AssetNode -> ScriptableObject]
+
+TYPE: SSSGame.CookingRecipeInfo baseChain=[BlueprintInfo -> ItemInfo -> AssetNode -> ScriptableObject]
+  P: anyIngredient : Boolean
+  P: hidden : Boolean
+  P: cookingRateMultiplier : Single
+  P: blueprintConditionsRules : List`1
+  M: Item CreateItem()
+  M: Boolean IsUnlocked()
+  M: List`1 GetAllBlueprintConditionsRules()
+  M: ItemInfo GetItemInfo()
+  M: Void OnUnlock(BlueprintConditionsDatabase database)
+  M: Boolean UnlockableInTrialMode()
+
+TYPE: SSSGame.CrockpotRecipeInfo baseChain=[CookingRecipeInfo -> BlueprintInfo -> ItemInfo -> AssetNode -> ScriptableObject]
+  P: cookingRequirements : Il2CppReferenceArray`1
+  P: Vegetarian : Boolean
+  P: requiresDiscovery : Boolean
+  P: useResultQuantityAsMultiplier : Boolean
+  P: _usedItemsManifest : ItemManifest
+  P: _manifestCache : ItemManifest
+  P: _occurenceTableManifest : ItemManifest
+  P: _occurenceSpecificManifest : ItemManifest
+  P: SSSGame.IDiscoverableItem.RequiresDiscovery : Boolean
+  P: SSSGame.IDiscoverableItem.CanBeDiscovered : Boolean
+  M: Item CreateItem()
+  M: Int32 NeedsPart(ItemInfo itemInfo)
+  M: Int32 GetMatchingScore(ItemManifest ingredientsManifest, ItemManifest unusedIngredients, ItemManifest missingSpecificManifest, ItemManifest missingTableManifest, ItemManifest missingUnfilterTableManifest, Boolean allowError, FiltersTaskData tableFilterTask, Boolean skipFilteredTables)
+  M: Int32 GetMissingIngredientsCount(ItemManifest ingredientsManifest)
+  M: Int32 GetRequirementOccurenceCount(ItemInfo info)
+  M: Boolean HasUnfilteredTableRequirement()
+  M: IItemFilter GetTableRequirementFilterForItem(ItemInfo info)
+  M: Void _FillOccurenceManifest(ItemManifest occurenceManifest, CookingRecipeRequirementType requirementType)
+  M: Int32 _OccurenceSort(ItemInfo some, ItemInfo other)
+  M: Void GetRemainingNeededManifest(ItemManifest ingredientsManifest, CookingRecipeRequirementType requestedType, ItemManifest& neededIngredients)
+  M: Boolean CheckItemSelection(ItemSelection ingredients)
+  M: Int32 GetTotalRequiredSpecificQuantity()
+  M: Int32 GetTotalRequiredTableQuantity()
+  M: Void FillManifest(ItemManifest manifest, Int32& multiplier)
+  M: Int32 GetRequiredSpecificQuantity(ItemInfo info)
+  M: Int32 GetRequiredSpecificQuantity(IItemFilter filter)
+  M: Int32 GetUnfilteredQuantity(ItemInfo itemInfo)
+  M: List`1 GetRequiredItemsDistinct()
+  M: Void FillManifest(ItemManifest manifest, CookingRecipeRequirementType type)
+  M: Int32 Tiebreaker(CrockpotRecipeInfo other)
+  M: Single _GetTableTiebreakerScore()
+  M: Boolean SSSGame_IDiscoverableItem_get_RequiresDiscovery()
+  M: Boolean SSSGame_IDiscoverableItem_get_CanBeDiscovered()
+  M: Boolean IsDiscovered(BlueprintConditionsDatabase database)
+  M: Void Discover(BlueprintConditionsDatabase database)
+
+===== 2. CookingRecipeRequirement + enums + table types =====
+TYPE: SSSGame.CrockpotRecipeInfo/CookingRecipeRequirement baseChain=[ValueType -> Enum]
+  P: type : CookingRecipeRequirementType
+  P: acceptedInfo : ItemInfo
+  P: tableConfig : ItemTableConfig
+  P: count : Int32
+  P: allowedError : Int32
+
+ENUM: SSSGame.WaterSurfacePointPlacementTool/WaterRequirement
+  none = 0
+  onWaterOnly = 1
+ENUM: SSSGame.CrockpotRecipeInfo/CookingRecipeRequirementType
+  Specific = 0
+  Table = 1
+  Unfiltered_Table = 2
+ENUM: SSSGame.StructureTemplate/SettlementRequirement
+  none = 0
+  insideSettlement = 1
+  outsideSettlement = 2
+  noSettlement = 3
+ENUM: SSSGame.StructureTemplate/OutpostRequirement
+  none = 0
+  outsideOutpost = 1
+ENUM: SSSGame.UI.ExpeditionRequirementsDetailsTabPage/RequirementType
+  Food = 0
+  Water = 1
+
+===== 3a. Type-name census: Gather / Hunt / Dining / Field =====
+SandSailorStudio.Inventory.HuntingList  base=[ScriptableObject]
+SSSGame.PlayerDiningInteractionConfig  base=[PlayerRestInteractionConfig -> InteractionConfiguration`1 -> InteractionConfiguration -> ScriptableObject]
+SSSGame.PlayerDiningInteractionConfig/PlayerDiningInteractionSession  base=[RestInteractionSession -> InteractionSession -> Object]
+SSSGame.PlayerGatherInteractionConfig  base=[InteractionConfiguration`1 -> InteractionConfiguration -> ScriptableObject]
+SSSGame.PlayerGatherInteractionConfig/PlayerGatherInteractionSession  base=[InteractionSession -> Object]
+SSSGame.VillagerDiningInteractionConfig  base=[VillagerRestInteractionConfig -> InteractionConfiguration`1 -> InteractionConfiguration -> ScriptableObject]
+SSSGame.VillagerDiningInteractionConfig/VillagerDiningInteractionSession  base=[VillagerRestInteractionSession -> InteractionSession -> Object]
+SSSGame.VillagerGatherInteractionConfig  base=[InteractionConfiguration`1 -> InteractionConfiguration -> ScriptableObject]
+SSSGame.VillagerGatherInteractionConfig/VillagerGatherInteractionSession  base=[InteractionSession -> Object]
+SSSGame.DiningInteraction  base=[RestInteraction -> Interaction -> MonoBehaviour]
+SSSGame.GatherInteraction  base=[Interaction -> MonoBehaviour]
+SSSGame.GatherInteraction/GatherEvents  base=[Object]
+SSSGame.IResourceGatherModifier  base=[Il2CppObjectBase]
+SSSGame.DiningStation  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.DiningStation/DiningStationOutputWrapper  base=[Object]
+SSSGame.HuntingStation  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.HuntingStation/HuntingData  base=[Object]
+SSSGame.Deeds.GatherEventData  base=[ValueType -> Enum]
+SSSGame.Deeds.GatherCondition  base=[DeedCondition -> Object]
+SSSGame.AI.HunterCombatQuest  base=[CombatQuest -> Quest -> Object]
+SSSGame.AI.HunterCombatQuest/HunterCombatQuestData  base=[CombatQuestData -> QuestData -> Object]
+SSSGame.AI.ResourceGatherStep  base=[InteractionStep -> TaskStep -> Object]
+SSSGame.AI.ResourceGatherTask  base=[DynamicTask -> Task -> ValueType -> Enum]
+SSSGame.AI.HunterFiltersTaskData  base=[FiltersTaskData -> WorkstationTaskData -> Object]
+SSSGame.AI.DiningAttendeeQuest  base=[WorkstationQuest -> Quest -> Object]
+SSSGame.AI.DiningStationSupplyQuest  base=[GatherAndHarvestQuest -> WorkstationQuest -> Quest -> Object]
+SSSGame.AI.DiningStationSupplyQuest/DiningStationSupplyQuestData  base=[GatherAndHarvestData -> WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.DiningStationFirekeepQuest  base=[WorkstationQuest -> Quest -> Object]
+SSSGame.AI.DiningStationFirekeepQuest/DiningStationFirekeepQuestData  base=[WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.DiningStationComplainQuest  base=[ResourceStorageComplainQuest -> WorkstationQuest -> Quest -> Object]
+SSSGame.AI.DiningStationComplainQuest/DiningStationComplainQuestData  base=[ResourceStorageComplainData -> WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.DiningStationIdleQuest  base=[WorkstationIdleQuest -> WorkstationQuest -> Quest -> Object]
+SSSGame.AI.DiningStationIdleQuest/DiningStationdleQuestData  base=[WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.FarmingQuestGather  base=[FarmingCropQuest -> WorkstationQuest -> Quest -> Object]
+SSSGame.AI.FarmingQuestGather/FarmingQuestGatherData  base=[WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.GatherAndHarvestQuest  base=[WorkstationQuest -> Quest -> Object]
+SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData  base=[WorkstationQuestData -> QuestData -> Object]
+SSSGame.AI.DiningOutlet  base=[ReligionOutlet -> StructureTaskDispatcher -> TaskDispatcher -> MonoBehaviour]
+SSSGame.AI.FSM.FSM_GatherSmilk  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_CheckNextHuntingArea  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_FarmGather  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_Fetch/GatherData  base=[Object]
+SSSGame.AI.FSM.FSM_GatherAndHarvest  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_GatherAndHarvest/GatherData  base=[Object]
+SSSGame.AI.FSM.FSM_MineGatherAndHarvest  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_MineGatherAndHarvest/GatherData  base=[Object]
+SSSGame.AI.FSM.HiddenFromResourceGatherersFilter  base=[Object]
+SSSGame.AI.FSM.FSM_ReturnFarmingResult/GatherData  base=[Object]
+SSSGame.AI.FSM.FSM_ReturnHarvest/GatherData  base=[Object]
+SSSGame.AI.FSM.FSM_ReturnStorageSupplies/GatherData  base=[Object]
+SSSGame.AI.FSM.FSM_SetWorkDiningTablePos  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_StartHunt  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SSSGame.AI.FSM.FSM_StopHunt  base=[FSM_QuestAction -> vStateAction -> ScriptableObject]
+SandSailorStudio.Culling.CullingDistanceGrid/GatherChangedBands  base=[ValueType -> Enum]
+SandSailorStudio.WorldGen.BiomemapDistributionNode/GatherFilteredCellsJob  base=[ValueType -> Enum]
+
+===== 3b. Workstation subclass census (which classes exist at all) =====
+SSSGame.Buildstation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.DefensiveStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.PatrolStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.Bloomstation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.BoatBuildingStation  base=[Buildstation -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.BrewingStation  base=[CookingStation -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.CampBuildingStation  base=[BoatBuildingStation -> Buildstation -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.CharcoalStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.CookingStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.CraftingStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.ForestryStation  base=[FarmingStation -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.HarboringStation  base=[BoatBuildingStation -> Buildstation -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.HealingStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.Praystation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.FarmingStation  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.FishingStation  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.AnimalPen  base=[Kennel -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.Kennel  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.CaveResourceStorage  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.DiningStation  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.HuntingStation  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.Marketplace  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.ResourceStorage  base=[Workstation -> NetworkComponent -> NetworkBehaviour]
+SSSGame.VehicleResourceStorage  base=[ResourceStorage -> Workstation -> NetworkComponent -> NetworkBehaviour]
+
+===== 4. ItemInfo food/nutrition surface =====
+  F: IntPtr NativeFieldInfoPtr__decayRateAttrData
+  F: IntPtr NativeMethodInfoPtr_CreateItem_Public_Virtual_New_Item_0
+  P: AttributeData _decayRateAttrData
+SSSGame.FoodOverDrinkFilter  base=[ValueType -> Enum]
