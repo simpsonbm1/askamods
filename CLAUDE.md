@@ -238,11 +238,11 @@ askamods/
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage [COMPLETE v1.0.0 — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.14.2 — SURPLUS v2
-                                flow-aware classifier (SupplyChainMod/DEMAND_MODEL_PLAN.md):
-                                ratcheted keep-target × ALIVE/GROWING/DEAD verdicts, clog-toast
-                                retirement, per-container Off fix — v0.14.1 in-game-tested
-                                2026-07-16 (9/10; Fibers-GROWING finding), v0.14.2
-                                consumption-memory fix ⚠️ pending in-game test; dry-run only,
+                                flow-aware classifier, v0.14.1–v0.14.2 in-game-verified
+                                2026-07-16; arming design approved 2026-07-16 (failure-mode →
+                                lever routing + rails, case-grounded — see
+                                SupplyChainMod/DEMAND_MODEL_PLAN.md → "Arming design"); next:
+                                case-layer build; dry-run only,
                                 dev tool NOT for Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
 ```

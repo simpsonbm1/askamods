@@ -273,7 +273,7 @@ cycling becomes a tunable, eventually per-item.
    cycles — only after the dry-run proposals read as consistently sane.
 5. **Phase 3 / task creation research** — after the read-side is trustworthy.
 
-## v0.14.x — SURPLUS v2: flow-aware surplus + riders (built as v0.14.1 2026-07-16, ⚠️ pending in-game test)
+## v0.14.x — SURPLUS v2: flow-aware surplus + riders (v0.14.1–v0.14.2 in-game-verified 2026-07-16)
 
 Replaces v0.13.0's single magnitude predicate (`IsSurplus`) with two orthogonal predicates. Closes
 former open items 1 (base-material keep-target) and 2 (demand-blind window); rides item 4 (clog
@@ -319,23 +319,134 @@ retirement) plus the per-container Off fix found in the 2026-07-16 code audit.
 - Side effect: actively-planted seeds show decreases → ALIVE → protected. True farming demand
   modeling (open item 1 below) is still required before arming seed eviction (seasonality).
 
+## Arming design — failure-mode → resolution routing (case-grounded, user-reviewed 2026-07-16)
+
+Grounded in the v0.14.2 verification run: every classifier class fired at least once, and the
+~30 s background polls caught transients the F9 snapshots never showed. Each failure class routes
+to exactly one resolution path:
+
+| Failure mode | Real-world meaning | Lever | End state |
+|---|---|---|---|
+| HOG | surplus dead/growing stock crowds a demanded item in a shared container | ground-drop eviction, response-gated quantum machine (spec above) | victim flows; hog held at floor |
+| BLOCKAGE priority-shadowed / SHADOWED | goods pile at producer while the receiving warehouse row idles at Med rank | tier bump (SetPriority + HostUpdateTasks), hold, revert | haulers service the row; pile drains |
+| BLOCKAGE destination-full | every destination row for a demanded item at capacity | check destination containers for a HOG (→ eviction case); else advisory | player builds storage / hog evicted |
+| BLOCKAGE no-route | no storage row anywhere accepts the item | advisory only (config/build problem) | player adds storage/allotment |
+| SURPLUS | over-produced, crowding nobody | NEVER acts — eviction-eligibility precondition only | escalates to HOG if it crowds |
+| STARVED | demanded, High rank, room, source stock — still static | advisory only (labor/logistics-bound; no lever fits) | player adds haulers |
+| OFF-CONFLICT | demanded but row is player-Off | advisory only (Off = player intent, locked) | player decides |
+
+### Case evidence (v0.14.2 run 2026-07-16 unless dated otherwise)
+
+1. **HOG 'Bone Fragments' vs 'Raw Red Meat' @ Hunter's House 2** (persistent ~25 min of polls):
+   the proposal line already carries every input the response-gated eviction machine needs
+   (surplus slots, per-cycle quantum, keep floor, victim row deficit, distress tag as the
+   success signal). Ready to arm once the rails below exist; solo-only until co-op drop
+   replication is verified.
+2. **Transient HOG 'Wild Egg' vs 'Berries' @ Gatherer's House 2 (ONE 30 s poll).** HEADLINE
+   (user): food demand is at best partially modeled — eggs feed pie tasks sitting high on the
+   cooking priority list (crockpot-recipe demand read 33; population-eating demand is invisible),
+   so dumping eggs would have been actively harmful. Secondary lesson: one-poll findings must
+   never actuate (rail 1).
+3. **Tier cases:** 'Rope' + 'Linen Thread' @ Improved Warehouse 3 (shared container, both
+   demanded, cause=priority-shadowed, rich downstream lists) — the Phase 2c coal pattern, the
+   tier lever's home turf. 'Berries'/'Mushrooms'/'Onion': BLOCKAGE(priority-shadowed) at
+   Gatherer's Hut 4 + SHADOWED (propose tier 1→0) at Improved Warehouse 3 are two classifier
+   views of ONE failure → merge rule (rail 2).
+4. **destination-full chain: 'Leather Hide' → 'Cured Leather Hide'.** Cured hides (54, demand 29)
+   legitimately fill their container — consumers not keeping pace; upstream raw hides jam with
+   distress=storage-full. No honest lever → emit a CHAIN advisory. Full diagnosis (which link is
+   slow) needs chain-capacity rollup + crafting-station container visibility (the curing rack is
+   outside the current scan scope — pre-arm blocker 4).
+5. **SURPLUS 'Resin' verdict=growing (2068 vs demand 3):** the tempting quota-clamp would confine
+   resin to the Woodcutter container it SHARES with Fibers/Pine Cone/Reed Seeds — manufacturing
+   a producer HOG. SURPLUS therefore stays permanently informational; escalation to HOG is the
+   designed remediation path.
+6. **Equipment SURPLUS noise (~50 of 56 lines: tools/weapons/clothes ×1–9, keepTarget=0):**
+   structural demand is blind to loadout demand. Near-term: SURPLUS reporting floor (suppress
+   below ~1 full slot / a MinSurplusUnits config). Lead (user, not high priority): equipment
+   need is derivable — villagers assigned per task type × required equipment × observed breakage
+   rate (4 woodcutters ⇒ ≥4 axes at the axe-breakage rate); the game itself raises an
+   equipment-unavailable warning (LoadoutsComplaint — ComplaintWatcher already sees it;
+   missingItems carries no item name, native class only — known limitation).
+7. **STARVED fired for one poll — item UNKNOWN: starved/off classes emit NO proposal line, only
+   summary counts** (found 2026-07-16). Rider for the case-layer build: emit lines for both.
+   The save has a known ore bottleneck (user), so ore/bloom is plausible but unconfirmable from
+   this run.
+8. Positive control observed live: 'Leather scraps' entered SURPLUS (300 vs demand 92), then a
+   real consumption event granted ALIVE (consumption memory) and it dropped off mid-run — the
+   v0.14.2 rescue mechanism working beyond the Fibers case it was built for.
+
+### Slow-carry contention (user-flagged 2026-07-16; diagnosis-hard, keep on the radar)
+The mine-hut case (Phase 2e in docs/mods/supply-chain.md → Design Direction): Large Rocks and
+Iron Ore both High → miners alternate a couple of ore with one slow giant-rock carry, collapsing
+ore throughput. The LEVER is proven (tier-DOWN the bulky competitor's row so it stops competing);
+the DIAGNOSIS is the hard part: nothing jams (both items flow, no class fires) — the signal is a
+throughput RATIO, not a stall. Leads: per-trip carry observation; or, once chain rollup exists,
+flow-rate comparison of co-gathered items vs their demand gaps. Genuinely impactful (user); may
+stay out of scope on difficulty, but the design must not preclude a future "de-prioritize
+competitor" advisory/lever.
+
+### Arming rails (user-reviewed 2026-07-16)
+1. **Evidence persistence:** a finding enters the actuation queue only after N consecutive polls
+   (suggest 3–4 ≈ 2 min); kills the one-poll transients (cases 2 and 7).
+2. **Case identity = item, with merge:** BLOCKAGE(priority-shadowed) + SHADOWED on the same item
+   form one case, one action, one cooldown.
+3. **Chain-aware case management (user rule 2026-07-16):** one-action-per-item must NOT serialize
+   fixes within one BOM chain. If steps 2 and 3 of a chain both have active problems, never fix
+   step 2, revert on success, then fix step 3 while step 2 re-jams behind it. Cases sharing a
+   chain get coordinated handling: concurrent levers allowed (within the budget), and — the
+   critical part — an effective fix is NOT reverted while other active cases remain in the same
+   chain; its revert defers until the whole chain reads healthy. Chain membership comes from the
+   existing BOM graph (wantedBy walk).
+4. **Response-gated everything:** every lever cycle = act → observe → justify-or-stop, per-class
+   response windows (hauling ~13 s datum; production chains slower), measured latency logged
+   (actuation-timing section above).
+5. **Actuation budget:** ≤1 eviction case + 1–2 tier cases active settlement-wide; queue ranked
+   by distress tag, then victim demand size.
+6. **Untouchables carry over:** Off rows, crafting-station quotas (player floors), militia-alarm
+   lockout, warmup + demand-built gate before any armed action, write-ahead ledger on every
+   write.
+
+### Pre-arm blockers (dependency order) + arming order
+1. **Case layer build (dry-run):** persistence gate + item/chain case merge + case lifecycle log
+   lines, with riders (starved/off emit proposal lines; SURPLUS reporting floor). The natural
+   next build — pure code on top of the current classifier, testable dry-run.
+2. **Food/farming demand modeling** — blocks arming eviction of any food item or seed (case 2);
+   seeds additionally read structural=0 (FarmingStation crop demand unmodeled) and planting is
+   seasonal, so ALIVE protection alone is not sufficient to arm seed eviction.
+3. **Co-op drop replication test** — blocks eviction outside solo.
+4. **Crafting-station container visibility** — blocks chain advisories (case 4); not needed for
+   tier or HOG arming.
+
+Arming order: **tier first** (whole loop proven, reversible, ledgered), **eviction second**
+(solo-only), advisories throughout.
+
+### Player-facing HUD panel (stretch goal — user idea + mockup, 2026-07-16)
+Far-future, after everything works: an in-game "Supply Chain" HUD panel where each OPEN case
+appears as a card — problem sentence, the concrete proposed change (e.g. `bone_fragments
+1250 → 50`, `long_sticks priority Med → High`), and per-card controls: approve (apply the lever),
+reject (dismiss + lockout), snooze (defer). Panel header carries an "auto-approve" toggle = the
+armed mode. This defines a THIRD operating mode between dry-run and armed: **manual-approve** —
+the mod proposes, the player clicks. The case layer is deliberately the substrate: a case's
+lifecycle + proposed-action payload is exactly what a card renders, so nothing needs redesign to
+add the panel later. Mockup vocabulary (BLOCKED/STALLED/STARVED cards) is illustrative — real
+cards use the routing-table classes. ⚠️ UI research unresearched: toasts are proven, but panel
+injection into the game HUD is unexplored territory (research item when the time comes; keep
+expectations gated on that spike).
+
 ## Status & open next steps (updated 2026-07-16)
 
 SHIPPED + in-game-verified: sequence steps 1–3 (v0.9.2 probe → v0.10.0 DemandGraph → v0.11.x
-classifier v3 → v0.12.0 HOG sizing + BLOCKAGE rewrite → v0.13.0 IsSurplus/SURPLUS/cause tokens).
-SURPLUS v2 + riders (section above) approved 2026-07-16, built as v0.14.1, in-game-tested same
-day: 9/10 expectations passed (warmup gate, Resin dead, bones HOG, clog vocabulary gone, streaming
-retry, distress tags, zero errors) — but Fibers read SURPLUS verdict=growing (bursty-consumption
-gap, see the ALIVE consumption-memory rule above). v0.14.2 fix ⚠️ pending build + in-game retest.
-Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
+classifier v3 → v0.12.0 HOG sizing + BLOCKAGE rewrite → v0.13.0 IsSurplus/SURPLUS/cause tokens)
+and SURPLUS v2 (v0.14.1 tested 2026-07-16 with the Fibers bursty-consumption finding; v0.14.2
+consumption-memory fix in-game-verified 2026-07-16 — Fibers absent from SURPLUS, all markers
+passed, zero errors). Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
 
-Open after v0.14.x:
-1. **Farming demand modeling** (blocks arming seed reduction) — seeds read structural=0
-   (FarmingStation crop demand unmodeled); v0.14.0's ALIVE protection mitigates casual mislabeling
-   but seasonal planting means real modeling is required before arming any seed eviction.
-2. **Arming design** — which classes auto-apply, rails, duty cycles, the response-gated eviction
-   state machine — only after v0.14.0's dry-run audit reads consistently sane.
-3. **Phase 3 / task creation research.**
+Open next steps (arming design above approved 2026-07-16):
+1. **Case layer build** (pre-arm blocker 1) — the next build.
+2. **Food/farming demand modeling** (pre-arm blocker 2).
+3. **Arming implementation** — tier first, per the routing table + rails above.
+4. **Phase 3 / task creation research.**
 
 ## User decisions (2026-07-15, all four open questions answered)
 

@@ -2,10 +2,10 @@
 
 **Status:** WIP v0.14.2 — SURPLUS v2 flow-aware classifier (ratcheted keep-target ×
 ALIVE/GROWING/DEAD verdicts) + clog-toast retirement + per-container Off fix, per
-`SupplyChainMod/DEMAND_MODEL_PLAN.md` → "v0.14.x — SURPLUS v2". v0.14.1 in-game-tested 2026-07-16
-(9/10 expectations passed; Fibers-GROWING finding, see Dead-Ends); v0.14.2 consumption-memory fix
-⚠️ pending in-game test. Still 100% dry-run/read-only. Open next steps: farming demand modeling,
-arming design — see DEMAND_MODEL_PLAN.md. Dev tool NOT for Nexus
+`SupplyChainMod/DEMAND_MODEL_PLAN.md` → "v0.14.x — SURPLUS v2". v0.14.1–v0.14.2 in-game-verified
+2026-07-16 (consumption-memory fix confirmed: Fibers absent from SURPLUS; all markers passed,
+zero errors). Still 100% dry-run/read-only. Next: case-layer build per the approved arming
+design (DEMAND_MODEL_PLAN.md → "Arming design"), then food/farming demand. Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -434,7 +434,9 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
   10-min window, Fibers (4903 stored, demand 484) read GROWING because no fiber-consuming craft
   ran inside the window while gatherers trickled arrivals (same pattern: Gray Mushrooms, Stick,
   Wild Egg). Fix: a REAL observed decrease grants ALIVE for 6 × InertMinutes (v0.14.2 consumption
-  memory). A settlement genuinely idle on an item for longer still reads growing/dead — the full
+  memory, confirmed in-game 2026-07-16: Fibers absent from SURPLUS; 'Leather scraps' was also
+  live-rescued mid-run by a real consumption event). A settlement genuinely idle on an item for
+  longer still reads growing/dead — the full
   fix remains consumption-rate-aware demand (chain-capacity rollup, deferred).
 
 ## Design Direction (user-decided 2026-07-14)
@@ -587,7 +589,10 @@ mislabeled BLOCKAGE); 5 clean cause-tokened BLOCKAGEs; the false seed→Fibers h
 mislabels heavily-buffered BASE MATERIALS as surplus (Fibers 4900 vs demand 484) — keep-target must
 become consumption-aware before SURPLUS/HOG eviction is armed (see Dead-Ends + DEMAND_MODEL_PLAN.md).
 v0.14.1 re-test 2026-07-16: warmup gate, Resin dead, bones HOG + distress tag, cause tokens, clog
-vocabulary gone, streaming retry all verified; Fibers finding → v0.14.2 (Dead-Ends).
+vocabulary gone, streaming retry all verified; Fibers finding → v0.14.2 (Dead-Ends). v0.14.2
+verified 2026-07-16: Fibers absent from SURPLUS; background polls surfaced 1-poll transient
+findings (a Wild Egg HOG; a starved count — starved/off emit no proposal line, only summary
+counts) that drove the arming persistence-gate rule (DEMAND_MODEL_PLAN.md → "Arming design").
 
 ## Research spike (Cecil, 2026-07-14)
 
@@ -712,6 +717,8 @@ See architecture.md for full API surface.
   (v0.14.0 superseded pre-test by a cosmetic rebuild bump — no behavior difference.) Test 9/10:
   warmup gate, Resin dead, bones HOG + distress, cause tokens, no clog vocabulary, streaming
   retry, zero errors; FINDING: Fibers read GROWING (bursty consumption — see Dead-Ends).
-- **v0.14.2** (2026-07-16) — consumption memory: a REAL observed decrease keeps an item ALIVE for
-  6 × InertMinutes (internal constant); warmup seed still expires after one window. ⚠️ pending
-  in-game test.
+- **v0.14.2** (2026-07-16, in-game-verified same day) — consumption memory: a REAL observed
+  decrease keeps an item ALIVE for 6 × InertMinutes (internal constant); warmup seed still
+  expires after one window. Test: Fibers absent from SURPLUS, Leather scraps ALIVE-rescue seen
+  live, zero errors; F9-report evaluate ~50 ms is row-dump logging I/O (background evaluates
+  2–4 ms typical).
