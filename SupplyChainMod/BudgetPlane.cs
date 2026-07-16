@@ -31,24 +31,29 @@ namespace SupplyChainMod;
 //   - STRUCTURAL (DemandGraph.TryGetStructuralDemand: direct+derived) — the gate. An item is
 //     Demanded() when structTotal > 0 OR the game's own "not being produced, needed by X" widget
 //     complaint names it.
-//   - FLOW (MetabolicPlane net/churn, same "ALL|<item>"-style per-group rate as v0.9.x) — now used
-//     ONLY for sizing/static checks (is this group actively filling/draining right now?), never as
-//     part of the demand gate itself.
-//   - DISTRESS (WidgetWatcher.TryGetNoProductionNeededBy) — folds into Demanded() above and drives
-//     the "distress-only" incremental-eviction fallback when structural magnitude is unknown.
+//   - FLOW (MetabolicPlane net/churn, same "ALL|<item>"-style per-group rate as v0.9.x) — used ONLY
+//     for static checks (is this group actively filling/draining right now?), never the demand gate.
+//   - DISTRESS (WidgetWatcher.TryGetNoProductionNeededBy) — folds into Demanded() above.
 //
-// Classes, evaluated in this priority order per group/container (HOG and BLOCKAGE are CONTAINER-
-// level; a container can never be both — HOG requires >=2 effective items, BLOCKAGE requires
-// exactly 1 — so the two passes cannot double-fire on the same container):
-//   1. HOG — a container with >= 2 effective (non-Off) items holds an undemanded, static item
-//      crowding out a demanded, blocked one. Victim-gated: IsBlocked(victim) —
-//      GetRemainingCapacity(victim)==0 (own try/catch, falls back to FillRatio>=0.999 on a read
-//      failure) — is the PRIMARY blocked check (v0.11.1; HasSpace(victim,1) proved unreliable,
-//      firing at fill 0.94-0.98).
-//   2. BLOCKAGE — a DEDICATED (single-effective-item) hut/producer container is full of its own
-//      undemanded output (IsBlocked(X) — same primitive/fallback as HOG, checked against the
-//      dedicated item itself) while a SIBLING allotment at the same structure is demanded and
-//      unmet (the Hunter's House bones-vs-meat case, when bones' own container turns out dedicated).
+// Central signal (v0.13.0): SURPLUS. IsSurplus(item) = settleStored > structural × SurplusFactor —
+// stock materially exceeds the item's own demand (zero-demand ⇒ surplus at any stock). This replaces
+// the old binary demanded/undemanded gate and cleanly separates the three storage pathologies below.
+//
+// Classes, evaluated in this priority order:
+//   1. HOG (eviction) — a container with >= 2 effective (non-Off) items holds a SURPLUS, static item
+//      crowding out a demanded, NON-surplus, blocked one — they SHARE the container (real physical
+//      crowding). Blocked = IsBlocked(victim) = GetRemainingCapacity(victim)==0 (own try/catch,
+//      falls back to FillRatio>=0.999). Sizing DEMAND-GROUNDED: reduce the hog toward
+//      max(CoProductFloorSlots, its own demand) (see BuildEvictionProposal). Catches Resin (demand 3,
+//      stock 1900) crowding short Fibers — which the old undemanded-only gate misfiled as a BLOCKAGE.
+//   2. BLOCKAGE (diagnostic) — a demanded, NON-surplus material genuinely stuck: SITTING (stored>0)
+//      in a full, static container while its downstream BOM consumers rely on it (Hardwood Long
+//      Sticks jammed at the Woodcutter's while Shafts/Beams demand them). A routing/priority problem
+//      (supply at A, demand at B, not flowing) — lever is tier/priority, NOT eviction. One line per
+//      ITEM with a cause token (no-route / destination-full / priority-shadowed from its warehouse
+//      rows). Excludes surplus items (those are HOG/SURPLUS) and HOG victims (no double-report).
+//   2b. SURPLUS (informational) — a surplus item over-produced but NOT currently crowding a demanded
+//      victim (no shared-container HOG). "Stock ≫ demand, sitting around." One line per item.
 //   3. SHADOWED — warehouse-only: item demanded, group unmet, room, rank Med/Low (never Off),
 //      static-or-slow fill, and real upstream evidence (hut stock >= ShadowMinSourceStock). One
 //      destination proposed per item (most room); others logged "shadowed-alt".
@@ -64,15 +69,13 @@ namespace SupplyChainMod;
 //   producer self-storage rows don't carry the "hauler destination, room, rank" semantics these
 //   classes reason about.
 //
-// Eviction sizing (both HOG and BLOCKAGE, identical formula): Yneed = min(victim structTotal,
-// victim's unmet row quota); slots = ceil(Yneed / C.GetStackSize(victim)), capped at
-// MaxSlotsPerCycle; q = slots * C.GetStackSize(hog). When the victim's demand is distress-only
-// (structTotal==0, a noProd complaint only), slots=1 (incremental fallback, "sizing=incremental").
-// v0.11.1: q is then HARD-CLAMPED to hogGroup's own structure-wide Stored (q = min(q, X's Stored))
-// — v0.11.0 could propose evicting more of X than the structure actually held — and the displayed
-// slot count is recomputed FROM that clamped q, never shown pre-clamp. "gate=ready" is a fixed
-// marker — this version has NO response-gated state machine (that's the separate "arming design"
-// step in DEMAND_MODEL_PLAN.md); every proposal here is still LOGGED ONLY.
+// Eviction sizing (HOG only, v0.12.0 — DEMAND-GROUNDED): a hog is undemanded (structural==0), so its
+// target is CoProductFloorSlots kept and everything above that floor is surplus. reduce = Stored -
+// floorUnits; the per-cycle step is capped at MaxSlotsPerCycle (self-pacing, response-gated at
+// arming). Both the full demand-grounded target AND the per-cycle step are logged. Replaces v0.11.1's
+// victim-deficit sizing, which freed ~1 slot the hog immediately refilled. "gate=ready" is a fixed
+// marker — this version has NO response-gated state machine (the separate "arming design" step in
+// DEMAND_MODEL_PLAN.md); every proposal here is still LOGGED ONLY.
 //
 // Still fully READ-ONLY dry-run: no quota write, no DropItem eviction, no SetPriority — same
 // discipline as every module in this mod. VictimMaxRoom (v0.9.1's crude victim-room gate) is
@@ -112,6 +115,10 @@ internal static class BudgetPlane
         public int SettleStored;
         public string TopSource = "?";
         public int TopSourceStored = -1;
+        // v0.13.0 — warehouse-destination signals for the BLOCKAGE cause token: does the item have
+        // any true-warehouse (non-hut) row at all, and the most room across those rows.
+        public bool HasWarehouseRow;
+        public int MaxWarehouseRoom;
     }
 
     private sealed class GroupEval
@@ -165,19 +172,11 @@ internal static class BudgetPlane
             groupCount = groups.Count;
             if (groupCount == 0) return;
 
-            // ── Groups-by-PosKey (BLOCKAGE sibling search) and groups-by-container (HOG/BLOCKAGE) ─
-            var groupsByPosKey = new Dictionary<string, List<BudgetGroup>>();
+            // ── Groups-by-container (HOG shared-container search) ─────────────────────────────────
             var containerGroups = new Dictionary<string, List<BudgetGroup>>();
             foreach (var kv in groups)
             {
                 var g = kv.Value;
-                if (!groupsByPosKey.TryGetValue(g.PosKey, out var list))
-                {
-                    list = new List<BudgetGroup>();
-                    groupsByPosKey[g.PosKey] = list;
-                }
-                list.Add(g);
-
                 foreach (var ck in g.ContainerKeys)
                 {
                     if (!containerGroups.TryGetValue(ck, out var clist))
@@ -219,6 +218,11 @@ internal static class BudgetPlane
                         sig.TopSource = g.Warehouse;
                     }
                 }
+                else
+                {
+                    sig.HasWarehouseRow = true;
+                    if (g.Room > sig.MaxWarehouseRoom) sig.MaxWarehouseRoom = g.Room;
+                }
             }
 
             // ── Per-group rate (flow — sizing/static checks only, never the demand gate) ─────────
@@ -230,7 +234,12 @@ internal static class BudgetPlane
             }
 
             var proposals = new List<(string Line, int Severity, string Key)>();
-            int hogs = 0, blockage = 0, shadowed = 0, starved = 0, off = 0;
+            int hogs = 0, blockage = 0, surplus = 0, shadowed = 0, starved = 0, off = 0;
+            // v0.13.0 — item-level dedup: a HOG victim (a genuinely-needy demanded item being rescued)
+            // is never ALSO a BLOCKAGE; a hog item (surplus, actively crowding) is never ALSO a SURPLUS
+            // informational line. Both are item-name sets so a finding is reported once per item.
+            var hogVictimItems = new HashSet<string>();
+            var hoggedItems = new HashSet<string>();
 
             // ── Pass 1: HOG (containers with >= 2 effective items) ──────────────────────────────
             foreach (var ckv in containerGroups)
@@ -250,6 +259,7 @@ internal static class BudgetPlane
                     {
                         var vSig = itemSignals[v.Item];
                         if (!vSig.Demanded) continue;
+                        if (IsSurplus(vSig)) continue;        // v0.13.0 — victim must be genuinely needy, not itself surplus
                         if (v.Stored >= v.QuotaSum) continue; // must be unmet
 
                         bool blocked = IsBlocked(snap, v.Info, out string vBlk);
@@ -267,7 +277,7 @@ internal static class BudgetPlane
                     foreach (var x in effective)
                     {
                         if (ReferenceEquals(x, bestVictim)) continue;
-                        if (itemSignals[x.Item].Demanded) continue;
+                        if (!IsSurplus(itemSignals[x.Item])) continue;    // v0.13.0 — hog must be SURPLUS (was: undemanded)
                         if (x.Stored < Plugin.HogMinStored.Value) continue;
 
                         // No-rate counts as static here (see class header) — a fresh-load F9 before
@@ -280,51 +290,107 @@ internal static class BudgetPlane
                     }
                     if (bestHog == null) continue;
 
-                    var proposal = BuildEvictionProposal("HOG", "hog", containerKey, snap, bestHog, bestVictim, itemSignals[bestVictim.Item], bestVictimBlk);
+                    var proposal = BuildEvictionProposal(containerKey, snap, bestHog, itemSignals[bestHog.Item], bestVictim, itemSignals[bestVictim.Item], bestVictimBlk);
                     proposals.Add(proposal);
                     evalByKey[bestHog.PosKey + "|" + bestHog.Item].Class = "hog";
+                    hogVictimItems.Add(bestVictim.Item);
+                    hoggedItems.Add(bestHog.Item);
                     hogs++;
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] HOG pass container '{ckv.Key}' error: {ex}"); }
             }
 
-            // ── Pass 2: BLOCKAGE (dedicated hut/producer containers, exactly 1 effective item) ──
-            foreach (var ckv in containerGroups)
+            // ── Pass 2: BLOCKAGE (diagnostic, v0.13.0) ──────────────────────────────────────────
+            // A demanded, NON-surplus material that is genuinely stuck: SITTING (stored>0) in a full,
+            // static container while its downstream BOM consumers rely on it (Hardwood Long Sticks
+            // jammed at the Woodcutter's while Shafts/Beams demand it at the Carpenter's). This is a
+            // routing/priority problem — NOT physical crowding (HOG) and NOT over-production (SURPLUS,
+            // which is why surplus items are excluded here). One line per ITEM (deduped, reported at
+            // its most-piled stuck location), carrying a cause token from the item's warehouse rows:
+            //   no-route        — the item has no true-warehouse allotment anywhere (nowhere to haul),
+            //   destination-full — it has warehouse rows but all are full (room 0),
+            //   priority-shadowed — a warehouse row has room but isn't filling (haulers not coming).
+            // Diagnostic only — no eviction, no state write.
+            var blockageBest = new Dictionary<string, (BudgetGroup Group, string Blk, string Container)>();
+            foreach (var kv in groups)
             {
                 try
                 {
-                    string containerKey = ckv.Key;
-                    if (!containerMap.TryGetValue(containerKey, out var snap)) continue;
+                    var g = kv.Value;
+                    if (g.MinRank == 3) continue;                        // this row fully player-Off
+                    if (g.Stored <= 0) continue;                         // must be SITTING here (piled)
+                    var sig = itemSignals[g.Item];
+                    if (!sig.Demanded) continue;                         // must have downstream reliance
+                    if (IsSurplus(sig)) continue;                        // surplus is HOG/SURPLUS, not BLOCKAGE
+                    if (hogVictimItems.Contains(g.Item)) continue;       // already rescued as a HOG victim
 
-                    var effective = new List<BudgetGroup>();
-                    foreach (var g in ckv.Value) if (g.MinRank != 3) effective.Add(g);
-                    if (effective.Count != 1) continue;
-
-                    var xGroup = effective[0];
-                    if (!xGroup.IsHut) continue;
-                    bool xBlocked = IsBlocked(snap, xGroup.Info, out string xBlk);
-                    if (!xBlocked) continue;
-                    if (itemSignals[xGroup.Item].Demanded) continue;
-
-                    if (!groupsByPosKey.TryGetValue(xGroup.PosKey, out var siblings)) continue;
-
-                    BudgetGroup? bestY = null;
-                    foreach (var y in siblings)
+                    bool stuck = false; string stuckBlk = "fill"; string stuckContainer = "?";
+                    foreach (var ck in g.ContainerKeys)
                     {
-                        if (ReferenceEquals(y, xGroup)) continue;
-                        var ySig = itemSignals[y.Item];
-                        if (!ySig.Demanded) continue;
-                        if (y.Stored >= y.QuotaSum) continue;
-                        if (bestY == null || ySig.StructTotal > itemSignals[bestY.Item].StructTotal) bestY = y;
+                        if (!containerMap.TryGetValue(ck, out var cs)) continue;
+                        if (IsBlocked(cs, g.Info, out string blk)) { stuck = true; stuckBlk = blk; stuckContainer = LastSix(ck); break; }
                     }
-                    if (bestY == null) continue;
+                    if (!stuck) continue;
 
-                    var proposal = BuildEvictionProposal("BLOCKAGE", "blockage", containerKey, snap, xGroup, bestY, itemSignals[bestY.Item], xBlk);
-                    proposals.Add(proposal);
-                    evalByKey[xGroup.PosKey + "|" + xGroup.Item].Class = "blockage";
-                    blockage++;
+                    var ev = evalByKey[kv.Key];
+                    if (ev.HasRate && Math.Abs(ev.Rate) > Plugin.HogMaxAbsRate.Value) continue; // static only
+
+                    if (!blockageBest.TryGetValue(g.Item, out var cur) || g.Stored > cur.Group.Stored)
+                        blockageBest[g.Item] = (g, stuckBlk, stuckContainer);
                 }
-                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] BLOCKAGE pass container '{ckv.Key}' error: {ex}"); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] BLOCKAGE scan '{kv.Key}' error: {ex}"); }
+            }
+            foreach (var bkv in blockageBest)
+            {
+                try
+                {
+                    var (g, stuckBlk, stuckContainer) = bkv.Value;
+                    var sig = itemSignals[g.Item];
+                    evalByKey[g.PosKey + "|" + g.Item].Class = "blockage";
+                    blockage++;
+
+                    string cause = !sig.HasWarehouseRow ? "no-route"
+                        : sig.MaxWarehouseRoom > 0 ? "priority-shadowed"
+                        : "destination-full";
+
+                    string wantedStr = DemandGraph.TryGetWantedByLabels(g.Item, out var labels)
+                        ? string.Join(", ", labels)
+                        : $"{sig.NoProdNeededBy ?? "downstream demand"} (no direct-consumer labels — derived-only)";
+
+                    string structStr = $"{sig.StructTotal}({sig.StructDirect}/{sig.StructDerived})";
+                    string line =
+                        $"[SupplyChain] [budget] BLOCKAGE '{g.Item}' @ '{g.Warehouse}' [{stuckContainer}]: " +
+                        $"demanded material stuck (stored={g.Stored} full+static blk={stuckBlk} structural={structStr}) " +
+                        $"cause={cause} while downstream relies on it: [{wantedStr}] -> supply not routing to demand (dry-run)";
+                    proposals.Add((line, sig.StructTotal, $"blockage|{g.Item}"));
+                }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] BLOCKAGE emit '{bkv.Key}' error: {ex}"); }
+            }
+
+            // ── Pass 2b: SURPLUS (informational, v0.13.0) ───────────────────────────────────────
+            // A surplus item (stock ≫ demand) that ISN'T currently crowding a demanded victim — i.e.
+            // over-produced and just sitting around, no shared-container HOG relationship. One line
+            // per item (deduped). Distinct from HOG (a surplus item that IS crowding → actionable
+            // eviction) and BLOCKAGE (a genuinely-short demanded item stuck). Informational only.
+            foreach (var skv in itemSignals)
+            {
+                try
+                {
+                    string item = skv.Key;
+                    var sig = skv.Value;
+                    if (!IsSurplus(sig)) continue;
+                    if (sig.SettleStored <= 0) continue;
+                    if (hoggedItems.Contains(item)) continue;            // already an actionable HOG
+
+                    surplus++;
+                    double keepTarget = sig.StructTotal * (double)Math.Max(0f, Plugin.SurplusFactor.Value);
+                    string demStr = sig.StructTotal > 0 ? $"demand={sig.StructTotal}" : "undemanded";
+                    string line =
+                        $"[SupplyChain] [budget] SURPLUS '{item}': settleStored={sig.SettleStored} {demStr} keepTarget={keepTarget:F0} " +
+                        $"top='{sig.TopSource}' -> over-produced vs demand, reduce candidate (informational, dry-run)";
+                    proposals.Add((line, sig.StructTotal, $"surplus|{item}"));
+                }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] SURPLUS '{skv.Key}' error: {ex}"); }
             }
 
             // ── Pass 3: SHADOWED / OFF-CONFLICT / STARVED / healthy / no-data (remaining groups) ─
@@ -341,6 +407,9 @@ internal static class BudgetPlane
                 if (ev.Class == "hog" || ev.Class == "blockage") continue; // already decided, passes 1-2
 
                 var sig = itemSignals[g.Item];
+                // v0.13.0 — an item already classified at the item level (surplus, a HOG victim, or a
+                // BLOCKAGE) doesn't earn a second SHADOWED/STARVED/OFF finding from its other rows.
+                if (IsSurplus(sig) || hogVictimItems.Contains(g.Item) || blockageBest.ContainsKey(g.Item)) continue;
                 bool unmet = g.Stored < g.QuotaSum;
                 bool anyContainerFull = false;
                 foreach (var ck in g.ContainerKeys)
@@ -458,7 +527,7 @@ internal static class BudgetPlane
 
             Plugin.Logger.LogInfo(
                 $"[SupplyChain] [budget] groups={groupCount} (wh={warehouseGroups} hut={hutGroups}) " +
-                $"demandItems={demandItems}(direct={demandDirect} derived={demandDerived}) hogs={hogs} blockage={blockage} " +
+                $"demandItems={demandItems}(direct={demandDirect} derived={demandDerived}) hogs={hogs} blockage={blockage} surplus={surplus} " +
                 $"shadowed={shadowed} starved={starved} off={off} healthy={healthy} noData={noData} (dry-run)");
 
             var proposalKeys = new List<string>();
@@ -528,6 +597,17 @@ internal static class BudgetPlane
     // the read throws. `primitive` tells the caller which one decided ("cap" vs "fill") for the
     // blk=cap|fill log token — replaces v0.11.0's HasSpace(item,1)==false, which fired on containers
     // at fill 0.94-0.98 (its semantics evidently aren't "no free slot").
+    // v0.13.0 — surplus = settlement-wide stock exceeds the item's demand-grounded keep-target
+    // (structural demand × SurplusFactor). A zero-demand item is surplus at any stock > 0. This is
+    // the first-class hog-eligibility signal, replacing the binary demanded/undemanded gate: an item
+    // with tiny demand but a huge pile (Resin: demand 3, stock 1900) is surplus and can be a hog,
+    // while a genuinely short demanded item (Fibers: 300 vs 484×2) is not.
+    private static bool IsSurplus(ItemSignal sig)
+    {
+        double keepTarget = sig.StructTotal * (double)Math.Max(0f, Plugin.SurplusFactor.Value);
+        return sig.SettleStored > keepTarget;
+    }
+
     private static bool IsBlocked(WarehouseWatch.ContainerSnapshot snap, ItemInfo? info, out string primitive)
     {
         if (info != null)
@@ -544,75 +624,44 @@ internal static class BudgetPlane
         return snap.FillRatio >= 0.999f;
     }
 
-    // Shared HOG/BLOCKAGE proposal builder — identical sizing formula for both classes (see file
-    // header): Yneed = min(victim structTotal, victim's unmet row quota), slots =
-    // ceil(Yneed / C.GetStackSize(victim)) capped at MaxSlotsPerCycle, q = slots * C.GetStackSize(hog),
-    // then HARD-CLAMPED to hogGroup's own structure-wide Stored (v0.11.1 — never propose evicting
-    // more of X than the structure actually holds); the displayed slot count is recomputed FROM
-    // that clamped q. Falls back to slots=1 ("sizing=incremental") when the victim's demand is
-    // distress-only (structTotal==0, a noProd complaint only — no computable magnitude yet).
-    // `blkToken` ("cap"|"fill") is the primitive IsBlocked used to gate this proposal — logged
-    // verbatim so sizing is auditable, not recomputed here (must match what gated selection).
+    // HOG eviction sizing (v0.13.0) — DEMAND-GROUNDED. A hog is a SURPLUS item (stock ≫ demand), so
+    // it's reduced toward keepUnits = max(CoProductFloorSlots × stack, its own structural demand) —
+    // never below what the item itself needs (bones demand 0 → keep 1 slot; Resin demand 3 → still
+    // keep ≥ 1 slot; a demand-500 item → keep 500). Everything above keepUnits is surplus to reduce.
+    // The FULL target and the per-cycle step (capped at MaxSlotsPerCycle so it self-paces,
+    // response-gated at arming) are BOTH logged. The demanded, blocked VICTIM this hog crowds is
+    // named as the justification. `blkToken` ("cap"|"fill") is IsBlocked's primitive. Dry-run — no DropItem.
     private static (string Line, int Severity, string Key) BuildEvictionProposal(
-        string classLabel, string keyClass, string containerKey, WarehouseWatch.ContainerSnapshot snap,
-        BudgetGroup hogGroup, BudgetGroup victimGroup, ItemSignal victimSig, string blkToken)
+        string containerKey, WarehouseWatch.ContainerSnapshot snap,
+        BudgetGroup hogGroup, ItemSignal hogSig, BudgetGroup victimGroup, ItemSignal victimSig, string blkToken)
     {
         int rowUnmet = Math.Max(0, victimGroup.QuotaSum - victimGroup.Stored);
         int structTotal = victimSig.StructTotal;
-        bool distressOnly = structTotal == 0 && victimSig.NoProdNeededBy != null;
-
-        int stackV = 1;
-        try { if (victimGroup.Info != null) stackV = Math.Max(1, snap.Container.GetStackSize(victimGroup.Info)); } catch { }
 
         int stackX = 1;
         try { if (hogGroup.Info != null) stackX = Math.Max(1, snap.Container.GetStackSize(hogGroup.Info)); } catch { }
 
-        int slots;
-        string sizingSuffix;
-        if (distressOnly)
-        {
-            slots = 1;
-            sizingSuffix = " sizing=incremental";
-        }
-        else
-        {
-            int need = Math.Min(structTotal, rowUnmet);
-            slots = need > 0 ? (int)Math.Ceiling(need / (double)stackV) : 0;
-            sizingSuffix = "";
-        }
-        int cap = Math.Max(0, Plugin.MaxSlotsPerCycle.Value);
-        if (slots > cap) slots = cap;
-        if (slots < 0) slots = 0;
+        int floorUnits = Math.Max(0, Plugin.CoProductFloorSlots.Value) * stackX;
+        int keepUnits = Math.Max(floorUnits, hogSig.StructTotal);      // v0.13.0 — never below the hog's own demand
+        int stored = Math.Max(0, hogGroup.Stored);
+        int surplusUnits = Math.Max(0, stored - keepUnits);
+        int targetUnits = stored - surplusUnits;                       // == min(stored, keepUnits)
+        int fullSlots = stackX > 0 ? (int)Math.Ceiling(surplusUnits / (double)stackX) : 0;
 
-        // v0.11.1 quantum clamp: never propose evicting more of X than the structure holds.
-        int qRaw = slots * stackX;
-        int q = Math.Min(qRaw, Math.Max(0, hogGroup.Stored));
-        int displaySlots = stackX > 0 ? (int)Math.Ceiling(q / (double)stackX) : slots;
+        int cap = Math.Max(0, Plugin.MaxSlotsPerCycle.Value);
+        int cycleSlots = Math.Min(Math.Max(0, fullSlots), cap);
+        int cycleUnits = Math.Min(cycleSlots * stackX, surplusUnits);  // this cycle's paced step
 
         string containerKeyLast6 = LastSix(containerKey);
         string structStr = $"{structTotal}({victimSig.StructDirect}/{victimSig.StructDerived})";
+        string hogDemStr = hogSig.StructTotal > 0 ? $"demand={hogSig.StructTotal}" : "undemanded";
 
-        string line;
-        if (classLabel == "BLOCKAGE")
-        {
-            line =
-                $"[SupplyChain] [budget] BLOCKAGE '{hogGroup.Item}' @ '{victimGroup.Warehouse}' [{containerKeyLast6}]: " +
-                $"full container of undemanded '{hogGroup.Item}' stalls producer of demanded sibling '{victimGroup.Item}' " +
-                $"(V structural={structStr} rowUnmet={rowUnmet} blk={blkToken}) " +
-                $"-> would-evict {q} (={displaySlots} slot(s), cap={cap}) gate=ready (dry-run){sizingSuffix}";
-        }
-        else
-        {
-            line =
-                $"[SupplyChain] [budget] {classLabel} '{hogGroup.Item}' vs victim '{victimGroup.Item}' @ '{victimGroup.Warehouse}' [{containerKeyLast6}]: " +
-                $"X stored={hogGroup.Stored} V structural={structStr} V rowUnmet={rowUnmet} fill={snap.FillRatio:F2} blk={blkToken} stackX={stackX} " +
-                $"-> would-evict {q} (={displaySlots} slot(s), cap={cap}) gate=ready (dry-run){sizingSuffix}";
-        }
+        string line =
+            $"[SupplyChain] [budget] HOG '{hogGroup.Item}' vs victim '{victimGroup.Item}' @ '{victimGroup.Warehouse}' [{containerKeyLast6}]: " +
+            $"surplus X stored={stored} ({hogDemStr}) crowds demanded V (structural={structStr} rowUnmet={rowUnmet} fill={snap.FillRatio:F2} blk={blkToken} stackX={stackX}) " +
+            $"-> reduce X {stored}->{targetUnits} (surplus {surplusUnits}={fullSlots} slot(s)); this cycle {cycleUnits} ({cycleSlots}/{cap} slot(s)) gate=ready (dry-run)";
 
-        string key = keyClass == "hog"
-            ? $"hog|{containerKey}|{hogGroup.Item}|{victimGroup.Item}"
-            : $"blockage|{containerKey}|{hogGroup.Item}";
-
+        string key = $"hog|{containerKey}|{hogGroup.Item}|{victimGroup.Item}";
         return (line, structTotal, key);
     }
 

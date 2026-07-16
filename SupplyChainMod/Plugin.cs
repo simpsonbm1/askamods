@@ -401,6 +401,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> ShadowMinSourceStock = null!;
     internal static ConfigEntry<int> MaxProposalLinesPerPoll = null!;
     internal static ConfigEntry<int> MaxSlotsPerCycle = null!;
+    internal static ConfigEntry<int> CoProductFloorSlots = null!;
+    internal static ConfigEntry<float> SurplusFactor = null!;
 
     // ── [Phase2dProbe] ───────────────────────────────────────────────────────────────────────
     internal static ConfigEntry<bool> EnableContainerProbe = null!;
@@ -857,8 +859,23 @@ public class Plugin : BasePlugin
             section: "Phase2dBudget",
             key: "MaxSlotsPerCycle",
             defaultValue: 2,
-            description: "v0.11.0 classifier v3: cap on slots a single HOG/BLOCKAGE proposal would free per cycle — the response-gated " +
+            description: "v0.11.0 classifier v3: cap on slots a single HOG eviction proposal would free per cycle — the response-gated " +
                 "eviction quantum (see SupplyChainMod/DEMAND_MODEL_PLAN.md). This version is dry-run only; the cap is logged, never acted on.");
+
+        CoProductFloorSlots = Config.Bind(
+            section: "Phase2dBudget",
+            key: "CoProductFloorSlots",
+            defaultValue: 1,
+            description: "HOG sizing floor: a HOG's surplus item is reduced toward max(this many slots, its own demand) kept. Bones " +
+                "structural=0 -> keep ~1 slot; a low-demand-but-piled item keeps max(1 slot, demand). Paced by MaxSlotsPerCycle per cycle.");
+
+        SurplusFactor = Config.Bind(
+            section: "Phase2dBudget",
+            key: "SurplusFactor",
+            defaultValue: 2.0f,
+            description: "v0.13.0 surplus gate: an item is SURPLUS (and thus HOG-eligible) when its settlement-wide stock exceeds " +
+                "structural-demand x this factor. Zero-demand items are surplus at any stock. Resin (demand 3, stock 1900) -> surplus; " +
+                "Fibers (300 vs 484x2=968) -> not surplus. Replaces the old binary demanded/undemanded hog gate.");
 
         EnableContainerProbe = Config.Bind(
             section: "Phase2dProbe",
@@ -944,7 +961,7 @@ public class Plugin : BasePlugin
             $"MaxQuotaShareOfMaxPct={MaxQuotaShareOfMaxPct.Value} HogMinStored={HogMinStored.Value} " +
             $"HogMaxAbsRate={HogMaxAbsRate.Value} ShadowMaxFillRate={ShadowMaxFillRate.Value} " +
             $"DemandDrainPerMin={DemandDrainPerMin.Value} DemandChurnPerMin={DemandChurnPerMin.Value} ShadowMinSourceStock={ShadowMinSourceStock.Value} " +
-            $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} " +
+            $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} CoProductFloorSlots={CoProductFloorSlots.Value} SurplusFactor={SurplusFactor.Value} " +
             $"EnableContainerProbe={EnableContainerProbe.Value} EnableDemandGraph={EnableDemandGraph.Value} DemandRefreshMinutes={DemandRefreshMinutes.Value} " +
             $"TransformMap='{TransformMap.Value}'.");
     }

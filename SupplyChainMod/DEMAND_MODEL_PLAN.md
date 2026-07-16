@@ -131,15 +131,16 @@ captured per row — no new reads).
 
 **Hog v3 (post-probe):** hog and victim must share a verified EFFECTIVELY-shared container that
 accepts both; victim must be structurally demanded; hog must not be.
-**Eviction policy (user-decided 2026-07-15):** evict ONLY when a demanded item is actually
-blocked, and only JUST ENOUGH to meet the blocked item's computed need (deficit-based formula
-from the demand model). Flat reductions are retired — v0.8.0–v0.9.1's "target = MinQuota +
-headroom" behaved as a ~90% flat cut and is exactly what not to do.
-**Separate class — producer-output blockage** — for dedicated-container
-producer stations: output container full of an undemanded item while a demanded sibling output is
-stalled/noProd (the Hunter's House bone case *if* the probe shows its storage is dedicated;
-if shared, it's a plain hog). Same remedy (drain/evict, deficit-sized), honest evidence either
-way.
+**Eviction policy (SHIPPED v0.12.0–v0.13.0 — supersedes the deficit-based note):** evict ONLY when a
+demanded, NON-surplus item is actually blocked in a SHARED container by a SURPLUS co-resident (HOG).
+Sizing is DEMAND-GROUNDED, not victim-deficit: reduce the surplus hog toward
+max(CoProductFloorSlots × stack, its own demand). Flat reductions stay retired.
+**"Producer-output blockage" — RETIRED as invalid (2026-07-15).** The idea (a full DEDICATED
+container of undemanded X stalls a demanded SIBLING output elsewhere at the same station) rests on a
+false premise: items in SEPARATE containers cannot compete for slots, so one cannot block another
+(user-confirmed in-game). The Hunter's House bones case turned out SHARED (bones+meat) → a plain HOG,
+which is what shipped. **This misleading definition drove a wrong build** — "BLOCKAGE" was reused for
+a completely different (and correct) meaning in v0.12.0: a routing diagnostic (see the classes below).
 
 ## Lever map (constraints now known)
 
@@ -198,19 +199,18 @@ layers. Per poll: build the physical container map (interaction.Container per ro
 structural demand by item name via DemandGraph (+ transitive propagation + batch correction +
 transform map; rebuilt on world load, F9, and a slow cadence — tasks change rarely).
 
-Classes (each proposal line carries its full evidence):
-1. **HOG** — X and victim Y effectively share container C; Y structurally demanded AND blocked at
-   C (zero free slots, no partial Y stack); X not structurally demanded (transitively). Proposal:
-   evict the SMALLEST number of whole X stacks from C yielding
-   `ceil(Yneed / C.GetStackSize(Y))` slots, where `Yneed = min(structural deficit, Y's unmet row
-   quota at the structure)` — the user-decided "just barely enough".
-2. **SHADOWED** — item structurally demanded; destination row unmet + room, rank Med/Low (never
+Classes (SHIPPED v0.13.0 — each proposal line carries its full evidence):
+1. **HOG** (eviction) — a SURPLUS, static item crowds a demanded, NON-surplus, blocked item in a
+   SHARED container. Surplus = settleStored > structural × SurplusFactor (config 2.0) — the hog gate,
+   replacing binary demanded/undemanded (which misfiled over-supplied-but-demanded items like Resin).
+   Reduce the hog toward max(CoProductFloorSlots × stack, its own demand), paced at MaxSlotsPerCycle.
+2. **BLOCKAGE** (diagnostic) — a demanded, NON-surplus material SITTING (stored>0) in a full, static
+   container while downstream BOM consumers rely on it. Routing/priority problem (lever tier/priority),
+   NOT eviction. One line per item, cause token no-route / destination-full / priority-shadowed.
+3. **SURPLUS** (informational) — a surplus item over-produced but not currently crowding a victim.
+4. **SHADOWED** — item structurally demanded; destination row unmet + room, rank Med/Low (never
    Off); stock piled at producer self-storages; flow static. ONE destination per item.
-3. **PRODUCER-BLOCKAGE** — producer output container 100% full of undemanded X while a demanded
-   sibling output is stalled/noProd (for DEDICATED-container producers; shared-container cases
-   are plain HOGs — e.g. Hunter's House bones+meat).
-4. **OFF-CONFLICT** (informational) — item demanded + piling, but its row here is player-Off.
-5. **STARVED** (informational) — demanded, already High, unmet, source exists, not filling.
+5. **OFF-CONFLICT / STARVED** (informational) — demanded+piling but Off here; demanded+High+unmet+source.
 Flow (net/churn) sizes headroom and confirms; distress (noProd/complaints/storage-full) ranks
 proposal urgency. Still zero writes — same audit loop as steps 1–2.
 
@@ -272,6 +272,32 @@ cycling becomes a tunable, eventually per-item.
 4. **Arming design** (separate proposal): which proposal classes may auto-apply, rails, duty
    cycles — only after the dry-run proposals read as consistently sane.
 5. **Phase 3 / task creation research** — after the read-side is trustworthy.
+
+## Status & open next steps (updated 2026-07-15, post-v0.13.0)
+
+SHIPPED + in-game-verified: sequence steps 1–3. v0.9.2 container probe → v0.10.0 DemandGraph →
+v0.11.x classifier v3 + cooking/transform demand → v0.12.0 demand-grounded HOG sizing + BLOCKAGE
+rewritten to a routing diagnostic → v0.13.0 IsSurplus gate + SURPLUS class + BLOCKAGE cause tokens.
+The HOG/BLOCKAGE/SURPLUS taxonomy is settled and read-side-trustworthy for END products and truly-
+undemanded items. Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
+
+Open, in rough priority (first three all BLOCK arming):
+1. **Base-material keep-target.** `structural × SurplusFactor` mislabels heavily-buffered base
+   materials as surplus (Fibers 4900 stored vs demand 484 — likely a healthy buffer; contrast Resin
+   2050 vs 3 — genuine over-production). Make the SURPLUS keep-target consumption-rate/flow-aware
+   (the chain-capacity rollup / time element in the structural-demand section) so it separates
+   over-production from a wanted buffer.
+2. **Demand-blind window gate.** For ~5 min post-load (until DemandGraph builds / F9), demand=0 →
+   everything reads surplus (keepTarget=0). Actuation must be gated until demand has built.
+3. **Farming demand modeling.** Seeds read structural=0 (FarmingStation crop demand unmodeled) →
+   flagged surplus though used for planting.
+4. **v0.13.1 clog-detector retirement.** WarehouseWatch.DetectClogs is a parallel, complaint-driven,
+   station-level detector whose "Clog"/"STALL priority-shadowed" toasts duplicate BLOCKAGE's meaning.
+   Reconcile: storage-full complaint → a DISTRESS TAG that boosts urgency + drives toasts worded by
+   the demand-model class; retire the Clog/STALL toast vocabulary; ClogController (quota-raise lever)
+   already retired — leave default-off; keep the forge regression harness.
+5. **Arming design** (was step 4) — which classes auto-apply, rails, duty cycles — only after 1–3.
+6. **Phase 3 / task creation research** (was step 5).
 
 ## User decisions (2026-07-15, all four open questions answered)
 

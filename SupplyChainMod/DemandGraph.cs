@@ -73,6 +73,11 @@ internal static class DemandGraph
     private static Dictionary<string, int> _directQty = new();
     private static Dictionary<string, int> _derivedQty = new();
     private static Dictionary<string, int> _wantedByCount = new();
+    // v0.12.0 — retained DIRECT-consumer labels ("Output xQty", top few by qty) per input item, so
+    // the BudgetPlane BLOCKAGE diagnostic can NAME what downstream relies on a stuck material
+    // (the user's "Hardwood Long Sticks stuck while Shafts/Beams demand it" case). Plain strings
+    // only (project-wide static-state rule); derived-only demand has no direct wantedBy label here.
+    private static Dictionary<string, List<string>> _wantedByLabels = new();
     private static float _lastRebuildTime = -1f;
 
     internal static void NoteWorldLeft()
@@ -82,6 +87,7 @@ internal static class DemandGraph
             _directQty = new Dictionary<string, int>();
             _derivedQty = new Dictionary<string, int>();
             _wantedByCount = new Dictionary<string, int>();
+            _wantedByLabels = new Dictionary<string, List<string>>();
             _lastRebuildTime = -1f;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] NoteWorldLeft error: {ex}"); }
@@ -111,6 +117,24 @@ internal static class DemandGraph
             wantedByCount = 0;
             return false;
         }
+    }
+
+    // v0.12.0 — DIRECT-consumer labels ("Output xQty", top few) for a stuck input item, used by
+    // BudgetPlane's BLOCKAGE diagnostic to name the downstream processes relying on it. Returns
+    // false (labels empty) when the item has no recorded direct consumers (e.g. derived-only demand).
+    internal static bool TryGetWantedByLabels(string itemName, out List<string> labels)
+    {
+        labels = new List<string>();
+        try
+        {
+            if (itemName != null && _wantedByLabels.TryGetValue(itemName, out var l) && l.Count > 0)
+            {
+                labels = l;
+                return true;
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] TryGetWantedByLabels error: {ex}"); }
+        return false;
     }
 
     // v0.11.0 — called by BudgetPlane at the start of every Evaluate. Rebuilds at most once per
@@ -380,9 +404,25 @@ internal static class DemandGraph
             foreach (var kv in newDirect) if (kv.Value > 0) directCount++;
             foreach (var kv in newDerived) if (kv.Value > 0) derivedCount++;
 
+            // v0.12.0 — snapshot the top DIRECT consumers per input as plain "Output xQty" labels
+            // (max 6, qty-desc) for the BLOCKAGE diagnostic. Built from the local `wantedBy` map.
+            const int maxLabels = 6;
+            var newLabels = new Dictionary<string, List<string>>();
+            foreach (var kv in wantedBy)
+            {
+                var entries = kv.Value;
+                entries.Sort((a, b) => b.Qty.CompareTo(a.Qty));
+                var labels = new List<string>();
+                int shown = Math.Min(entries.Count, maxLabels);
+                for (int e = 0; e < shown; e++) labels.Add($"{entries[e].Output} x{entries[e].Qty}");
+                if (entries.Count > maxLabels) labels.Add($"+{entries.Count - maxLabels} more");
+                newLabels[kv.Key] = labels;
+            }
+
             _directQty = newDirect;
             _derivedQty = newDerived;
             _wantedByCount = newCount;
+            _wantedByLabels = newLabels;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] ReplaceState error: {ex}"); }
 

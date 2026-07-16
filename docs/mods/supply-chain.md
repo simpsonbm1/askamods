@@ -1,10 +1,12 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.11.1, Phases 0–2c complete (in-game-verified); Phase 2d demand-model rebuild
-in progress per `SupplyChainMod/DEMAND_MODEL_PLAN.md`: v0.9.2 container probe + v0.10.0
-DemandGraph structural demand in-game-verified 2026-07-15; v0.11.0 classifier v3 tested in-game
-2026-07-15 (ran clean; two spec bugs found in audit — see Dead-Ends); v0.11.1 fixes + cooking/
-transform demand built ⚠️ pending in-game test. Dev tool NOT for Nexus
+**Status:** WIP v0.13.0, Phases 0–2c complete + Phase 2d demand-model classifier reconciled, all
+in-game-verified 2026-07-15 (still dry-run/read-only). Per `SupplyChainMod/DEMAND_MODEL_PLAN.md`:
+v0.9.2 container probe → v0.10.0 DemandGraph structural demand → v0.11.x classifier v3 + cooking/
+transform demand → v0.12.0 demand-grounded HOG sizing + BLOCKAGE rewritten to a routing diagnostic
+→ v0.13.0 IsSurplus gate + SURPLUS class + BLOCKAGE cause tokens (the HOG/BLOCKAGE/SURPLUS taxonomy).
+Open next steps: base-material keep-target refinement, clog-detector retirement (v0.13.1), arming —
+see DEMAND_MODEL_PLAN.md. Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -298,6 +300,8 @@ ShadowMinSourceStock=30     # SHADOWED needs this much piled at producer self-st
 VictimMaxRoom=0             # HOG victim: unmet group sharing a container with room <= this
 MaxProposalLinesPerPoll=12  # severity-sorted proposal-line cap per poll (F9 = full set)
 MaxSlotsPerCycle=2          # eviction quantum cap (slots per proposal cycle, response-gated at arming)
+CoProductFloorSlots=1       # v0.12.0 HOG sizing: reduce a surplus hog toward max(this×stack, its demand)
+SurplusFactor=2.0           # v0.13.0 surplus gate: item is surplus when settleStored > structural × this
 
 [Phase2dDemand]
 EnableDemandGraph=true      # v0.10.0 structural-demand extractor (wantedBy table)
@@ -413,6 +417,22 @@ rare — requires player-lowered quota + free room. Quota-raise RETIRED as core 
 - **Cured leather items are recipe-less in data (2026-07-15):** unmatched even via the blueprint
   UNION across 10 table-bearing stations — the curing rack has no blueprint; the TransformMap
   config exists because of this.
+- **Blocking requires SHARED storage (2026-07-15, v0.12.0):** two items in SEPARATE containers can't
+  compete for slots, so one can't block the other. The old "producer-blockage" concept (a full
+  DEDICATED container of undemanded X stalls a demanded SIBLING output elsewhere at the same station)
+  was therefore invalid — every such proposal paired non-sharing items. Real crowding exists only
+  within a shared container (that's HOG). BLOCKAGE was redefined to a single-material routing
+  diagnostic (a demanded material stuck while its downstream consumers wait), never a cross-container
+  stall. User-confirmed in-game; the misleading definition had lived in DEMAND_MODEL_PLAN.md and drove
+  the wrong build.
+- **`structural × SurplusFactor` mislabels base-material buffers as surplus (2026-07-15, v0.13.0):**
+  structural demand = current active task quota × recipe — a good target for END PRODUCTS but a poor
+  one for BASE MATERIALS, which a settlement legitimately buffers far above current crafting orders
+  (Fibers 4900 stored vs demand 484 → flagged surplus, but likely a healthy buffer; contrast Resin
+  2050 vs demand 3 → genuine over-production). The SURPLUS keep-target must become consumption-rate/
+  flow-aware (the deferred chain-capacity rollup) before SURPLUS/HOG eviction is armed, or it would
+  dump useful stock. Related: the demand-blind post-load window (DemandGraph builds after ~5 min / F9)
+  reads EVERYTHING as surplus (keepTarget=0) — arming must be gated until demand has built.
 
 ## Design Direction (user-decided 2026-07-14)
 
@@ -522,20 +542,35 @@ F9 full dump; accessor `TryGetStructuralDemand(item, out direct, out derived, ou
 v0.10.0 in-game-verified 2026-07-15: 47/51 tasks matched, 23 inputs, table audited TRUE
 (Feathers demanded by arrow tasks despite zero flow; Bone Fragments/Seeds correctly absent).
 
-**Classifier v3 (v0.11.0–v0.11.1, plan step 3, ⚠️ v0.11.1 pending in-game test):** BudgetPlane
-rebuilt on container map + structural demand. Per-poll container map (interaction.Container per
-row, transient same-call-stack only; AllotmentRow gained ContainerKey/Info). Demanded(item) =
-structural > 0 OR noProduction present. Classes: HOG (container-scoped: blocked demanded victim
-+ undemanded static hog sharing the container; would-evict sized
-min(ceil(min(structTotal, victim rowUnmet)/stackV), MaxSlotsPerCycle) × stackX, clamped to the
-hog's stored count; sizing=incremental one-slot fallback for distress-only demand), BLOCKAGE
-(full dedicated container of undemanded item stalls producer of demanded sibling), SHADOWED
-(demanded + unmet + room + rank Med/Low + hut source stock; one destination per item),
-OFF-CONFLICT and STARVED (informational). Blocked primitive = `GetRemainingCapacity(vInfo)==0`
-(fill>=0.999 fallback; line token blk=cap|fill) — v0.11.0's HasSpace was wrong (Dead-Ends).
-v0.11.0 in-game 2026-07-15: mechanically clean (poll 13-16 ms typical, evaluate 42-50 ms), HOGs
-correctly named genuinely-shared containers, but demand pollution + blocked-detection bugs
-(fixed in v0.11.1, retest pending).
+**Classifier (v0.11.0 → v0.13.0, plan step 3, in-game-verified 2026-07-15):** BudgetPlane rebuilt on
+a per-poll container map (interaction.Container per row, transient same-call-stack only; AllotmentRow
+carries ContainerKey/Info) + structural demand. It reasons about ONE central signal and separates
+three storage pathologies:
+
+- **IsSurplus(item)** (v0.13.0) = settlementStored > structural × `SurplusFactor` (config, default
+  2.0); a zero-demand item is surplus at any stock. First-class hog-eligibility signal — replaced the
+  earlier binary demanded/undemanded gate, which had misfiled over-supplied-but-demanded items.
+- **HOG** (eviction) — a SURPLUS, static item crowds a demanded, NON-surplus, blocked item in a
+  SHARED container (real physical crowding). Blocked = `GetRemainingCapacity(victim)==0` (fill>=0.999
+  fallback; blk=cap|fill token — v0.11.0's HasSpace was wrong, see Dead-Ends). Sizing DEMAND-GROUNDED
+  (v0.12.0): reduce the hog toward max(CoProductFloorSlots × stack, its own demand), paced at
+  MaxSlotsPerCycle; full target + per-cycle step both logged (bones 1250→50).
+- **BLOCKAGE** (diagnostic, v0.12.0 rewrite) — a demanded, NON-surplus material SITTING (stored>0) in
+  a full, static container while its downstream BOM consumers rely on it (Hardwood Long Stick jammed
+  while Shafts/Beams demand it). A routing/priority problem; lever tier/priority, NOT eviction. One
+  line per ITEM (deduped, most-piled location) with a cause token from the item's warehouse rows:
+  no-route / destination-full / priority-shadowed. The pre-v0.12.0 "undemanded X stalls a demanded
+  SIBLING in a DIFFERENT container" logic was WRONG (separate containers can't block — Dead-Ends), retired.
+- **SURPLUS** (informational, v0.13.0) — a surplus item NOT currently crowding a victim: over-produced
+  and just sitting. One line per item.
+- **SHADOWED / OFF-CONFLICT / STARVED** — unchanged demand-pull warehouse classes.
+
+Still 100% dry-run (no DropItem, no quota/tier write). v0.13.0 in-game-verified 2026-07-15: loaded
+clean, zero errors; Resin (2050 stored vs demand 3) correctly reclassified surplus→HOG-eligible (was
+mislabeled BLOCKAGE); 5 clean cause-tokened BLOCKAGEs; the false seed→Fibers hogs correctly suppressed
+(Fibers over-supplied settlement-wide, so not a needy victim). Finding: `structural × SurplusFactor`
+mislabels heavily-buffered BASE MATERIALS as surplus (Fibers 4900 vs demand 484) — keep-target must
+become consumption-aware before SURPLUS/HOG eviction is armed (see Dead-Ends + DEMAND_MODEL_PLAN.md).
 
 ## Research spike (Cecil, 2026-07-14)
 
@@ -634,7 +669,20 @@ See architecture.md for full API surface.
   per-poll container map, HOG/BLOCKAGE/SHADOWED/OFF/STARVED on structural demand + transitive
   propagation + widened recipe discovery. Ran clean; audit found demand pollution (storage tasks)
   + HasSpace blocked-detection bugs.
-- **v0.11.1** (2026-07-15, built clean, ⚠️ pending in-game test) — production-task filter,
-  GetRemainingCapacity blocked primitive + evict clamp, BlueprintInfo.quantity primary batch
-  source, TransformMap config (curing trio default), CrockpotRecipeInfo cooking-requirements
-  demand, derivedVia labels, BLOCKAGE reword.
+- **v0.11.1** (2026-07-15, tested in-game) — production-task filter, GetRemainingCapacity blocked
+  primitive + evict clamp, BlueprintInfo.quantity primary batch source, TransformMap config (curing
+  trio default), CrockpotRecipeInfo cooking-requirements demand, derivedVia labels. Inflation FIXED
+  (Fibers direct 21204→100); audit found the two classifier-semantics bugs that v0.12.0/v0.13.0 fix.
+- **v0.12.0** (2026-07-15, in-game-verified) — (1) demand-grounded HOG sizing: reduce the hog toward
+  a kept floor, not the victim's tiny deficit (bones 1250→50, was would-evict 50); (2) BLOCKAGE
+  REWRITTEN from the invalid "undemanded X stalls a same-station sibling in a DIFFERENT container"
+  (all such proposals were false — separate containers can't block) into a diagnostic naming a stuck
+  DEMANDED material + its downstream consumers. Config CoProductFloorSlots. Both verdicts passed
+  in-game; the user's Hardwood Long Stick→Wood Beam/Shaft case appeared verbatim.
+- **v0.13.0** (2026-07-15, in-game-verified) — taxonomy reconciliation (HOG/BLOCKAGE/SURPLUS): NEW
+  IsSurplus(item) = settleStored > structural × SurplusFactor (config 2.0) as the hog gate (replaces
+  binary demanded/undemanded); NEW SURPLUS informational class (over-produced, not crowding); BLOCKAGE
+  gains cause tokens (no-route/destination-full/priority-shadowed) + per-item dedup + stored>0 gate;
+  victim must be non-surplus. Loaded clean, zero errors: Resin (2050 vs demand 3) → SURPLUS (was
+  mislabeled BLOCKAGE); seed→Fibers hogs correctly vanished (Fibers over-supplied). Surfaced the
+  base-material keep-target gap (Dead-Ends + DEMAND_MODEL_PLAN.md next steps).
