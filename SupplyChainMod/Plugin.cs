@@ -303,6 +303,29 @@ namespace SupplyChainMod;
 // shows on any item with derived>0, not just pure-derived ones. Task matching order is now:
 // station-local blueprints -> union -> cooking -> transform map -> unmatched. Full detail in
 // DemandGraph.cs and BudgetPlane.cs file headers.
+//
+// v0.12.0 - v0.14.2 — the demand-model classifier reconciled through HOG/BLOCKAGE/SURPLUS,
+// structural-demand-layer, and SURPLUS v2 flow-aware (ratcheted keep-target x ALIVE/GROWING/DEAD
+// verdict) iterations; see BudgetPlane.cs's file header for the current classifier design and
+// SupplyChainMod/DEMAND_MODEL_PLAN.md for the full plan/evidence trail.
+//
+// v0.15.0 — the "case layer" (DEMAND_MODEL_PLAN.md follow-up, user-approved 2026-07-16): new
+// CaseTracker turns BudgetPlane's per-poll HOG/BLOCKAGE/SHADOWED/STARVED/OFF-CONFLICT findings
+// (fed as structured records, never parsed log strings) into persistent CASES with a
+// CANDIDATE(silent)->OPEN->RESOLVED lifecycle, so a flickering finding reads as one tracked case
+// instead of N separate log lines. A BLOCKAGE(priority-shadowed) and a SHADOWED finding on the
+// same item merge into ONE "tier" case; a BOM-related pair of OPEN cases shares a chain=#k tag
+// (DemandGraph.AreChainRelated, new). Two riders: (A) STARVED/OFF-CONFLICT gain real proposal
+// lines + case keys (previously summary-tally-only, item name unrecoverable from the log); (B)
+// SURPLUS terminology is corrected (never "informational" — it's the HOG-eligibility pool made
+// visible) and a new MinSurplusSlots reporting floor suppresses SURPLUS lines for barely-stocked
+// UNDEMANDED items without touching eligibility/verdict computation. Pure tracking layer: no new
+// writes, no new Harmony patches. Full detail in BudgetPlane.cs and CaseTracker.cs file headers.
+//
+// v0.15.1 — same v0.15.0 changeset; the CaseTracker.Ingest call site was reordered to run AFTER
+// BudgetPlane's own full-table row dump (so an F9 press reads raw rows before the case summary/F9
+// dump) after the v0.15.0 DLL had already deployed, so the SAC bump guard required a further
+// version bump to redeploy the corrected build (same pattern as v0.4.3/v0.5.1).
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -408,6 +431,14 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> EnableDemandGraph = null!;
     internal static ConfigEntry<float> DemandRefreshMinutes = null!;
     internal static ConfigEntry<string> TransformMap = null!;
+
+    // ── [CaseLayer] ──────────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableCaseLayer = null!;
+    internal static ConfigEntry<int> CaseOpenPolls = null!;
+    internal static ConfigEntry<int> CaseOpenWindow = null!;
+    internal static ConfigEntry<int> CaseClosePolls = null!;
+    internal static ConfigEntry<int> MinSurplusSlots = null!;
+    internal static ConfigEntry<bool> PerPollFindingLines = null!;
 
     public override void Load()
     {
@@ -892,6 +923,52 @@ public class Plugin : BasePlugin
             description: "Non-blueprint conversions (e.g. the curing rack): when a production task's output has no recipe anywhere, this map " +
                 "supplies its inputs (qty 1 each) so demand still propagates. Format: Output<-Input[,Input2];Output2<-...");
 
+        EnableCaseLayer = Config.Bind(
+            section: "CaseLayer",
+            key: "EnableCaseLayer",
+            defaultValue: true,
+            description: "v0.15.0 case layer master switch (CaseTracker) — turns BudgetPlane's per-poll HOG/BLOCKAGE/TIER(SHADOWED)/" +
+                "LABOR(STARVED)/OFF findings into persistent CASES with a CANDIDATE->OPEN->RESOLVED lifecycle, so a flickering " +
+                "finding reads as one tracked case instead of N separate log lines. Shipped default TRUE (dev/diagnostic " +
+                "convention). Pure read-only tracking layer — no new writes, no new Harmony patches.");
+
+        CaseOpenPolls = Config.Bind(
+            section: "CaseLayer",
+            key: "CaseOpenPolls",
+            defaultValue: 4,
+            description: "A case transitions CANDIDATE -> OPEN once its finding has been present in at least this many of the " +
+                "last CaseOpenWindow polls.");
+
+        CaseOpenWindow = Config.Bind(
+            section: "CaseLayer",
+            key: "CaseOpenWindow",
+            defaultValue: 6,
+            description: "Rolling window size (in polls) used by CaseOpenPolls' presence check.");
+
+        CaseClosePolls = Config.Bind(
+            section: "CaseLayer",
+            key: "CaseClosePolls",
+            defaultValue: 4,
+            description: "An OPEN case transitions to RESOLVED after this many CONSECUTIVE polls where its finding is absent. " +
+                "A CANDIDATE case that never opens is silently dropped on the same consecutive-absence count.");
+
+        MinSurplusSlots = Config.Bind(
+            section: "CaseLayer",
+            key: "MinSurplusSlots",
+            defaultValue: 10,
+            description: "v0.15.0 rider B reporting floor: an UNDEMANDED (keepTarget==0) SURPLUS item whose settlement-wide " +
+                "slot footprint (sum over its containers of ceil(stored/stackSize)) is below this many slots has its SURPLUS " +
+                "line suppressed from per-poll/F9 output. Display-only — OverTarget/Verdict/hog eligibility are computed " +
+                "identically either way, and a suppressed item still escalates to HOG the instant it crowds a demanded victim.");
+
+        PerPollFindingLines = Config.Bind(
+            section: "CaseLayer",
+            key: "PerPollFindingLines",
+            defaultValue: true,
+            description: "true (default) = BudgetPlane keeps logging its own per-poll HOG/BLOCKAGE/SURPLUS/SHADOWED/STARVED/" +
+                "OFF-CONFLICT proposal lines exactly as before (needed for distress-duty-cycle detail). false = those raw " +
+                "per-poll lines stop; only the case layer's OPEN/RESOLVED/summary lines and F9 case dump remain.");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -951,6 +1028,8 @@ public class Plugin : BasePlugin
             $"MaxProposalLinesPerPoll={MaxProposalLinesPerPoll.Value} MaxSlotsPerCycle={MaxSlotsPerCycle.Value} CoProductFloorSlots={CoProductFloorSlots.Value} " +
             $"SurplusFactor={SurplusFactor.Value} InertMinutes={InertMinutes.Value} " +
             $"EnableContainerProbe={EnableContainerProbe.Value} EnableDemandGraph={EnableDemandGraph.Value} DemandRefreshMinutes={DemandRefreshMinutes.Value} " +
-            $"TransformMap='{TransformMap.Value}'.");
+            $"TransformMap='{TransformMap.Value}' " +
+            $"EnableCaseLayer={EnableCaseLayer.Value} CaseOpenPolls={CaseOpenPolls.Value} CaseOpenWindow={CaseOpenWindow.Value} " +
+            $"CaseClosePolls={CaseClosePolls.Value} MinSurplusSlots={MinSurplusSlots.Value} PerPollFindingLines={PerPollFindingLines.Value}.");
     }
 }

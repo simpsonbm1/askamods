@@ -47,27 +47,46 @@ namespace SupplyChainMod;
 //      (stored>0) in a full, static container while downstream BOM consumers rely on it. A
 //      per-container Off row (v0.14.0) is skipped as player-frozen stock, not a blockage. One line
 //      per ITEM with a cause token (no-route / destination-full / priority-shadowed).
-//   2b. SURPLUS (informational) — a SurplusV2 item NOT currently crowding a demanded victim.
+//   2b. SURPLUS — a SurplusV2 item NOT currently crowding a demanded victim: the HOG-ELIGIBILITY
+//      POOL made visible, never actuated directly. NOT "safe to drop" — it escalates to HOG the
+//      instant it starts crowding a demanded item (v0.15.0 rider B; see below).
 //   3. SHADOWED — warehouse-only: demanded, unmet, room, rank Med/Low (never Off), static-or-slow
 //      fill, real upstream evidence (hut stock >= ShadowMinSourceStock). One destination per item.
-//   4. OFF-CONFLICT (informational only) — demanded item whose row is player-Off while supply
-//      visibly wants to flow there.
-//   5. STARVED (informational only) — demanded, already High, unmet, room, static, hut source
-//      exists despite the top rank — a hauler-capacity symptom, not a priority problem.
+//   4. OFF-CONFLICT (advisory only) — demanded item whose row is player-Off while supply visibly
+//      wants to flow there. v0.15.0: now emits a proposal line (rider A) instead of a summary-only tally.
+//   5. STARVED (advisory only) — demanded, already High, unmet, room, static, hut source exists
+//      despite the top rank — a hauler-capacity symptom, not a priority problem. v0.15.0: now emits
+//      a proposal line (rider A) instead of a summary-only tally.
 //   6. healthy / no-data.
 //
 // v0.14.0 riders (DEMAND_MODEL_PLAN.md, same section):
 //   - Storage-full distress tag — a HOG/BLOCKAGE/SHADOWED line whose relevant PosKey (HOG=victim
 //     group, BLOCKAGE=stuck group, SHADOWED=winner group) reads WarehouseWatch.IsStorageFullActive
 //     gets " distress=storage-full" appended and +100000 severity (floats to the top of the sort).
-//     SURPLUS lines never get the tag (informational only).
+//     SURPLUS lines never get the tag.
 //   - Per-container Off overlay — HOG effective-membership and the BLOCKAGE stuck-scan key off the
 //     per-(container,item) row rank (containerItemMinRank), not the structure-wide MinRank, so an
 //     Off'd container reads as the player's manual dedication, not a stuck/crowding signal.
 //
-// Config: SurplusFactor (the keep-target multiplier applied to the ratchet) is the only
-// user-facing tuning knob; InertMinutes (default 20, awake-minutes) is the verdict window. Still
-// fully READ-ONLY — no arming path exists in this version.
+// v0.15.0 — the "case layer" (DEMAND_MODEL_PLAN.md follow-up, user-approved 2026-07-16): new
+// CaseTracker turns this method's per-poll HOG/BLOCKAGE/SHADOWED/STARVED/OFF-CONFLICT findings
+// (fed as structured Finding records below — never parsed log strings) into persistent CASES with
+// a CANDIDATE(silent)->OPEN->RESOLVED lifecycle (config-driven presence/absence windows over
+// polls), so a flickering finding reads as one tracked case instead of N separate log lines. A
+// BLOCKAGE(priority-shadowed) and a SHADOWED finding on the same item merge into ONE "tier" case
+// (the same routing failure seen from both the producer and the warehouse side); a BOM-related
+// pair of OPEN cases carries a shared chain=#k tag (DemandGraph.AreChainRelated, new). SURPLUS
+// findings are never cases (see class 2b above — they're the hog-eligibility pool, not a problem).
+// Pure tracking layer: no new writes, no new Harmony patches. Two riders ride along this version:
+// (A) STARVED/OFF-CONFLICT gain real proposal lines + case-tracker keys (see classes 4/5 above);
+// (B) a MinSurplusSlots reporting floor suppresses SURPLUS lines for barely-stocked UNDEMANDED
+// items, touching only line emission — see Pass 2b below and ComputeSlotFootprint.
+//
+// Config: SurplusFactor (the keep-target multiplier applied to the ratchet) and InertMinutes
+// (default 20, awake-minutes, the verdict window) are the classifier's own tuning knobs;
+// MinSurplusSlots (rider B) and the CaseLayer section (CaseOpenPolls/CaseOpenWindow/CaseClosePolls/
+// PerPollFindingLines) tune the case layer riding on top of it. Still fully READ-ONLY — no arming
+// path exists in this version.
 internal static class BudgetPlane
 {
     private sealed class BudgetGroup
@@ -119,6 +138,27 @@ internal static class BudgetPlane
         public bool HasRate;
         public float Rate;
         public string Class = "healthy";
+    }
+
+    // v0.15.0 (case layer) — a structured record of ONE finding this poll, fed to CaseTracker
+    // instead of it having to parse log-line strings. Plain strings/ints/bools only (never an
+    // interop wrapper — CaseTracker retains these across polls, project-wide static-state rule).
+    // Class is one of hog/blockage/shadowed/starved/off (SURPLUS is never a Finding — see class
+    // 2b in the file header). PosKey/Warehouse together are "posKey/warehouse name"; ContainerKey
+    // is populated for hog only, Cause for blockage only, Payload is free-form extra context (the
+    // hog's victim item name, currently the only user) — "victim item tracked as payload, not key".
+    internal sealed class Finding
+    {
+        public string Class = "?";
+        public string Item = "?";
+        public string PosKey = "?";
+        public string Warehouse = "?";
+        public string ContainerKey = "";
+        public string Cause = "";
+        public bool Distress;
+        public int Stored;
+        public string Payload = "";
+        public string Line = "";
     }
 
     // v0.14.0 — per-item flow memory (plain CLR types only — never interop wrappers in statics).
@@ -320,10 +360,15 @@ internal static class BudgetPlane
             }
 
             var proposals = new List<(string Line, int Severity, string Key)>();
+            // v0.15.0 (case layer) — structured parallel to `proposals`, fed to CaseTracker at the
+            // end of this method. SURPLUS never adds a Finding (see file header).
+            var findings = new List<Finding>();
             int hogs = 0, blockage = 0, surplus = 0, shadowed = 0, starved = 0, off = 0;
+            int suppressedSurplusCount = 0; // v0.15.0 rider B — MinSurplusSlots floor, Pass 2b
             // v0.13.0 — item-level dedup: a HOG victim (a genuinely-needy demanded item being rescued)
             // is never ALSO a BLOCKAGE; a hog item (surplus, actively crowding) is never ALSO a SURPLUS
-            // informational line. Both are item-name sets so a finding is reported once per item.
+            // line (SURPLUS = the hog-eligibility pool made visible, not mere information — v0.15.0).
+            // Both are item-name sets so a finding is reported once per item.
             var hogVictimItems = new HashSet<string>();
             var hoggedItems = new HashSet<string>();
 
@@ -390,6 +435,18 @@ internal static class BudgetPlane
                     var proposal = BuildEvictionProposal(containerKey, snap, bestHog, itemSignals[bestHog.Item], bestVictim,
                         itemSignals[bestVictim.Item], bestVictimBlk, hogVerdict, hogDistress);
                     proposals.Add(proposal);
+                    findings.Add(new Finding
+                    {
+                        Class = "hog",
+                        Item = bestHog.Item,
+                        PosKey = bestVictim.PosKey,
+                        Warehouse = bestVictim.Warehouse,
+                        ContainerKey = containerKey,
+                        Distress = hogDistress,
+                        Stored = bestHog.Stored,
+                        Payload = bestVictim.Item, // victim item — payload, not case key (see Finding header)
+                        Line = proposal.Line,
+                    });
                     evalByKey[bestHog.PosKey + "|" + bestHog.Item].Class = "hog";
                     hogVictimItems.Add(bestVictim.Item);
                     hoggedItems.Add(bestHog.Item);
@@ -468,16 +525,30 @@ internal static class BudgetPlane
                         $"demanded material stuck (stored={g.Stored} full+static blk={stuckBlk} structural={structStr}) " +
                         $"cause={cause} while downstream relies on it: [{wantedStr}] -> supply not routing to demand (dry-run){distressStr}";
                     proposals.Add((line, severity, $"blockage|{g.Item}"));
+                    findings.Add(new Finding
+                    {
+                        Class = "blockage",
+                        Item = g.Item,
+                        PosKey = g.PosKey,
+                        Warehouse = g.Warehouse,
+                        Cause = cause,
+                        Distress = distress,
+                        Stored = g.Stored,
+                        Line = line,
+                    });
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] BLOCKAGE emit '{bkv.Key}' error: {ex}"); }
             }
 
-            // ── Pass 2b: SURPLUS (informational, v0.13.0) ───────────────────────────────────────
+            // ── Pass 2b: SURPLUS — the hog-eligibility pool made visible (v0.13.0, reworded v0.15.0) ─
             // A SurplusV2 item (over-target AND dead/growing) that ISN'T currently crowding a
             // demanded victim — i.e. over-produced and just sitting around, no shared-container HOG
             // relationship. One line per item (deduped). Distinct from HOG (a surplus item that IS
             // crowding → actionable eviction) and BLOCKAGE (a genuinely-short demanded item stuck).
-            // Informational only — never gets the storage-full distress tag (see file header).
+            // NEVER gets the storage-full distress tag, and reporting suppression below (rider B)
+            // NEVER affects hog eligibility — this is reporting-only, not a safety judgment: the
+            // item is one crowding event away from becoming a HOG regardless of whether its line
+            // prints. SURPLUS findings are never fed to CaseTracker (they aren't a "problem" case).
             foreach (var skv in itemSignals)
             {
                 try
@@ -490,16 +561,36 @@ internal static class BudgetPlane
 
                     surplus++;
                     double keepTarget = sig.RatchetTotal * (double)Math.Max(0f, Plugin.SurplusFactor.Value);
+
+                    // v0.15.0 rider B — MinSurplusSlots reporting floor: UNDEMANDED items only
+                    // (keepTarget==0). Runs AFTER eligibility/verdict above — touches ONLY whether
+                    // this line prints; OverTarget/Verdict/hog eligibility for this item were
+                    // already decided identically either way, and the `surplus` tally above already
+                    // counted it.
+                    if (keepTarget <= 0)
+                    {
+                        int footprint = ComputeSlotFootprint(item, groups, containerMap);
+                        if (footprint < Math.Max(0, Plugin.MinSurplusSlots.Value))
+                        {
+                            suppressedSurplusCount++;
+                            continue;
+                        }
+                    }
+
                     string ratchetStr = sig.RatchetTotal > sig.StructTotal ? $" ratchet={sig.RatchetTotal}" : "";
                     string demStr = sig.StructTotal > 0 ? $"demand={sig.StructTotal}" : "undemanded";
                     string verdict = VerdictFor(item);
                     string line =
                         $"[SupplyChain] [budget] SURPLUS '{item}': settleStored={sig.SettleStored} {demStr}{ratchetStr} keepTarget={keepTarget:F0} " +
-                        $"verdict={verdict} top='{sig.TopSource}' -> over-produced vs demand, reduce candidate (informational, dry-run)";
+                        $"verdict={verdict} top='{sig.TopSource}' -> hog-eligible (over-target + static), not currently crowding; reporting only - escalates to HOG if it crowds a demanded item (dry-run)";
                     proposals.Add((line, sig.StructTotal, $"surplus|{item}"));
                 }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] SURPLUS '{skv.Key}' error: {ex}"); }
             }
+            if (suppressedSurplusCount > 0)
+                Plugin.Logger.LogInfo(
+                    $"[SupplyChain] [budget] {suppressedSurplusCount} undemanded sub-floor SURPLUS line(s) suppressed " +
+                    $"(MinSurplusSlots={Plugin.MinSurplusSlots.Value}; hog eligibility unaffected)");
 
             // ── Pass 3: SHADOWED / OFF-CONFLICT / STARVED / healthy / no-data (remaining groups) ─
             int noData = 0, healthy = 0, warehouseGroups = 0, hutGroups = 0;
@@ -552,6 +643,24 @@ internal static class BudgetPlane
                     ev.Class = "off";
                     off++;
                     itemsWithFinding.Add(g.Item);
+
+                    // v0.15.0 rider A — previously summary-only tally; now a real proposal line +
+                    // case-tracker key, same as every other class (the item name was otherwise
+                    // unrecoverable from a log).
+                    string offStructStr = $"{sig.StructTotal}({sig.StructDirect}/{sig.StructDerived})";
+                    string offLine =
+                        $"[SupplyChain] [budget] OFF-CONFLICT '{g.Item}' @ '{g.Warehouse}': rank=3 (Off) demanded structural={offStructStr} " +
+                        $"hutStock={sig.HutStock} -> player-dedicated Off row conflicts with demand (advisory only — Off is player intent, never proposed) (dry-run)";
+                    proposals.Add((offLine, sig.StructTotal, $"off|{g.PosKey}|{g.Item}"));
+                    findings.Add(new Finding
+                    {
+                        Class = "off",
+                        Item = g.Item,
+                        PosKey = g.PosKey,
+                        Warehouse = g.Warehouse,
+                        Stored = g.Stored,
+                        Line = offLine,
+                    });
                 }
                 else if (!g.IsHut && sig.Demanded && g.MinRank == 0 && unmet && g.Room > 0)
                 {
@@ -565,6 +674,25 @@ internal static class BudgetPlane
                         ev.Class = "starved";
                         starved++;
                         itemsWithFinding.Add(g.Item);
+
+                        // v0.15.0 rider A — previously summary-only tally; now a real proposal line +
+                        // case-tracker key (labor-bound: high rank, room, source stock, still not
+                        // filling — a hauler-capacity symptom, not a priority problem).
+                        string starvedStructStr = $"{sig.StructTotal}({sig.StructDirect}/{sig.StructDerived})";
+                        string starvedLine =
+                            $"[SupplyChain] [budget] STARVED '{g.Item}' @ '{g.Warehouse}': stored={g.Stored}/quotaSum={g.QuotaSum} room={g.Room} " +
+                            $"rank=0 rate={FormatRate(ev.Rate)}/min structural={starvedStructStr} hutStock={sig.HutStock} " +
+                            $"-> demanded High-rank row not filling despite room+source stock (labor/logistics-bound; advisory only) (dry-run)";
+                        proposals.Add((starvedLine, sig.StructTotal, $"starved|{g.PosKey}|{g.Item}"));
+                        findings.Add(new Finding
+                        {
+                            Class = "starved",
+                            Item = g.Item,
+                            PosKey = g.PosKey,
+                            Warehouse = g.Warehouse,
+                            Stored = g.Stored,
+                            Line = starvedLine,
+                        });
                     }
                     else
                     {
@@ -619,6 +747,16 @@ internal static class BudgetPlane
                             $"rank={g.MinRank} rate={FormatRate(ev.Rate)}/min structural={structStr} source='{sig.TopSource}' hutStock={sig.HutStock} " +
                             $"-> propose tier {g.MinRank}->0 (High) (dry-run){altsStr}{distressStr}";
                         proposals.Add((line, severity, $"shadowed|{g.PosKey}|{g.Item}"));
+                        findings.Add(new Finding
+                        {
+                            Class = "shadowed",
+                            Item = g.Item,
+                            PosKey = g.PosKey,
+                            Warehouse = g.Warehouse,
+                            Distress = distress,
+                            Stored = g.Stored,
+                            Line = line,
+                        });
                     }
                     else
                     {
@@ -642,28 +780,35 @@ internal static class BudgetPlane
                 $"demandItems={demandItems}(direct={demandDirect} derived={demandDerived}) hogs={hogs} blockage={blockage} surplus={surplus} " +
                 $"shadowed={shadowed} starved={starved} off={off} healthy={healthy} noData={noData} (dry-run)");
 
-            var proposalKeys = new List<string>();
-            foreach (var p in proposals) proposalKeys.Add(p.Key);
-            proposalKeys.Sort(StringComparer.Ordinal);
-            string proposalSetString = string.Join(",", proposalKeys);
-            bool proposalSetChanged = proposalSetString != _lastProposalSet;
-
-            proposals.Sort((a, b) => b.Severity.CompareTo(a.Severity));
-
-            if (fullTable)
+            // v0.15.0 — PerPollFindingLines gate: this whole block only ever PRINTS the raw
+            // per-poll finding lines (HOG/BLOCKAGE/SURPLUS/SHADOWED/STARVED/OFF-CONFLICT text).
+            // CaseTracker.Ingest below is fed `findings` unconditionally, regardless of this flag —
+            // the case layer's own lifecycle/summary/F9 dump keep working either way.
+            if (Plugin.PerPollFindingLines.Value)
             {
-                foreach (var p in proposals) Plugin.Logger.LogInfo(p.Line);
+                var proposalKeys = new List<string>();
+                foreach (var p in proposals) proposalKeys.Add(p.Key);
+                proposalKeys.Sort(StringComparer.Ordinal);
+                string proposalSetString = string.Join(",", proposalKeys);
+                bool proposalSetChanged = proposalSetString != _lastProposalSet;
+
+                proposals.Sort((a, b) => b.Severity.CompareTo(a.Severity));
+
+                if (fullTable)
+                {
+                    foreach (var p in proposals) Plugin.Logger.LogInfo(p.Line);
+                }
+                else if (proposalSetChanged)
+                {
+                    int cap = Math.Max(0, Plugin.MaxProposalLinesPerPoll.Value);
+                    int shown = Math.Min(cap, proposals.Count);
+                    for (int i = 0; i < shown; i++) Plugin.Logger.LogInfo(proposals[i].Line);
+                    int suppressed = proposals.Count - shown;
+                    if (suppressed > 0)
+                        Plugin.Logger.LogInfo($"[SupplyChain] [budget] ... and {suppressed} more proposal(s) suppressed (press F9 for the full set)");
+                }
+                _lastProposalSet = proposalSetString;
             }
-            else if (proposalSetChanged)
-            {
-                int cap = Math.Max(0, Plugin.MaxProposalLinesPerPoll.Value);
-                int shown = Math.Min(cap, proposals.Count);
-                for (int i = 0; i < shown; i++) Plugin.Logger.LogInfo(proposals[i].Line);
-                int suppressed = proposals.Count - shown;
-                if (suppressed > 0)
-                    Plugin.Logger.LogInfo($"[SupplyChain] [budget] ... and {suppressed} more proposal(s) suppressed (press F9 for the full set)");
-            }
-            _lastProposalSet = proposalSetString;
 
             if (fullTable)
             {
@@ -693,6 +838,11 @@ internal static class BudgetPlane
                     shownItems++;
                 }
             }
+
+            // v0.15.0 — feeds this poll's structured findings to the case layer, AFTER BudgetPlane's
+            // own full-table row dump above (so an F9 press reads: raw rows -> case summary/F9 dump).
+            try { CaseTracker.Ingest(findings, fullTable); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] CaseTracker.Ingest error: {ex}"); }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] Evaluate error: {ex}"); }
         finally
@@ -740,6 +890,48 @@ internal static class BudgetPlane
         if (f.HasRealDecrease && _awakeSeconds - f.AwakeAtLastRealDecrease < window * AliveMemoryWindows) return "alive";
         if (_awakeSeconds - f.AwakeAtLastIncrease < window) return "growing";
         return "dead";
+    }
+
+    // v0.15.0 rider B — an item's settlement-wide slot footprint: sum over its own BudgetGroups
+    // (one per PosKey) of each group's containers, ceil(share/stackSizeForItem). A BudgetGroup's
+    // Stored is already the STRUCTURE-wide total for that item (WarehouseWatch reads it off the
+    // shared warehouse ItemCollection, same value on every row), not a per-physical-container
+    // count, so a multi-container group (a composite warehouse spanning several bins) has its
+    // Stored split EVENLY across its own ContainerKeys — a documented v1 approximation (this is a
+    // reporting floor only; it never feeds eligibility/verdict — see Pass 2b and the file header).
+    private static int ComputeSlotFootprint(string item, Dictionary<string, BudgetGroup> groups,
+        Dictionary<string, WarehouseWatch.ContainerSnapshot> containerMap)
+    {
+        int footprint = 0;
+        try
+        {
+            foreach (var kv in groups)
+            {
+                var g = kv.Value;
+                if (g.Item != item) continue;
+                int containerCount = g.ContainerKeys.Count;
+                if (containerCount == 0) continue;
+
+                int share = g.Stored / containerCount;
+                int remainder = g.Stored % containerCount;
+                int idx = 0;
+                foreach (var ck in g.ContainerKeys)
+                {
+                    int units = share + (idx < remainder ? 1 : 0);
+                    idx++;
+                    if (units <= 0) continue;
+
+                    int stackSize = 1;
+                    if (g.Info != null && containerMap.TryGetValue(ck, out var snap))
+                    {
+                        try { stackSize = Math.Max(1, snap.Container.GetStackSize(g.Info)); } catch { }
+                    }
+                    footprint += (int)Math.Ceiling(units / (double)stackSize);
+                }
+            }
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] ComputeSlotFootprint '{item}' error: {ex}"); }
+        return footprint;
     }
 
     // v0.11.1 fix 2 — blocked(item at container C) = C.GetRemainingCapacity(item)==0 (first runtime

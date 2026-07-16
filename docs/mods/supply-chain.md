@@ -1,11 +1,12 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.14.2 — SURPLUS v2 flow-aware classifier (ratcheted keep-target ×
-ALIVE/GROWING/DEAD verdicts) + clog-toast retirement + per-container Off fix, per
-`SupplyChainMod/DEMAND_MODEL_PLAN.md` → "v0.14.x — SURPLUS v2". v0.14.1–v0.14.2 in-game-verified
-2026-07-16 (consumption-memory fix confirmed: Fibers absent from SURPLUS; all markers passed,
-zero errors). Still 100% dry-run/read-only. Next: case-layer build per the approved arming
-design (DEMAND_MODEL_PLAN.md → "Arming design"), then food/farming demand. Dev tool NOT for Nexus
+**Status:** WIP v0.15.1 — case layer (new CaseTracker: per-poll findings → persistent
+CANDIDATE→OPEN→RESOLVED cases with chain/merge tags + RESOLVED observation summaries; riders:
+item-named STARVED/OFF lines, SURPLUS re-termed as the hog-eligibility pool + MinSurplusSlots
+reporting floor). v0.15.1 in-game-verified 2026-07-16 (core spec passed: zero errors, opens at
+exactly 4/6 polls, bones HOG opened once; tuning: MinSurplusSlots default 4→10, CaseClosePolls
+kept 4). Still 100% dry-run/read-only. Next: food/farming demand modeling (pre-arm blocker 2),
+then arming per DEMAND_MODEL_PLAN.md → "Arming design". Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -306,6 +307,14 @@ TransformMap=Cured Leather Hide<-Leather Hide;Cured Pelt<-Pelt;Cured Heavy Pelt<
 
 [Phase2dProbe]
 EnableContainerProbe=true   # v0.9.2 container-layout probe on each F9/first-poll full dump
+
+[CaseLayer]
+EnableCaseLayer=true        # v0.15.0 CaseTracker: findings → persistent CANDIDATE→OPEN→RESOLVED cases
+CaseOpenPolls=4             # finding present in ≥ this many of the last CaseOpenWindow polls → OPEN
+CaseOpenWindow=6            # sliding window for the open threshold
+CaseClosePolls=4            # consecutive absent polls to RESOLVE (kept 4 — re-open churn accepted)
+MinSurplusSlots=10          # SURPLUS line floor for UNDEMANDED items, slot footprint (4→10 2026-07-16)
+PerPollFindingLines=true    # keep raw per-poll proposal lines underneath the case lifecycle lines
 ```
 
 ## Phase 2c Findings & Dead-Ends
@@ -578,8 +587,10 @@ three storage pathologies:
   line per ITEM (deduped, most-piled location) with a cause token from the item's warehouse rows:
   no-route / destination-full / priority-shadowed. The pre-v0.12.0 "undemanded X stalls a demanded
   SIBLING in a DIFFERENT container" logic was WRONG (separate containers can't block — Dead-Ends), retired.
-- **SURPLUS** (informational, v0.13.0) — a surplus item NOT currently crowding a victim: over-produced
-  and just sitting. One line per item.
+- **SURPLUS** (v0.13.0; re-termed v0.15.0) — the HOG-ELIGIBILITY POOL made visible, never mere
+  information: a surplus item not crowding a demanded victim YET — it escalates to HOG the moment
+  it does. One line per item; the v0.15.0 MinSurplusSlots floor (default 10) suppresses lines for
+  UNDEMANDED (keepTarget==0) items below that slot footprint — display-only, eligibility unaffected.
 - **SHADOWED / OFF-CONFLICT / STARVED** — unchanged demand-pull warehouse classes.
 
 Still 100% dry-run (no DropItem, no quota/tier write). v0.13.0 in-game-verified 2026-07-15: loaded
@@ -722,3 +733,19 @@ See architecture.md for full API surface.
   expires after one window. Test: Fibers absent from SURPLUS, Leather scraps ALIVE-rescue seen
   live, zero errors; F9-report evaluate ~50 ms is row-dump logging I/O (background evaluates
   2–4 ms typical).
+- **v0.15.0–v0.15.1** (2026-07-16, in-game-verified same day) — case layer: new CaseTracker turns
+  per-poll findings into persistent cases (keys `hog|container|item`, `tier|item` merging BLOCKAGE
+  priority-shadowed + SHADOWED, `route|item`, `labor|item`, `off|posKey|item`; lifecycle CANDIDATE
+  → OPEN at ≥4-of-last-6 polls → RESOLVED after 4 consecutive absent polls, with an observation
+  summary: polls seen, distress duty cycle, stored min/max); chain=# tags from BOM BFS
+  (DemandGraph.AreChainRelated); F9 dumps open cases. Riders: STARVED/OFF-CONFLICT now emit
+  item-named proposal lines + case keys; SURPLUS re-termed (hog-eligibility pool, never
+  "informational") + MinSurplusSlots slot-footprint reporting floor (undemanded items only,
+  display-only). Config `[CaseLayer]` ×6. v0.15.1 = Ingest call-site reorder (SAC bump). Test
+  ~30 min: zero errors, all OPENs at exactly 4/6, bones HOG opened ONCE, merge/chain tags +
+  RESOLVED summaries + suppressed-count line live, perf 2–4 ms typical. Tuning outcome:
+  MinSurplusSlots default 4→10 (stack-1 equipment noise survived the 4-slot floor);
+  CaseClosePolls kept 4 (Rope re-opened twice on task-cadence flicker with static stored — churn
+  accepted; genuine resolutions also observed). Known v1 approximation: ComputeSlotFootprint
+  splits a group's structure-wide Stored evenly across its containers — affects line suppression
+  only, never eligibility.

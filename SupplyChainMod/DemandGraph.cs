@@ -68,6 +68,12 @@ namespace SupplyChainMod;
 //      CookingRecipeRequirement>), NOT on CookingRecipeInfo itself, and not a top-level
 //      CookingRecipeRequirement type as DEMAND_MODEL_PLAN.md's research phase had assumed — a
 //      plain (non-Crockpot) CookingRecipeInfo instance has no such property at all.
+//
+// v0.15.0 (case layer) — the union+transform BOM edges (produced item -> its own input names) are
+// now RETAINED across rebuilds as `_retainedInputs`, not just used transiently inside one
+// RebuildCore call, so AreChainRelated (new) can walk the same graph PropagateTransitive walks —
+// breadth-first, cycle-guarded, depth <=8 — to tell CaseTracker whether two OPEN cases' items are
+// BOM-related (a stuck intermediate and its own stuck input, tagged with a shared chain=#k).
 internal static class DemandGraph
 {
     private static Dictionary<string, int> _directQty = new();
@@ -78,6 +84,12 @@ internal static class DemandGraph
     // (the user's "Hardwood Long Sticks stuck while Shafts/Beams demand it" case). Plain strings
     // only (project-wide static-state rule); derived-only demand has no direct wantedBy label here.
     private static Dictionary<string, List<string>> _wantedByLabels = new();
+    // v0.15.0 (case layer) — retained BOM edges: produced-item name -> its own recipe/transform
+    // input names (union + transform map, flattened to just names, dedup'd). This is the SAME graph
+    // PropagateTransitive already walks breadth-first each rebuild, just kept around afterward (it
+    // was previously local-only and discarded) so AreChainRelated can walk it between rebuilds too.
+    // Plain strings only (project-wide static-state rule).
+    private static Dictionary<string, List<string>> _retainedInputs = new();
     private static float _lastRebuildTime = -1f;
     // v0.14.0 — matched production-task count from the last completed EnsureFresh rebuild; -1 =
     // none yet this world. Feeds the zero-match retry cadence below (world-streaming race at load).
@@ -91,6 +103,7 @@ internal static class DemandGraph
             _derivedQty = new Dictionary<string, int>();
             _wantedByCount = new Dictionary<string, int>();
             _wantedByLabels = new Dictionary<string, List<string>>();
+            _retainedInputs = new Dictionary<string, List<string>>();
             _lastRebuildTime = -1f;
             _lastMatchedCount = -1;
         }
@@ -138,6 +151,48 @@ internal static class DemandGraph
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] TryGetWantedByLabels error: {ex}"); }
+        return false;
+    }
+
+    // v0.15.0 (case layer) — true if EITHER item reaches the other walking blueprint inputs (the
+    // same retained BOM graph PropagateTransitive walks each rebuild — breadth-first, cycle-guarded
+    // via `visited`, depth-capped at 8). Used by CaseTracker to tag a BOM-related pair of OPEN
+    // cases with a shared chain id — e.g. a stuck intermediate and its own stuck input.
+    internal static bool AreChainRelated(string itemA, string itemB)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(itemA) || string.IsNullOrEmpty(itemB) || itemA == itemB) return false;
+            return ReachesTransitively(itemA, itemB) || ReachesTransitively(itemB, itemA);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[SupplyChain] [demand] AreChainRelated error: {ex}");
+            return false;
+        }
+    }
+
+    // Breadth-first walk from `from` down through its OWN recipe inputs (never its consumers),
+    // looking for `target`. Depth-capped at 8 to match PropagateTransitive's cap; `visited` is both
+    // the cycle guard and the "already checked" set.
+    private static bool ReachesTransitively(string from, string target)
+    {
+        var visited = new HashSet<string> { from };
+        var queue = new Queue<(string item, int depth)>();
+        queue.Enqueue((from, 0));
+
+        while (queue.Count > 0)
+        {
+            var (item, depth) = queue.Dequeue();
+            if (depth >= 8) continue;
+            if (!_retainedInputs.TryGetValue(item, out var inputs)) continue;
+
+            foreach (var input in inputs)
+            {
+                if (input == target) return true;
+                if (visited.Add(input)) queue.Enqueue((input, depth + 1));
+            }
+        }
         return false;
     }
 
@@ -437,10 +492,26 @@ internal static class DemandGraph
                 newLabels[kv.Key] = labels;
             }
 
+            // v0.15.0 (case layer) — retain the BOM edges (union recipes + transform map,
+            // flattened to just input names) so AreChainRelated can walk them between rebuilds.
+            var newInputs = new Dictionary<string, List<string>>();
+            foreach (var kv in union)
+            {
+                var names = new List<string>();
+                foreach (var (input, _) in kv.Value.Inputs) if (!names.Contains(input)) names.Add(input);
+                newInputs[kv.Key] = names;
+            }
+            foreach (var kv in transformMap)
+            {
+                if (!newInputs.TryGetValue(kv.Key, out var names)) { names = new List<string>(); newInputs[kv.Key] = names; }
+                foreach (var (input, _) in kv.Value) if (!names.Contains(input)) names.Add(input);
+            }
+
             _directQty = newDirect;
             _derivedQty = newDerived;
             _wantedByCount = newCount;
             _wantedByLabels = newLabels;
+            _retainedInputs = newInputs;
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] ReplaceState error: {ex}"); }
 

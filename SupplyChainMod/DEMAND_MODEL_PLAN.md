@@ -207,7 +207,8 @@ Classes (SHIPPED v0.13.0 — each proposal line carries its full evidence):
 2. **BLOCKAGE** (diagnostic) — a demanded, NON-surplus material SITTING (stored>0) in a full, static
    container while downstream BOM consumers rely on it. Routing/priority problem (lever tier/priority),
    NOT eviction. One line per item, cause token no-route / destination-full / priority-shadowed.
-3. **SURPLUS** (informational) — a surplus item over-produced but not currently crowding a victim.
+3. **SURPLUS** (the hog-eligibility pool made visible — never mere information) — a surplus item
+   over-produced but not currently crowding a victim yet.
 4. **SHADOWED** — item structurally demanded; destination row unmet + room, rank Med/Low (never
    Off); stock piled at producer self-storages; flow static. ONE destination per item.
 5. **OFF-CONFLICT / STARVED** (informational) — demanded+piling but Off here; demanded+High+unmet+source.
@@ -359,17 +360,18 @@ to exactly one resolution path:
    outside the current scan scope — pre-arm blocker 4).
 5. **SURPLUS 'Resin' verdict=growing (2068 vs demand 3):** the tempting quota-clamp would confine
    resin to the Woodcutter container it SHARES with Fibers/Pine Cone/Reed Seeds — manufacturing
-   a producer HOG. SURPLUS therefore stays permanently informational; escalation to HOG is the
-   designed remediation path.
+   a producer HOG. SURPLUS therefore stays permanently report-only — it IS the hog-eligibility
+   pool made visible; escalation to HOG is the designed remediation path.
 6. **Equipment SURPLUS noise (~50 of 56 lines: tools/weapons/clothes ×1–9, keepTarget=0):**
-   structural demand is blind to loadout demand. Near-term: SURPLUS reporting floor (suppress
-   below ~1 full slot / a MinSurplusUnits config). Lead (user, not high priority): equipment
+   structural demand is blind to loadout demand. Near-term SHIPPED (v0.15.0 rider B):
+   MinSurplusSlots slot-footprint floor (flat MinSurplusUnits scrapped — stack sizes are
+   per-(container,item)), default 10 since 2026-07-16. Lead (user, not high priority): equipment
    need is derivable — villagers assigned per task type × required equipment × observed breakage
    rate (4 woodcutters ⇒ ≥4 axes at the axe-breakage rate); the game itself raises an
    equipment-unavailable warning (LoadoutsComplaint — ComplaintWatcher already sees it;
    missingItems carries no item name, native class only — known limitation).
-7. **STARVED fired for one poll — item UNKNOWN: starved/off classes emit NO proposal line, only
-   summary counts** (found 2026-07-16). Rider for the case-layer build: emit lines for both.
+7. **STARVED fired for one poll — item UNKNOWN: starved/off classes emitted NO proposal line, only
+   summary counts** (found 2026-07-16). Rider SHIPPED v0.15.0: both now emit item-named lines.
    The save has a known ore bottleneck (user), so ore/bloom is plausible but unconfirmable from
    this run.
 8. Positive control observed live: 'Leather scraps' entered SURPLUS (300 vs demand 92), then a
@@ -442,11 +444,15 @@ and SURPLUS v2 (v0.14.1 tested 2026-07-16 with the Fibers bursty-consumption fin
 consumption-memory fix in-game-verified 2026-07-16 — Fibers absent from SURPLUS, all markers
 passed, zero errors). Still 100% dry-run. Details/version-history in docs/mods/supply-chain.md.
 
+Case layer (pre-arm blocker 1) SHIPPED: v0.15.0–v0.15.1 in-game-verified 2026-07-16 — core spec
+passed (opens at exactly 4/6, bones HOG opened once, merge/chain tags + RESOLVED observation
+summaries live, zero errors); tuning: MinSurplusSlots default 4→10, CaseClosePolls kept 4 (churn
+accepted). Recipe + version history in docs/mods/supply-chain.md.
+
 Open next steps (arming design above approved 2026-07-16):
-1. **Case layer build** (pre-arm blocker 1) — the next build.
-2. **Food/farming demand modeling** (pre-arm blocker 2).
-3. **Arming implementation** — tier first, per the routing table + rails above.
-4. **Phase 3 / task creation research.**
+1. **Food/farming demand modeling** (pre-arm blocker 2).
+2. **Arming implementation** — tier first, per the routing table + rails above.
+3. **Phase 3 / task creation research.**
 
 ## User decisions (2026-07-15, all four open questions answered)
 
