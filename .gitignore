@@ -15,3 +15,8 @@ obj/
 
 # Session handoff continuity doc (ephemeral, machine-local — see CLAUDE.md)
 SESSION_HANDOFF.md
+
+# Codex-generated agent configs (machine-local, derived from .claude/agents/ by Codex's
+# "import Claude configurations" setup step — Codex regenerates them; committing them would
+# recreate the parallel-copy drift problem retired 2026-07-16)
+.codex/

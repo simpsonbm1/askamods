@@ -54,6 +54,11 @@ onboarding) and `.agents/AGENTS.md` (Antigravity's auto-load path — Antigravit
 break-glass fallback the user rarely opens) are **pointer stubs**: each carries the exact marker
 `ORIENTATION-STUB` (an HTML comment the pre-commit hook greps for) plus only the must-not-miss
 rules. **Never add project content to a stub** — it belongs here.
+(Codex — installed 2026-07-16 as another break-glass backup — needs nothing special: it natively
+reads root `AGENTS.md`, i.e. the stub chain. Its setup-time "import Claude configurations" step
+generates `.codex/` copies of `.claude/agents/`; that folder is gitignored as machine-local
+derived state — committing it would recreate the parallel-copy drift problem this section
+retired.)
 (History: until 2026-07-16, `.agents/AGENTS.md` was a full parallel copy maintained by a
 dual-write ritual. The per-commit sync ceremony was expensive enough to deter checkpoint commits
 — worse than the drift it prevented — and Antigravity's demotion to emergency use removed the

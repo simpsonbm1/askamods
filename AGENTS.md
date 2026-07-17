@@ -152,9 +152,11 @@ twice under your tooling, mechanize it the same way. Two groups:
 ## The break-glass prompt (for Ben — paste this as the new tool's first message)
 
 ```
-You are taking over an active game-modding project (ASKA, a Viking survival game — BepInEx 6 /
-IL2CPP mods in C#) from a previous AI assistant (Claude), which left a complete handoff trail
-for you.
+You are joining an active game-modding project (ASKA, a Viking survival game — BepInEx 6 /
+IL2CPP mods in C#) as a COLLABORATOR. The primary agent on this project is Claude (Claude
+Code); you are the secondary/backup collaborator. You both work inside the same structure and
+conventions, and each of you must leave the project legible to the other: Claude's next session
+will pick up exactly where you stop, using only what you wrote down.
 
 Working directory: D:\Claude Projects\askamods (a git repo; origin =
 https://github.com/simpsonbm1/askamods.git)
@@ -175,14 +177,28 @@ Hard rules, effective immediately (full detail in AGENTS.md):
   PENDING CONFIRMATION.
 - Before touching any game subsystem, read its section in docs/architecture.md first — it
   records dead-ends that WILL hard-crash the game or waste whole sessions if re-tried.
-- Maintain SESSION_HANDOFF.md continuously (update after each meaningful step, with the
-  freshness header format shown in AGENTS.md).
+- Keep your collaborator posted. You have no live channel to Claude; your outbound channel IS
+  the project structure: SESSION_HANDOFF.md (update it right after each meaningful step, with
+  the freshness header format shown in AGENTS.md), detailed commit messages, and doc updates.
+  Write them as messages to the other agent, not private notes — Claude's next session starts
+  by reading exactly those, and it will act on what they say (and only on what they say).
+- The same conventions that bind Claude bind you: docs record confirmed facts as-you-go,
+  CLAUDE.md is the single orientation source (never grow the AGENTS.md stubs), and the
+  pre-commit hook's report is to be obeyed, never bypassed.
 
 When you have finished orienting, reply with: (a) your summary of the project and its current
-in-flight work, (b) which mod versions are pending in-game confirmation, and (c) whether any
-wip/* branches exist on origin — then STOP and wait for my direction. Do not change anything
-yet.
+in-flight work; (b) which mod versions are pending in-game confirmation; (c) whether any
+wip/* branches exist on origin; (d) the next approved task as you understand it, plus the two
+or three constraints from docs/architecture.md or the active plan doc most likely to bite while
+doing it; and (e) one thing in the trail that surprised you or that you'd want clarified before
+starting — then STOP and wait for my direction. Do not change anything yet.
 ```
 
-Why the readback step: it fire-verifies the bootstrap. If (a)–(c) come back wrong, the new agent
-skipped or misread the trail — correct it before letting it touch anything.
+Why the readback step: it fire-verifies the bootstrap. If the readback comes back wrong, the new
+agent skipped or misread the trail — correct it before letting it touch anything.
+
+**Fire-verified with Codex (2026-07-16):** full readback (a)–(e) came back accurate on first
+contact — current in-flight state incl. uncommitted worktree edits (proof it read
+SESSION_HANDOFF.md), the exact ⚠️-pending list, correct wip-branch handling (report, don't
+touch), and lever-map specifics (`SetPriority + HostUpdateTasks`, the rank-3/Off protection, the
+arming rails) reproduced verbatim from the plan doc. Zero changes made; stopped when told.
