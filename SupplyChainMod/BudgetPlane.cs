@@ -200,7 +200,9 @@ internal static class BudgetPlane
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] NoteWorldLeft error: {ex}"); }
     }
 
-    internal static void Evaluate(List<WarehouseWatch.AllotmentRow> allRows, Dictionary<string, WarehouseWatch.ContainerSnapshot> containerMap, bool fullTable)
+    // v0.17.2 — `stations` is the SAME list WarehouseWatch.Poll resolved for this poll (one walk,
+    // threaded through to CaseTracker.Ingest -> TierCaseController.OnPoll — never re-walked here).
+    internal static void Evaluate(List<WarehouseWatch.AllotmentRow> allRows, Dictionary<string, WarehouseWatch.ContainerSnapshot> containerMap, List<StationEntry> stations, bool fullTable)
     {
         try { DemandGraph.EnsureFresh(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] DemandGraph.EnsureFresh error: {ex}"); }
@@ -847,7 +849,7 @@ internal static class BudgetPlane
 
             // v0.15.0 — feeds this poll's structured findings to the case layer, AFTER BudgetPlane's
             // own full-table row dump above (so an F9 press reads: raw rows -> case summary/F9 dump).
-            try { CaseTracker.Ingest(findings, fullTable); }
+            try { CaseTracker.Ingest(findings, stations, fullTable); }
             catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] CaseTracker.Ingest error: {ex}"); }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [budget] Evaluate error: {ex}"); }

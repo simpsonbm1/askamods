@@ -42,14 +42,23 @@ internal static class WarehouseTasks
         return set;
     }
 
-    // Scans every station matching WarehouseClassList (skipping stations already boosted by another
-    // actuator) for non-pinned ResourceStorageTaskData rows. Item name/qty/rank/supply-owner are read
-    // out as plain values; ItemInfo itself is never stored on the row (read fresh from
-    // Rst.itemInfoQuantity.itemInfo wherever needed) — only Rst (the task wrapper) is held, and only
-    // for the lifetime of the single call that consumes this list. Includes BOTH true-warehouse and
-    // gathering-hut self-storage rows (HasTaskContainer distinguishes them); callers filter to
-    // true-warehouse rows themselves.
-    internal static List<WarehouseTaskRow> BuildRows(List<StationEntry> stations)
+    // Scans every station matching WarehouseClassList (by default skipping stations already boosted
+    // by another actuator) for non-pinned ResourceStorageTaskData rows. Item name/qty/rank/
+    // supply-owner are read out as plain values; ItemInfo itself is never stored on the row (read
+    // fresh from Rst.itemInfoQuantity.itemInfo wherever needed) — only Rst (the task wrapper) is
+    // held, and only for the lifetime of the single call that consumes this list. Includes BOTH
+    // true-warehouse and gathering-hut self-storage rows (HasTaskContainer distinguishes them);
+    // callers filter to true-warehouse rows themselves.
+    //
+    // v0.17.2 — `includeBoosted` (default false, preserving every existing caller's behavior): a
+    // caller resolving a row it ITSELF already holds boosted (a revert, a settlement-wide High-row
+    // tally that should count its own active bumps) must pass true, or the row becomes permanently
+    // unresolvable — the exact bug behind run 1's "every revert failed once" and the Rope/Linen
+    // Thread blackout at Improved Warehouse 3 (a stuck Onion claim hid the WHOLE station from every
+    // scan, DEMAND_MODEL_PLAN.md "Armed run 1 finding 2"). Target/candidate SELECTION (a NEW hold's
+    // target search, the receiving-warehouse scan) must keep the default false — never pick a
+    // station another hold already claims.
+    internal static List<WarehouseTaskRow> BuildRows(List<StationEntry> stations, bool includeBoosted = false)
     {
         var result = new List<WarehouseTaskRow>();
         try
@@ -60,7 +69,7 @@ internal static class WarehouseTasks
                 string cls = "?";
                 try { cls = Common.NativeClassName(entry.Ws); } catch { }
                 if (!allowedClasses.Contains(cls)) continue;
-                if (RankActuator.BoostedStationKeys.Contains(entry.PosKey)) continue;
+                if (!includeBoosted && RankActuator.BoostedStationKeys.Contains(entry.PosKey)) continue;
 
                 Il2CppSystem.Collections.Generic.List<WorkstationTaskData>? datas = null;
                 try { datas = entry.Ws.GetWorkstationTaskDatas(); }

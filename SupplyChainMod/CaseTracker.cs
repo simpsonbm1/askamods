@@ -40,6 +40,15 @@ namespace SupplyChainMod;
 // small string-keyed tuple dict) — never an interop wrapper (project-wide static-state rule; these
 // survive across polls). Reset wholesale on world-leave via NoteWorldLeft, same pattern as every
 // other plane in this mod (WarehouseWatch/BudgetPlane/DemandGraph.NoteWorldLeft).
+//
+// v0.17.2 — coverage-conditioned presence (structure-streaming fix): Ingest now receives the SAME
+// `stations` list WarehouseWatch/BudgetPlane resolved this poll (one walk, shared everywhere — see
+// TierCaseController.cs's own v0.17.2 note). A case whose contributing structure(s) (tracked via the
+// new Case.PosKeys set) are NONE of them in this poll's scanned set gets NO presence bool appended
+// and its ConsecutiveAbsent counter left untouched — the window freezes instead of reading a false
+// "absent" (and falsely resolving) just because the structure temporarily left the scan (e.g. the
+// player walked far enough away that streaming unloaded it). A one-time-per-transition log line
+// marks entering/leaving a coverage gap.
 internal static class CaseTracker
 {
     private enum CaseState { Candidate, Open }
@@ -58,12 +67,47 @@ internal static class CaseTracker
         public int DistressCount;
         public int MinStored = int.MaxValue;
         public int MaxStored = int.MinValue;
+        // v0.17.0 — most-recent contributing finding's Stored value (as opposed to Min/MaxStored's
+        // session extremes). TierCaseController uses this as the bump-time baseline for judging
+        // whether a tier bump is "responding" (stored falling vs. that baseline).
+        public int LastStored;
         public string LastLine = "";
         public float OpenedAtTime = -1f;
         public int? ChainId;
         // classTag ("HOG"/"BLOCKAGE"/"SHADOWED"/...) -> most-recent (place, stored) — every finding
         // class that has EVER contributed to this case. Drives the TIER merge-note (>= 2 classes).
         public readonly Dictionary<string, (string Place, int Stored)> ClassSources = new();
+        // v0.17.2 — every contributing finding's PosKey, ever (small, bounded — usually 1-2 distinct
+        // structures even for a merged tier case). Used ONLY to decide coverage (was ANY of this
+        // case's structures scanned this poll) — never an identity/target key by itself.
+        public readonly HashSet<string> PosKeys = new();
+        // v0.17.2 — true while this case's structure(s) are all absent from the current scan (a
+        // coverage gap, not a real resolution). Drives the one-time-per-transition log lines.
+        public bool CoverageGap;
+    }
+
+    // v0.17.0 — plain-data snapshot of one currently-OPEN case, fed to TierCaseController.OnPoll
+    // every Ingest (never an interop wrapper — same static-state rule as Case above). Copies
+    // ClassSources rather than sharing the live dict so TierCaseController can't mutate CaseTracker's
+    // own state. Resolved detection needs no extra event plumbing: case ids are never reused and an
+    // OPEN case only ever leaves the dict by resolving, so TierCaseController just diffs the id set
+    // it's holding a tier-case hold for against the ids present in this poll's view list — an id it
+    // was holding that's absent this poll RESOLVED this poll.
+    internal sealed class CaseView
+    {
+        public int Id;
+        public string Family = "?";
+        public string Item = "?";
+        public string Warehouse = "?";
+        public int? ChainId;
+        public bool PresentThisPoll;
+        public int DistressCount;
+        public int PollsSeenTotal;
+        public int LastStored;
+        public Dictionary<string, (string Place, int Stored)> ClassSources = new();
+        // v0.17.2 — copy of Case.PosKeys (never the live set) — lets TierCaseController estimate a
+        // player-distance diagnostic for a case whose target row it can't yet resolve by name.
+        public HashSet<string> PosKeys = new();
     }
 
     private static Dictionary<string, Case> _cases = new();
@@ -83,10 +127,12 @@ internal static class CaseTracker
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [case] NoteWorldLeft error: {ex}"); }
     }
 
-    // Fed once per BudgetPlane.Evaluate() with that poll's structured findings. `fullTable` is the
-    // same flag BudgetPlane received (F9 / first poll) — hooks the F9 full-case dump into the
-    // identical path BudgetPlane's own full-table dump already services.
-    internal static void Ingest(List<BudgetPlane.Finding> findings, bool fullTable)
+    // Fed once per BudgetPlane.Evaluate() with that poll's structured findings PLUS the same
+    // `stations` list WarehouseWatch/BudgetPlane resolved for this poll (v0.17.2 — one walk, shared
+    // everywhere; never re-walked here). `fullTable` is the same flag BudgetPlane received (F9 /
+    // first poll) — hooks the F9 full-case dump into the identical path BudgetPlane's own full-table
+    // dump already services.
+    internal static void Ingest(List<BudgetPlane.Finding> findings, List<StationEntry> stations, bool fullTable)
     {
         if (!Plugin.EnableCaseLayer.Value) return;
         try
@@ -98,6 +144,14 @@ internal static class CaseTracker
                 if (key.Length == 0) continue; // SURPLUS / unrecognized — never a case
                 if (!thisPoll.TryGetValue(key, out var list)) { list = new List<BudgetPlane.Finding>(); thisPoll[key] = list; }
                 list.Add(f);
+            }
+
+            // v0.17.2 — this poll's scanned-structure set (posKeys), derived from the SAME stations
+            // list the poll's own row scan used. Drives the coverage-gap freeze below.
+            var scannedKeys = new HashSet<string>();
+            foreach (var s in stations)
+            {
+                if (!string.IsNullOrEmpty(s.PosKey) && s.PosKey != "?") scannedKeys.Add(s.PosKey);
             }
 
             int window = Math.Max(1, Plugin.CaseOpenWindow.Value);
@@ -118,11 +172,14 @@ internal static class CaseTracker
                     _cases[key] = c;
                 }
 
-                c.Presence.Add(present);
-                if (c.Presence.Count > window) c.Presence.RemoveAt(0);
-
                 if (present)
                 {
+                    if (c.CoverageGap)
+                    {
+                        c.CoverageGap = false;
+                        Plugin.Logger.LogInfo($"[SupplyChain] [case] #{c.Id} coverage restored: '{c.Warehouse}' rescanned");
+                    }
+
                     c.ConsecutiveAbsent = 0;
                     c.PollsSeenTotal++;
                     bool anyDistress = false;
@@ -131,8 +188,10 @@ internal static class CaseTracker
                         c.Warehouse = f.Warehouse;
                         c.Payload = f.Payload;
                         c.LastLine = f.Line;
+                        if (!string.IsNullOrEmpty(f.PosKey) && f.PosKey != "?") c.PosKeys.Add(f.PosKey);
                         if (f.Stored < c.MinStored) c.MinStored = f.Stored;
                         if (f.Stored > c.MaxStored) c.MaxStored = f.Stored;
+                        c.LastStored = f.Stored;
                         if (f.Distress) anyDistress = true;
                         c.ClassSources[f.Class.ToUpperInvariant()] = (f.Warehouse, f.Stored);
                     }
@@ -140,8 +199,32 @@ internal static class CaseTracker
                 }
                 else
                 {
+                    // Absent — but is that a REAL absence (this case's structure(s) were scanned and
+                    // the finding legitimately isn't there anymore) or a COVERAGE GAP (none of its
+                    // structures were even in the scan this poll, so there's no evidence either way)?
+                    // A case with no recorded PosKeys yet (shouldn't normally happen — it's only ever
+                    // absent after having been present at least once) never freezes.
+                    bool anyScanned = c.PosKeys.Count == 0;
+                    if (!anyScanned)
+                    {
+                        foreach (var pk in c.PosKeys) { if (scannedKeys.Contains(pk)) { anyScanned = true; break; } }
+                    }
+
+                    if (!anyScanned)
+                    {
+                        if (!c.CoverageGap)
+                        {
+                            c.CoverageGap = true;
+                            Plugin.Logger.LogInfo($"[SupplyChain] [case] #{c.Id} coverage-gap: '{c.Warehouse}' unscanned — presence frozen");
+                        }
+                        continue; // FROZEN: no presence bool, no ConsecutiveAbsent bump, no state transition this poll
+                    }
+
                     c.ConsecutiveAbsent++;
                 }
+
+                c.Presence.Add(present);
+                if (c.Presence.Count > window) c.Presence.RemoveAt(0);
 
                 if (c.State == CaseState.Candidate)
                 {
@@ -172,6 +255,36 @@ internal static class CaseTracker
             LogSummaryIfChanged();
 
             if (fullTable) DumpFullCases();
+
+            // v0.17.0 — feed every currently-OPEN case to the tier-arming layer. All families are
+            // passed (not just TIER) because TierCaseController's chain-aware deferred-revert check
+            // needs to see every other OPEN case sharing a hold's ChainId, regardless of family.
+            // v0.17.2 — also threads the SAME `stations` list through (one walk, shared everywhere).
+            try
+            {
+                var views = new List<CaseView>();
+                foreach (var kv in _cases)
+                {
+                    var c = kv.Value;
+                    if (c.State != CaseState.Open) continue;
+                    views.Add(new CaseView
+                    {
+                        Id = c.Id,
+                        Family = c.Family,
+                        Item = c.Item,
+                        Warehouse = c.Warehouse,
+                        ChainId = c.ChainId,
+                        PresentThisPoll = thisPoll.ContainsKey(kv.Key),
+                        DistressCount = c.DistressCount,
+                        PollsSeenTotal = c.PollsSeenTotal,
+                        LastStored = c.LastStored,
+                        ClassSources = new Dictionary<string, (string Place, int Stored)>(c.ClassSources),
+                        PosKeys = new HashSet<string>(c.PosKeys),
+                    });
+                }
+                TierCaseController.OnPoll(views, stations, fullTable);
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [case] TierCaseController.OnPoll error: {ex}"); }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [case] Ingest error: {ex}"); }
     }

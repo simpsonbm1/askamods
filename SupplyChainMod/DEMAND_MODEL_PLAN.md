@@ -429,6 +429,159 @@ competitor" advisory/lever.
 Arming order: **tier first** (whole loop proven, reversible, ledgered), **eviction second**
 (solo-only), advisories throughout.
 
+### Tier arming v0.17.0 spec + dilution/demotion decisions (user-approved 2026-07-16)
+
+- **v0.17.0 scope:** new TierCaseController arms the TIER family ONLY, driven by OPEN TIER cases
+  from CaseTracker (case OPEN = the rail-1 persistence gate; the `tier|item` key = the rail-2
+  merge). Budget `MaxActiveTierCases=2` (user: more concurrency = more data per run; test save
+  is throwaway — autosave off). Armed toggle = the existing shared F11 flag; the legacy
+  complaint-driven SupplyController is retired from the test path via live-cfg
+  `EnableController=false` (cfg-only — compiled default unchanged). Full state machine runs
+  dry-run ("WOULD BUMP/REVERT" lines) until armed; toasts on bump/revert/verdict.
+- **Cycle:** ledger write-ahead (Kind="tier") → direct `SetPriority(0)` + `HostUpdateTasks()`
+  (proven path; target row re-resolved live at act time, never cached) → readback +
+  whole-warehouse rank-snapshot diff (wrong-row ⇒ immediate revert + abort verdict) → judge each
+  ~30 s poll (responding = case findings absent OR stored falling vs bump-time baseline) →
+  ineffective after `TierResponsePolls=4` ⇒ revert + verdict + per-item lockout (10 min); hard
+  abort at `TierMaxHoldMinutes=10`. Revert on case-RESOLVED is chain-aware (defers while
+  chain-mates remain OPEN — rail 3); per-item `TierCooldownMinutes=5` after ANY revert
+  (oscillation guard; a re-open inside cooldown logs a distinct chronic marker). Latency logged
+  per cycle (time-to-first-response, time-to-resolved). F11 DISARM reverts all live holds
+  immediately (v0.17.1; a hold remembers `WasArmed` at bump time, so a mid-hold toggle can
+  never strand a real write or fake-revert a dry-run one).
+- **As-built notes (v0.17.0/1, build-verified — ⚠️ all pending in-game):** shared write core
+  extracted to TierWriter.cs (EvictionSpike + controller, RankActuator-style); armed flag + F11
+  hoisted to ArmState.cs (works with `EnableController=false`; world-leave reset unchanged).
+  Known v1 approximations: (1) target row resolves by StructureName+item, not PosKey — two
+  identically-named structures could mis-resolve; benign (wrong-row bump draws no response ⇒
+  auto-revert ≤2 min) and names are auto-numbered in practice; revisit if a run shows it.
+  (2) No explicit warmup/demand-built flag exists to gate on — the case layer's own
+  OPEN-persistence (4-of-6 polls, findings require DemandGraph matches) is the de-facto warmup
+  gate. (3) Controller runs its own station walk per ~30 s poll (second walk alongside
+  WarehouseWatch's — fine at this cadence). (4) `EnableTierCases=false` mid-session freezes in
+  place (project convention); disarm-revert covers the practical kill-switch need. Wrong-row
+  abort has its own `WRONG-ROW-ABORT` marker (distinct from time-based `HARD-ABORT`).
+- **Armed run 1 (confirmed in-game 2026-07-16, v0.17.1, ~25 min): CORE LOOP VERIFIED.** Zero
+  errors, clean session end. Full bump→response→resolve cycles completed: Onion (response 30 s,
+  resolved 2 m), Yellow Mushrooms (30 s), Gray Mushrooms (90 s), Mushrooms @ Improved
+  Warehouse 3 (30 s), Berries. Hauling time-to-first-response datum: **30–90 s**. AlreadyTop →
+  dilution report → advisory verdict path fired correctly (Rope, Linen Thread). Findings:
+  1. **DILUTION GROUND TRUTH (the v0.18 demotion evidence, first capture):** 113–116 rows High
+     settlement-wide on this save, 24 demote-eligible (Coal, Wood Plank, Wood Post, Wood Beam,
+     Iron Bloom, Berries/Cabbage/Carrot Seeds, +16 more). Rope + Linen Thread sat already-High
+     AND starving the whole run — the exact target profile the demotion lever exists for. The
+     user's dilution callout is confirmed with hard numbers: at >100 High rows, High means
+     nothing.
+  2. **BUG — ALL run-1 revert failures ROOT-CAUSED (found 2026-07-16 during the v0.17.2
+     build): self-exclusion via BoostedStationKeys.** WarehouseTasks.BuildRows deliberately
+     skips stations in RankActuator.BoostedStationKeys (so actuators don't target a claimed
+     station) — but TierCaseController claims its target on bump and then resolved REVERTS
+     through BuildRows, which excluded its own station ⇒ every revert read "row not found"
+     (all 5 holds stranded: Onion + the 4 mushroom-family holds). Cascade: failed reverts
+     never released the claims, so claimed stations stayed invisible to ALL later scans —
+     which also explains Rope/Linen Thread's endless "row not resolvable this poll" (they sit
+     on Improved Warehouse 3, blacked out by Onion's stuck claim) and most likely the 55↔114
+     High-row count oscillation (claimed stations' rows drop out of the count). One bug,
+     three symptoms. Fix (v0.17.2): BuildRows gets an includeBoosted flag — target SELECTION
+     keeps excluding claimed stations; revert resolution, dilution/High-row counting, and
+     coverage diagnostics include them. STREAMING THEORY DEMOTED to unconfirmed hypothesis —
+     the player-distance correlation was coincidental with this bug; the v0.17.2 scan-coverage
+     diagnostics stay in scope to settle it properly (and base simulation continuing while
+     away — user-confirmed — remains true and recorded in architecture.md).
+  3. **Target-choice nuance:** the one INEFFECTIVE bump (Mushrooms case #5, stored 20→20
+     static) targeted the producer hut's own storage row (Gatherer's Hut 4) — bumping the
+     SOURCE's row does nothing; the later receiving-warehouse bumps responded in 30 s. When a
+     tier case's only contributor is BLOCKAGE (producer side), the controller should target the
+     item's receiving-warehouse row (BLOCKAGE analysis already computes destination rows), not
+     the finding's own place. v0.17.2 candidate.
+  4. **Open data question:** highRowsSettlementWide oscillated 55 ↔ 114–116 across polls —
+     likely scan coverage varying with structure streaming (same cause as finding 2). Add
+     scanned-warehouse count to dilution/bump lines to disambiguate (v0.17.2 rider).
+  5. **Paths still unexercised in-game:** `DISARM revert` (F11 never pressed again),
+     WRONG-ROW-ABORT (never triggered — good), HARD-ABORT, chain-deferred revert (no chained
+     TIER cases this run; chain #1 was ROUTE-only). The v0.16.0 any-of-protected SURPLUS tail
+     also still unobserved.
+  6. **FALSE-NEGATIVE ANALYSIS (user callout: three known problems drew no warnings; log
+     evidence pulled 2026-07-16):**
+     - **Coal (containers maxed, producers idled): structural demand reads ZERO — confirmed**
+       (`[budget] row: 'Coal' @ 'Improved Warehouse 3' ... structural=0(0/0) class=healthy`;
+       Coal + Iron Bloom in the demote-eligible list, whose test is structural==0). Cause
+       evidence: bloomeries ('Bloomstation') ARE scanned, but their tasks are INPUT-QUOTA
+       WorkstationTaskData lines (`Coal x20`, `Iron Ore x…`), not blueprint recipes — the
+       recipe-join demand extraction has nothing to match (⚠️ "no bloomery blueprint exists"
+       is inferred, not yet proven; the v0.17.2 demand-watchlist rider will settle it). Same
+       family: 'CharcoalStation' coal makers (their storage-full complaints fired live —
+       widget-events at 02:10 — but nothing routes producer storage-full into cases for an
+       undemanded item). CANDIDATE FIX (v0.18): processing-station input-quota tasks register
+       DIRECT structural demand for their own item (the "keep X here" floor semantics);
+       plus TransformMap/parts coverage for the bloom→hot-bloom heat transform (Iron Bloom
+       structural=0 despite metalworker demand for Hot Iron Bloom ⇒ that chain link is broken
+       too).
+     - **Iron Ore throughput: doubly invisible, both reasons documented.** (1) Same
+       processing-station demand gap ⇒ likely structural=0; (2) even with demand it's the
+       Phase 2e slow-carry ratio problem (nothing stalls; no class fires) — and STARVED
+       additionally requires source stock, but ore stored=0 at BOTH mine hut and warehouse.
+       Candidate cheap class from this evidence: DRY advisory — demanded item, settlement-wide
+       stored≈0, no inflow (distinct from STARVED, which means stock waiting + not hauled).
+     - **Hammers: equipment demand unmodeled (documented), BUT the game handed us the signal:**
+       `ItemCategoryComplaint category='Hammers'` fired from two crafters (02:14–02:15,
+       ComplaintWatcher logged it; recorded in architecture.md → complaint section). Lead:
+       route named ItemCategoryComplaints into the case layer as equipment-demand — far
+       cheaper than the breakage-rate derivation. Also observed: all 7 hammer variants share
+       one container at 94% full (room=8) — container-packing pressure worth an eye.
+     - **Pattern (for the demand-model roadmap):** the classifier sees flow problems INSIDE
+       the modeled crafting-input graph; demand outside it (equipment, processing-station
+       inputs) and non-stall problems (throughput ratios) are invisible. All three user
+       examples land exactly on those documented boundaries — no classifier logic bug found.
+     - **USER DIRECTIVE (2026-07-16, goal-level reframe):** worker-voiced demand is
+       FOUNDATIONAL, not out-of-scope — "not enough hammers ⇒ raise priority for everything
+       upstream of hammer production ⇒ steady-state load-balance so the gap doesn't reopen"
+       is idea 12's founding scenario. Detection missing a loudly-voiced complaint is a
+       separate failure from a hard lever (ore vs Large Rocks stays hard; the WARNING must
+       not be missing). Follow-up log pull proved detection is sitting unconsumed:
+       `ItemManifestComplaint manifest (2): Iron Ore x4, Metal Scraps x4` fired chronically
+       (multiple villagers, one re-raising every ~3–4 s for minutes, 02:10+) — typed, named,
+       quantified, already logged by ComplaintWatcher, consumed by NOTHING (the legacy
+       complaint-consumer SupplyController is retired/disabled). Evidence in architecture.md →
+       complaint section.
+
+### v0.18 direction — complaint-demand plane (THIRD demand surface; design APPROVED 2026-07-16,
+### pending any learnings from the v0.17.2 run before final spec)
+User approval covers: the three consumed complaint types (ItemManifestComplaint,
+ItemCategoryComplaint, StorageFullComplaint; LoadoutsComplaint excluded v1), the ~60 s
+chronicity gate (identity type+payload aggregated across villagers), the advisory-always
+(NEED / NEED-CAT / PROD-FULL case families) + seed-where-named split, seeds add-only with
+provenance tags and ~3 min decay after complaints stop, modest config-default magnitudes
+(manifest qty summed across villagers; small constant per villager for categories), and the
+category→member-items Cecil probe with advisory-only fallback if resolution is ugly.
+The demand model gains a third input surface alongside structural (task/recipe graph) and flow
+(stored-delta observation): **worker-voiced demand** from the typed complaint stream the
+watcher already captures. Sketch (to be proposed properly before build): persistent
+complaint-derived demand entries (identity villager+type+payload per the documented
+level-signal rule; chronic-persistence gate reusing case-layer semantics) → (a) a NEED finding
+class feeding the case layer — advisory ALWAYS fires (fixes the "no warning" failure even
+where no lever fits, e.g. ore), and (b) demand SEEDS into DemandGraph — a seeded item with a
+blueprint engages the EXISTING transitive BOM propagation and the EXISTING armed tier lever,
+which is precisely the hammer scenario end-to-end (ItemCategoryComplaint 'Hammers' → hammer
+blueprints → upstream input demand → shadowed-row tier cases → bumps). Detection is the only
+missing layer; everything downstream already exists. Sequencing proposal: complaint-demand
+plane = v0.18 (foundational per user directive), demotion lever = v0.19 (dilution evidence
+already banked).
+- **Tier dilution (user callout 2026-07-16):** many concurrent High rows dilute what High buys —
+  the tier-space analogue of hogging; a victim row can be High and still starved. v0.17.0
+  collects evidence only: the AlreadyTop path emits a dilution report (settlement-wide High-row
+  count + demote-eligible list: no structural demand, no open case, stored>0), and EVERY bump
+  logs the High-row count so ineffective verdicts can distinguish labor-bound from
+  tier-diluted. **Demotion of competing High rows = the v0.18 candidate lever**, designed
+  against this data.
+- **User decisions/facts (2026-07-16):** default row tier = MED (user-confirmed) — so a High row
+  does signify player intent, BUT the higher-level intent is a working supply chain, and the
+  game's strict native rules make unintentionally broken settings common (the mod's founding
+  motivation). Demoting High rows is therefore ACCEPTABLE with strong justification. OFF stays
+  off-limits — it changes storage composition (which units store where), not just service
+  order. Same-tier tie handling believed PROXIMITY ⚠️ unverified (validate before demotion
+  ships). Demotion floor: likely never below Med (evidence pending).
+
 ### Player-facing HUD panel (stretch goal — user idea + mockup, 2026-07-16)
 Far-future, after everything works: an in-game "Supply Chain" HUD panel where each OPEN case
 appears as a card — problem sentence, the concrete proposed change (e.g. `bone_fragments
@@ -509,7 +662,9 @@ accepted). Recipe + version history in docs/mods/supply-chain.md.
 Open next steps (arming design above approved 2026-07-16):
 1. **Food demand modeling** (pre-arm blocker 2) — hunting/gathering→cooking pipeline first,
    farming demoted to seed-consumer role (user call 2026-07-16; see pre-arm blockers below).
-2. **Arming implementation** — tier first, per the routing table + rails above.
+2. **Arming implementation** — tier first, per the routing table + rails above. v0.17.0
+   TierCaseController spec approved + build dispatched 2026-07-16 (see the tier-arming v0.17.0
+   subsection) — ⚠️ pending in-game verification (dry-run pass, then armed pass).
 3. **Phase 3 / task creation research.**
 
 ## User decisions (2026-07-15, all four open questions answered)

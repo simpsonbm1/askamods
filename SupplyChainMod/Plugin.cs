@@ -338,6 +338,60 @@ namespace SupplyChainMod;
 // structural demand for the SEED being planted (a consumer, not a producer) instead of an
 // unmatched output. Read-only demand-graph + reporting changes; no new writes, no new Harmony
 // patches. Full detail in DemandGraph.cs and BudgetPlane.cs file headers.
+//
+// v0.17.0 — the first ARMED lever (DEMAND_MODEL_PLAN.md "Tier arming v0.17.0 spec"): new
+// TierCaseController drives OPEN "tier|<item>" cases (CaseTracker) through the SAME direct
+// SetPriority+HostUpdateTasks write path EvictionSpike's Shift+F6 tier test fire-verified (its
+// write/readback/whole-warehouse-snapshot-diff core is now shared via new TierWriter.cs — no
+// behavior change to EvictionSpike itself). Full dry-run until armed via the SAME F11 flag
+// SupplyController's hotkey flips; new ArmState.cs hoists that flag + hotkey handling out of the
+// EnableController-gated tick so TierCaseController can share it even with the legacy
+// complaint-driven SupplyController disabled (EnableController=false, cfg-only — the test path for
+// this version). State machine: bump -> judge response each poll -> INEFFECTIVE + lockout after
+// TierResponsePolls with no response ever seen, or a chain-aware deferred revert on case-RESOLVED
+// (never reverts an effective fix while a BOM chain-mate case is still OPEN), or a hard abort at
+// TierMaxHoldMinutes. Per-item TierCooldownMinutes after every revert (oscillation guard). An
+// already-High candidate emits a DILUTION report (settlement-wide High-row count + a demote-eligible
+// list) instead of bumping — diagnostics only, no demotion writes this version (the v0.18 candidate
+// lever). Alarm: reverts ALL active holds immediately and refuses new ones for AlarmLockoutSeconds
+// (stronger than SupplyController/ClogController's pause-new-boosts-only behavior — a deliberate
+// v0.17.0 design choice). Full detail in TierCaseController.cs/TierWriter.cs/ArmState.cs headers.
+//
+// v0.17.1 — F11 kill-switch protocol follow-up: DISARMING (ArmState.ToggleArmed, armed->disarmed
+// transition only) now calls TierCaseController.NoteDisarmed(), which ends every active tier-case
+// hold IMMEDIATELY — a real revert for a hold that actually wrote (live re-resolve +
+// SetPriority(OrigTier)+HostUpdateTasks, ledger cleared, BoostedStationKeys released, "DISARM
+// revert" marker + toast), a silent drop for a dry-run hold ("WOULD REVERT (disarm)"). Both start
+// the normal per-item TierCooldownMinutes window so re-arming can't instantly re-bump the same
+// items. Previously disarming only stopped NEW writes; live holds rode out their normal judge/
+// revert cycle — the kill switch is now instant.
+//
+// v0.17.2 — run-1 armed-test follow-up (full bump->response->resolve cycles succeeded, zero errors,
+// but revert failures were suspected structure STREAMING). Six changes: (1) TierCaseController.
+// OnPoll now receives the SAME `stations` list WarehouseWatch/BudgetPlane/CaseTracker already
+// resolved this poll instead of walking a second time — the prime suspect for the settlement-wide
+// High-row count oscillating between two different coverage sets; that count is now computed ONCE
+// per poll and shared by both the BUMP line and the DILUTION report, both now logging
+// `scanned=<N>`; (2) a SCAN diff line (TierCaseController) logs whenever the scanned-structure set
+// changes, and every row/warehouse resolution failure now appends `playerDist=Xm`; (3) CaseTracker's
+// case presence freezes (no false RESOLVED) when a case's own structure(s) are outside this poll's
+// scan — mirrored in TierCaseController's hold judgment (a coverage gap ages a hold without judging
+// response/resolution; the hard-abort wall clock still applies); (4) a revert that can't resolve its
+// row now becomes PendingRevert (a separate collection, doesn't count against MaxActiveTierCases)
+// and retries every poll — including while disarmed — instead of giving up for the session; (5) a
+// BLOCKAGE-only tier case (no SHADOWED contributor) now targets the best RECEIVING true-warehouse
+// row instead of the producer's own stuck location (bumping a source row did nothing); (6) new
+// DemandWatchlist ([Diagnostics]) logs `[demand-watch]` structural-demand/wantedBy/producedBy
+// reasoning for a configured item list on every DemandGraph build/refresh — diagnostics only.
+//
+// v0.17.3 — same v0.17.2 changeset; a review pass caught that WarehouseTasks.BuildRows EXCLUDES any
+// station already in RankActuator.BoostedStationKeys, which is EXACTLY the station a hold's OWN
+// revert needs to re-find (bumping it is what put it there) — the CONFIRMED root cause of run 1's
+// "every revert failed once" and the cascading Rope/Linen Thread blackout at Improved Warehouse 3.
+// BuildRows gained an `includeBoosted` parameter (default false, every existing caller unchanged);
+// the tier-case revert path and the settlement-wide High-row tally now pass true. Fixed after the
+// v0.17.2 DLL had already deployed, so the SAC bump guard required this further version bump to
+// redeploy the corrected build (same pattern as v0.4.3/v0.5.1).
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -353,6 +407,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> WidgetPollSeconds = null!;
     internal static ConfigEntry<int> SweepStationsPerTick = null!;
     internal static ConfigEntry<string> IgnoredComplaintMessages = null!;
+    internal static ConfigEntry<string> DemandWatchlist = null!;
 
     // ── [Phase1Spike] ────────────────────────────────────────────────────────────────────────
     internal static ConfigEntry<bool> EnableSpike = null!;
@@ -452,6 +507,14 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> MinSurplusSlots = null!;
     internal static ConfigEntry<bool> PerPollFindingLines = null!;
 
+    // ── [TierArming] ─────────────────────────────────────────────────────────────────────────
+    internal static ConfigEntry<bool> EnableTierCases = null!;
+    internal static ConfigEntry<int> MaxActiveTierCases = null!;
+    internal static ConfigEntry<int> TierResponsePolls = null!;
+    internal static ConfigEntry<float> TierMaxHoldMinutes = null!;
+    internal static ConfigEntry<float> TierCooldownMinutes = null!;
+    internal static ConfigEntry<float> TierLockoutMinutes = null!;
+
     public override void Load()
     {
         Logger = base.Log;
@@ -497,6 +560,17 @@ public class Plugin : BasePlugin
             key: "IgnoredComplaintMessages",
             defaultValue: "feelUnsafe",
             description: "Comma-separated, case-insensitive substrings. A GenericMessageComplaint whose message contains any of these (or exactly matches the game's own 'feels unsafe at work/home' complaint text) is NOT logged — neither its ADD nor its matching REMOVE. v0.1.1 default suppresses the 'feels unsafe' combat complaints that scrolled the console on a defenseless test save. Empty = suppress nothing.");
+
+        DemandWatchlist = Config.Bind(
+            section: "Diagnostics",
+            key: "DemandWatchlist",
+            defaultValue: "Coal,Iron Ore,Iron Bloom,Hot Iron Bloom",
+            description: "v0.17.2 diagnostics-only rider: comma-separated item display names. On every DemandGraph " +
+                "build/refresh (F9 dump AND the silent auto-refresh), logs a '[demand-watch]' line per watchlisted item " +
+                "with its structural demand (TryGetStructuralDemand), its wantedBy consumers if any (or 'wantedBy=none'), " +
+                "and whether any blueprint/cooking/parts/transform match was found that PRODUCES it ('producedBy=<kind>' " +
+                "or 'producedBy=none') — settles which processing-station items (ore/bloom/smelting chains) the demand " +
+                "graph actually covers. No behavior change; empty = no watchlist lines.");
 
         EnableSpike = Config.Bind(
             section: "Phase1Spike",
@@ -981,6 +1055,53 @@ public class Plugin : BasePlugin
                 "OFF-CONFLICT proposal lines exactly as before (needed for distress-duty-cycle detail). false = those raw " +
                 "per-poll lines stop; only the case layer's OPEN/RESOLVED/summary lines and F9 case dump remain.");
 
+        EnableTierCases = Config.Bind(
+            section: "TierArming",
+            key: "EnableTierCases",
+            defaultValue: true,
+            description: "v0.17.0 master switch for TierCaseController, the first ARMED lever (tier bumps on OPEN " +
+                "'tier|<item>' cases). Shipped default TRUE (dev/diagnostic convention) — the module runs its FULL " +
+                "dry-run state machine ('WOULD BUMP'/'WOULD REVERT' log lines) regardless of this flag's default; " +
+                "REAL writes only ever happen once armed via the shared F11 hotkey (ArmState/ControllerArmHotkey). " +
+                "Set false to fully disarm the module (it stops ticking; any in-flight holds freeze in place).");
+
+        MaxActiveTierCases = Config.Bind(
+            section: "TierArming",
+            key: "MaxActiveTierCases",
+            defaultValue: 2,
+            description: "Maximum number of tier-case holds active settlement-wide at once (actuation budget — " +
+                "DEMAND_MODEL_PLAN.md arming rails).");
+
+        TierResponsePolls = Config.Bind(
+            section: "TierArming",
+            key: "TierResponsePolls",
+            defaultValue: 4,
+            description: "Consecutive non-responding polls (no response EVER seen) before a tier-bump hold is judged " +
+                "INEFFECTIVE, reverted, and the item locked out for TierLockoutMinutes.");
+
+        TierMaxHoldMinutes = Config.Bind(
+            section: "TierArming",
+            key: "TierMaxHoldMinutes",
+            defaultValue: 10f,
+            description: "Absolute hard-abort rail (minutes): a tier-case hold this old is force-reverted regardless " +
+                "of state (Holding or DeferredRevert), even if it's still responding or waiting on a chain-mate.");
+
+        TierCooldownMinutes = Config.Bind(
+            section: "TierArming",
+            key: "TierCooldownMinutes",
+            defaultValue: 5f,
+            description: "Minutes after ANY revert (resolved/ineffective/hard-abort/already-top/off-row) before a new " +
+                "tier-case hold on the SAME item may start — an oscillation guard. A case re-opening on the same item " +
+                "during this window is skipped with a 'chronic re-open inside cooldown' log line instead of holding.");
+
+        TierLockoutMinutes = Config.Bind(
+            section: "TierArming",
+            key: "TierLockoutMinutes",
+            defaultValue: 10f,
+            description: "Minutes an item stays locked out of NEW tier-case holds after an INEFFECTIVE verdict " +
+                "(no response ever seen within TierResponsePolls) — distinct from, and layered on top of, the shorter " +
+                "TierCooldownMinutes oscillation guard every revert starts.");
+
         ClassInjector.RegisterTypeInIl2Cpp<SupplyChainTracker>();
 
         var go = new GameObject("SupplyChainMod_Tracker");
@@ -1015,6 +1136,7 @@ public class Plugin : BasePlugin
             $"[SupplyChain] SupplyChainMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 0 read-only flow diagnostic + Phase 1a actuation spike + Phase 1b controller + Phase 2a warehouse diagnostics + Phase 2b quota spike + Phase 2c metabolic plane/clog controller. " +
             $"TickSeconds={TickSeconds.Value} DumpHotkey='{DumpHotkey.Value}' EnableDiagnostics={EnableDiagnostics.Value} PatchVillagerComplaints={PatchVillagerComplaints.Value} " +
             $"WidgetPollSeconds={WidgetPollSeconds.Value} SweepStationsPerTick={SweepStationsPerTick.Value} IgnoredComplaintMessages='{IgnoredComplaintMessages.Value}' " +
+            $"DemandWatchlist='{DemandWatchlist.Value}' " +
             $"EnableSpike={EnableSpike.Value} SpikeHotkey='{SpikeHotkey.Value}' SpikeStationFilter='{SpikeStationFilter.Value}' SpikeTaskIndex={SpikeTaskIndex.Value} " +
             $"SpikeNewPriority={SpikeNewPriority.Value} SpikeAutoRevertSeconds={SpikeAutoRevertSeconds.Value} " +
             $"EnableController={EnableController.Value} ControllerStartArmed={ControllerStartArmed.Value} ControllerArmHotkey='{ControllerArmHotkey.Value}' " +
@@ -1042,6 +1164,8 @@ public class Plugin : BasePlugin
             $"EnableContainerProbe={EnableContainerProbe.Value} EnableDemandGraph={EnableDemandGraph.Value} DemandRefreshMinutes={DemandRefreshMinutes.Value} " +
             $"TransformMap='{TransformMap.Value}' " +
             $"EnableCaseLayer={EnableCaseLayer.Value} CaseOpenPolls={CaseOpenPolls.Value} CaseOpenWindow={CaseOpenWindow.Value} " +
-            $"CaseClosePolls={CaseClosePolls.Value} MinSurplusSlots={MinSurplusSlots.Value} PerPollFindingLines={PerPollFindingLines.Value}.");
+            $"CaseClosePolls={CaseClosePolls.Value} MinSurplusSlots={MinSurplusSlots.Value} PerPollFindingLines={PerPollFindingLines.Value} " +
+            $"EnableTierCases={EnableTierCases.Value} MaxActiveTierCases={MaxActiveTierCases.Value} TierResponsePolls={TierResponsePolls.Value} " +
+            $"TierMaxHoldMinutes={TierMaxHoldMinutes.Value} TierCooldownMinutes={TierCooldownMinutes.Value} TierLockoutMinutes={TierLockoutMinutes.Value}.");
     }
 }

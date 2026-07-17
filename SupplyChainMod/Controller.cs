@@ -122,8 +122,10 @@ internal static class SupplyController
     // for slow-cadence demands (bursts minutes apart) that would otherwise never re-mature.
     private static readonly Dictionary<string, DateTime> _matureClearedAt = new();
 
-    internal static bool Armed;
-    private static bool _armedInitialized;
+    // v0.17.0 — Armed/its hotkey handling moved to ArmState.cs (shared with TierCaseController);
+    // this is now a forwarding property so every existing read site (this file, ClogController)
+    // needed no change.
+    internal static bool Armed => ArmState.Armed;
 
     private static DateTime _lastAlarmAt = DateTime.MinValue;
     private static bool _alarmLoggedThisWindow;
@@ -207,30 +209,6 @@ internal static class SupplyController
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [controller] NoteAlarm error: {ex}"); }
     }
 
-    internal static bool ToggleArmed()
-    {
-        try
-        {
-            Armed = !Armed;
-            if (Armed)
-            {
-                Plugin.Logger.LogInfo("[SupplyChain] [controller] Autopilot ARMED — live actuation.");
-                SupplyChainTracker.ShowMessage("Autopilot ARMED — live actuation", 6f);
-            }
-            else
-            {
-                Plugin.Logger.LogInfo("[SupplyChain] [controller] Autopilot DRY-RUN — logging only.");
-                SupplyChainTracker.ShowMessage("Autopilot DRY-RUN — logging only", 6f);
-            }
-            return Armed;
-        }
-        catch (Exception ex)
-        {
-            Plugin.Logger.LogError($"[SupplyChain] [controller] ToggleArmed error: {ex}");
-            return Armed;
-        }
-    }
-
     internal static void NoteWorldLeft()
     {
         try
@@ -248,8 +226,7 @@ internal static class SupplyController
             _demands.Clear();
             _matureClearedAt.Clear();
             RankActuator.BoostedStationKeys.Clear();
-            Armed = Plugin.ControllerStartArmed.Value;
-            _armedInitialized = true;
+            ArmState.ResetForWorldLeave();
             _lastAlarmAt = DateTime.MinValue;
             _alarmLoggedThisWindow = false;
             _lastStatusAt = DateTime.MinValue;
@@ -265,12 +242,9 @@ internal static class SupplyController
             // Guards against the static Armed field reading its bare C# default (false) before
             // any NoteWorldLeft has synced it to config — NoteWorldLeft doesn't reliably fire
             // before the FIRST real world session on every launch path, but Tick only ever runs
-            // once a world is genuinely active, so this is the safe place to sync once.
-            if (!_armedInitialized)
-            {
-                Armed = Plugin.ControllerStartArmed.Value;
-                _armedInitialized = true;
-            }
+            // once a world is genuinely active, so this is the safe place to sync once. (v0.17.0 —
+            // moved to ArmState so a second actuator, TierCaseController, shares the same guard.)
+            ArmState.EnsureInitialized();
 
             var now = DateTime.UtcNow;
 

@@ -36,6 +36,14 @@ namespace SupplyChainMod;
 // StartTier) are local to that call only. No Harmony patches are added by this module — DropItem and
 // friends have inventory-family parameters, a forbidden patch target (project-wide gotcha); this
 // spike only ever CALLS these methods directly from a hotkey/tick, never patches them.
+//
+// v0.17.0 — the tier write/readback/whole-warehouse-snapshot-diff core (DirectWrite/
+// ProbeTierComponent/HostUpdateViaProbe/DiffAndFindWrongRow/RevertWrongRow) is EXTRACTED into new
+// TierWriter.cs so the automated TierCaseController (the v0.17.0 arming layer) drives the SAME
+// proven write path this spike fire-verified, mirroring how RankActuator was pulled from
+// ActuationSpike (v0.3.0 — see RankActuator.cs's header). No behavior change here — every call site
+// below just calls through TierWriter now; this spike's own RPC-first experiment path (tried before
+// falling back to the direct write) is unchanged and stays local to this file.
 internal static class EvictionSpike
 {
     // Tier test state — re-resolved by PosKey/TaskIndex/ItemName/SupplyOwner at every tick, never a
@@ -503,12 +511,7 @@ internal static class EvictionSpike
             Plugin.Logger.LogInfo($"[SupplyChain] [tier] HasStateAuthority unreadable ({ex.Message}) — assuming offline/solo, allowing.");
         }
 
-        var snapshot = new List<(int taskIndex, string itemName, int rank)>();
-        foreach (var r in allRows)
-        {
-            if (r.Warehouse.PosKey != warehouse.PosKey) continue;
-            snapshot.Add((r.TaskIndex, r.ItemName, r.Rank));
-        }
+        var snapshot = TierWriter.SnapshotWarehouse(stations, warehouse.PosKey);
 
         int origRank = row.Rank;
         const int targetRank = 0; // High
@@ -530,7 +533,7 @@ internal static class EvictionSpike
 
         RankActuator.BoostedStationKeys.Add(warehouse.PosKey);
 
-        var (composite, simple, via) = ProbeTierComponent(warehouse);
+        var (composite, simple, via) = TierWriter.ProbeTierComponent(warehouse);
         string foundClass = composite != null ? Common.NativeClassName(composite) : (simple != null ? Common.NativeClassName(simple) : "none");
         Plugin.Logger.LogInfo($"[SupplyChain] [tier] network probe: found={foundClass} via={via}");
 
@@ -600,7 +603,7 @@ internal static class EvictionSpike
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [tier] TickTier GetWorkstationTaskDatas error: {ex}"); return; }
         if (datas == null) return;
 
-        var wrongRow = DiffAndFindWrongRow(active, datas);
+        var wrongRow = TierWriter.DiffAndFindWrongRow(active.Snapshot, active.TaskIndex, active.TargetRank, datas);
 
         WarehouseTasks.FindQuotaTask(datas, active.TaskIndex, active.ItemName, active.SupplyOwner, out var rst);
         if (rst == null) return; // our row gone this tick — a hotkey/ledger restore reports it properly
@@ -626,7 +629,7 @@ internal static class EvictionSpike
                     var (wIdx, wItem, wOrigRank) = wrongRow.Value;
                     Plugin.Logger.LogError(
                         $"[SupplyChain] [tier] WRONG-ROW: Rpc_ChangeTaskPriority({active.TaskIndex}) hit task[{wIdx}] '{wItem}' instead.");
-                    RevertWrongRow(station, datas, wIdx, wOrigRank);
+                    TierWriter.RevertWrongRow(station, datas, wIdx, wOrigRank);
                     SpikeLedger.Remove(new LedgerEntry { WorldId = active.WorldId, PosKey = active.PosKey, TaskIndex = active.TaskIndex, ItemName = active.ItemName, Kind = "tier" });
                     RankActuator.BoostedStationKeys.Remove(active.PosKey);
                     _activeTier = null;
@@ -635,7 +638,7 @@ internal static class EvictionSpike
                 else if (elapsedInPhase > Plugin.TierRpcTimeoutSeconds.Value)
                 {
                     Plugin.Logger.LogInfo($"[SupplyChain] [tier] RPC ineffective after {elapsedInPhase:F0} s — trying direct value write");
-                    DirectWrite(station, rst, active.TargetRank);
+                    TierWriter.DirectWrite(station, rst, active.TargetRank);
                     active.Phase = "directWait";
                     active.PhaseStart = Time.time;
                 }
@@ -726,7 +729,7 @@ internal static class EvictionSpike
                 WarehouseTasks.FindQuotaTask(datas, active.TaskIndex, active.ItemName, active.SupplyOwner, out var rst);
                 if (rst != null)
                 {
-                    DirectWrite(station, rst, active.OrigRank);
+                    TierWriter.DirectWrite(station, rst, active.OrigRank);
                     int readback = -1;
                     try { readback = rst.priority; } catch { }
                     confirmedOrig = readback == active.OrigRank;
@@ -751,23 +754,14 @@ internal static class EvictionSpike
     }
 
     // ── Shared tier write helpers ────────────────────────────────────────────────────────────────
-    private static void DirectWrite(StationEntry station, ResourceStorageTaskData rst, int newRank)
-    {
-        try { rst.SetPriority(newRank); }
-        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [tier] SetPriority({newRank}) error: {ex}"); }
-
-        HostUpdateViaProbe(station);
-
-        int readback = -1;
-        try { readback = rst.priority; } catch { }
-        Plugin.Logger.LogInfo($"[SupplyChain] [tier] direct write: SetPriority({newRank}) readback={readback}");
-    }
-
+    // v0.17.0 — DirectWrite/ProbeTierComponent/HostUpdateViaProbe/DiffAndFindWrongRow/RevertWrongRow
+    // moved to TierWriter.cs (shared with TierCaseController); this spike's own RPC-first revert
+    // path stays here since EvictionSpike is the only caller that ever tries the RPC path.
     private static void ApplyRevertVia(StationEntry station, ResourceStorageTaskData rst, ActiveTier active, string path)
     {
         if (path == "rpc")
         {
-            var (composite, simple, via) = ProbeTierComponent(station);
+            var (composite, simple, via) = TierWriter.ProbeTierComponent(station);
             try
             {
                 if (composite != null) composite.Rpc_ChangeTaskPriority(active.TaskIndex, active.OrigRank);
@@ -782,99 +776,8 @@ internal static class EvictionSpike
         }
         else
         {
-            DirectWrite(station, rst, active.OrigRank);
+            TierWriter.DirectWrite(station, rst, active.OrigRank);
         }
-    }
-
-    private static void RevertWrongRow(StationEntry station, Il2CppSystem.Collections.Generic.List<WorkstationTaskData> datas, int wrongIndex, int snapshotRank)
-    {
-        if (wrongIndex < 0 || wrongIndex >= datas.Count)
-        {
-            Plugin.Logger.LogError("[SupplyChain] [tier] LOUD: wrong-row revert — index out of range.");
-            return;
-        }
-
-        WorkstationTaskData? task = null;
-        try { task = datas[wrongIndex]; } catch { }
-        ResourceStorageTaskData? thatRst = null;
-        if (task != null) { try { thatRst = task.TryCast<ResourceStorageTaskData>(); } catch { } }
-        if (thatRst == null)
-        {
-            Plugin.Logger.LogError("[SupplyChain] [tier] LOUD: wrong-row revert — could not re-resolve task.");
-            return;
-        }
-
-        DirectWrite(station, thatRst, snapshotRank);
-    }
-
-    // Probe order mirrors QuotaActuator.ProbeAndPushNetwork: own GameObject composite storage, then
-    // own GameObject simple storage, then a child walk for each.
-    private static (NetworkCompositeResourceStorage? composite, NetworkSimpleResourceStorage? simple, string via) ProbeTierComponent(StationEntry entry)
-    {
-        NetworkCompositeResourceStorage? composite = null;
-        NetworkSimpleResourceStorage? simple = null;
-
-        try { composite = entry.Ws.gameObject.GetComponent<NetworkCompositeResourceStorage>(); } catch { }
-        if (composite != null) return (composite, null, "gameObject/composite");
-
-        try { simple = entry.Ws.gameObject.GetComponent<NetworkSimpleResourceStorage>(); } catch { }
-        if (simple != null) return (null, simple, "gameObject/simple");
-
-        try { composite = StationWalker.FindComponent<NetworkCompositeResourceStorage>(entry.Ws.transform); } catch { }
-        if (composite != null) return (composite, null, "childWalk/composite");
-
-        try { simple = StationWalker.FindComponent<NetworkSimpleResourceStorage>(entry.Ws.transform); } catch { }
-        if (simple != null) return (null, simple, "childWalk/simple");
-
-        return (null, null, "none");
-    }
-
-    private static void HostUpdateViaProbe(StationEntry station)
-    {
-        var (composite, simple, via) = ProbeTierComponent(station);
-        try
-        {
-            if (composite != null) composite.HostUpdateTasks();
-            else simple?.HostUpdateTasks();
-            Plugin.Logger.LogInfo($"[SupplyChain] [tier] HostUpdateTasks() via {via} succeeded.");
-        }
-        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [tier] HostUpdateTasks() via {via} failed: {ex}"); }
-    }
-
-    // Diffs the boost-time snapshot against the current task list (by taskIndex), logging every
-    // changed row, and reports the first row that flipped to TargetRank that ISN'T our own boosted
-    // row (the RPC-hit-the-wrong-row failure mode).
-    private static (int taskIndex, string itemName, int origRank)? DiffAndFindWrongRow(
-        ActiveTier active, Il2CppSystem.Collections.Generic.List<WorkstationTaskData> datas)
-    {
-        (int taskIndex, string itemName, int origRank)? wrongRow = null;
-
-        foreach (var snap in active.Snapshot)
-        {
-            if (snap.taskIndex < 0 || snap.taskIndex >= datas.Count) continue;
-
-            WorkstationTaskData? task = null;
-            try { task = datas[snap.taskIndex]; } catch { continue; }
-            if (task == null) continue;
-
-            ResourceStorageTaskData? rst = null;
-            try { rst = task.TryCast<ResourceStorageTaskData>(); } catch { }
-            if (rst == null) continue;
-
-            int curRank = -1;
-            try { curRank = rst.priority; } catch { }
-            if (curRank == snap.rank) continue;
-
-            string curItem = RankActuator.SafeTaskItemName(rst);
-            Plugin.Logger.LogInfo($"[SupplyChain] [tier] rank change: task[{snap.taskIndex}] '{curItem}' {snap.rank}->{curRank}");
-
-            if (wrongRow == null && snap.taskIndex != active.TaskIndex && snap.rank != active.TargetRank && curRank == active.TargetRank)
-            {
-                wrongRow = (snap.taskIndex, curItem, snap.rank);
-            }
-        }
-
-        return wrongRow;
     }
 
     // ── Ledger restore (world-load pass) ────────────────────────────────────────────────────────
@@ -908,7 +811,7 @@ internal static class EvictionSpike
 
         if (observed == entry.BoostPriority)
         {
-            DirectWrite(station, rst, entry.OrigPriority);
+            TierWriter.DirectWrite(station, rst, entry.OrigPriority);
             int readback = -1;
             try { readback = rst.priority; } catch { }
             if (readback == entry.OrigPriority)

@@ -75,6 +75,15 @@ namespace SupplyChainMod;
 // breadth-first, cycle-guarded, depth <=8 — to tell CaseTracker whether two OPEN cases' items are
 // BOM-related (a stuck intermediate and its own stuck input, tagged with a shared chain=#k).
 //
+// v0.17.2 (DemandWatchlist rider) — a small configured item list (Plugin.DemandWatchlist,
+// [Diagnostics]) gets a `[demand-watch]` reasoning line on EVERY finished build/refresh: structural
+// demand (TryGetStructuralDemand), wantedBy consumers (TryGetWantedByLabels) or "none", and whether
+// any recipe/transform PRODUCES the item at all (new GetProducedByKind, backed by a new
+// producedMatchKind accumulator threaded through DumpStationTasks — the SAME per-task match cascade
+// already computes matchKind, just retained now keyed by produced-item name instead of discarded).
+// Diagnostics only; settles which processing-station items (ore/bloom/smelting chains) the graph
+// actually covers, without needing an F9 press or restructuring anything.
+//
 // v0.16.0 (food-demand riders) — three closes on the v0.15.1 probe's food-pipeline gaps:
 // TryMatchCookingRecipe gains a BlueprintInfo parts/cost fallback (matchKind="parts") for plain
 // CookingRecipeInfo items (barbecue, curing rack) that have no cookingRequirements at all; the same
@@ -107,6 +116,10 @@ internal static class DemandGraph
     // v0.14.0 — matched production-task count from the last completed EnsureFresh rebuild; -1 =
     // none yet this world. Feeds the zero-match retry cadence below (world-streaming race at load).
     private static int _lastMatchedCount = -1;
+    // v0.17.2 — produced-item name -> how its own task's recipe was resolved this rebuild
+    // ("local"/"union"/"cooking"/"parts"/"transform"/"none"). Feeds the DemandWatchlist rider's
+    // producedBy= field (GetProducedByKind). Plain strings only (project-wide static-state rule).
+    private static Dictionary<string, string> _producedMatchKind = new();
 
     internal static void NoteWorldLeft()
     {
@@ -120,8 +133,22 @@ internal static class DemandGraph
             _anyOfProtected = new HashSet<string>();
             _lastRebuildTime = -1f;
             _lastMatchedCount = -1;
+            _producedMatchKind = new Dictionary<string, string>();
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] NoteWorldLeft error: {ex}"); }
+    }
+
+    // v0.17.2 — DemandWatchlist rider accessor: how (if at all) itemName's OWN production task was
+    // resolved on the last rebuild ("local"/"union"/"cooking"/"parts"/"transform"), or "none" if it
+    // was never seen as a task output, or was seen but no recipe/transform matched it.
+    internal static string GetProducedByKind(string itemName)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(itemName) && _producedMatchKind.TryGetValue(itemName, out var kind)) return kind;
+        }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] GetProducedByKind error: {ex}"); }
+        return "none";
     }
 
     // structTotal = directQty + derivedQty. Returns true when the item has ANY structural demand
@@ -437,6 +464,10 @@ internal static class DemandGraph
         var anyOfProtected = new HashSet<string>();
         var directQty = new Dictionary<string, int>();
         var stillUnmatched = new List<string>();
+        // v0.17.2 — produced-item name -> matchKind ("local"/"union"/"cooking"/"parts"/"transform"/
+        // "none"), accumulated across every station's tasks this rebuild. Feeds GetProducedByKind
+        // (DemandWatchlist rider) — see DumpStationTasks for where this is populated.
+        var producedMatchKind = new Dictionary<string, string>();
         var loggedCookingRecipes = new HashSet<string>();
         // v0.16.0 — dedup set for the once-per-distinct-table any-of protection log line.
         var loggedTables = new HashSet<string>();
@@ -455,7 +486,7 @@ internal static class DemandGraph
                 }
 
                 DumpStationTasks(sw, union, transformMap, wantedBy, directQty, stillUnmatched, loggedCookingRecipes,
-                    loggedTables, anyOfProtected, verbose,
+                    loggedTables, anyOfProtected, producedMatchKind, verbose,
                     ref totalTasks, ref totalMatchedLocal, ref totalMatchedUnion, ref totalMatchedCooking,
                     ref totalMatchedParts, ref totalMatchedTransform, ref totalMatchedFarm,
                     ref totalUnmatched, ref totalStorageTasks, ref totalFilterTasks, ref bpQuantityAvailable, ref bpQuantityMismatches);
@@ -556,13 +587,50 @@ internal static class DemandGraph
             _wantedByLabels = newLabels;
             _retainedInputs = newInputs;
             _anyOfProtected = newAnyOfProtected;
+            _producedMatchKind = new Dictionary<string, string>(producedMatchKind);
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand] ReplaceState error: {ex}"); }
 
         _lastRebuildTime = Time.time;
         int totalMatched = totalMatchedLocal + totalMatchedUnion + totalMatchedCooking + totalMatchedParts
             + totalMatchedTransform + totalMatchedFarm;
+
+        // v0.17.2 — DemandWatchlist rider: logs reasoning for a small configured item list on EVERY
+        // finished build/refresh (verbose or not — settling the processing-station demand question
+        // doesn't need an F9 press). Uses the SAME public accessors external callers use (never reads
+        // the locals above directly), per the delegation's explicit ask.
+        try { LogWatchlist(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand-watch] LogWatchlist error: {ex}"); }
+
         return new RebuildStats(allItems.Count, directCount, derivedCount, totalMatched);
+    }
+
+    // v0.17.2 — DemandWatchlist rider: one line per configured item name, read via the SAME public
+    // accessors TierCaseController/BudgetPlane use (TryGetStructuralDemand, TryGetWantedByLabels) plus
+    // the new GetProducedByKind. Diagnostics only — never restructures the graph itself.
+    private static void LogWatchlist()
+    {
+        string raw = Plugin.DemandWatchlist.Value ?? "";
+        if (string.IsNullOrWhiteSpace(raw)) return;
+
+        foreach (var part in raw.Split(','))
+        {
+            string item = part.Trim();
+            if (item.Length == 0) continue;
+
+            try
+            {
+                TryGetStructuralDemand(item, out int direct, out int derived, out _);
+                string wantedByStr = TryGetWantedByLabels(item, out var labels)
+                    ? $"wantedBy=[{string.Join(", ", labels)}]"
+                    : "wantedBy=none";
+                string producedBy = GetProducedByKind(item);
+
+                Plugin.Logger.LogInfo(
+                    $"[SupplyChain] [demand-watch] '{item}': structural={direct + derived}({direct}/{derived}) {wantedByStr} producedBy={producedBy}");
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] [demand-watch] '{item}' error: {ex}"); }
+        }
     }
 
     // v0.11.1 fix 1 — mirrors WarehouseWatch.ParseClassList (private there, so a small local copy
@@ -993,7 +1061,8 @@ internal static class DemandGraph
     private static void DumpStationTasks(StationWork sw, Dictionary<string, BlueprintEntry> union,
         Dictionary<string, List<(string input, int qty)>> transformMap,
         Dictionary<string, List<WantedByEntry>> wantedBy, Dictionary<string, int> directQty, List<string> stillUnmatched,
-        HashSet<string> loggedCookingRecipes, HashSet<string> loggedTables, HashSet<string> anyOfProtected, bool verbose,
+        HashSet<string> loggedCookingRecipes, HashSet<string> loggedTables, HashSet<string> anyOfProtected,
+        Dictionary<string, string> producedMatchKind, bool verbose,
         ref int totalTasks, ref int totalMatchedLocal, ref int totalMatchedUnion, ref int totalMatchedCooking,
         ref int totalMatchedParts, ref int totalMatchedTransform, ref int totalMatchedFarm,
         ref int totalUnmatched, ref int totalStorageTasks, ref int totalFilterTasks,
@@ -1095,6 +1164,10 @@ internal static class DemandGraph
                 stationUnmatched++;
                 if (stationUnmatchedNames.Count < 5) stationUnmatchedNames.Add(outputName);
                 if (stillUnmatched.Count < 60 && !stillUnmatched.Contains(outputName)) stillUnmatched.Add(outputName);
+                // v0.17.2 — record "none" only if no OTHER station's task already matched this same
+                // produced name (last-write-wins would otherwise let an unmatched sighting clobber an
+                // earlier real match — rare, but a produced name can appear at more than one station).
+                if (!producedMatchKind.ContainsKey(outputName)) producedMatchKind[outputName] = "none";
                 continue;
             }
 
@@ -1106,6 +1179,8 @@ internal static class DemandGraph
                 case "parts": stationMatchedParts++; break;
                 case "transform": stationMatchedTransform++; break;
             }
+            // v0.17.2 — a real match always overwrites (even a prior "none" from another station).
+            producedMatchKind[outputName] = matchKind;
 
             int crafts = (int)Math.Ceiling(quota / (double)outputPerCraft);
 

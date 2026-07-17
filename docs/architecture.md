@@ -781,6 +781,16 @@ Mechanism:
   `SSSGame.AI.FailedObjectiveComplaint` (carries `_objective : SSSGame.Objective` with
   `GetDescriptionKey()`), `ItemManifestComplaint` (carries `ItemManifest`), and base
   `ItemComplaint.itemInfo`, `ItemCategoryComplaint.itemCategory`, etc. **No text parsing needed.**
+  Confirmed in-game 2026-07-16 (SupplyChainMod armed run) — the typed payloads are USABLE in
+  practice, making the complaint stream a real worker-voiced demand surface:
+  - `ItemCategoryComplaint` fired with category='Hammers' from two crafters wanting hammers.
+  - `ItemManifestComplaint` fired with a NAMED manifest incl. quantities — `manifest (2):
+    Iron Ore x4, Metal Scraps x4` (maxItemCount=7) — from bloomery-side workers during a known
+    ore drought; chronic pattern: one villager re-raised it every ~3–4 s (cleared after
+    ~2.7–3.0 s, re-added ~1 s later) for minutes. Matches the documented level-signal
+    semantics: track by villager+type+payload, never id.
+  - Contrast `LoadoutsComplaint`, whose missingItems payload names no item (native class only —
+    known limitation).
 - **Settlement-wide issue aggregation (confirmed in-game 2026-07-12):** `SettlementIssueTrackerWidget`
   is a SINGLETON (`Instance`, FindAnyObjectByType fallback works when null) with POLLABLE maps:
   `_storageFullComplaintsMap<Workstation,int>` (storage-full count per station, cycles 0→5 and
@@ -1910,6 +1920,20 @@ How the world loads around the player, and how to make distant tiles stream **wi
 Used by Mod 9 (SeedScoutMod) — full recipe in
 [`archive/SEED_SCOUT_HANDOFF.md`](archive/SEED_SCOUT_HANDOFF.md).
 
+- **Settlement simulation is NOT gated on player proximity** (user-confirmed 2026-07-16):
+  production, tree chopping, and hauling all continue at the base while the player is far away
+  (e.g. across the map at a spawner). Whatever streams out, the authoritative settlement state
+  keeps evolving — so it must live somewhere reachable independent of streamed-in scenery.
+- ⚠️ pending: **do settlement STRUCTURES leave a scene scan when the player is far?** Open
+  question, currently WITHOUT supporting evidence: the observations that first suggested it
+  (SupplyChainMod v0.17.1 armed run 2026-07-16 — "row not found" revert failures + High-row
+  counts oscillating 55↔114) were all root-caused to the mod's own BoostedStationKeys
+  self-exclusion bug in WarehouseTasks.BuildRows (claimed stations invisible to their own
+  reverts and to row counts; fixed v0.17.2). SupplyChainMod v0.17.2's scan-coverage
+  diagnostics (per-poll scanned-structure delta + player-distance-at-failure) will answer the
+  streaming question with direct data. If it turns out real: mods needing settlement-wide
+  read/write while the player roams must target persistent managers (the MineRefresh
+  pattern), not streamed GameObjects.
 - **Worldgen is deterministic, seed-phrase driven**, and runs at world **LOAD** (not in the create-world UI).
   Caves (mines) are fully known at load (`BiomesManager._worldGenerator.GetDataMap()._areaInstances`, filter
   `AreaInstance.TryCast<CaveAreaInstance>()`); ~3 per world. **Lakes, dens (hostiles), etc. spawn per-tile as

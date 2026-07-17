@@ -215,6 +215,12 @@ internal static class ComplaintLog
             {
                 try { SupplyController.NoteAlarm(); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] SupplyController.NoteAlarm error: {ex}"); }
+
+                // v0.17.0 — parallel alarm feed for the tier-case arming layer: unlike
+                // SupplyController/ClogController (which only pause NEW boosts), TierCaseController
+                // reverts ALL active holds immediately on alarm (DEMAND_MODEL_PLAN.md "Alarm wiring").
+                try { TierCaseController.NoteAlarm(); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] TierCaseController.NoteAlarm error: {ex}"); }
             }
 
             if (gm != null && IsIgnoredMessage(gmMessage))

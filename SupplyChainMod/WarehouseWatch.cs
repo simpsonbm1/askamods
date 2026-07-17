@@ -166,7 +166,7 @@ internal static class WarehouseWatch
 
             if (Plugin.EnableBudgetPlane.Value)
             {
-                try { BudgetPlane.Evaluate(allRows, containerMap, effectiveFullTable); }
+                try { BudgetPlane.Evaluate(allRows, containerMap, stations, effectiveFullTable); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] WarehouseWatch BudgetPlane.Evaluate error: {ex}"); }
             }
 

@@ -158,9 +158,12 @@ public class SupplyChainTracker : MonoBehaviour
 
         try
         {
-            if (Plugin.EnableController.Value && !Common.IsTextInputFocused() && Input.GetKeyDown(_controllerArmKey))
+            // v0.17.0 — ungated: the armed flag (ArmState) is now shared by SupplyController AND
+            // TierCaseController, so the hotkey must keep working even when EnableController=false
+            // (the v0.17.0 test path retires SupplyController from the test save via that cfg key).
+            if (!Common.IsTextInputFocused() && Input.GetKeyDown(_controllerArmKey))
             {
-                SupplyController.ToggleArmed();
+                ArmState.ToggleArmed();
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] Controller arm-hotkey check error: {ex}"); }
@@ -276,6 +279,8 @@ public class SupplyChainTracker : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] DemandGraph.NoteWorldLeft error: {ex}"); }
         try { CaseTracker.NoteWorldLeft(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] CaseTracker.NoteWorldLeft error: {ex}"); }
+        try { TierCaseController.NoteWorldLeft(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] TierCaseController.NoteWorldLeft error: {ex}"); }
     }
 
     // ── Master tick: rolling composition sweep + ~60s post-load auto TaskDump ──────────────────
@@ -306,7 +311,11 @@ public class SupplyChainTracker : MonoBehaviour
                 try { QuotaSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] QuotaSpike.OnWorldReady error: {ex}"); }
             }
-            if (Plugin.EnableEvictSpike.Value)
+            // v0.17.0 — widened to EnableTierCases too: TierCaseController writes the SAME
+            // Kind="tier" ledger schema this restore pass reads (it keys on Kind, not on who wrote
+            // the entry), so this pass must also fire when EnableEvictSpike is the only one of the
+            // two OFF (same widening pattern as QuotaSpike's restore pass for EnableClogController).
+            if (Plugin.EnableEvictSpike.Value || Plugin.EnableTierCases.Value)
             {
                 try { EvictionSpike.OnWorldReady(_currentWorldId!, _stations); }
                 catch (Exception ex) { Plugin.Logger.LogError($"[SupplyChain] EvictionSpike.OnWorldReady error: {ex}"); }
