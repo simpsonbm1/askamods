@@ -55,6 +55,57 @@ internal static class ItemDisablePatch
     }
 }
 
+// Enemy/animal corpses are dead SSSGame.Monster instances awaiting despawn (confirmed in-game
+// 2026-07-18 - CharacterRemains never fires for enemies; see Plugin.TrackedCorpses comment).
+// We patch ONLY Monster's own lifecycle overrides - never Creature/Den/Pet - so dens (which must
+// NEVER be despawned; a defeated den legitimately reads IsDead and despawning it would
+// permanently destroy the spawner) and pets are never tracked at all.
+[HarmonyPatch(typeof(Monster), nameof(Monster.Spawned))]
+internal static class MonsterSpawnedPatch
+{
+    static void Postfix(Monster __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            lock (Plugin.TrackedCorpses)
+            {
+                if (Plugin.TrackedCorpses.Add(__instance) && !Plugin.CorpseTrackingConfirmed)
+                {
+                    Plugin.CorpseTrackingConfirmed = true;
+                    Plugin.Logger.LogInfo("[Vacuum] Corpse tracking active (Monster.Spawned firing).");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[Vacuum] MonsterSpawnedPatch: {ex}");
+        }
+    }
+}
+
+// Prefix: remove BEFORE the game tears the object down, while its wrapper is still valid (same
+// pattern as ItemDisablePatch above).
+[HarmonyPatch(typeof(Monster), nameof(Monster.Despawned))]
+internal static class MonsterDespawnedPatch
+{
+    static void Prefix(Monster __instance)
+    {
+        try
+        {
+            if (__instance == null) return;
+            lock (Plugin.TrackedCorpses)
+            {
+                Plugin.TrackedCorpses.Remove(__instance);
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[Vacuum] MonsterDespawnedPatch: {ex}");
+        }
+    }
+}
+
 [HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Spawned))]
 internal static class PlayerSpawnedPatch
 {
@@ -90,7 +141,12 @@ internal static class PlayerDespawnedPatch
                     Plugin.TrackedItems.Clear();
                 }
                 Plugin.TrackingConfirmed = false;
-                Plugin.Logger.LogInfo("[Vacuum] Local player cleared; tracked ground items dropped.");
+                lock (Plugin.TrackedCorpses)
+                {
+                    Plugin.TrackedCorpses.Clear();
+                }
+                Plugin.CorpseTrackingConfirmed = false;
+                Plugin.Logger.LogInfo("[Vacuum] Local player cleared; tracked ground items and corpses dropped.");
             }
         }
         catch (Exception ex)

@@ -24,6 +24,13 @@ public class VacuumTracker : MonoBehaviour
         public Vector3 Pos;
     }
 
+    private sealed class CorpseCandidate
+    {
+        public Monster Creature = null!;
+        public string Name = "?";
+        public Vector3 Pos;
+    }
+
     private void Start()
     {
         ApplyHotkey();
@@ -113,7 +120,20 @@ public class VacuumTracker : MonoBehaviour
             return;
         }
 
-        Plugin.Logger.LogInfo($"[Vacuum] Sweep start ({(auto ? "auto" : "manual")}, {(dryRun ? "DRY-RUN" : "LIVE")}): tracked={snap.Length}, trace={trace}.");
+        // Corpse pass is entirely gated on IncludeCorpses - snapshot stays empty when the feature
+        // is off, so every corpse-related count downstream is naturally zero.
+        bool includeCorpses = Plugin.IncludeCorpses.Value;
+        Monster[] corpseSnap = Array.Empty<Monster>();
+        if (includeCorpses)
+        {
+            lock (Plugin.TrackedCorpses)
+            {
+                corpseSnap = new Monster[Plugin.TrackedCorpses.Count];
+                Plugin.TrackedCorpses.CopyTo(corpseSnap);
+            }
+        }
+
+        Plugin.Logger.LogInfo($"[Vacuum] Sweep start ({(auto ? "auto" : "manual")}, {(dryRun ? "DRY-RUN" : "LIVE")}): tracked={snap.Length}, trace={trace}, corpses={corpseSnap.Length}.");
 
         // Build candidates (read-only). Per-step trace so a native crash pinpoints the exact item.
         var all = new List<Candidate>(snap.Length);
@@ -152,6 +172,61 @@ public class VacuumTracker : MonoBehaviour
             byName[c.Name] = byName.TryGetValue(c.Name, out var n) ? n + 1 : 1;
         }
 
+        // Corpse pass. Kept in a SEPARATE list from item targets so counts stay distinct. Corpses
+        // are exempt from OnlyItems/ExcludeItems/ExcludeCategories (those are debris filters) -
+        // only the radius (or VacuumEntireWorld) and ExcludeCorpseNames apply. Only dead Monsters
+        // are ever candidates (live monsters are skipped by the IsDead check above); Den and Pet
+        // are never tracked in the first place (see Plugin.TrackedCorpses).
+        var excludeCorpseNames = ParseCsv(Plugin.ExcludeCorpseNames.Value);
+        var corpseTargets = new List<CorpseCandidate>();
+        var corpseByName = new Dictionary<string, int>();
+        int corpsesInRange = 0;
+
+        if (includeCorpses)
+        {
+            for (int i = 0; i < corpseSnap.Length; i++)
+            {
+                var m = corpseSnap[i];
+                try
+                {
+                    // Unity-destroyed since Spawned - prune and skip. This replaces an
+                    // OnDisable-style hook; Monster only gives us Spawned/Despawned.
+                    if (m == null)
+                    {
+                        lock (Plugin.TrackedCorpses) { Plugin.TrackedCorpses.Remove(m); }
+                        continue;
+                    }
+
+                    // Live monsters are never candidates and never touched beyond this read.
+                    if (!m.IsDead) continue;
+
+                    string name = m.GetTargetName() ?? "?";
+                    Vector3 pos = m.transform.position;
+
+                    if (!entireWorld)
+                    {
+                        float dSqr = (pos - playerPos).sqrMagnitude;
+                        if (dSqr > radiusSqr) continue;
+                    }
+                    corpsesInRange++;
+
+                    if (ContainsAny(name, excludeCorpseNames))
+                    {
+                        if (Plugin.Diagnostics.Value)
+                            Plugin.Logger.LogInfo($"[Vacuum]   corpse SKIPPED (ExcludeCorpseNames): {name}");
+                        continue;
+                    }
+
+                    corpseTargets.Add(new CorpseCandidate { Creature = m, Name = name, Pos = pos });
+                    corpseByName[name] = corpseByName.TryGetValue(name, out var cn) ? cn + 1 : 1;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogError($"[Vacuum] corpse #{i} resolve error: {ex}");
+                }
+            }
+        }
+
         // Report.
         if (Plugin.Diagnostics.Value)
         {
@@ -163,11 +238,21 @@ public class VacuumTracker : MonoBehaviour
                 catTally[c.CatChain] = catTally.TryGetValue(c.CatChain, out var m) ? m + 1 : 1;
             foreach (var kv in catTally)
                 Plugin.Logger.LogInfo($"[Vacuum]   category x{kv.Value}: {(string.IsNullOrEmpty(kv.Key) ? "<none>" : kv.Key)}");
+
+            if (includeCorpses)
+            {
+                Plugin.Logger.LogInfo($"[Vacuum] Corpse sweep result: {corpseSnap.Length} tracked, {corpsesInRange} dead in range, {corpseTargets.Count} match filters.");
+                foreach (var kv in corpseByName)
+                    Plugin.Logger.LogInfo($"[Vacuum]   corpse x{kv.Value}: {kv.Key}");
+            }
         }
 
         if (dryRun)
         {
-            ShowMessage($"SCAN: {targets.Count} item(s) would be vacuumed (of {inRangeTotal} in range). See log; set DryRun=false to remove.");
+            string scanMsg = includeCorpses
+                ? $"SCAN: {targets.Count} item(s) + {corpseTargets.Count} corpse(s) would be vacuumed (of {inRangeTotal} items / {corpsesInRange} corpses in range). See log; set DryRun=false to remove."
+                : $"SCAN: {targets.Count} item(s) would be vacuumed (of {inRangeTotal} in range). See log; set DryRun=false to remove.";
+            ShowMessage(scanMsg);
             return;
         }
 
@@ -194,9 +279,38 @@ public class VacuumTracker : MonoBehaviour
             }
         }
 
-        Plugin.Logger.LogInfo($"[Vacuum] Removed {removed}/{targets.Count} ground items.");
-        if (!auto || removed > 0)
-            ShowMessage($"Vacuumed {removed} ground item(s).");
+        int corpseRemoved = 0;
+        if (includeCorpses)
+        {
+            foreach (var c in corpseTargets)
+            {
+                try
+                {
+                    if (c.Creature != null)
+                    {
+                        c.Creature.DespawnImmediatelyIfStateAuthority();
+                        corpseRemoved++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogError($"[Vacuum] Failed to despawn corpse '{c.Name}': {ex}");
+                }
+            }
+        }
+
+        if (includeCorpses)
+        {
+            Plugin.Logger.LogInfo($"[Vacuum] Removed {removed}/{targets.Count} ground items, {corpseRemoved}/{corpseTargets.Count} corpses.");
+            if (!auto || removed > 0 || corpseRemoved > 0)
+                ShowMessage($"Vacuumed {removed} ground item(s) + {corpseRemoved} corpse(s).");
+        }
+        else
+        {
+            Plugin.Logger.LogInfo($"[Vacuum] Removed {removed}/{targets.Count} ground items.");
+            if (!auto || removed > 0)
+                ShowMessage($"Vacuumed {removed} ground item(s).");
+        }
     }
 
     private void AddCandidate(DynamicItemObject node, int idx, bool trace, List<Candidate> outList)

@@ -29,6 +29,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> AutoVacuumMinutes = null!;
     internal static ConfigEntry<bool> Diagnostics = null!;
     internal static ConfigEntry<bool> TraceEachItem = null!;
+    internal static ConfigEntry<bool> IncludeCorpses = null!;
+    internal static ConfigEntry<string> ExcludeCorpseNames = null!;
 
     // --- live state ---
     // We maintain our OWN set of live ground items via DynamicItemObject.OnEnable/OnDisable
@@ -41,6 +43,15 @@ public class Plugin : BasePlugin
     internal static readonly HashSet<DynamicItemObject> TrackedItems = new();
     internal static bool TrackingConfirmed;
     internal static PlayerCharacter? LocalPlayer;
+
+    // Enemy/animal corpses are dead SSSGame.Monster instances awaiting despawn (confirmed
+    // in-game 2026-07-18: CharacterRemains is the PLAYER-corpse system - Creature is not a
+    // Character subclass, so Character._CreateCharacterRemains never runs for enemies). Tracks
+    // Monsters ONLY - Den (spawner building; despawning one would PERMANENTLY destroy it, since
+    // defeated dens legitimately read dead) and Pet are excluded by construction: we simply never
+    // patch their lifecycle methods, so they're never added to this set.
+    internal static readonly HashSet<Monster> TrackedCorpses = new();
+    internal static bool CorpseTrackingConfirmed;
 
     public override void Load()
     {
@@ -91,6 +102,14 @@ public class Plugin : BasePlugin
             "General", "TraceEachItem", false,
             "Debug: log each item step-by-step during a sweep so a hard-crash log pinpoints the failing item/step. Very verbose. Shipped default false - only enable when investigating a crash.");
 
+        IncludeCorpses = Config.Bind(
+            "Corpses", "IncludeCorpses", true,
+            "When true, a sweep also sweeps dead enemy/animal corpses (dead Monster creatures) within the radius via the game's own network despawn; their unharvested loot is lost. Player and villager corpses are a different game system and are never touched. Default true during development, will be flipped to false before any public release.");
+
+        ExcludeCorpseNames = Config.Bind(
+            "Corpses", "ExcludeCorpseNames", "",
+            "Comma-separated, case-insensitive substrings matched against the dead creature's name (as shown when targeting it, e.g. 'Wight'). Any match spares that corpse.");
+
         ClassInjector.RegisterTypeInIl2Cpp<VacuumTracker>();
 
         var go = new GameObject("GroundItemVacuumMod_Tracker");
@@ -100,6 +119,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"GroundItemVacuumMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Hotkey='{VacuumHotkey.Value}', DryRun={DryRun.Value}, Radius={Radius.Value}m, EntireWorld={VacuumEntireWorld.Value}, AutoMinutes={AutoVacuumMinutes.Value}");
+        Logger.LogInfo($"GroundItemVacuumMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Hotkey='{VacuumHotkey.Value}', DryRun={DryRun.Value}, Radius={Radius.Value}m, EntireWorld={VacuumEntireWorld.Value}, AutoMinutes={AutoVacuumMinutes.Value}, IncludeCorpses={IncludeCorpses.Value}");
     }
 }

@@ -231,7 +231,7 @@ askamods/
                                 item-journal task discovery (tavern/harbor/etc.) [COMPLETE v1.4.1,
                                 on Nexus — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
-  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.1.3, on Nexus — docs/mods/ground-item-vacuum.md]
+  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1, on Nexus — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.1.1 — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: hotkey/map-pin/timed revive for defeated monster dens [COMPLETE v1.2.2 — v1.2.1 stale-registry timer guard ⚠️ pending in-game confirmation — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]

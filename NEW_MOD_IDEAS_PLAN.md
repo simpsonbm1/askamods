@@ -697,6 +697,49 @@ alternative — full evidence in the mod doc's Dead-end section and the universa
 
 ---
 
+## 16. Enemy-corpse vacuum — GroundItemVacuumMod extension (v1.2.1, ⚠️ pending in-game)
+
+**Goal:** let the vacuum clear dead enemy bodies near the base. Killed enemies leave corpses that
+must be "harvested" repeatedly to despawn; the user doesn't want the loot, just the pile gone.
+
+**Verdict: feasible — enemy corpse = dead `Creature` instance, NOT `Character`
+(Cecil-confirmed 2026-07-18; mechanism deployed in GroundItemVacuumMod v1.2.1).**
+- Enemy corpse = the dead `Monster` (a `Creature` subclass; `Creature` is not a
+  `Character`), lingering until despawn. No separate remains object.
+- Player corpses use `SSSGame.CharacterRemains` (player/villager path); enemy
+  corpses do NOT use this system.
+- Identity via `Creature.GetTargetName()` for `ExcludeCorpseNames` substring
+  matching; removal via `DespawnImmediatelyIfStateAuthority()`.
+
+**Config-only path ruled out (in-game 2026-07-18):** user added `wight` to
+`OnlyItems` near a wight-corpse pile — nothing swept. Reason: corpses are NOT
+tracked as `DynamicItemObject`s. The code-based tracking (below) is the robust
+path.
+
+**In-game facts (user-confirmed 2026-07-18):**
+- Enemy/animal corpses have **no map/objective marker**; **only player corpses**
+  get one (the `CharacterRemains._marker` system is player-only).
+
+**Mechanism (built as GroundItemVacuumMod v1.2.1):** track enemy corpses via
+Harmony postfix on `Monster.Spawned()` + `Monster.Despawned()` prefix into an
+own `HashSet` (world-leave clear; null-prune at sweep); sweep only `IsDead ==
+true`; identity via `GetTargetName()` for `ExcludeCorpseNames`; removal via
+`DespawnImmediatelyIfStateAuthority()`; `Den`/`Pet` excluded by construction
+(never patched) — den despawn would permanently destroy the spawner.
+`CharacterRemains`-based sweeping was removed (it could only ever match player
+corpses, or villager corpses which must never be deleted). Same host gate,
+DryRun handling, and world-leave clear as the existing item set. Corpses are
+exempt from `OnlyItems`/`ExcludeItems` (debris filters). New config section
+`Corpses/`: `IncludeCorpses` (default true during dev; flip to false before
+Nexus ship — users shouldn't silently lose loot) + `ExcludeCorpseNames`
+(substring list, empty default).
+
+**Status:** built as GroundItemVacuumMod v1.2.1, ⚠️ pending in-game
+confirmation (2026-07-18). Open ⚠️ items: does `DespawnImmediatelyIfStateAuthority()`
+visually remove the body cleanly; are deer/boar `Monster` too.
+
+---
+
 ## Cross-cutting notes
 - Every new lever above is host-authoritative: gate on authority, prefer the game's own
   networked methods (`ReplenishCharges`, `Revive`, `RemoveObjectFromWorld`).

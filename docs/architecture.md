@@ -1508,6 +1508,51 @@ isolated from defeat-freshness with current data.
 
 ---
 
+## Creature Corpses & Death Cleanup
+
+**Class hierarchy (Cecil-confirmed 2026-07-18):**
+- `SSSGame.Creature : Fusion.NetworkBehaviour` — the base creature type (NOT a
+  `Character` subclass). `Character` is the human branch: `PlayerCharacter :
+  Character`, `Villager : Character`. Direct `Creature` subclasses: `Monster`,
+  `Den`, `Pet` (no deeper subclasses; no `Animal` type exists). Each declares its
+  own zero-param `Spawned()`; `Monster`/`Pet` also declare `Awake()` and
+  `Despawned(NetworkRunner, Boolean)`.
+
+**Corpse systems — CHARACTER vs CREATURE paths:**
+- **CHARACTER-corpse system** (`SSSGame.CharacterRemains : MonoBehaviour`) — used
+  for `Character` subclasses (player + villagers). Spawned by
+  `Character._CreateCharacterRemains(bool, bool, Color)` → carries `_itemObject
+  : ItemObject`, `_marker : WorldObjectiveMarker` (the corpse's map marker), and
+  `_OnWorldInstanceSet(WorldItemInstance)` so remains register as
+  `WorldItemInstance`s. Confirmed in-game (2026-07-18): player corpses (and
+  presumably villager corpses, both being `Character` subclasses) use this system
+  and have **map/objective markers**. A Harmony postfix on
+  `CharacterRemains.Awake()` NEVER fires for enemy corpses — enemy/animal corpses
+  do not use this system.
+- **CREATURE corpses (monsters/animals)** — an enemy corpse IS the dead `Creature`
+  itself (`IsDead == true`) lingering until despawn. No separate remains object.
+  User-confirmed (2026-07-18): enemy/animal corpses have **no map/objective
+  marker** — only player corpses get one.
+
+**Creature despawn surface (pending in-game confirmation on usage):**
+`Creature` exposes: `Despawn(Single)`, `DespawnImmediately()`,
+`DespawnIfStateAuthority(Single)`, `DespawnImmediatelyIfStateAuthority()`,
+`CancelDespawning()`, `IsDespawning`, plus `_DespawnRoutine(Single)`. Identity:
+`GetTargetName()` gives the display name (same API the fight-vs-flee work uses);
+`Creature.Faction` exists.
+
+**CRITICAL HAZARD — `Den` derives from `Creature`:** defeated dens read as dead
+creatures with `IsDead == true`. Despawning a den would permanently destroy the
+spawner (the thing DenRespawnMod revives). Any corpse-cleanup logic must exclude
+dens structurally (e.g. patch and track only `Monster`, never the base `Creature`
+class), not by a runtime dead-check.
+
+**Open question (⚠️):** whether huntable animals (deer/boar) are `Monster`
+instances too — no separate type exists for them, but not yet confirmed
+in-game.
+
+---
+
 ## Villager Summoning (Eye of Odin) — SummonTimerMod evidence
 
 **Structure & state:** `SSSGame.VillagerOutlet` is a `NetworkBehaviour` (one instance per Eye of
