@@ -37,6 +37,27 @@ namespace OuthouseComposterMod;
 //
 // v1.0.0: ship polish — SimultaneousConversion description leads with an explicit no-pooling
 // warning, and EnableDiagnostics default flips to false now the mod is verified in-game.
+//
+// v1.1.0: warehouse haul-gate (Patches/HaulGatePatches.cs) — a Prefix on SSSGame.ResourceStorage.
+// CanCreateStorageTaskForItemInfo suppresses "haul to me" task creation for outhouse-owned
+// StorageSupply/item pairs (identified via OuthouseGate.IsOuthouseSupply), except the compost item
+// itself, so warehouse workers stop stealing compost inputs back out of the outhouse before they
+// convert. Fixes a Nexus user report.
+//
+// v1.2.0: villager EAT-gate (Patches/EatGatePatches.cs) — three Prefixes on SSSGame.AI.
+// SurvivalObjectiveQuest.SatisfyObjectiveQuestData's IsWhitelistedByStorage(ResourceOutlet),
+// IsWhitelistedByStorage(IResourceStorageSite), and IsWhitelistedByAny(IResourceStorageSite) deny
+// the consume-quest whitelist check for outhouse-owned outlets/sites
+// (OuthouseGate.IsOuthouseOutlet / IsOuthouseSite), so villagers stop eating food/seeds out of the
+// outhouse before the composter converts them — same root cause as v1.1.0's haul-gate, different
+// consumer (user-observed 2026-07-19: warehouse theft stopped but builders still ate raw
+// vegetables from the outhouse). Also upgrades the haul-gate's suppression log line to include the
+// owning structure's display name.
+//
+// v1.2.1: ship polish — both gates confirmed in-game 2026-07-19 (haul gate: zero warehouse theft,
+// load-time suppressions owner-named; eat gate: denials via IsWhitelistedByStorage(
+// IResourceStorageSite) for all outhouses, no removals observed), so LogHaulGate/LogEatGate
+// defaults flip to false per the diagnostics convention.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -58,6 +79,11 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> FoodStackSize = null!;
     internal static ConfigEntry<int> SeedStackSize = null!;
     internal static ConfigEntry<bool> SimultaneousConversion = null!;
+    internal static ConfigEntry<bool> ProtectOuthouseContents = null!;
+
+    // ── [Diagnostics] — v1.1.0/v1.2.0 additions ──────────────────────────────────────────────────
+    internal static ConfigEntry<bool> LogHaulGate = null!;
+    internal static ConfigEntry<bool> LogEatGate = null!;
 
     // Captured by Patches/LifecyclePatches.cs (PlayerCharacter.Spawned/Despawned postfixes, gated on
     // HasAuthority). Despawned clearing this also doubles as world-leave state clear. Also the
@@ -152,6 +178,24 @@ public class Plugin : BasePlugin
             defaultValue: false,
             description: "WARNING: in simultaneous mode there is NO cross-slot pooling — a slot only converts if that single slot holds a full ratio's worth (e.g. two stacks of 10 seeds at ratio 20 will NEVER combine into a conversion; sequential mode is what pools across slots). false = sequential: each timer fire performs ONE conversion per outhouse, consuming the ratio's worth from the first matching slot(s) in container order. true = simultaneous: each timer fire evaluates every occupied food/seed slot independently; each slot holding at least a full ratio's worth converts once (consumes ratio units from that slot, produces 1 Compost), all in the same fire.");
 
+        ProtectOuthouseContents = Config.Bind(
+            section: "Composter",
+            key: "ProtectOuthouseContents",
+            defaultValue: true,
+            description: "Hide the outhouse's contents (except the compost item) from BOTH warehouse haul-task creation AND villager eating (the survival consume-quest's storage whitelist checks), so neither warehouse workers nor villagers pull/eat compost-in-progress food/seeds before conversion. Farmers retrieving Compost are unaffected. Uses StructureNameMatch to identify outhouse-owned supplies/outlets/sites.");
+
+        LogHaulGate = Config.Bind(
+            section: "Diagnostics",
+            key: "LogHaulGate",
+            defaultValue: false,
+            description: "Log each suppressed outhouse haul-task decision (once per owner structure + item name). Shipped default false — flip to true when troubleshooting warehouse-worker behavior around the outhouse.");
+
+        LogEatGate = Config.Bind(
+            section: "Diagnostics",
+            key: "LogEatGate",
+            defaultValue: false,
+            description: "Log each denied outhouse consume-whitelist check (once per method + structure). Shipped default false — flip to true when troubleshooting villagers eating from the outhouse.");
+
         // Register our custom Mono class into IL2CPP
         ClassInjector.RegisterTypeInIl2Cpp<ComposterDiag>();
 
@@ -163,6 +207,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value}.");
+        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value} ProtectOuthouseContents={ProtectOuthouseContents.Value} LogHaulGate={LogHaulGate.Value} LogEatGate={LogEatGate.Value}.");
     }
 }

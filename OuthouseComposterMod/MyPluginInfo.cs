@@ -3,5 +3,5 @@ public static class MyPluginInfo
 {
     public const string PLUGIN_GUID = "com.askamods.outhousecomposter";
     public const string PLUGIN_NAME = "OuthouseComposterMod";
-    public const string PLUGIN_VERSION = "1.0.0";
+    public const string PLUGIN_VERSION = "1.2.1";
 }

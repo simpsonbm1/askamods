@@ -1,7 +1,11 @@
-# Mod 6 — Warehouse Hauling Filter — Handoff (NOT STARTED, design ready)
+# Mod 6 — Warehouse Hauling Filter — Handoff (SHELVED — vanilla covers it; design ready if revived)
 
-**Status as of 2026-06-21:** Reverse-engineering done, fix designed, **no code written yet.** Pick this up
-fresh. Tentative mod name: **`WarehouseFilterMod`** (GUID `com.askamods.warehousefilter`) — rename if you
+**Status as of 2026-07-19:** Reverse-engineering done, fix designed, **no code written — and the
+core use case turned out to be covered in vanilla:** every building with storage has its own
+villager access whitelist (user-confirmed from gameplay 2026-07-19), which is the game's intended
+control for warehouse-worker resource theft. That whitelist path was never reverse-engineered here.
+The `CanCreateStorageTaskForItemInfo` gate below remains valid and was adopted (item-scoped) by
+OuthouseComposterMod v1.1.0. If reviving this mod, pick it up fresh. Tentative mod name: **`WarehouseFilterMod`** (GUID `com.askamods.warehousefilter`) — rename if you
 prefer. The reusable architecture facts are already in `CLAUDE.md` under "Settlement Hauling / Storage /
 Task-Dispatcher System" and "Structures, Workstations & the AI Quest/Task system" — read those first.
 

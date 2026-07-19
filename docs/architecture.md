@@ -825,6 +825,11 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   .CreateOrUpdateTasksFromStorageSupply(StorageSupply, List taskAgentsToVillagers, bool addForChildren)
                                         ← builds the "haul these items to me" tasks from a supply
   .CanCreateStorageTaskForItemInfo(StorageSupply, ItemInfo) → bool   ← clean per-item GATE (prefix here)
+                                        ← called PROSPECTIVELY: queried for items a supply's
+                                          container merely ACCEPTS, not just items present
+                                          (confirmed in-game 2026-07-19, OuthouseComposter haul
+                                          gate: outhouse supply queried for Crawler Slime/Spoiled
+                                          Food while its containers held only Compost)
   .GetGatheredItemQuantity / GetGatheredItemPriority / FillResourceStorageTaskDatas
   .excludedResourcesList (ItemInfoList), onlyGatherNativeItems / _nativeItemsFilter — built-in exclusions
 ```
@@ -840,6 +845,17 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses
   the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply
   stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+- **Vanilla storage-access whitelists EXIST (user-confirmed from gameplay 2026-07-19; API surface
+  Cecil-confirmed same day):** every building that contains storage has its own whitelist
+  governing which villagers may access that storage — the vanilla control players already use to
+  stop warehouse-worker "resource theft", and the reason Mod 6 was never pursued. The machinery
+  lives on `SSSGame.ResourceStorage` (as `IWhitelistingSite`): `IsWhitelisted(Villager)`,
+  `_villagersWhitelist : HashSet`, `WhitelistedAllVillagers`/`WhitelistNewVillagers`,
+  `Rpc_ChangeWhitelistAllState(bool)` / `Rpc_ChangeWhitelistedVillager(id, state)`, serialized via
+  `c_whitelistAll`/`c_whitelistedVillagers`. `SSSGame.ResourceOutlet` (MonoBehaviour on the
+  structure) exposes `.Structure` and `.WhitelistingSite` — the outlet is how AI quests reach a
+  building's storage + whitelist. Consumers of the check include the villager EAT path (see the
+  consume-path subsection under Villager Needs).
 - **Storage-flow failure modes (confirmed in-game 2026-07-12, co-op save)** — two ways a station
   stalls even when materials are plentiful (motivating cases for the idea-12 supply-chain mod):
   1. **Byproduct clog:** the hunting hut's storage saturated with bone fragments while the
@@ -1745,6 +1761,26 @@ SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the sto
   ignore *available raw food*, until something forces a re-evaluation (hand-feeding, or
   `SetDirty()`). Vanilla's `autoRetryTime*` did not recover them in practice.
   DynamicVillagerNeedsMod v1.1.0 fixes this by calling `SetDirty()` — see that mod's doc.
+- **Where the consume quest picks its store — and its vanilla whitelist checks (Cecil 2026-07-19,
+  OuthouseComposter eat-gate research):** the per-villager quest data is the nested
+  `SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData` (`_bestConsumable : Consumable`,
+  `_hasItemToConsume`, `TryToConsume()`, `_FindBestItemToConsume(Item)`). It carries the game's own
+  storage-access whitelist checks: `IsWhitelistedByStorage(ResourceOutlet)`,
+  `IsWhitelistedByStorage(IResourceStorageSite)`, `IsWhitelistedByAny(IResourceStorageSite)` — the
+  consume path asks the per-building whitelist before eating from a storage. All three fire at
+  runtime, but the overload that gates a specific storage during the food search is
+  `IsWhitelistedByStorage(IResourceStorageSite)` (confirmed in-game 2026-07-19, OuthouseComposter
+  v1.2.0 eat gate: denying that overload for outhouse-resolved sites stopped villagers eating from
+  outhouses; site→Structure resolution = `GetTransform()` + bounded parent-walk with singular
+  `GetComponent<Structure>()`, resolved correct owner names for all three outhouses). Candidate
+  store searches:
+  `Settlement.FindItemStorage(IItemFilter, Vector3&, Single&, Predicate<ResourceStorage>,
+  Predicate<ResourceOutlet>, Int32&, Boolean&)` (+ overloads) and
+  `Homestead.FindItemStorage(IItemFilter)` — the Settlement ones are UNPATCHABLE (by-ref primitive
+  params gotcha); the whitelist-check methods are the safe choke point (plain params, not
+  inventory-family). NOTE: `SatisfyObjectiveQuestData` also has `_FindBestItemToConsume(Item)` and
+  `_OnItemAdded/_OnItemRemoved(ItemCollection, Item, …)` — inventory-family signatures, NEVER
+  patch those (VillagerAmmo native-crash family).
 
 ### Game-mechanic facts worth knowing before re-modeling villager behavior
 - **The night-sleep race:** the game forces villagers to bed at **nightfall** regardless of their

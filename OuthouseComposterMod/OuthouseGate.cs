@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Il2CppInterop.Runtime.InteropTypes;
 using SandSailorStudio.Inventory;
+using SSSGame;
+using UnityEngine;
 
 namespace OuthouseComposterMod;
 
@@ -25,7 +27,24 @@ internal static class OuthouseGate
     // ComposterDiag.NoteWorldLeft().
     private static readonly Dictionary<IntPtr, bool> _outhouseCache = new();
 
-    internal static void ClearCache() => _outhouseCache.Clear();
+    // Keyed by the StorageSupply's native pointer, same rationale as _outhouseCache above — used by
+    // the v1.1.0 warehouse haul-gate patch (Patches/HaulGatePatches.cs) to identify outhouse-owned
+    // supplies. Cleared on world-leave via ClearCache().
+    private static readonly Dictionary<IntPtr, bool> _outhouseSupplyCache = new();
+
+    // Keyed by the ResourceOutlet's / IResourceStorageSite's native pointer, same rationale as
+    // above — used by the v1.2.0 villager eat-gate patches (Patches/EatGatePatches.cs) to identify
+    // outhouse-owned consume-quest whitelist targets. Cleared on world-leave via ClearCache().
+    private static readonly Dictionary<IntPtr, bool> _outhouseOutletCache = new();
+    private static readonly Dictionary<IntPtr, bool> _outhouseSiteCache = new();
+
+    internal static void ClearCache()
+    {
+        _outhouseCache.Clear();
+        _outhouseSupplyCache.Clear();
+        _outhouseOutletCache.Clear();
+        _outhouseSiteCache.Clear();
+    }
 
     internal static bool IsOuthouseContainer(ItemContainer? instance)
     {
@@ -47,6 +66,138 @@ internal static class OuthouseGate
 
         _outhouseCache[ptr] = isOuthouse;
         return isOuthouse;
+    }
+
+    // v1.1.0 warehouse haul-gate: identifies whether a StorageSupply (the (structure, item) task
+    // dispatcher SSSGame.ResourceStorage gates haul-task creation through) belongs to the outhouse,
+    // by walking StorageSupply.OwnerStructure and matching its name the same way ComposterDiag's
+    // structure census does. Cached by native pointer — never survives world reload (ClearCache()).
+    internal static bool IsOuthouseSupply(StorageSupply? supply)
+    {
+        if (supply == null) return false;
+
+        IntPtr ptr = IntPtr.Zero;
+        try { if ((object)supply is Il2CppObjectBase b) ptr = b.Pointer; } catch { }
+        if (ptr == IntPtr.Zero) return false;
+
+        if (_outhouseSupplyCache.TryGetValue(ptr, out var cached)) return cached;
+
+        bool isOuthouse = false;
+        try
+        {
+            var owner = supply.OwnerStructure;
+            if (owner != null) isOuthouse = StructureNameMatches(owner);
+        }
+        catch { }
+
+        _outhouseSupplyCache[ptr] = isOuthouse;
+        return isOuthouse;
+    }
+
+    // v1.2.0 villager eat-gate: identifies whether a ResourceOutlet (the SatisfyObjectiveQuestData.
+    // IsWhitelistedByStorage(ResourceOutlet) target) belongs to the outhouse, via
+    // ResourceOutlet.Structure. Cached by native pointer — never survives world reload (ClearCache()).
+    internal static bool IsOuthouseOutlet(ResourceOutlet? outlet)
+    {
+        if (outlet == null) return false;
+
+        IntPtr ptr = IntPtr.Zero;
+        try { if ((object)outlet is Il2CppObjectBase b) ptr = b.Pointer; } catch { }
+        if (ptr == IntPtr.Zero) return false;
+
+        if (_outhouseOutletCache.TryGetValue(ptr, out var cached)) return cached;
+
+        bool isOuthouse = false;
+        try
+        {
+            var structure = outlet.Structure;
+            if (structure != null) isOuthouse = StructureNameMatches(structure);
+        }
+        catch { }
+
+        _outhouseOutletCache[ptr] = isOuthouse;
+        return isOuthouse;
+    }
+
+    // v1.2.0 villager eat-gate: identifies whether an IResourceStorageSite (the
+    // IsWhitelistedByStorage(IResourceStorageSite) / IsWhitelistedByAny(IResourceStorageSite)
+    // target) belongs to the outhouse. IResourceStorageSite carries no direct Structure reference —
+    // resolve via GetTransform() + a manual parent walk (project-wide gotcha: plural/
+    // GetComponentInParent variants are unreliable through the interop trampoline; per-node singular
+    // GetComponent<T>() is the proven pattern). Cached by native pointer — never survives world
+    // reload (ClearCache()).
+    internal static bool IsOuthouseSite(IResourceStorageSite? rss)
+    {
+        if (rss == null) return false;
+
+        IntPtr ptr = IntPtr.Zero;
+        try { if ((object)rss is Il2CppObjectBase b) ptr = b.Pointer; } catch { }
+        if (ptr == IntPtr.Zero) return false;
+
+        if (_outhouseSiteCache.TryGetValue(ptr, out var cached)) return cached;
+
+        bool isOuthouse = false;
+        try
+        {
+            var structure = ResolveOwningStructure(rss);
+            if (structure != null) isOuthouse = StructureNameMatches(structure);
+        }
+        catch { }
+
+        _outhouseSiteCache[ptr] = isOuthouse;
+        return isOuthouse;
+    }
+
+    // Manual parent walk from a storage site's Transform up to the first ancestor (or self)
+    // carrying a Structure component. Bounded at 30 levels as a safety net against an unexpectedly
+    // deep/cyclic hierarchy. Also used by the eat-gate patches to resolve an owner display name for
+    // logging.
+    internal static Structure? ResolveOwningStructure(IResourceStorageSite? rss)
+    {
+        if (rss == null) return null;
+        try
+        {
+            Transform? t = rss.GetTransform();
+            int depth = 0;
+            while (t != null && depth < 30)
+            {
+                Structure? s = null;
+                try { s = t.GetComponent<Structure>(); } catch { }
+                if (s != null) return s;
+                try { t = t.parent; } catch { t = null; }
+                depth++;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    // Shared by IsOuthouseSupply/IsOuthouseOutlet/IsOuthouseSite: case-insensitive substring match
+    // of Plugin.StructureNameMatch against the structure's display name OR its DefaultName.
+    private static bool StructureNameMatches(Structure s)
+    {
+        string filter = Plugin.StructureNameMatch.Value;
+        if (string.IsNullOrEmpty(filter)) return false;
+        string disp = SafeStructureName(s);
+        string def = SafeStructureDefaultName(s);
+        return disp.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0
+            || def.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    // DefaultName is the pristine type name (survives player renames); StructureName/GetName() is
+    // the display name. Mirrors ComposterDiag's SafeName/SafeDefaultName (private to that class).
+    // Internal (not private) since v1.2.0's haul-gate/eat-gate logging riders reuse it to resolve an
+    // owning structure's display name for their log lines.
+    internal static string SafeStructureName(Structure s)
+    {
+        try { var n = s.GetName(); if (!string.IsNullOrEmpty(n)) return n; } catch { }
+        try { var n = s.StructureName; if (!string.IsNullOrEmpty(n)) return n; } catch { }
+        return "?";
+    }
+
+    private static string SafeStructureDefaultName(Structure s)
+    {
+        try { return s.DefaultName ?? "?"; } catch { return "?"; }
     }
 
     internal static bool IsSeed(ItemInfo? info)

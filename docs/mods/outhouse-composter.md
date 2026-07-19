@@ -1,8 +1,9 @@
-# Mod 25: OuthouseComposterMod — COMPLETE (v1.0.0, on Nexus as "Outhouse Composter")
+# Mod 25: OuthouseComposterMod — COMPLETE (v1.2.1, on Nexus as "Outhouse Composter")
 
 **Goal:** food and seeds thrown into the Outhouse structure's storage convert into Compost over
-in-game time. Origin: `NEW_MOD_IDEAS_PLAN.md` idea 13, Phase 1. Phases 2–3 (bigger grid, native-decay
-conversion) remain unbuilt. All shipped features confirmed in-game 2026-07-12.
+in-game time, protected from villager raiding (warehouse haul gate + villager eat gate). Origin:
+`NEW_MOD_IDEAS_PLAN.md` idea 13, Phase 1. Phases 2–3 (bigger grid, native-decay conversion) remain
+unbuilt. v1.0.0 core confirmed in-game 2026-07-12; both raid gates confirmed in-game 2026-07-19.
 
 ## Game subsystem: Storage acceptance — the Outhouse container
 
@@ -11,6 +12,12 @@ All findings confirmed in-game 2026-07-11 (OuthouseComposterMod diagnostics + ma
 ### Outhouse container identity
 - **`Storage_SmallItems_Outhouse`** — unique containerType asset name, only on the Outhouse
   structure, capacity 20 slots. No Fusion networked backing observed (unlike warehouses/storage).
+- **Native accepted item types = [Compost, Crawler Slime, Spoiled Food]** (confirmed in-game
+  2026-07-19 via SupplyChain container probe: `acceptedTypes=3`). This is the "per-item condition
+  beyond the class check" the v0.1.2 probe couldn't see: an accepted-ITEM list, matching the
+  game's compost family — `FarmingStation.composts` / `FarmCropInteraction.compatibleComposts` =
+  [Spoiled Food, Compost, Crawler Slime, Slag] (all four usable as crop fertilizer; the outhouse
+  natively stores the three storable-compost items, not Slag).
 - Pointer-keyed identity cache in `OuthouseGate` (cleared on world leave) — single per-world lookup
   via `SettlementManager` getter methods (never the null `.settlements` field).
 - Manual hierarchy walk with per-node singular `GetComponent<ItemContainerComponent>()` (plural
@@ -86,6 +93,38 @@ Both modes confirmed in-game 2026-07-12.
 `FarmingStation.composts` (singular `FindAnyObjectByType` works) is queried for the compost ItemInfo.
 Fallback to name-scan of outhouse contents if not found. Conversions wait until resolved.
 
+### Warehouse haul gate (v1.1.0, Patches/HaulGatePatches.cs — confirmed in-game 2026-07-19)
+Fixes the Nexus-reported theft loop (warehouse workers hauling food back out before it converts).
+Harmony PREFIX on `SSSGame.ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply
+storageSupply, ItemInfo info)` (Cecil-confirmed: virtual, single implementation, NO derived-type
+overrides — one patch covers warehouses/huts/outposts). When `storageSupply.OwnerStructure`
+name-matches `StructureNameMatch` AND the item isn't `CompostItemName` → `__result=false`, skip
+original: the haul task is never created. Compost stays haulable; fails open on any exception.
+Outhouse-supply identity cached by supply pointer in `OuthouseGate.IsOuthouseSupply` (cleared with
+the container cache on world leave). In-game 2026-07-19: alive marker fired; only genuine
+outhouses matched the name filter (Outhouse/2/3); user observed zero warehouse theft. The two
+suppression lines (Crawler Slime, Spoiled Food) were PROSPECTIVE queries — the warehouse asks the
+gate about the outhouse container's native accepted types even when the container doesn't hold
+them (containers held only Compost that run). I.e. `CanCreateStorageTaskForItemInfo` is called
+per accepted/allotted item, NOT per item actually present — it fires at world load / task-list
+rebuilds, so suppression lines cluster early in a session (once per (owner, item) since v1.2.0,
+which also added owner='<name>' to the lines).
+
+### Eat gate (v1.2.0, Patches/EatGatePatches.cs — confirmed in-game 2026-07-19)
+Second raid vector after the haul gate: builders ate raw vegetables out of the outhouse (eating is
+the survival-quest FSM, not haul tasks). Fix: Harmony prefixes on the consume quest's own vanilla
+whitelist checks — nested `SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData`
+`IsWhitelistedByStorage(ResourceOutlet)` / `IsWhitelistedByStorage(IResourceStorageSite)` /
+`IsWhitelistedByAny(IResourceStorageSite)` — denying (`__result=false`) when the outlet/site
+resolves to the outhouse (`ResourceOutlet.Structure`, or `GetTransform()` + bounded parent-walk
+`GetComponent<Structure>()`; pointer-cached in OuthouseGate, cleared on world leave; fail-open).
+Consume-path-only — farmers' compost retrieval unaffected. In-game 2026-07-19: all three alive
+markers fired; denials all came via the `IsWhitelistedByStorage(IResourceStorageSite)` overload
+(one per outhouse, correct owner names); user observed zero removals from a watched outhouse;
+converter kept producing Compost throughout; zero errors. NEVER patch this class's
+`_FindBestItemToConsume(Item)` / `_OnItemAdded` / `_OnItemRemoved` (inventory-family crash
+signatures). See architecture.md → "Where the consume quest picks its store".
+
 ## Config (`com.askamods.outhousecomposter.cfg`)
 
 **[Composter] section:**
@@ -101,12 +140,18 @@ Fallback to name-scan of outhouse contents if not found. Conversions wait until 
 - `SimultaneousConversion=false` (description carries the **no-pooling WARNING** when true)
 - `FoodStackSize=10` (override for GetStackSize; seeds stack to 200 in other storage)
 - `SeedStackSize=200` (override for GetStackSize)
+- `ProtectOuthouseContents=true` (v1.1.0+) — master switch for BOTH raid gates (warehouse haul
+  gate + villager eat gate); compost item exempt from the haul gate; farmers unaffected
 
 **[Diagnostics] section:**
 - `EnableDiagnostics=false` (shipped default; true during dev)
 - `DumpKey=F10` (hotkey for a log dump of current containers + converter state)
-- `StructureNameMatch="Outhouse"` (drives both the diagnostics dump and the converter's structure
-  discovery)
+- `StructureNameMatch="Outhouse"` (drives the diagnostics dump, the converter's structure
+  discovery, AND both raid gates' outhouse identification)
+- `LogHaulGate=false` (v1.1.0+; shipped default false since v1.2.1) — once-per-(owner,item)
+  suppressed haul-task lines
+- `LogEatGate=false` (v1.2.0+; shipped default false since v1.2.1) — once-per-(method,structure)
+  denied consume-whitelist lines
 
 **Config-key migration note:** v0.3.0 renamed `FoodMinutes`/`SeedMinutes` → `FoodGameHours`/`SeedGameHours`.
 v0.4.0 replaced `InputStackSize` with `FoodStackSize`/`SeedStackSize`. Old keys sit orphaned in
@@ -114,8 +159,7 @@ existing cfg files; customized values must be re-set under the new keys.
 
 ## Open/unverified
 
-**⚠️ villager-raiding risk:** whether villagers haul food back OUT of the outhouse has not been
-observed or tested either way.
+(none currently)
 
 ## Dead-ends
 
@@ -146,3 +190,10 @@ by in-game-clock timers. Do not resurrect.
 - **v0.4.0 (2026-07-12):** SimultaneousConversion toggle + FoodStackSize/SeedStackSize split
   (confirmed in-game 2026-07-12).
 - **v1.0.0 (2026-07-12):** ship polish (config WARNING text; EnableDiagnostics default false).
+- **v1.1.0 (2026-07-19):** warehouse haul gate (`ProtectOuthouseContents`), fixing the
+  Nexus-reported warehouse-worker theft (ohhhikilledu2); confirmed in-game 2026-07-19.
+- **v1.2.0 (2026-07-19):** villager eat gate (consume-quest whitelist prefixes) after builders
+  were observed eating raw vegetables past the haul gate; + owner names in haulgate log lines;
+  confirmed in-game 2026-07-19.
+- **v1.2.1 (2026-07-19):** ship polish — LogHaulGate/LogEatGate defaults flip to false; uploaded
+  to Nexus.
