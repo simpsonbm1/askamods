@@ -250,6 +250,12 @@ askamods/
                                 DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
                                 Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.1.2 — PHASE 0
+                                READ-ONLY DIAGNOSTIC SPIKE, writes no game state. v0.1.1 trace ran
+                                in-game 2026-07-20: gate/agent/UI facts confirmed (architecture.md
+                                → Player crafting pipeline) and found QuerySettlementResources()
+                                HANGS the game; v0.1.2 replaces it with the proven GetStructures()
+                                walk ⚠️ census half still unrun — NEW_MOD_IDEAS_PLAN.md idea 17]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed

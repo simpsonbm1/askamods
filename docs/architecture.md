@@ -1147,8 +1147,105 @@ build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in sessi
   SupplyChainMod exceptions across any test run.
 
 ### Player crafting pipeline — CraftInteraction family (Cecil 2026-07-20, idea-17 groundwork)
-Structure facts from the interop binaries (`_explore/cecil_craft_from_storage*.ps1`); runtime
-behavior ⚠️ pending in-game trace.
+Structure facts from the interop binaries (`_explore/cecil_craft_from_storage*.ps1`). **Runtime
+behavior below the structure list is confirmed in-game 2026-07-20** (CraftFromStorageMod v0.1.1
+trace, workshop crafting table, solo host).
+
+**Confirmed in-game 2026-07-20 (the Phase 0 trace):**
+- **`CheckOwnedRequirements` is NOT inlined — the patch fires.** It is the OUTER gate: each call
+  logs `_CheckOwnedBlueprintManifest` first, then itself, i.e. it calls the manifest check
+  internally. Patching `CheckOwnedRequirements` alone therefore covers both.
+- **Villagers ride the SAME gate as the player.** Observed `agent=Villager` (bp 'Longbow',
+  'Rope', '8x Fibers') interleaved with `agent=PlayerInteractionAgent` (bp 'Large Crude Iron
+  Axe') on the identical method. Any mod that flips this gate MUST test the agent or it silently
+  changes villager crafting too. Agent identity is readable as the native class name:
+  `PlayerInteractionAgent` vs `Villager`; the session type distinguishes too
+  (`PlayerCraftInteractionSession`).
+- **`useAgentInventory = True` on a workshop crafting table** — that station consults the
+  AGENT's inventory, not just station storage.
+- **The recipe list's available/unavailable split is NOT ingredient-based.**
+  `CreateItemsTabPage.Show` reported `AvailableBlueprints=96 UnavailableBlueprints=0` while the
+  player was actively clicking recipes they lacked materials for. The split is knowledge/unlock
+  based; the "can't afford" graying is driven per-button elsewhere (`CheckOwnedRequirements` at
+  render time is the live candidate).
+- **`_OnCraftingSuccess` is NOT the ingredient-consumption site.** PRE and POST snapshots of
+  `CraftInteraction.ItemInventory` around a real rope craft were byte-identical (total=26, same
+  breakdown) — no ingredient decrement, no product increment. Whatever `ItemInventory` exposes
+  there is neither the ingredient source nor the output destination. The real consumption site is
+  still unidentified (⚠️ open; `_CraftRoutine` coroutine and the `CraftingStation` are the next
+  candidates).
+
+**Settlement storage census ground truth (confirmed in-game 2026-07-20, CraftFromStorageMod
+v0.1.2, a mature ~417-structure settlement):** `GetStructures()` = **417 structures**; a
+first-`ItemContainerComponent`-per-structure walk found **141 containers holding 13,630 items**
+(a LOWER BOUND — see limitation 1). Container types by frequency: `Storage_MediumItems_L1` (28),
+`Storage_WarehouseStorage_WoodMedium` (17), `StorageSupply` (13), `Storage_LargeItems_L1` (10),
+`Storage_SmallItems_L1` (9), `Storage_Barbecue_Small` (9), then a long tail of
+`Storage_WarehouseStorage_*` (CookedFood/BeamPlank/LeatherScraps/Clothes),
+`Storage_SmallItems_{Ore,Seeds,Outhouse,FoodShelf1,FoodTrough,SmallCraftingMaterials,WarehouseCoal}`,
+`Storage_MediumItems_{Arrows,Karvi}`. Biggest holders: Seed Storage (3000, 2918), Farm (1273),
+Smolkr Pen (505), Gatherer (500), Raw Food Silo (440/203/197), Coal Storage (300×2).
+**Two limitations of the naive walk, both proven by this run — any storage-wide mod must handle
+them:**
+1. **One container per structure is NOT enough.** The walk takes the FIRST
+   `ItemContainerComponent` in hierarchy order, and for crafting stations that is a decorative or
+   character slot, not the station's real input storage: Workshop House 2 / Improved Metalworker /
+   Workshop House 5 reported `CharacterFlask` (capacity=1), Improved Armorsmith 2 reported
+   `CharacterBuilder` (capacity=9999, 0 items), and Improved Carpenter / Carpenter / Workshop
+   Hut 6 / Boatbuilder reported an unresolved `?` type. Enumerate ALL containers per structure,
+   or reach station stock via `Workstation.GetInventory()` instead.
+2. **The walk picks up containers that are NOT settlement storage and must never be drained:**
+   `CharacterFlask`, `CharacterBuilder`, `ArmorRackHead` (Armor Rack), `Storage_Core` (The Eye of
+   Odin), `Storage_DecorationsTop` (Yule Tree). Filter by container type / owner, never "any
+   container on any structure". `Storage_SmallItems_Outhouse` (3) also appears — that is
+   OuthouseComposterMod's input pool and must stay excluded.
+
+**Equipment-slot containers are a first-class mechanism — prefer a STRUCTURAL exclusion rule over
+a name blacklist** (Cecil 2026-07-20). `SandSailorStudio.Inventory.EquipPoint` owns an
+`ItemContainer` and carries its own `containerType : ItemContainerType`:
+```
+EquipPoint  .name/.id  .handle : Transform  .containerType : ItemContainerType
+            ._item : EquipmentItem  ._itemContainer / .ItemContainer : ItemContainer
+            ._equipmentManager : EquipmentManager  .subHandles/.ids  .OnItemAttatched
+```
+So "a container that holds an item the way a character equips it" is a real game mechanism, and
+the odd census container types are its `ItemContainerType` **assets** (no C# type named
+`CharacterFlask`/`ArmorRackHead`/`CharacterBuilder` exists — consistent with asset names).
+`ArmorRackHead` on 'Armor Rack' and `CharacterFlask` (both capacity=1) fit an equip slot exactly.
+**Design consequence:** a storage-wide mod should skip containers reachable from an
+`EquipPoint`/`EquipmentManager` rather than matching a hardcoded type-name list — a name blacklist
+only knows the container types of the settlement it was built from and would silently drain armor
+racks in a world with buildings the author never saw. (Related UI-side types:
+`SSSGame.EquipmentDisplaySlot : ItemDisplaySlot`, `SSSGame.EquipmentStackSlot :
+CategoryStackSlot`.)
+⚠️ **Open (user theory, unconfirmed 2026-07-20):** that `CharacterBuilder` — seen on 'Improved
+Armorsmith 2' — is the **mannequin/display stand** at the armorer/weaver, holding armor the way a
+character equips it. The EquipPoint mechanism above makes this plausible, but its reported
+**capacity=9999 does not fit a single equip slot** (every confirmed one is capacity=1), so it may
+instead be an `EquipmentManager`-level aggregate or something else. Cecil cannot settle it (the
+name is an asset reference). **To confirm:** log, per container, the GameObject node name it was
+found on plus whether an `EquipPoint`/`EquipmentManager` sits on or above that node.
+(Structure display names repeat across distinct structures — 141 container lines resolved to only
+91 distinct owner names, e.g. four separate 'Warehouse Extension' buildings — so **never key
+storage state by display name**; key by world position, per the project-wide rule.)
+
+**⚠️ DEAD-END (confirmed in-game 2026-07-20): `Settlement.QuerySettlementResources()` HANGS the
+game.** Called once from a mod (F12 hotkey, ~200-structure settlement), it froze the main thread:
+Windows logged **`AppHangB1` / "stopped interacting with Windows"** — a HANG, *not* an access
+violation (no Application Error event, no crash dump, no managed exception). **A managed
+try/catch cannot rescue this** — the call never returns. The BepInEx log simply ends on the line
+before it. This API had only ever been SIGNATURE-confirmed (interop dump 2026-06-21) and is
+called by no other mod in this repo — the "one clean call for settlement-wide item counts" was
+never runtime-proven. ⚠️ Not yet isolated whether `QuerySettlementResources()` itself or the
+following `GetTotalQuantity()` on its manifest is the hanging call (CraftFromStorageMod v0.1.2
+carries an opt-in flag with bracketing log markers to discriminate, default OFF).
+**Use instead:** the `Settlement.GetStructures()` walk + per-structure singular
+`GetComponent<ItemContainerComponent>()` → `container.GetItems()` bounded by `capacity` — proven
+in-game by four mods (SupplyChainMod `StationWalker`, OuthouseComposter, TreeRespawn
+`StructureQuery`/`WellRefill`) and measured cheap (0.2–5.1 ms per station). Also prefer it over
+`Settlement.GetStorageSites()`, whose `IReadOnlyList` stub exposes only an indexer and so forces
+a scan-past-the-end-until-it-throws pattern — indexing past an IL2CPP list's end is not
+guaranteed to raise a *managed* exception.
 - **Family tree:** `SSSGame.CraftInteraction : Interaction` is the base for ALL craft tables:
   `AnvilInteraction : CraftInteraction`, `CarpenterInteraction : AnvilInteraction`,
   `DyeingInteraction : CraftInteraction`. `ForgeInteraction` is NOT in this family (it derives

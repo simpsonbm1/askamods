@@ -1,0 +1,301 @@
+﻿==================================================================
+PASS H: Settlement full surface
+==================================================================
+
+---- SSSGame.Settlement (base: UnityEngine.MonoBehaviour) ----
+  P: c_DefaultOutpostId : System.Int32
+  P: EventsChannel : SSSGame.Settlement/SettlementEvents
+  P: title : System.String
+  P: globalMaxSearchRange : System.Single
+  P: searchRangeLimitForVehicles : System.Single
+  P: debugBorderGradient : UnityEngine.Gradient
+  P: debugDrawBorder : System.Boolean
+  P: debugDrawAllCells : System.Boolean
+  P: debugDrawBounds : System.Boolean
+  P: _Buildstation_k__BackingField : SSSGame.Buildstation
+  P: settlementTemplateFallback : SSSGame.SettlementTemplate
+  P: terraformingFieldTemplate : SSSGame.StructureTemplate
+  P: borderRadius : System.Int32
+  P: OnAddStructure : Il2CppSystem.Action`1<SSSGame.Structure>
+  P: OnActivateStructure : Il2CppSystem.Action`1<SSSGame.Structure>
+  P: OnRemoveStructure : Il2CppSystem.Action`1<SSSGame.Structure>
+  P: OnStructureDeath : Il2CppSystem.Action`1<SSSGame.Structure>
+  P: OnResourceOutletAdded : Il2CppSystem.Action`1<SSSGame.ResourceOutlet>
+  P: OnResourceOutletRemoved : Il2CppSystem.Action`1<SSSGame.ResourceOutlet>
+  P: OnAddOutpost : Il2CppSystem.Action`1<SSSGame.OutpostStructure>
+  P: OnRemoveOutpost : Il2CppSystem.Action`1<SSSGame.OutpostStructure>
+  P: OnOutpostDataChanged : Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder>
+  P: _structures : Il2CppSystem.Collections.Generic.List`1<SSSGame.Structure>
+  P: _settlementCore : SSSGame.Structure
+  P: _outposts : Il2CppSystem.Collections.Generic.List`1<SSSGame.OutpostStructure>
+  P: _defaultOutpost : SSSGame.DefaultOutpostComponent
+  P: _nextOutpostId : System.Int32
+  P: _genericStorageSites : Il2CppSystem.Collections.Generic.List`1<SSSGame.IResourceStorageSite>
+  P: _petHosts : Il2CppSystem.Collections.Generic.List`1<SSSGame.IPetHost>
+  P: _diningStations : Il2CppSystem.Collections.Generic.List`1<SSSGame.DiningStation>
+  P: _outletSites : Il2CppSystem.Collections.Generic.List`1<SSSGame.ResourceOutlet>
+  P: _healingOutlets : Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.HealingOutlet>
+  P: _warmthSites : Il2CppSystem.Collections.Generic.List`1<SSSGame.WarmthOutlet>
+  P: _religionSites : Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.ReligionOutlet>
+  P: _traps : Il2CppSystem.Collections.Generic.List`1<SSSGame.Combat.Trap>
+  P: _harbors : Il2CppSystem.Collections.Generic.List`1<SSSGame.HarboringStation>
+  P: _searchManifest : SandSailorStudio.Inventory.ItemManifest
+  P: _settlementResourcesManifestCache : SandSailorStudio.Inventory.ItemManifest
+  P: _startingRadius : System.Single
+  P: _borderDistance : System.Single
+  P: _borderDistanceSq : System.Single
+  P: _buildHistory : Il2CppSystem.Collections.Generic.HashSet`1<System.Int32>
+  P: _totalStructureCount : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,System.Int32>
+  P: _newStructureTemplates : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,System.Boolean>
+  P: _structuresNeedingNewId : Il2CppSystem.Collections.Generic.List`1<SSSGame.Structure>
+  P: _templateIdCache : Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,Il2CppSystem.Collections.Generic.HashSet`1<System.Int32>>
+  P: _maxSqDistance : System.Single
+  P: _sqDistance : System.Single
+  P: _minRequests : System.Int32
+  P: _maxRequestsBeforeBail : System.Int32
+  P: _ignoreSurplusLimits : System.Boolean
+  P: _interaction : SSSGame.Interaction
+  P: _itemFilter : SandSailorStudio.Inventory.IItemFilter
+  P: _itemToDeposit : SandSailorStudio.Inventory.ItemInfo
+  P: _searchOrigin : UnityEngine.Vector3
+  P: _wdm : SSSGame.WorldDataManager
+  P: _um : SSSGame.Water.UnderwaterManager
+  P: _setMan : SSSGame.SettlementManager
+  P: _diningOutlet : SSSGame.AI.DiningOutlet
+  P: _template : SSSGame.SettlementTemplate
+  P: _trashFilter : SSSGame.Settlement/TrashcanFilter
+  P: _settlementBoundsDirty : System.Boolean
+  P: _lastSettlementBoundsDistance : System.Int32
+  P: _visitedNodesCache : Il2CppSystem.Collections.Generic.HashSet`1<SSSGame.Settlement/SettlementCellNode>
+  P: _validInvasionsCells : Il2CppSystem.Collections.Generic.List`1<SSSGame.Settlement/SettlementCellNode>
+  P: _settlementBoundsCache : UnityEngine.Bounds
+  P: _lastCorePosition : UnityEngine.Vector3
+  P: _settlementID : System.Int32
+  P: c_maxSqDistBetweenLessReqInteractions : System.Single
+  P: c_maxSqDistToLessReqInteractions : System.Single
+  P: c_MaxResourcesSnapshots : System.Int32
+  P: c_ResourcesSnapshotsPerDay : System.Int32
+  P: _lastGeneratedSnapshot : SSSGame.Settlement/SettlementSnapshot
+  P: _resourcesSnapShots : Il2CppSystem.Collections.Generic.List`1<SSSGame.Settlement/SettlementSnapshot>
+  P: _nextSnapshotMoment : System.Single
+  P: c_StructuresKey : System.String
+  P: c_BuildstationKey : System.String
+  P: c_BuildHistoryKey : System.String
+  P: c_NewStructureUpgradesKey : System.String
+  P: c_StructuresCount : System.String
+  P: c_LastCorePosition : System.String
+  P: c_DefaultOutpost : System.String
+  P: c_ResourcesSnapshots : System.String
+  P: IsEstablished : System.Boolean
+  P: StartingRadius : System.Single
+  P: Manager : SSSGame.SettlementManager
+  P: Buildstation : SSSGame.Buildstation
+  P: Template : SSSGame.SettlementTemplate
+  P: LastSettlementCorePos : UnityEngine.Vector3
+  P: LastgeneratedSnapshot : SSSGame.Settlement/SettlementSnapshot
+  P: NextSnapshotMoment : System.Single
+  M: System.Void .cctor()
+  M: System.Void Awake()
+  M: System.Single GetBorderDistance()
+  M: System.Single GetBorderDistanceSq()
+  M: SSSGame.Structure CreateStructure(StructureTemplate s, Placement p, Structure parent, Boolean isUpgrade, Boolean spawnedByTool, Int32 priorityFlags, Boolean wasUpgraded, Boolean spawnedByAutoBuilder)
+  M: System.Void OnDrawGizmosSelected()
+  M: System.Void Initialize(Structure structure)
+  M: System.Int32 GetTotalBuiltStructuresCount()
+  M: System.Int32 GetBuiltStructuresCount(StructureTemplate template)
+  M: System.Void RemoveStructure(Structure s)
+  M: System.Void AddStructure(Structure s)
+  M: System.Void ActivateStructure(Structure s)
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Structure> GetStructures()
+  M: System.Void RegisterTrap(Trap trap)
+  M: System.Void UnregisterTrap(Trap trap)
+  M: System.Void RegisterOutlet(ResourceOutlet ro)
+  M: System.Void RegisterOutlet(HealingOutlet ho)
+  M: System.Void RegisterDiningStation(DiningStation diningStation)
+  M: System.Void UnregisterDiningStation(DiningStation diningStation)
+  M: System.Void RegisterStorageSite(IResourceStorageSite rss)
+  M: System.Void UnregisterStorageSite(IResourceStorageSite rss)
+  M: System.Void RegisterPetHost(IPetHost petHost)
+  M: System.Void UnregisterPetHost(IPetHost petHost)
+  M: SSSGame.IPetHost FindPetHost(Predicate`1 predicate)
+  M: System.Void UnregisterOutlet(ResourceOutlet ro)
+  M: System.Void UnregisterOutlet(HealingOutlet ho)
+  M: System.Void RegisterOutlet(WarmthOutlet wo)
+  M: System.Void UnregisterOutlet(WarmthOutlet wo)
+  M: System.Void RegisterOutlet(ReligionOutlet ro)
+  M: System.Void UnregisterOutlet(ReligionOutlet ro)
+  M: System.Void RegisterHarbor(HarboringStation harbor)
+  M: System.Void UnregisterHarbor(HarboringStation harbor)
+  M: SSSGame.WarmthOutlet FindWarmthOutlet(Predicate`1 predicate)
+  M: SSSGame.AI.HealingOutlet FindHealingOutlet(Predicate`1 predicate)
+  M: SSSGame.IOutpostDataHolder GetOutpostData(Int32& id)
+  M: SSSGame.IOutpostDataHolder FindOverlappingOutpost(Vector3& searchOrigin, Single& range, Boolean& includeDefaultOutpost)
+  M: SSSGame.IOutpostDataHolder FindClosestOutpost(Vector3& searchOrigin, Single& range, Boolean& includeDefaultOutpost)
+  M: System.Boolean IsAnyHarborInRange(Vector3& origin, Single& range, HarboringStation& harbor)
+  M: SSSGame.AI.ReligionOutlet FindReligionOutlet(Predicate`1 predicate)
+  M: SSSGame.AI.ReligionOutlet FindClosestReligionOutlet(Vector3& pos, Single& range, Predicate`1 extraPredicate)
+  M: System.Boolean CheckBuildHistory(StructureTemplate st, Boolean includeUpgrades)
+  M: System.Int32 GetOutpostsCount(Boolean includeDefault)
+  M: System.Void PopulateOutpostsList(List`1 outposts, Boolean includeDefault)
+  M: System.Int32 GetNextOutpostId()
+  M: System.Void IncrementOutpostId(OutpostStructure outpost)
+  M: System.Void RegisterOutpost(OutpostStructure outpostStructure)
+  M: System.Void UnregisterOutpost(OutpostStructure outpostStructure)
+  M: System.Void _OnOutpostDataChanged(IOutpostDataHolder obj)
+  M: SSSGame.Structure GetSettlementCore()
+  M: System.Int32 IndexOfStructure(Structure structure)
+  M: SSSGame.Structure GetStructure(Int32 structureID)
+  M: SSSGame.Structure FindStructure(Int32& templateId, Int32& uniqueId)
+  M: SSSGame.Structure FindStructure(Func`2 predicate)
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Structure> FindStructures(Func`2 predicate)
+  M: System.Int32 FindStructures(Func`2 predicate, List`1 result)
+  M: SSSGame.ResourceOutlet FindResourceOutlet(Func`2 predicate)
+  M: System.Void AddStructureToIdFixingList(Structure structure)
+  M: System.Void FixDuplicateStructureIds()
+  M: System.Boolean CheckForDuplicateStructureId(Structure existingStructure)
+  M: System.Boolean TryRegisterUniqueTemplateId(Int32& templateId, Int32& id)
+  M: System.Boolean CheckUniqueness(StructureTemplate template, Boolean checkUpgrades)
+  M: Il2CppSystem.Collections.Generic.IReadOnlyList`1<SSSGame.IResourceStorageSite> GetStorageSites()
+  M: Il2CppSystem.Collections.Generic.IReadOnlyList`1<SSSGame.ResourceOutlet> GetResourceOutlets()
+  M: SSSGame.Structure FindClosestStructure(Vector3 agentPos, Single maxRange, Predicate`1 predicate)
+  M: System.Int32 FindStructuresInRange(Vector3& agentPos, Single& maxRange, List`1 result, Predicate`1 predicate)
+  M: SSSGame.AI.DiningOutlet FindDiningOutlet(IItemFilter foodItemFilter, Vector3& searchOrigin, Item& cannaryItem, Single& maxRange, Predicate`1 predicateResourceSite)
+  M: System.Boolean _FindDiningOutletPredicate(DiningOutlet diningOutlet)
+  M: SSSGame.Interaction FindTrashcanToDeposit(ItemInfo itemInfo, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage)
+  M: SSSGame.Settlement/TrashcanFilter GetTrashFilter()
+  M: SSSGame.Interaction FindStorageToDeposit(ItemInfo itemInfo, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Boolean ignoreStorageLimits)
+  M: SSSGame.Interaction FindItemStorage(List`1 resourceStorageList, IItemFilter itemFilter, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits)
+  M: SSSGame.Interaction FindItemStorage(IItemFilter itemFilter, Vector3& agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits)
+  M: SSSGame.Interaction FindItemStorage(Homestead includedHomestead, IItemFilter itemFilter, Vector3 agentPos, Single& maxRange, Predicate`1 predicateResourceStorage, Predicate`1 predicateResourceOutlet, Int32& maxRequestsBeforeBail, Boolean& ignoreSurplusLimits)
+  M: SandSailorStudio.Inventory.ItemManifest QuerySettlementResources()
+  M: System.Boolean _FindStorageInteractionToDepositPredicate(StorageInteraction si)
+  M: System.Boolean _FindStorageInteractionPredicate(StorageInteraction si)
+  M: System.Boolean _FindGatherInteractionPredicate(GatherInteraction gi)
+  M: System.Boolean _ShouldKeepNewInteraction(Single& newSqDist, Int32& newReqCount, Single& distFromOldInteraction)
+  M: System.Boolean CalculateSettlementBounds(Bounds& bounds, Int32 overrideMaxBorder)
+  M: System.Boolean GetBorderCellsAtDistance(Int32 distance, List`1& cellNodes, Single minElevation, Boolean includeCellsWithStructures)
+  M: System.Boolean GetRandomBorderCellsAtDistance(Int32 minDistance, Int32 maxDistance, Int32 count, List`1& cellNodes, Single minElevation)
+  M: UnityEngine.Vector3 GetSuitableInvasionPosition(Int32 overrideMaxBorder)
+  M: System.Boolean _ValidateSpawnPositionCell(Vector3 pos)
+  M: System.Void _FloodFillNonSpawnable(Single coordX, Single coordZ, Int32 neighborDistance, Int32 maxDistance, HashSet`1& visited)
+  M: System.Boolean _CellHasCloserStrucuture(Vector3 pos, Single cellWorldX, Single cellWorldY, Single& sqDist, Structure& structure, Predicate`1 predicate)
+  M: System.Int32 _GetStructuresInCell(Vector3 pos, Single maxSqDist, Single& cellWorldX, Single& cellWorldY, List`1 structures, Predicate`1 predicate)
+  M: System.Void _OnCellInvalidateSpawnsUpdated(PathfindingCellContainer cellContainer)
+  M: System.Void FillStorages()
+  M: System.Void TurnOffStorageDisplays()
+  M: System.Void TurnOffInteriors()
+  M: System.Void TurnOffLights()
+  M: System.Void FillHouses()
+  M: System.Void FillTraps()
+  M: System.Void _PerformResourcesSnapShot()
+  M: SSSGame.Settlement/SettlementSnapshot GenerateSnapshot(Boolean saveLastGenerated)
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Settlement/SettlementSnapshot> GetResourcesSnapshots()
+  M: System.Void _OnWeatherUpdate(WeatherEventData evData)
+  M: System.Void WriteJoinData(BinaryWriter writer)
+  M: System.Void ReadJoinData(BinaryReader reader)
+  M: System.Boolean Validate(StructureTemplate template, Placement placement, PlacementValidity& validity) [virt]
+  M: System.Boolean Deserialize(DataObject source) [virt]
+  M: SandSailorStudio.Storage.DataObject Serialize(DataObject root) [virt]
+  M: System.Void .ctor()
+  M: System.Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS I: ItemManifest.GetTotalQuantity / GetItems / storage-site related types
+==================================================================
+
+-- SandSailorStudio.Inventory.ItemManifest: GetTotalQuantity/GetItems/item info surface --
+  M: System.Void AddInfoList(ItemInfoList infoList, Int32 count)
+  M: System.Int32 GetItemsQuantity(IItemFilter filter)
+  M: System.Int32 GetTotalQuantity()
+  M: System.Int32 GetItemInfoCount()
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfoQuantity> GetItems()
+  M: System.Void GetItems(List`1 itemInfoQuantities)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetItemsList()
+
+-- SandSailorStudio.Inventory.ItemInfoQuantity: GetTotalQuantity/GetItems/item info surface --
+
+==================================================================
+PASS J: ItemCollection full method surface (incl GetItemInfos)
+==================================================================
+  M: System.Void .cctor()
+  M: System.Void .ctor()
+  M: System.Void Setup(GameObject owner, String name)
+  M: System.Void AddContainer(ItemContainer container)
+  M: System.Void _ContainerAddProcess(Item itm)
+  M: System.Void RemoveContainer(ItemContainer container)
+  M: System.Void _ContainerRemoveProcess(Item itm)
+  M: SandSailorStudio.Inventory.ItemContainer FindLargestMatchingContainer(ItemInfo infoToStore, Boolean includeHidden)
+  M: SandSailorStudio.Inventory.ItemContainer FindContainer(ItemContainerType type, Boolean includeHidden)
+  M: SandSailorStudio.Inventory.ItemContainer FindContainer(Int32 id)
+  M: SandSailorStudio.Inventory.ItemContainer FindContainer(String& name)
+  M: SandSailorStudio.Inventory.ItemContainer FindContainer(Func`2 predicate, Boolean includeHidden)
+  M: Il2CppSystem.Collections.Generic.IReadOnlyList`1<SandSailorStudio.Inventory.ItemContainer> GetContainers()
+  M: SandSailorStudio.Inventory.ItemContainer GetFreeContainer(ItemInfo itemInfo, Boolean includeHidden)
+  M: System.Int32 GetMatchingContainers(ItemInfo item, List`1 containers, Boolean includeHidden)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemContainer> GetMatchingContainers(ItemInfo item, Boolean includeHidden)
+  M: System.Boolean HasMatchingContainer(ItemInfo itemInfo, Boolean includeHidden)
+  M: System.Int32 GetTotalRemainingCapacity(ItemInfo itemInfo, Boolean includeHidden)
+  M: System.Int32 GetMaximumStorageCapacity(ItemInfo itemInfo, Boolean includeHidden)
+  M: System.Int32 GetTotalRemainingCapacity(ItemInfo itemInfo)
+  M: System.Void RemoveAllItems(IItemFilter itemFilter, Boolean includeHidden)
+  M: System.Boolean IsPersistent()
+  M: SandSailorStudio.Inventory.InventoryFlags GetFlags()
+  M: System.Void Reset()
+  M: System.Void List()
+  M: SandSailorStudio.Inventory.Item GetFirstItem(Int32 id)
+  M: T GetFirstItem(Int32 id)
+  M: SandSailorStudio.Inventory.Item GetFirstItem(ItemInfo itemInfo)
+  M: SandSailorStudio.Inventory.Item GetFirstItem(Predicate`1 predicate)
+  M: SandSailorStudio.Inventory.Item GetLastItem(Predicate`1 predicate)
+  M: T GetFirstItem(ItemInfo itemInfo)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetItems(ItemInfo itemInfo)
+  M: System.Void GetItemsList(List`1 itemList, Predicate`1 predicate)
+  M: System.Void GetItemsList(ItemInfo itemInfo, List`1 itemList, Predicate`1 predicate)
+  M: System.Void GetItemsList(IItemFilter itemFilter, List`1 itemList, Predicate`1 predicate)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetItems(IItemFilter itemFilter)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetItemInfos()
+  M: SandSailorStudio.Inventory.Item FindItemInContainers(Func`2 predicate, Boolean includeHidden)
+  M: SandSailorStudio.Inventory.Item GetFirstItem(IItemFilter filter)
+  M: System.Int32 GetItemQuantity(ItemInfo itemInfo)
+  M: System.Int32 GetItemsQuantity(IItemFilter filter)
+  M: System.Void FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter)
+  M: System.Int32 ContainsItemManifest(ItemManifest itemManifest)
+  M: System.Int32 GetTotalItemsQuantity()
+  M: System.Boolean OverlapsItemManifest(ItemManifest itemManifest)
+  M: System.Void RemoveOwnedItemManifest(ItemManifest itemManifest)
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetCategoryItems(ItemCategoryInfo categoryInfo)
+  M: System.Int32 GetCategoryItemsCount(ItemCategoryInfo categoryInfo)
+  M: System.Int32 GetHighestTierOfCategory(ItemCategoryInfo categoryInfo)
+  M: System.Boolean HasCategoryItems(ItemCategoryInfo categoryInfo)
+  M: System.Boolean HasItem(ItemInfo itemInfo)
+  M: System.Boolean HasItem(IItemFilter itemFilter)
+  M: System.Boolean IsEmpty()
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetAllItems()
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetAllItems(IItemFilter itemFilter)
+  M: Il2CppSystem.Collections.Generic.List`1<T> GetAllItems()
+  M: System.Int32 AddItems(Item item, Int32 quantity, ItemContainer container, List`1 addedItems)
+  M: System.Int32 AddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container, List`1 addedItems)
+  M: SandSailorStudio.Inventory.AddItemRequest RequestAddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container)
+  M: SandSailorStudio.Inventory.AddItemRequest RequestAddItems(Item item, Int32 quantity, ItemContainer container)
+  M: System.Void SubmitRequest(AddItemRequest request, List`1 addedItems)
+  M: System.Int32 AddItems(ItemInfo itemInfo, Int32 count) [virt]
+  M: System.Int32 AddItems(Item item, Int32 count) [virt]
+  M: System.Int32 RemoveItems(Item item, Int32 quantity)
+  M: System.Int32 RemoveItems(ItemInfo itemInfo, Int32 quantity)
+  M: System.Void RemovePercentageOfEveryItem(Single percentage)
+  M: System.Single GetContainersFillRatio(Predicate`1 predicate)
+  M: System.Void _ItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: System.Void _ItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: SandSailorStudio.Inventory.AddItemRequest _CreateAddItemRequest(Item item, Int32 quantity, ItemContainer container, Boolean includeHidden)
+  M: System.Int32 _AddItem(Item item, Int32 quantity, ItemContainer container, List`1 addedItems)
+  M: System.String GetFormalName()
+  M: System.Boolean Deserialize(DataObject source) [virt]
+  M: SandSailorStudio.Storage.DataObject Serialize(DataObject destination) [virt]
+  M: System.Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS K: types matching StorageSite (interface/impl) + IResourceStorageSite
+==================================================================
+  SSSGame.IResourceStorageSite  : Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+
+DONE

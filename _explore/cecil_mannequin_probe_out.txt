@@ -1,0 +1,78 @@
+﻿=== 1. Types named like CharacterBuilder / Flask / ArmorRack ===
+
+=== 2. Mannequin / display-stand concept types ===
+  SamplesShowcase  : MonoBehaviour
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTraffic_Internal_Static_Void_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficWarn_Internal_Static_Void_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficError_Internal_Static_Void_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTraffic_Internal_Static_Void_ptr_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficWarn_Internal_Static_Void_ptr_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficError_Internal_Static_Void_ptr_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTraffic_Internal_Static_Void_byref_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficWarn_Internal_Static_Void_byref_T_Object_0`1  : Object
+  Fusion.Log/MethodInfoStoreGeneric_TraceDummyTrafficError_Internal_Static_Void_byref_T_Object_0`1  : Object
+  Fusion.UnityDummyAttribute  : Attribute
+  Fusion.NetworkSceneManagerDummy  : Object
+  Fusion.Protocol.DummyTrafficSync  : Message
+  Il2CppSystem.Xml.IncrementalReadDummyDecoder  : IncrementalReadDecoder
+  Unity.Collections.CollectionHelper/DummyJob  : ValueType
+  Unity.DemoTeam.DigitalHuman.ShaderLibrary.Dummy  : Object
+  SamplesShowcase  : MonoBehaviour
+
+=== 3. Types whose name suggests equipment display on a structure ===
+  SSSGame.EquipmentDisplaySlot  : ItemDisplaySlot
+  SSSGame.EquipmentStackSlot  : CategoryStackSlot
+
+=== 4. ItemContainerType + StorageClassData shape (what 'type name' actually is) ===
+---- SandSailorStudio.Inventory.ItemContainerType (base: UnityEngine.ScriptableObject) ----
+  P: itemTransferDuration : Single
+  P: overrideStackSizes : Boolean
+  P: overrideWithMaxSize : Boolean
+  P: storageClasses : Il2CppReferenceArray`1
+  P: attributes : Il2CppReferenceArray`1
+  P: nonClonableProperties : Il2CppReferenceArray`1
+  P: _nonClonablePropertiesMap : HashSet`1
+  M: Int32 GetStackSize(ItemInfo itemInfo)
+  M: Int32 GetStackSize(ItemStorageClass storageClass)
+  M: Boolean GetProperties(List`1 list)
+  M: Boolean TryGetProperty(Int32& id, Property& property)
+  M: Boolean HasProperty(Int32& id)
+  M: Boolean TryGetPropertyValue(Int32& id, Single& value)
+  M: Boolean IsPropertyClonable(Int32& id)
+  M: Boolean _TryGetStorageClassData(ItemStorageClass itemStorageClass, StorageClassData& data)
+  M: Boolean SandSailorStudio_Attributes_IPropertyContainer_TryGetProperty(Int32& id, Property& property)
+  M: Boolean SandSailorStudio_Attributes_IPropertyContainer_HasProperty(Int32& id)
+  M: Boolean SandSailorStudio_Attributes_IPropertyContainer_TryGetPropertyValue(Int32& id, Single& value)
+
+=== 5. Any type with an 'EquipPoint' / equipment-slot container link ===
+  SandSailorStudio.Inventory.EquipPointActionTarget  : InventoryActionTarget
+      P: _point : EquipPoint
+  Invector.vItemManager.vEquipSlot  : vItemSlot
+      P: itemType : List`1
+      P: clickToOpen : Boolean
+      P: autoDeselect : Boolean
+      P: onCancel : UnityEvent
+  Invector.vItemManager.EquipPoint  : Object
+      P: equipPointName : String
+      P: equipmentReference : EquipmentReference
+      P: area : vEquipArea
+      P: handler : vHandler
+      P: onInstantiateEquiment : OnInstantiateItemObjectEvent
+  SandSailorStudio.Inventory.EquipPoint  : Object
+      P: OnItemAttatched : Action`1
+      P: name : String
+      P: id : Int32
+      P: handle : Transform
+      P: subHandles : List`1
+      P: ids : List`1
+      P: containerType : ItemContainerType
+      P: OnSetItemUnityEvent : OnGameObjectUnityEvent
+      P: _item : EquipmentItem
+      P: _itemObject : GameObject
+      P: _itemContainer : ItemContainer
+      P: _equipmentManager : EquipmentManager
+      P: _rendererList : List`1
+      P: _itemCullContext : CullContext
+      P: ItemContainer : ItemContainer
+
+DONE

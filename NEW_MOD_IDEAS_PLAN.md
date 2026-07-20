@@ -798,7 +798,47 @@ by other mods.** (Cecil pass 2026-07-20, `_explore/cecil_craft_from_storage*.ps1
   - Fallback movers if `Transfer` misbehaves: per-container `RemoveItem` + `AddItems`
     (in-game-proven by OuthouseComposter, host/solo).
 
-**Approach (phased):**
+**PHASE 0 PARTLY RUN (in-game 2026-07-20, CraftFromStorageMod v0.1.1). Results rewrite the
+approach below — read this block first:**
+- ✅ `CheckOwnedRequirements` **fires (not inlined)** and is the OUTER gate (it calls
+  `_CheckOwnedBlueprintManifest` internally) → it is THE single availability lever.
+- ⚠️ **Villagers ride the same gate** (`agent=Villager` observed on it) — the villager-leak risk
+  is REAL, not theoretical. Agent-gating is mandatory, not optional.
+- ✅ `useAgentInventory=True` on a workshop table (station consults the AGENT's inventory).
+- ❌ **The UI available/unavailable split is NOT ingredient-based** (`Available=96,
+  Unavailable=0` while clicking unaffordable recipes) — it's knowledge/unlock based. Phase 1's
+  UI work must target the per-button gray-out, not this list.
+- ❌ **`_OnCraftingSuccess` is NOT the consumption site** (PRE==POST inventory across a real
+  rope craft) — so it cannot anchor the transfer timing. ⚠️ The real consumption site is still
+  unidentified; `_CraftRoutine` / `CraftingStation` are next.
+- ❌ **`Settlement.QuerySettlementResources()` HANGS the game** (AppHangB1, confirmed in-game) —
+  the planned "one clean settlement-wide read" is a dead-end. Use the `GetStructures()` +
+  per-structure `GetComponent<ItemContainerComponent>()` walk instead. Full evidence:
+  architecture.md → Player crafting pipeline.
+- ✅ **Census ran (v0.1.2, 2026-07-20):** 417 structures → 141 containers, 13,630 items. The
+  read half works via `GetStructures()`. Blacklist/whitelist ground truth (container-type
+  frequencies, biggest holders, and the containers that must NEVER be drained —
+  CharacterFlask/CharacterBuilder/ArmorRackHead/Storage_Core/decorations/Outhouse) is recorded in
+  architecture.md → Player crafting pipeline → "Settlement storage census ground truth".
+- ⚠️ **Two census limitations to design around:** (1) first-container-per-structure MISSES real
+  crafting-station storage (stations reported CharacterFlask / `?` instead) — enumerate all
+  containers, or use `Workstation.GetInventory()`; (2) structure display names repeat across
+  distinct buildings (141 containers → 91 distinct names) — key by world position, never name.
+- 🔁 **Blacklist design CHANGED by the census: go structural, not name-based.** Equipment-slot
+  containers are a real mechanism (`EquipPoint` owns an `ItemContainer` + its own
+  `containerType`), so Phase 1 should skip containers reachable from an
+  `EquipPoint`/`EquipmentManager` instead of matching a hardcoded type-name list — a name list
+  built from one settlement would silently drain armor racks in worlds with buildings we never
+  saw (a real defect for a Nexus release). Evidence + the ⚠️ open "is `CharacterBuilder` the
+  armorer mannequin?" question: architecture.md → Player crafting pipeline.
+- ❗ **THE REMAINING BLOCKER: the ingredient-consumption site is still unidentified.** Phase 1
+  cannot be written until it is found — `RemoveOwnedItemManifest` consumes only what is present,
+  so mistimed transfer = item duplication in a live save. Next candidates to trace:
+  `CraftInteractionDisplay._CraftRoutine` (the craft coroutine), `CraftingStation`, and
+  `ItemCollection.RemoveOwnedItemManifest` itself (patch it and log the caller/stack to find who
+  actually calls it).
+
+**Approach (phased) — as originally researched; amend per the Phase 0 results above:**
 - **Phase 0 — read-only diagnostic spike (CraftFromStorageMod v0.1.x, diagnostics default ON):**
   fire-verification postfix log lines on `CheckOwnedRequirements`, `_CheckOwnedBlueprintManifest`,
   `BeginCraftingSequence` (×3 impls), `_OnCraftingSuccess` (×2), `ActivateBlueprint`, and
