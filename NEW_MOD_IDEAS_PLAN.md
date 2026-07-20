@@ -740,6 +740,104 @@ visually remove the body cleanly; are deer/boar `Monster` too.
 
 ---
 
+## 17. Craft from settlement storage — new mod (research 2026-07-20)
+
+**Goal:** when the player crafts at a station table (armorer, metalworker, carpenter, …), count
+materials sitting in ANY non-blacklisted settlement storage as available — and actually consume
+them — instead of requiring them in the station's local storage or the player's inventory.
+
+**Source:** Nexus comment (rondi112, 2026-07-20): "a mod that pulls resources from all storages?
+Like crafting from chests."
+
+**Scope note:** villager crafters already work this way natively (CrafterFetchQuest hauls
+materials in) — this is player-at-the-table QoL only, and all changes MUST be gated to the
+player agent so villager crafting logic is untouched.
+
+**Verdict: feasible — every needed primitive is either Cecil-confirmed or already in-game-proven
+by other mods.** (Cecil pass 2026-07-20, `_explore/cecil_craft_from_storage*.ps1` + out files.)
+
+**Cecil-confirmed ground truth (2026-07-20; runtime behavior ⚠️ pending unless noted):**
+- **Family tree — one base class covers all craft tables:** `SSSGame.CraftInteraction :
+  Interaction`; `AnvilInteraction : CraftInteraction`; `CarpenterInteraction : AnvilInteraction`;
+  `DyeingInteraction : CraftInteraction`. (`ForgeInteraction : CookingInteraction` is
+  cooking-family — out of v1 scope.)
+- **Gate candidates on `CraftInteraction`** (sole declarations; no other type redeclares the
+  first two):
+  - `Boolean CheckOwnedRequirements(Blueprint bp, IInteractionAgent agent)` — public,
+    NON-virtual → inlining risk, must fire-verify. Safe params.
+  - `Boolean _CheckOwnedBlueprintManifest(ItemManifest, IInteractionAgent)` — protected
+    VIRTUAL (vtable-safe). ⚠️ `ItemManifest` param is inventory-adjacent; not in the confirmed
+    patch-crash family (`Item`/`ItemCollection`/`ItemEventContext`) but treat as the riskiest
+    patch — if plugin-load hard-crashes, drop this one patch first.
+  - `Void BeginCraftingSequence(InteractionSession)` — virtual; overridden by
+    `AnvilInteraction` + `DyeingInteraction` (patch all three impls).
+  - `Void _OnCraftingSuccess(IInteractionAgent)` — virtual; overridden by `DyeingInteraction`.
+    Likely consumption site (see primitives below). `craftingEvents.onCraftSuccess : UnityEvent`.
+- **Station-side state:** `inventory`/`blueprintInventory : InventoryComponent`,
+  `useAgentInventory : Boolean` (some tables use the agent's inventory!), `ItemInventory :
+  ItemCollection` (property), `ActiveBlueprint : CraftBlueprint` / `ActivateBlueprint(bp)`,
+  static scratch `s_bpManifest : ItemManifest`.
+- **UI chain:** `PlayerCraftInteractionSession` (`_OpenMenu`, `_BeginCraftInput(CallbackContext)`)
+  → `SSSGame.UI.CraftMenu : ContextMenu` (`GetCraftStationInventory()`, `GetCraftInteraction()`)
+  → `CreateItemsTabPage : TabPage` — recipe list built by async `_CreateItems()`; partitions into
+  `_availableBlueprints`/`_unavailableBlueprints`, but its `_blueprintConditionsDatabase` +
+  `_knowledgeManager` fields suggest that split is knowledge/unlock-based, with ingredient
+  graying done per-button (`itemButton : ItemThumbnailPanel` — the class FishFilletMod already
+  patches successfully) or in `ItemDetailsPanel`/`ItemManifestDisplayer`. ⚠️ which check drives
+  the gray-out needs the Phase 0 live trace.
+- **Inventory primitives (`SandSailorStudio.Inventory`):**
+  - `ItemCollection.ContainsItemManifest(ItemManifest) : Int32` — how many times a manifest fits
+    (= craftable count); `RemoveOwnedItemManifest(ItemManifest)` — manifest-shaped removal,
+    the likely vanilla consumption call ("Owned" = clamped to what's present → **dupe risk**, see
+    risks); `FillOwnedItemManifest(...)`.
+  - `ItemManifest.Transfer(ItemCollection source, ItemCollection destination, Boolean copy)` —
+    the game's own manifest-shaped bulk mover: THE just-in-time transfer primitive.
+  - Settlement-wide counts: `Settlement.QuerySettlementResources()` (in-game-proven); storage
+    enumeration/blacklist via `GetStorageSites()`/`GetStructures()` + `OwnerStructure` name
+    matching (in-game-proven patterns from OuthouseComposter/SupplyChain).
+  - Fallback movers if `Transfer` misbehaves: per-container `RemoveItem` + `AddItems`
+    (in-game-proven by OuthouseComposter, host/solo).
+
+**Approach (phased):**
+- **Phase 0 — read-only diagnostic spike (CraftFromStorageMod v0.1.x, diagnostics default ON):**
+  fire-verification postfix log lines on `CheckOwnedRequirements`, `_CheckOwnedBlueprintManifest`,
+  `BeginCraftingSequence` (×3 impls), `_OnCraftingSuccess` (×2), `ActivateBlueprint`, and
+  `CreateItemsTabPage._CreateItems`. Log: agent type (player vs villager), `useAgentInventory`,
+  blueprint name, result, and `ItemInventory` counts vs blueprint manifest before/after
+  `_OnCraftingSuccess`. Answers: which gate the UI actually calls (and whether the non-virtual
+  `CheckOwnedRequirements` fires at all or is inlined), what re-validates at craft time, where
+  consumption happens, and what drives the per-recipe gray-out.
+- **Phase 1 — the mod:** (a) availability: postfix the Phase-0-confirmed gate — when vanilla says
+  false AND agent is the local player AND station stock + settlement-wide non-blacklisted stock
+  covers the manifest → flip true. (b) just-in-time transfer: host-gated prefix on the three
+  `BeginCraftingSequence` impls — compute shortfall (bp manifest minus `ItemInventory` content),
+  pull it from non-blacklisted settlement storages into the station collection
+  (`ItemManifest.Transfer`), so vanilla validation + consumption then run untouched against local
+  stock. Availability must fail closed: only report true if the transfer would succeed.
+  (c) UI gray-out: per Phase 0 — if buttons stay gray despite (a), patch the per-button count
+  source (`ItemThumbnailPanel`-level).
+- **Phase 2 (optional):** cooking-family tables (`ForgeInteraction`), config polish (blacklist
+  list, prefer-player-inventory-first toggle, max-pull-distance).
+
+**⚠️ verify / risks:**
+- **Dupe risk is structural:** `RemoveOwnedItemManifest` removes only what's present, so a craft
+  that passes a faked availability check without a completed transfer would consume partial
+  ingredients and still produce output. The transfer prefix must run BEFORE vanilla's craft-time
+  validation, and availability must never report true unless the pull can actually complete.
+- **Villager leak:** the same gates are agent-parameterized and villager sessions
+  (`VillagerCraftSession`) plausibly ride them; an un-gated availability patch would make
+  villagers craft from thin air. Gate every change on the agent being the local player.
+- **Inlining:** `CheckOwnedRequirements` is non-virtual → the patch may silently never fire;
+  Phase 0 exists to catch exactly this (fallback lever: virtual `_CheckOwnedBlueprintManifest`).
+- **Co-op:** all writes host-gated; whether `ItemManifest.Transfer`/container writes replicate to
+  clients is the standing unknown — v1 ships host/solo like the rest of the roster.
+- **Blacklist semantics:** default-exclude the Outhouse (composter input — don't let crafting
+  drain it) and probably other stations' input storages (the SupplyChain warehouse-theft lesson:
+  cross-station input raiding causes fetch loops); warehouses/generic storage are the intended
+  sources.
+
+---
+
 ## Cross-cutting notes
 - Every new lever above is host-authoritative: gate on authority, prefer the game's own
   networked methods (`ReplenishCharges`, `Revive`, `RemoveObjectFromWorld`).

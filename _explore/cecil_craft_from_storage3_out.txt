@@ -1,0 +1,162 @@
+﻿==================================================================
+PASS E: CreateItemsTabPage + base chain + nested
+==================================================================
+
+---- SSSGame.UI.CreateItemsTabPage (base: SandSailorStudio.UI.TabPage) ----
+  P: newCreateTaskPage : CreateOrEditTaskPage
+  P: createTaskPage : CreateTaskTabPage
+  P: itemsListRect : RectTransform
+  P: itemButton : ItemThumbnailPanel
+  P: errorMessage : TMP_Text
+  P: detailsPanel : ItemDetailsPanel
+  P: dropdownCategs : Il2CppReferenceArray`1
+  P: dropdownCategories : Il2CppReferenceArray`1
+  P: _DropdownPreferences_k__BackingField : Property
+  P: _availableBlueprints : List`1
+  P: _unavailableBlueprints : List`1
+  P: _blueprintConditionsDatabase : BlueprintConditionsDatabase
+  P: _knowledgeManager : NetworkKnowledgeManager
+  P: _createItemsTask : Task
+  P: _cancelTaskRequested : Boolean
+  P: _openingButton : GameObject
+  P: _dropdownCategMap : Dictionary`2
+  P: AvailableBlueprints : List`1
+  P: UnavailableBlueprints : List`1
+  P: DropdownPreferences : Property
+  M: Void .cctor()
+  M: Void Awake()
+  M: Void Show(Boolean value, TabButton button) [virt]
+  M: Void SaveDropdownPreferences()
+  M: Boolean TryLoadDropdownPreferencesFromWorkstation(IWorkstation ws)
+  M: Void CreateItemsAsync()
+  M: Task _CreateItems()
+  M: Void _RefreshDropdownsExpandState()
+  M: DropdownElement _FindDropdownParent(ItemInfo info)
+  M: Void Init(TabButton button) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+  NESTED: _CreateItemsAsync_d__30, __CreateItems_d__31
+
+---- SandSailorStudio.UI.TabPage (base: UnityEngine.MonoBehaviour) ----
+  P: c_Padding : Single
+  P: title : RectTransform
+  P: subTitle : RectTransform
+  P: AutoPosition : Boolean
+  P: placeOnLeft : Boolean
+  P: indicatorArrow : RectTransform
+  P: _active : Boolean
+  P: _positionConstraint : PositionConstraint
+  P: _lastPositionTarget : Vector3
+  P: _autoPositioningInitialized : Boolean
+  P: _rectTransform : RectTransform
+  P: _parentRectTransform : RectTransform
+  P: _lastPageHeight : Single
+  P: _autoPositionDirty : Boolean
+  P: _lastButtonAutoPositioning : TabButton
+  M: Void .cctor()
+  M: Void Awake() [virt]
+  M: Void Update()
+  M: Void Show(Boolean value, TabButton button) [virt]
+  M: Void Init(TabButton button) [virt]
+  M: Boolean IsBusyClosing() [virt]
+  M: Void _DeactivateAndRemoveAllConstraintSources()
+  M: Void OnRectTransformDimensionsChange()
+  M: Void _HandleBoxPosition(TabButton button) [virt]
+  M: Void _InitializeForAutoPositioning()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+(chain stops at UnityEngine.MonoBehaviour)
+
+==================================================================
+PASS F: UI types matching CreateItem|ItemSlot|BlueprintSlot|RecipeSlot|CraftableItem|ItemTabPage
+==================================================================
+  SSSGame.UI.CreateItemsTabPage  : TabPage
+  SSSGame.UI.CreateItemsTabPage/_CreateItemsAsync_d__30  : ValueType
+  SSSGame.UI.CreateItemsTabPage/__CreateItems_d__31  : ValueType
+  SSSGame.UI.ItemManifestDisplayer/__CreateItemPanels_d__8  : ValueType
+
+==================================================================
+PASS G: InventoryComponent + ItemCollection key surface
+==================================================================
+
+---- SandSailorStudio.Inventory.InventoryComponent (base: UnityEngine.MonoBehaviour) ----
+  P: items : ItemCollection
+  P: startItems : ItemInfoList
+  P: initialized : Boolean
+  P: _setup : Boolean
+  M: Void .cctor()
+  M: ItemCollection GetItemCollection() [virt]
+  M: Void Awake() [virt]
+  M: Void Start() [virt]
+  M: Void OnDestroy() [virt]
+  M: Void _AddStartingItems() [virt]
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+-- ItemCollection: methods matching manifest|contains|check|quantity --
+  M: Int32 GetItemQuantity(ItemInfo itemInfo)
+  M: Int32 GetItemsQuantity(IItemFilter filter)
+  M: Void FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter)
+  M: Int32 ContainsItemManifest(ItemManifest itemManifest)
+  M: Int32 GetTotalItemsQuantity()
+  M: Boolean OverlapsItemManifest(ItemManifest itemManifest)
+  M: Void RemoveOwnedItemManifest(ItemManifest itemManifest)
+  M: Boolean HasItem(ItemInfo itemInfo)
+  M: Boolean HasItem(IItemFilter itemFilter)
+
+-- ItemManifest: full method surface --
+  M: Void .cctor()
+  M: ItemManifest CreateFromBlueprint(BlueprintInfo bpInfo)
+  M: ItemManifest CreateFromItemObject(ItemInfo info)
+  M: ItemManifest CreateFromComponents(ItemInfo info, Boolean includeChanceComponent)
+  M: ItemManifest CreateFromFilter(ItemCollection collection, IItemFilter filter)
+  M: ItemManifest CreateFromContainer(ItemContainer container)
+  M: Void .ctor()
+  M: Void FillItem(ItemInfo item, ItemCollection inventory)
+  M: Void Fill(ItemManifest other, IItemFilter itemFilter)
+  M: Void FillUpToMax(ItemManifest other, ItemManifest max, IItemFilter itemFilter)
+  M: Void FillUpToMax(ItemManifest other, ItemManifest max1, ItemManifest max2, IItemFilter itemFilter)
+  M: Void FillMax(ItemManifest other, IItemFilter itemFilter)
+  M: Void FillExcluded(ItemManifest other, IItemFilter itemFilter)
+  M: Void Fill(ItemManifest other, Int32 multiplier, IItemFilter itemFilter)
+  M: Void Fill(ItemSelection selection, ItemCollection collection)
+  M: Void FillRemainingCapacity(ItemManifest other, Func`2 remainingCapacityFunc)
+  M: Void AddParts(BlueprintInfo bpInfo)
+  M: Void AddInfoList(ItemInfoList infoList, Int32 count)
+  M: Void AddItem(ItemInfo item, Int32 quantity)
+  M: Void RemoveAll(ItemInfo item)
+  M: Void RemoveAll(IItemFilter itemFilter)
+  M: Void RemoveItem(ItemInfo item, Int32 quantity)
+  M: Void Multiply(Int32 amount)
+  M: Void Multiply(Single ammount)
+  M: Int32 GetQuantity(ItemInfo item)
+  M: Int32 GetItemsQuantity(IItemFilter filter)
+  M: Int32 GetTotalQuantity()
+  M: Void Clear()
+  M: Int32 GetItemInfoCount()
+  M: Boolean ContainsKeys(ItemManifest itemManifest, IItemFilter itemFilter)
+  M: Int32 Contains(ItemManifest itemManifest)
+  M: Void RemoveFromManifest(ItemManifest otherManifest)
+  M: Boolean Overlaps(ItemManifest itemManifest)
+  M: Boolean HasItem(IItemFilter itemFilter)
+  M: Void Transfer(ItemCollection source, ItemCollection destination, Boolean copy)
+  M: Void Transfer(ItemCollection from, ItemContainer to)
+  M: Void Transfer(ItemContainer from, ItemCollection to)
+  M: Void SpawnItemsInArea(Bounds bounds, Boolean snapToTerrain, Single spawnChance)
+  M: List`1 GetItems()
+  M: Int32 GetTopQuantity(ItemInfo& topItem, IItemFilter itemFilter)
+  M: Void GetItems(List`1 itemInfoQuantities)
+  M: List`1 GetItemsList()
+  M: Void PopulateItemsList(List`1 list)
+  M: Boolean Check(ItemInfo itemInfo) [virt]
+  M: Void WriteSnapshot(BinaryWriter writer) [virt]
+  M: Void WriteSnapshot(BinaryWriter writer, Int32 maxItemInfoCount)
+  M: Void ReadSnapshot(BinaryReader reader) [virt]
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+DONE

@@ -1,0 +1,305 @@
+﻿==================================================================
+PASS A: all types transitively deriving from CraftInteraction / Interaction subtree of interest
+==================================================================
+  SSSGame.AnvilInteraction  (chain: SSSGame.CraftInteraction <- SSSGame.Interaction <- UnityEngine.MonoBehaviour)
+  SSSGame.CarpenterInteraction  (chain: SSSGame.AnvilInteraction <- SSSGame.CraftInteraction <- SSSGame.Interaction <- UnityEngine.MonoBehaviour)
+  SSSGame.DyeingInteraction  (chain: SSSGame.CraftInteraction <- SSSGame.Interaction <- UnityEngine.MonoBehaviour)
+
+-- Interaction-derived types with 'Craft|Anvil|Carpenter|Dye|Forg|Workshop' in name --
+  SSSGame.AnvilInteraction  : CraftInteraction
+  SSSGame.CarpenterInteraction  : AnvilInteraction
+  SSSGame.CraftInteraction  : Interaction
+  SSSGame.DyeingInteraction  : CraftInteraction
+  SSSGame.ForgeInteraction  : CookingInteraction
+
+==================================================================
+PASS B: override map - who redeclares the family methods
+==================================================================
+
+-- CheckOwnedRequirements --
+  SSSGame.CraftInteraction :: Boolean CheckOwnedRequirements(Blueprint bp, IInteractionAgent agent)
+
+-- _CheckOwnedBlueprintManifest --
+  SSSGame.CraftInteraction :: Boolean _CheckOwnedBlueprintManifest(ItemManifest itemManifest, IInteractionAgent agent) [virt]
+
+-- BeginCraftingSequence --
+  SSSGame.AnvilInteraction :: Void BeginCraftingSequence(InteractionSession session) [virt]
+  SSSGame.AnvilInteractionDisplay :: Void BeginCraftingSequence(InteractionSession interactionSession) [virt]
+  SSSGame.CraftInteraction :: Void BeginCraftingSequence(InteractionSession session) [virt]
+  SSSGame.CraftInteractionDisplay :: Void BeginCraftingSequence(InteractionSession interactionSession) [virt]
+  SSSGame.DyeingInteraction :: Void BeginCraftingSequence(InteractionSession session) [virt]
+
+-- _OnCraftingSuccess --
+  SSSGame.CraftInteraction :: Void _OnCraftingSuccess(IInteractionAgent agent) [virt]
+  SSSGame.DyeingInteraction :: Void _OnCraftingSuccess(IInteractionAgent agent) [virt]
+
+-- CheckAgent --
+  SSSGame.PaintInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.BellowsInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.CraftInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.KilnInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.ActivationInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.CartInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.DoorInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.FarmCropInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.Interaction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.LadderInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.PenInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.PrayInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.RowingInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.SimpleInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.StowCreatureInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.TerraformingFieldInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.TerraformingSplineInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.FireInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.FishingInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.GatherInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.PickupInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  SSSGame.Water.BoatInteraction :: Boolean CheckAgent(IInteractionAgent agent) [virt]
+
+-- Use --
+  SandSailorStudio.Inventory.InventoryActionTarget :: Void Use() [virt]
+  SandSailorStudio.Inventory.EquipPointActionTarget :: Void Use() [virt]
+  SandSailorStudio.Inventory.ItemActionTarget :: Void Use() [virt]
+  SSSGame.BuildInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.PaintInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.RepairInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.CartInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.CommandInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.DoorInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.FarmCropInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.Interaction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.LadderInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.PenInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.PetInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.PlayerInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.RestInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.RowingInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.SimpleInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.StowCreatureInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.TerraformingFieldInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.TerraformingSplineInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.RefuelInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.Consumable :: Boolean Use(GameObject target) [virt]
+  SSSGame.ContainerItem :: Boolean Use(GameObject owner) [virt]
+  SSSGame.PaintCustomActionEventData :: Void Use() [virt]
+  SSSGame.DyeItem :: Boolean Use(GameObject target) [virt]
+  SSSGame.GatherInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.HarvestInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.Water.BoatInteraction :: Boolean Use(IInteractionAgent agent) [virt]
+  SSSGame.UI.ContextMenu/HarvestCustomActionEventData :: Void Use() [virt]
+
+-- _TryInteract --
+  SSSGame.Interaction :: Boolean _TryInteract(IInteractionAgent interactor, Action onDelayedSessionStart) [virt]
+  SSSGame.ProxyActivatableInteraction :: Boolean _TryInteract(IInteractionAgent interactor, Action onDelayedSessionStart) [virt]
+
+==================================================================
+PASS C: display / UI / session / config surfaces
+==================================================================
+
+---- SSSGame.CraftInteractionDisplay (base: UnityEngine.MonoBehaviour) ----
+  P: tableDisplaySlot : Transform
+  P: _leftHandDisplayObj : GameObject
+  P: _rightHandDisplayObj : GameObject
+  P: _tableDisplayObj : GameObject
+  P: _craftRoutine : Coroutine
+  M: Void .cctor()
+  M: Void StartSession(InteractionSession interactionSession) [virt]
+  M: Void BeginCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void EndCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void EndSession(InteractionSession interactionSession, InteractionSessionState reason) [virt]
+  M: Void _ClearDisplayObjects() [virt]
+  M: IEnumerator _CraftRoutine(InteractionSession interactionSession) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 (base: Il2CppSystem.Object) ----
+  P: __1__state : Int32
+  P: __2__current : Object
+  P: interactionSession : InteractionSession
+  P: __8__1 : __c__DisplayClass10_0
+  P: __4__this : CraftInteractionDisplay
+  P: _bpInfo_5__2 : CraftBlueprintInfo
+  P: _agentHand_5__3 : Transform
+  P: _agentOffHand_5__4 : Transform
+  P: _canSpawnPartsInHands_5__5 : Boolean
+  P: System.Collections.Generic.IEnumerator<System.Object>.Current : Object
+  P: System.Collections.IEnumerator.Current : Object
+  M: Void .cctor()
+  M: Void .ctor(Int32 <>1__state)
+  M: Void System_IDisposable_Dispose() [virt]
+  M: Boolean MoveNext() [virt]
+  M: Object System_Collections_Generic_IEnumerator_System_Object__get_Current() [virt]
+  M: Void System_Collections_IEnumerator_Reset() [virt]
+  M: Object System_Collections_IEnumerator_get_Current() [virt]
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.AnvilInteractionDisplay (base: SSSGame.CraftInteractionDisplay) ----
+  P: randomCookedRange : RangedFloat
+  P: _craftProgress : Single
+  P: _displayItem : Item
+  M: Void .cctor()
+  M: Void BeginCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void EndCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void _OnAnvilHitSuccess()
+  M: IEnumerator _CraftRoutine(InteractionSession interactionSession) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.UI.CraftMenu (base: SSSGame.UI.ContextMenu) ----
+  P: SelectItemTabPage : CreateItemsTabPage
+  P: _params : CraftMenuParameters
+  M: Void .cctor()
+  M: Void OnSetup(MenuParameters parameters) [virt]
+  M: Void OnActivate() [virt]
+  M: InventoryComponent GetCraftStationInventory()
+  M: CraftingStation GetCraftingStation()
+  M: CraftInteraction GetCraftInteraction()
+  M: PlayerCraftInteractionSession GetSession()
+  M: Void OnClosed() [virt]
+  M: Void _TryEndSession()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.UI.CraftMenu/CraftMenuParameters (base: SandSailorStudio.UI.MenuParameters) ----
+  P: session : InteractionSession
+  M: Void .cctor()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.PlayerCraftInteractionConfig (base: SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>) ----
+  P: craftMoveset : InteractionMoveset
+  P: interactSlot : InteractSlot
+  P: deniedSlot : InteractSlot
+  P: progressBar : InteractSlot_Bar
+  P: widgetMessage : String
+  P: widgetMessageDenied : String
+  P: inputContext : Context
+  P: craftActionName : String
+  P: debugBlueprint : CraftBlueprintInfo
+  M: Void .cctor()
+  M: Boolean CheckInteractionType(Interaction interaction) [virt]
+  M: InteractionSession CreateSession(Interaction interaction, IInteractionAgent agent) [virt]
+  M: Dictionary`2 GetLocalizationStrings() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession (base: SSSGame.InteractionSession) ----
+  P: _volumeProgress : Single
+  P: _volumeTarget : Single
+  P: _widgetProvider : IInteractionWidgetProvider
+  P: _touched : Boolean
+  P: CraftConfig : PlayerCraftInteractionConfig
+  P: CraftInteraction : CraftInteraction
+  P: DisplayOrder : Int32
+  P: GetProgressRatio : Single
+  M: Void .cctor()
+  M: Void Touch() [virt]
+  M: Void Untouch() [virt]
+  M: Void Start() [virt]
+  M: Void _OpenMenu() [virt]
+  M: Void Update() [virt]
+  M: Void End(InteractionSessionState lastResult) [virt]
+  M: Void ResetSession() [virt]
+  M: Void _BeginCraftInput(CallbackContext obj)
+  M: Void SetupWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void RefreshWidgetData(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void ClearWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: CullingState GetCullingState() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.VillagerCraftInteractionConfig (base: SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>) ----
+  P: craftMoveset : InteractionMoveset
+  P: craftActionName : String
+  M: Void .cctor()
+  M: Boolean CheckInteractionType(Interaction interaction) [virt]
+  M: InteractionSession CreateSession(Interaction interaction, IInteractionAgent agent) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession (base: SSSGame.InteractionSession) ----
+  P: _volumeProgress : Single
+  P: _volumeTarget : Single
+  P: CraftConfig : VillagerCraftInteractionConfig
+  P: CraftInteraction : CraftInteraction
+  P: Villager : Villager
+  P: GetProgressRatio : Single
+  M: Void .cctor()
+  M: Void Start() [virt]
+  M: Void Update() [virt]
+  M: Void End(InteractionSessionState lastResult) [virt]
+  M: CullingState GetCullingState() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftInteraction/CraftingEvents (base: Il2CppSystem.Object) ----
+  P: onCraftSuccess : UnityEvent
+  M: Void .cctor()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.ICraftingSession (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: GetProgressRatio : Single
+  M: Void .cctor()
+  M: CullingState GetCullingState() [virt]
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.ICraftInteraction (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: Inventory : ItemCollection
+  P: LocalBlueprintsList : ItemInfoList
+  M: Void .cctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftingStation/CraftingProject (base: Il2CppSystem.Object) ----
+  P: craftingStation : CraftingStation
+  P: craftingQuest : CraftingQuest
+  P: fetchQuestSpecific : CrafterSpecificFetchQuest
+  P: taskData : CraftingStationTaskData
+  P: crafters : List`1
+  P: pendingRemake : Boolean
+  P: _productsAdded : Int32
+  P: _productManifest : ItemManifest
+  M: Void .cctor()
+  M: Void .ctor(CraftingStation craftingStation, CraftingStationTaskData taskData)
+  M: Void Init()
+  M: Void Dispose()
+  M: Void RemakeQuest()
+  M: ItemManifest GetProductManifest()
+  M: Void _CreateCraftingQuest()
+  M: Void _OnTaskDataChanged()
+  M: Void _OnStationEvent(Int32 evId, IEventData evData)
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.InteractionSession (base: Il2CppSystem.Object) ----
+  P: _Config_k__BackingField : InteractionConfiguration
+  P: _Agent_k__BackingField : IInteractionAgent
+  P: _Interaction_k__BackingField : Interaction
+  P: _SessionState_k__BackingField : InteractionSessionState
+  P: Config : InteractionConfiguration
+  P: Agent : IInteractionAgent
+  P: Interaction : Interaction
+  P: SessionState : InteractionSessionState
+  M: Void .cctor()
+  M: Void Start() [virt]
+  M: Void End(InteractionSessionState lastResult) [virt]
+  M: Void Touch() [virt]
+  M: Void Untouch() [virt]
+  M: Void Update() [virt]
+  M: Void ResetSession() [virt]
+  M: String GetPartyInteractName(String interactionName)
+  M: String GetPartyAbortInteractName(String interactionName)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+  [NOT FOUND] SSSGame.InventoryComponent
+
+==================================================================
+PASS D: global scan - sibling availability/consumption method names (any type)
+==================================================================
+  SSSGame.CuringQuest :: Boolean CanCraftAtWorkshop() [virt]
+  SSSGame.CraftingQuest :: Boolean CanCraftAtWorkshop() [virt]
+  SSSGame.CraftInteraction :: Boolean CheckOwnedRequirements(Blueprint bp, IInteractionAgent agent)
+  Invector.vItemManager.vItemsCraftableDisplay :: Boolean CanCraftItem() [virt]
+  Invector.vItemManager.vItemsCraftableDisplay :: Boolean CanCraftItem(vItem item) [virt]
+
+DONE

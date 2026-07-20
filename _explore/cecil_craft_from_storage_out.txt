@@ -1,0 +1,302 @@
+﻿==================================================================
+PASS 0: all types matching (?i)craft (name, base)
+==================================================================
+SSSGame.CraftingQuest  : WorkstationQuest
+SSSGame.CraftingQuest/CraftingQuestData  : WorkstationQuestData
+SSSGame.CrafterSpecificFetchQuest  : CrafterFetchQuest
+SSSGame.CrafterFetchQuest  : WorkstationQuest
+SSSGame.CrafterFetchQuest/CrafterFetchQuestData  : WorkstationQuestData
+SSSGame.CrafterResultsQuest  : WorkstationQuest
+SSSGame.CrafterResultsQuest/CrafterResultsQuestData  : WorkstationQuestData
+SSSGame.CrafterComplainQuest  : WorkstationQuest
+SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData  : WorkstationQuestData
+SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6  : Object
+SSSGame.ICraftingSession  : Il2CppObjectBase
+SSSGame.ICraftInteraction  : Il2CppObjectBase
+SSSGame.CraftInteraction  : Interaction
+SSSGame.CraftInteraction/CraftingEvents  : Object
+SSSGame.CraftInteractionDisplay  : MonoBehaviour
+SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10  : Object
+SSSGame.CraftingAgent  : MonoBehaviour
+SSSGame.CraftingStationType  : Enum
+SSSGame.CraftingStation  : Workstation
+SSSGame.CraftingStation/CraftingProject  : Object
+SSSGame.ICraftingAgent  : Il2CppObjectBase
+SSSGame.PlayerCraftInteractionConfig  : InteractionConfiguration`1
+SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession  : InteractionSession
+SSSGame.VillagerCraftInteractionConfig  : InteractionConfiguration`1
+SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession  : InteractionSession
+SSSGame.CraftBlueprintInfo  : BlueprintInfo
+SSSGame.CraftBlueprint  : Blueprint
+SSSGame.Network.NetworkCraftingStation  : NetworkWorkstation`1
+SSSGame.Network.NetworkCraftingStation_128  : NetworkCraftingStation
+SSSGame.Network.NetworkCraftingStation_32  : NetworkCraftingStation
+SSSGame.Network.NetworkCraftingStation_8  : NetworkCraftingStation
+SSSGame.Deeds.CraftEventData  : ValueType
+SSSGame.Deeds.PlayerCraftingDeedCondition  : DeedCondition
+SSSGame.UI.BuildPreviewTabPage/__WaitForCraft_d__39  : Object
+SSSGame.UI.BuildPreviewTabPage/__WaitForCraftInteraction_d__38  : Object
+SSSGame.UI.CraftMenu  : ContextMenu
+SSSGame.UI.CraftMenu/CraftMenuParameters  : MenuParameters
+SSSGame.AI.ItemCraftStep  : InteractionStep
+SSSGame.AI.CraftingStationTaskData  : WorkstationTaskData
+SSSGame.AI.WorkstationIdleQuest/CraftStationIdleQuestData  : WorkstationQuestData
+SSSGame.AI.FSM.FSM_CraftDyes  : FSM_QuestAction
+SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeData  : Object
+SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeStage  : Enum
+SSSGame.AI.FSM.FSM_FetchCraftingSupplies  : FSM_QuestAction
+SSSGame.AI.FSM.FSM_ReturnCraftingResults  : FSM_QuestAction
+SSSGame.AI.FSM.FSM_ReturnCraftingSupplies  : FSM_QuestAction
+SSSGame.AI.FSM.FSM_UseCraftingStation  : FSM_QuestAction
+SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData  : Object
+SSSGame.AI.FSM.FSM_UseCraftingStation/CraftStage  : Enum
+Invector.vItemManager.vItemCraftAmountWindow  : MonoBehaviour
+Invector.vItemManager.vItemCraftMaterialSlot  : MonoBehaviour
+Invector.vItemManager.vItemCraftSlot  : vItemSlot
+Invector.vItemManager.vItemsCraftMaterialDisplay  : MonoBehaviour
+Invector.vItemManager.vItemsCraftMaterialDisplay/CanCraftDelegate  : MulticastDelegate
+Invector.vItemManager.vItemsCraftableDisplay  : MonoBehaviour
+Invector.vItemManager.vItemsCraftableDisplay/_CraftItemRoutine_d__16  : Object
+Invector.vItemManager.vItemCraft  : Object
+
+==================================================================
+PASS 1: CraftInteraction full surface + base chain
+==================================================================
+
+---- TYPE: SSSGame.CraftInteraction (base: SSSGame.Interaction) ----
+  F: NativeFieldInfoPtr_craftingEvents : IntPtr
+  F: NativeFieldInfoPtr_craftStationHost : IntPtr
+  F: NativeFieldInfoPtr_blueprint : IntPtr
+  F: NativeFieldInfoPtr_inventory : IntPtr
+  F: NativeFieldInfoPtr_blueprintInventory : IntPtr
+  F: NativeFieldInfoPtr_localBlueprintsList : IntPtr
+  F: NativeFieldInfoPtr_useAgentInventory : IntPtr
+  F: NativeFieldInfoPtr_craftActionId : IntPtr
+  F: NativeFieldInfoPtr__destroyed : IntPtr
+  F: NativeFieldInfoPtr__localBlueprints : IntPtr
+  F: NativeFieldInfoPtr__ownerStructure : IntPtr
+  F: NativeFieldInfoPtr__parentedHost : IntPtr
+  F: NativeFieldInfoPtr__parentedInv : IntPtr
+  F: NativeFieldInfoPtr_s_bpManifest : IntPtr
+  F: NativeMethodInfoPtr_get_OwnerStructure_Public_Virtual_Final_New_get_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr_get_ItemInventory_Public_Virtual_Final_New_get_ItemCollection_0 : IntPtr
+  F: NativeMethodInfoPtr_get_ActiveBlueprint_Public_Virtual_Final_New_get_CraftBlueprint_0 : IntPtr
+  F: NativeMethodInfoPtr_Awake_Protected_Virtual_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_OnDisable_Protected_Virtual_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_OnDestroy_Protected_Virtual_New_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_DestroyGameObject_Public_Void_GameObject_0 : IntPtr
+  F: NativeMethodInfoPtr_Finish_Public_Virtual_Void_IInteractionAgent_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr__OnStartSession_Protected_Virtual_Void_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__OnFinishSession_Protected_Virtual_Void_InteractionSession_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr_CheckAgent_Public_Virtual_Boolean_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_CheckOwnedRequirements_Public_Boolean_Blueprint_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_BeginCraftingSequence_Public_Virtual_New_Void_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__CheckOwnedBlueprintManifest_Protected_Virtual_New_Boolean_ItemManifest_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr__OnCraftingSuccess_Protected_Virtual_New_Void_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_KnowsBlueprintForItem_Public_Virtual_Final_New_Boolean_ItemInfo_byref_CraftBlueprint_0 : IntPtr
+  F: NativeMethodInfoPtr_ActivateBlueprint_Public_Virtual_Final_New_Boolean_CraftBlueprint_0 : IntPtr
+  F: NativeMethodInfoPtr_GetWorkstation_Public_Virtual_New_IWorkstation_0 : IntPtr
+  F: NativeMethodInfoPtr_GetTaskDescription_Public_Virtual_New_String_0 : IntPtr
+  F: NativeMethodInfoPtr_IsAvailable_Public_Virtual_New_Boolean_0 : IntPtr
+  F: NativeMethodInfoPtr_GetAvailableQuests_Public_Virtual_New_Void_List_1_Quest_0 : IntPtr
+  F: NativeMethodInfoPtr_Initialize_Public_Virtual_Final_New_Void_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr_OnBeforeDismantle_Public_Virtual_Final_New_Void_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr__OnAfterParentChange_Protected_Virtual_New_Void_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr__RemoveSelfFromHost_Protected_Virtual_New_Void_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr__ReparentToStructure_Protected_Void_Structure_0 : IntPtr
+  F: NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr
+  P: craftingEvents : CraftingEvents
+  P: craftStationHost : CraftingStation
+  P: blueprint : CraftBlueprint
+  P: inventory : InventoryComponent
+  P: blueprintInventory : InventoryComponent
+  P: localBlueprintsList : ItemInfoList
+  P: useAgentInventory : Boolean
+  P: craftActionId : Int32
+  P: _destroyed : Boolean
+  P: _localBlueprints : Dictionary`2
+  P: _ownerStructure : Structure
+  P: _parentedHost : Boolean
+  P: _parentedInv : Boolean
+  P: s_bpManifest : ItemManifest
+  P: OwnerStructure : Structure
+  P: ItemInventory : ItemCollection
+  P: ActiveBlueprint : CraftBlueprint
+  M: Void .cctor()
+  M: Void Awake() [virt]
+  M: Void OnDisable() [virt]
+  M: Void OnDestroy() [virt]
+  M: Void DestroyGameObject(GameObject gameObject)
+  M: Void Finish(IInteractionAgent agent, InteractionSessionState reason) [virt]
+  M: Void _OnStartSession(InteractionSession session) [virt]
+  M: Void _OnFinishSession(InteractionSession s, InteractionSessionState reason) [virt]
+  M: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  M: Boolean CheckOwnedRequirements(Blueprint bp, IInteractionAgent agent)
+  M: Void BeginCraftingSequence(InteractionSession session) [virt]
+  M: Boolean _CheckOwnedBlueprintManifest(ItemManifest itemManifest, IInteractionAgent agent) [virt]
+  M: Void _OnCraftingSuccess(IInteractionAgent agent) [virt]
+  M: Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint) [virt]
+  M: Boolean ActivateBlueprint(CraftBlueprint bp) [virt]
+  M: IWorkstation GetWorkstation() [virt]
+  M: String GetTaskDescription() [virt]
+  M: Boolean IsAvailable() [virt]
+  M: Void GetAvailableQuests(List`1 quests) [virt]
+  M: Void Initialize(Structure ownerStructure) [virt]
+  M: Void OnBeforeDismantle(Structure ownerStructure) [virt]
+  M: Void _OnAfterParentChange(Structure obj) [virt]
+  M: Void _RemoveSelfFromHost(Structure obj) [virt]
+  M: Void _ReparentToStructure(Structure structure)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- TYPE: SSSGame.Interaction (base: UnityEngine.MonoBehaviour) ----
+  F: NativeFieldInfoPtr_order : IntPtr
+  F: NativeFieldInfoPtr_mode : IntPtr
+  F: NativeFieldInfoPtr__maxNumberOfInteractors : IntPtr
+  F: NativeFieldInfoPtr_host : IntPtr
+  F: NativeFieldInfoPtr_accessDistance : IntPtr
+  F: NativeFieldInfoPtr_events : IntPtr
+  F: NativeFieldInfoPtr__interactionArea : IntPtr
+  F: NativeFieldInfoPtr__activeSessions : IntPtr
+  F: NativeFieldInfoPtr__finishingAllSessions : IntPtr
+  F: NativeFieldInfoPtr__cachedPickable : IntPtr
+  F: NativeFieldInfoPtr__touchyAgentsTable : IntPtr
+  F: NativeFieldInfoPtr_interactable : IntPtr
+  F: NativeMethodInfoPtr_get_ActiveSessionsCount_Public_get_Int32_0 : IntPtr
+  F: NativeMethodInfoPtr_get_MaxNumberOfInteractors_Public_Virtual_New_get_Int32_0 : IntPtr
+  F: NativeMethodInfoPtr_Awake_Protected_Virtual_New_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_OnEnable_Protected_Virtual_New_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_OnDisable_Protected_Virtual_New_Void_0 : IntPtr
+  F: NativeMethodInfoPtr_IsBusy_Public_Boolean_0 : IntPtr
+  F: NativeMethodInfoPtr_TryGetInteractor_Public_Boolean_byref_NetworkId_0 : IntPtr
+  F: NativeMethodInfoPtr_CheckAgent_Public_Virtual_New_Boolean_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_GetInteractableSessionID_Public_Int32_0 : IntPtr
+  F: NativeMethodInfoPtr_Use_Public_Virtual_New_Boolean_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr__TryGetSession_Protected_Virtual_New_Boolean_IInteractionAgent_byref_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr_GetStartMode_Public_Virtual_New_InteractionStartMode_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__TryStartSession_Protected_Boolean_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__TryStartRequestSession_Private_Boolean_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__TryStartFakeSession_Private_Boolean_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__TryInteract_Protected_Virtual_New_Boolean_IInteractionAgent_Action_0 : IntPtr
+  F: NativeMethodInfoPtr__StartSession_Protected_Virtual_New_Void_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr_Finish_Public_Virtual_New_Void_IInteractionAgent_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr_FindActiveSession_Public_InteractionSession_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_GetHostObject_Public_Virtual_New_GameObject_0 : IntPtr
+  F: NativeMethodInfoPtr_GetPickable_Public_Virtual_New_Pickable_0 : IntPtr
+  F: NativeMethodInfoPtr_IsTouchedByAgent_Public_Boolean_IInteractionAgent_0 : IntPtr
+  F: NativeMethodInfoPtr_GetInteractionArea_Public_Virtual_New_IInteractionArea_0 : IntPtr
+  F: NativeMethodInfoPtr__InitializeInteractable_Protected_Void_0 : IntPtr
+  F: NativeMethodInfoPtr__OnPickableTouch_Protected_Virtual_New_Void_IInteractionAgent_Boolean_0 : IntPtr
+  F: NativeMethodInfoPtr_FinishAllSessions_Public_Void_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr__OnFinishSession_Protected_Virtual_New_Void_InteractionSession_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr__EndInteraction_Protected_Virtual_New_Void_IInteractionAgent_InteractionSessionState_0 : IntPtr
+  F: NativeMethodInfoPtr__OnStartSession_Protected_Virtual_New_Void_InteractionSession_0 : IntPtr
+  F: NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr
+  P: order : InteractionOrder
+  P: mode : InteractionMode
+  P: _maxNumberOfInteractors : Int32
+  P: host : GameObject
+  P: accessDistance : Single
+  P: events : InteractionEvents
+  P: _interactionArea : IInteractionArea
+  P: _activeSessions : List`1
+  P: _finishingAllSessions : Boolean
+  P: _cachedPickable : Pickable
+  P: _touchyAgentsTable : Dictionary`2
+  P: interactable : INetworkInteractable
+  P: ActiveSessionsCount : Int32
+  P: MaxNumberOfInteractors : Int32
+  M: Void .cctor()
+  M: Void Awake() [virt]
+  M: Void OnEnable() [virt]
+  M: Void OnDisable() [virt]
+  M: Boolean IsBusy()
+  M: Boolean TryGetInteractor(NetworkId& interactor)
+  M: Boolean CheckAgent(IInteractionAgent agent) [virt]
+  M: Int32 GetInteractableSessionID()
+  M: Boolean Use(IInteractionAgent agent) [virt]
+  M: Boolean _TryGetSession(IInteractionAgent agent, InteractionSession& session) [virt]
+  M: InteractionStartMode GetStartMode(InteractionSession session) [virt]
+  M: Boolean _TryStartSession(InteractionSession session)
+  M: Boolean _TryStartRequestSession(InteractionSession session)
+  M: Boolean _TryStartFakeSession(InteractionSession session)
+  M: Boolean _TryInteract(IInteractionAgent interactor, Action onDelayedSessionStart) [virt]
+  M: Void _StartSession(InteractionSession session) [virt]
+  M: Void Finish(IInteractionAgent agent, InteractionSessionState reason) [virt]
+  M: InteractionSession FindActiveSession(IInteractionAgent agent)
+  M: GameObject GetHostObject() [virt]
+  M: Pickable GetPickable() [virt]
+  M: Boolean IsTouchedByAgent(IInteractionAgent agent)
+  M: IInteractionArea GetInteractionArea() [virt]
+  M: Void _InitializeInteractable()
+  M: Void _OnPickableTouch(IInteractionAgent agent, Boolean touch) [virt]
+  M: Void FinishAllSessions(InteractionSessionState reason)
+  M: Void _OnFinishSession(InteractionSession s, InteractionSessionState reason) [virt]
+  M: Void _EndInteraction(IInteractionAgent interactor, InteractionSessionState resolution) [virt]
+  M: Void _OnStartSession(InteractionSession session) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- (base UnityEngine.MonoBehaviour not in Assembly-CSharp; chain stops) ----
+
+==================================================================
+PASS 2: per-method inventory-API calls (CraftInteraction chain + Anvil/Carpenter)
+==================================================================
+
+---- SSSGame.CraftInteraction ----
+  Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint) [virt]
+      -> SSSGame.CraftBlueprint::.ctor
+
+---- SSSGame.Interaction ----
+
+---- SSSGame.AnvilInteraction ----
+  Boolean KnowsAnvilProcessForThisItem(ItemInfo itemInfo, BlueprintInfo& bpInfo)
+      -> SandSailorStudio.Inventory.BlueprintInfo::.ctor
+
+---- SSSGame.CarpenterInteraction ----
+
+==================================================================
+PASS 3: types referencing CraftBlueprintInfo or CraftInteraction (UI candidates)
+==================================================================
+  SSSGame.AnvilInteraction
+  SSSGame.AnvilInteractionDisplay
+  SSSGame.CraftBlueprintInfo
+  SSSGame.CraftInteraction
+  SSSGame.CraftInteraction/__c__DisplayClass25_0
+  SSSGame.CraftInteraction/CraftingEvents
+  SSSGame.CraftInteractionDisplay
+  SSSGame.CraftInteractionDisplay/__c__DisplayClass10_0
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10
+  SSSGame.DyeingBlueprintInfo
+  SSSGame.DyeingInteraction
+  SSSGame.ForgingBlueprintInfo
+  SSSGame.PlayerAnvilInteractionConfig
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession
+  SSSGame.PlayerCraftInteractionConfig
+  SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession
+  SSSGame.UI.BuildPreviewTabPage/__WaitForCraftInteraction_d__38
+  SSSGame.VillagerAnvilInteractionConfig
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession
+  SSSGame.VillagerCraftInteractionConfig
+  SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession
+  SSSGame.WorkshopBlueprintInfo
+
+==================================================================
+PASS 4: UI-candidate deep dump (menu/ui/panel/slot/button/widget names from pass 3)
+==================================================================
+
+---- SSSGame.UI.BuildPreviewTabPage/__WaitForCraftInteraction_d__38 (base: Object) ----
+  M: Void .cctor()
+  M: Void .ctor(Int32 <>1__state)
+  M: Void System_IDisposable_Dispose() [virt]
+  M: Boolean MoveNext() [virt]
+  M: Object System_Collections_Generic_IEnumerator_System_Object__get_Current() [virt]
+  M: Void System_Collections_IEnumerator_Reset() [virt]
+  M: Object System_Collections_IEnumerator_get_Current() [virt]
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS 5: caller map for CraftInteraction-family + UI-candidate methods
+==================================================================
+
+DONE

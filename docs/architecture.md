@@ -1146,6 +1146,38 @@ build a fisher-bait mod — confirmed in-game 2026-06-21 (also recorded in sessi
   31-station pass ≈ 6–20 ms, 61-station pass ≈ 10.8 ms, no degradation under invasion. No
   SupplyChainMod exceptions across any test run.
 
+### Player crafting pipeline — CraftInteraction family (Cecil 2026-07-20, idea-17 groundwork)
+Structure facts from the interop binaries (`_explore/cecil_craft_from_storage*.ps1`); runtime
+behavior ⚠️ pending in-game trace.
+- **Family tree:** `SSSGame.CraftInteraction : Interaction` is the base for ALL craft tables:
+  `AnvilInteraction : CraftInteraction`, `CarpenterInteraction : AnvilInteraction`,
+  `DyeingInteraction : CraftInteraction`. `ForgeInteraction` is NOT in this family (it derives
+  from `CookingInteraction`).
+- **Ingredient gates (declared ONLY on `CraftInteraction`):** public non-virtual
+  `CheckOwnedRequirements(Blueprint, IInteractionAgent)` (⚠️ inlining risk — fire-verify) and
+  protected virtual `_CheckOwnedBlueprintManifest(ItemManifest, IInteractionAgent)`. Craft
+  execution: virtual `BeginCraftingSequence(InteractionSession)` (overridden by Anvil + Dyeing),
+  then virtual `_OnCraftingSuccess(IInteractionAgent)` (overridden by Dyeing) +
+  `craftingEvents.onCraftSuccess : UnityEvent`.
+- **Station state:** `inventory`/`blueprintInventory : InventoryComponent`, `ItemInventory :
+  ItemCollection`, `useAgentInventory : Boolean` (some tables check the agent's own inventory),
+  `ActiveBlueprint : CraftBlueprint` / `ActivateBlueprint(bp)`, static scratch `s_bpManifest`.
+- **Player UI chain:** `PlayerCraftInteractionConfig/PlayerCraftInteractionSession`
+  (`_OpenMenu`, `_BeginCraftInput`) → `SSSGame.UI.CraftMenu : ContextMenu`
+  (`GetCraftStationInventory()`, `GetCraftingStation()`, `GetCraftInteraction()`) →
+  `CreateItemsTabPage : TabPage` (recipe list; async `_CreateItems()` fills
+  `_availableBlueprints`/`_unavailableBlueprints` — fields `_blueprintConditionsDatabase` +
+  `_knowledgeManager` suggest that split is unlock-based, with ingredient graying per-button:
+  `itemButton : ItemThumbnailPanel`, `detailsPanel : ItemDetailsPanel`). Villager sessions are
+  separate (`VillagerCraftInteractionConfig/VillagerCraftSession`); villager-side craftability
+  also surfaces as `CraftingQuest.CanCraftAtWorkshop()`.
+- **Manifest-shaped inventory primitives** (`SandSailorStudio.Inventory`, Cecil 2026-07-20):
+  `ItemCollection.ContainsItemManifest(ItemManifest) : Int32` (how many times the manifest
+  fits), `ItemCollection.RemoveOwnedItemManifest(ItemManifest)` (clamped-to-owned removal),
+  `ItemCollection.FillOwnedItemManifest(ItemManifest, IItemFilter)`, and
+  `ItemManifest.Transfer(ItemCollection source, ItemCollection destination, Boolean copy)`
+  (bulk mover between collections — also container↔collection overloads).
+
 **Storage acceptance / the Outhouse container (OuthouseComposter groundwork, confirmed in-game 2026-07-11)**
 **Container acceptance is NOT storage-class-based alone.** Pointer-verified in-game: every
 SmallItem-class item (Fibers, Jotun Blood, Feathers, Gray Mushrooms, Raw Red Meat, Compost) carries
