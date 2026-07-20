@@ -37,7 +37,9 @@ internal static class PlayerDespawnedPatch
                 Plugin.LocalPlayer = null;
                 // World-leave: never cache interop wrappers of per-world objects across sessions -
                 // reading a stale wrapper causes an unrecoverable native crash (project-wide gotcha).
-                // We hold no other per-world state, so clearing LocalPlayer is the whole job.
+                // v0.2.0: CraftWatcher now holds per-world ItemCollection wrappers while armed -
+                // ClearWorldState() nulls all of them and disarms.
+                CraftFromStorageMod.CraftWatcher.ClearWorldState();
                 Plugin.Logger.LogInfo("[CFS] Local player cleared (world-leave).");
             }
         }

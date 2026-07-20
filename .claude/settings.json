@@ -3,5 +3,19 @@
     "allow": [
       "PowerShell"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/doc-hygiene-guard.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }

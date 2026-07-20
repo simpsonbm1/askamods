@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Il2CppInterop.Runtime.InteropTypes;
 using SandSailorStudio.Inventory;
 using SSSGame;
 using UnityEngine;
@@ -104,6 +106,13 @@ public class StorageCensus : MonoBehaviour
         // not guaranteed to raise a *managed* exception, which is exactly the class of move that just
         // hung the game. Per-structure singular GetComponent walks are the in-game-proven primitive
         // (per-station inventory reads measured at 0.2-5.1 ms, full 31-station pass 6-20 ms).
+        //
+        // v0.2.0 census v2: the v0.1.2 walk took only the FIRST ItemContainerComponent per structure,
+        // which provably missed real crafting-station storage (Workshop House 2 etc. reported a
+        // decorative CharacterFlask instead - architecture.md "Settlement storage census ground
+        // truth"). CollectComponents<T> now enumerates ALL containers per structure, each tagged with
+        // a structural equip-slot probe so equipment-managed containers (armor racks, character
+        // flasks) are identified and excluded from the grand total instead of name-blacklisted.
         try
         {
             Il2CppSystem.Collections.Generic.List<Structure>? structures = null;
@@ -112,51 +121,100 @@ public class StorageCensus : MonoBehaviour
             try { structureCount = structures?.Count ?? 0; } catch { }
             Plugin.Logger.LogInfo($"[CFS] Census: {structureCount} total structure(s) - walking for containers.");
 
-            int withStorage = 0;
+            int containerCount = 0;
+            int equipManagedCount = 0;
+            int stationCount = 0;
             int grandTotal = 0;
             if (structures != null)
             {
                 foreach (var st in structures)
                 {
                     if (st == null) continue;
-
-                    ItemContainerComponent? icc = null;
-                    try { icc = FindComponent<ItemContainerComponent>(st.transform); } catch { }
-                    if (icc == null) continue;
-
-                    ItemContainer? container = null;
-                    try { container = icc.container; } catch { }
-                    if (container == null) continue;
-
-                    withStorage++;
                     string owner = SafeStructureName(st);
-                    int capacity = 0;
-                    int qty = 0;
-                    string typeName = "?";
-                    try { capacity = container.capacity; } catch { }
-                    try { typeName = container.containerType?.name ?? "?"; } catch { }
-                    // Proven slot-iteration pattern (OuthouseComposterMod/ComposterDiag.cs CountPool,
-                    // confirmed in-game): ItemContainer.GetItems() exposes only an indexer through the
-                    // compile-time reference, so iterate bounded by capacity and break on throw.
-                    try
+
+                    var containers = new List<ItemContainerComponent>();
+                    try { CollectComponents<ItemContainerComponent>(st.transform, containers, 0); } catch { }
+
+                    foreach (var icc in containers)
                     {
-                        var items = container.GetItems();
-                        int bound = capacity > 0 ? capacity : 64;
-                        for (int slot = 0; slot < bound; slot++)
+                        if (icc == null) continue;
+
+                        ItemContainer? container = null;
+                        try { container = icc.container; } catch { }
+                        if (container == null) continue;
+
+                        containerCount++;
+                        int capacity = 0;
+                        int qty = 0;
+                        string typeName = "?";
+                        string nodeName = "?";
+                        try { capacity = container.capacity; } catch { }
+                        try { typeName = container.containerType?.name ?? "?"; } catch { }
+                        try { nodeName = icc.gameObject.name ?? "?"; } catch { }
+                        // Proven slot-iteration pattern (OuthouseComposterMod/ComposterDiag.cs CountPool,
+                        // confirmed in-game): ItemContainer.GetItems() exposes only an indexer through the
+                        // compile-time reference, so iterate bounded by capacity and break on throw.
+                        try
                         {
-                            Item? it = null;
-                            try { it = items != null ? items[slot] : null; } catch { break; }
-                            if (it == null) continue;
-                            try { qty += it.count; } catch { }
+                            var items = container.GetItems();
+                            int bound = capacity > 0 ? capacity : 64;
+                            for (int slot = 0; slot < bound; slot++)
+                            {
+                                Item? it = null;
+                                try { it = items != null ? items[slot] : null; } catch { break; }
+                                if (it == null) continue;
+                                try { qty += it.count; } catch { }
+                            }
+                        }
+                        catch { }
+
+                        string equipStatus = "n/a";
+                        if (Plugin.IncludeEquipmentProbe.Value)
+                        {
+                            try { equipStatus = ProbeEquipStatus(icc.transform, container); }
+                            catch { equipStatus = "no"; }
+                        }
+
+                        bool excluded = equipStatus == "yes-equipPoint" || equipStatus == "yes-managerAncestor";
+                        if (excluded) equipManagedCount++;
+                        else grandTotal += qty;
+
+                        Plugin.Logger.LogInfo($"[CFS] Census:   storage: owner='{owner}' node='{nodeName}' type='{typeName}' " +
+                            $"capacity={capacity} items={qty} equip={equipStatus}");
+                    }
+
+                    if (Plugin.IncludeWorkstationStock.Value)
+                    {
+                        Workstation? ws = null;
+                        try { ws = FindComponent<Workstation>(st.transform); } catch { }
+                        if (ws != null)
+                        {
+                            stationCount++;
+                            string wsClass = Plugin.NativeClassName(ws);
+                            string wsInvTotal = "?";
+                            string neededCount = "?";
+                            try
+                            {
+                                var inv = ws.GetInventory();
+                                if (inv != null) wsInvTotal = inv.GetTotalItemsQuantity().ToString();
+                            }
+                            catch { }
+                            try
+                            {
+                                var needed = ws.GetItemsNeededFromSettlement();
+                                if (needed != null) neededCount = needed.Count.ToString();
+                            }
+                            catch { }
+
+                            Plugin.Logger.LogInfo($"[CFS] Census:   station: owner='{owner}' type='{wsClass}' " +
+                                $"inventoryTotal={wsInvTotal} neededFromSettlement={neededCount}");
                         }
                     }
-                    catch { }
-                    grandTotal += qty;
-
-                    Plugin.Logger.LogInfo($"[CFS] Census:   storage: owner='{owner}' type='{typeName}' capacity={capacity} items={qty}");
                 }
             }
-            Plugin.Logger.LogInfo($"[CFS] Census: {withStorage} structure(s) with a container; {grandTotal} item(s) settlement-wide.");
+            Plugin.Logger.LogInfo($"[CFS] Census: {structureCount} structures, {containerCount} containers " +
+                $"({equipManagedCount} equipment-managed, skipped from storage totals), {stationCount} workstations; " +
+                $"{grandTotal} item(s) settlement-wide (equipment containers EXCLUDED from this total).");
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] Census: structure walk error: {ex}"); }
 
@@ -203,6 +261,82 @@ public class StorageCensus : MonoBehaviour
             if (found != null) return found;
         }
         return null;
+    }
+
+    // v0.2.0: collect-ALL variant of FindComponent<T> below - the v0.1.2 walk stopped at the FIRST
+    // match per structure, which missed real crafting-station storage sitting behind a decorative
+    // or character-slot container earlier in hierarchy order. Same singular-GetComponent + child-
+    // recursion shape (plural GetComponentsInChildren<T> is missing through the interop trampoline -
+    // project-wide gotcha), just appending instead of returning early.
+    private static void CollectComponents<T>(Transform? node, List<T> results, int depth) where T : UnityEngine.Component
+    {
+        if (node == null || depth > 12) return;
+
+        try
+        {
+            var c = node.GetComponent<T>();
+            if (c != null) results.Add(c);
+        }
+        catch { }
+
+        int childCount;
+        try { childCount = node.childCount; } catch { return; }
+        for (int i = 0; i < childCount; i++)
+        {
+            Transform? child = null;
+            try { child = node.GetChild(i); } catch { }
+            if (child == null) continue;
+            CollectComponents<T>(child, results, depth + 1);
+        }
+    }
+
+    // Structural equip-slot probe (architecture.md "Equipment-slot containers are a first-class
+    // mechanism - prefer a STRUCTURAL exclusion rule over a name blacklist"). EquipPoint is not a
+    // MonoBehaviour (base Il2CppSystem.Object) so it can't be found via GetComponent - reach it
+    // through EquipmentManager (which IS a MonoBehaviour) instead: walk UP from the container's
+    // node looking for an EquipmentManager, then compare each of its equipPoints' ItemContainer
+    // against this container BY POINTER (managed equality lies for interop objects - project-wide
+    // gotcha). Exact match -> "yes-equipPoint"; a manager exists nearby but no container match ->
+    // "yes-managerAncestor" (still equipment-adjacent, still excluded from storage totals); no
+    // manager anywhere above -> "no".
+    private static string ProbeEquipStatus(Transform? node, ItemContainer container)
+    {
+        Transform? t = node;
+        int depth = 0;
+        while (t != null && depth <= 12)
+        {
+            EquipmentManager? mgr = null;
+            try { mgr = t.GetComponent<EquipmentManager>(); } catch { }
+            if (mgr != null)
+            {
+                try
+                {
+                    long containerPtr = ((Il2CppObjectBase)(object)container).Pointer.ToInt64();
+                    var points = mgr.equipPoints;
+                    if (points != null)
+                    {
+                        foreach (var ep in points)
+                        {
+                            if (ep == null) continue;
+                            ItemContainer? epc = null;
+                            try { epc = ep.ItemContainer; } catch { }
+                            if (epc == null) continue;
+                            try
+                            {
+                                long epPtr = ((Il2CppObjectBase)(object)epc).Pointer.ToInt64();
+                                if (epPtr == containerPtr) return "yes-equipPoint";
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+                return "yes-managerAncestor";
+            }
+            try { t = t.parent; } catch { t = null; }
+            depth++;
+        }
+        return "no";
     }
 
     private static string SafeStructureName(Structure? s)

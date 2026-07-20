@@ -1,0 +1,819 @@
+﻿==================================================================
+PASS R: agent-side inventory access (the useAgentInventory=True path)
+==================================================================
+
+---- SSSGame.IInteractionAgent (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: State : InteractorState
+  P: Interactable : INetworkInteractable
+  P: UsesPicking : Boolean
+  P: NetworkObject : NetworkObject
+  P: HasAuthority : Boolean
+  P: Authority : PlayerRef
+  M: Void .cctor()
+  M: Ray GetPickingRay() [virt]
+  M: InteractionSession GetInteractionSession(Interaction interaction) [virt]
+  M: Void ClearInteractionSession(InteractionSession session) [virt]
+  M: ItemCollection GetInventory() [virt]
+  M: AttributeManager GetAttributes() [virt]
+  M: StatusEffectManager GetStatusEffects() [virt]
+  M: EquipmentManager GetEquipmentManager() [virt]
+  M: IInventoryManager GetInventoryManager() [virt]
+  M: InteractRestrictionManager GetRestrictions() [virt]
+  M: Transform GetTransform() [virt]
+  M: AudioSource GetAudioSource() [virt]
+  M: IInteractionArea GetActiveInteractionArea() [virt]
+  M: IActionResultHandler GetActionResultHandler() [virt]
+  M: IInteractionWidgetProvider GetInteractionWidgetProvider() [virt]
+  M: Boolean TryMatchTarget(Transform Target, Boolean MustMatchRotation, Action`1 onEnd, Single TimeUntilExit, Single Distance, Boolean MatchHeight) [virt]
+  M: Void AbortMatchTarget() [virt]
+  M: Void LockEquipment(Boolean hidden) [virt]
+  M: Transform GetGrabbingHand() [virt]
+  M: Transform GetGrabbingOffHand() [virt]
+  M: Attribute GetWorkstationRewardCapAttribute() [virt]
+  M: Void .ctor(IntPtr pointer)
+  TYPE: SSSGame.IInteractionAgent  : Il2CppObjectBase
+  TYPE: SSSGame.PlayerInteractionAgent  : MonoBehaviour
+
+==================================================================
+PASS S: PlayerInteractionAgent / CraftingAgent / ICraftingAgent surface
+==================================================================
+
+---- SSSGame.PlayerInteractionAgent (base: UnityEngine.MonoBehaviour) ----
+  P: OnSpawned : Action`1
+  P: OnDespawned : Action`1
+  P: _State_k__BackingField : InteractorState
+  P: _Interactable_k__BackingField : INetworkInteractable
+  P: _LockAreaDetection_k__BackingField : Boolean
+  P: _activeInteractionLocks : Int32
+  P: _AllowEatingAnimation_k__BackingField : Boolean
+  P: interactionAudio : AudioSource
+  P: lightSetupParent : Transform
+  P: grabbingHand : Transform
+  P: grabbingOffHand : Transform
+  P: matchTargetCurve : AnimationCurve
+  P: matchTargetTransform : Transform
+  P: frontCarry : Transform
+  P: shoulderCarry : Transform
+  P: raycastLayerMask : LayerMask
+  P: rayRadius : Single
+  P: rayLength : Single
+  P: interactions : InteractionConfigurationList
+  P: combatInteractions : InteractionConfigurationList
+  P: ghostInteractions : InteractionConfigurationList
+  P: ActiveSession : InteractionSession
+  P: networkDeniedSlot : InteractSlot
+  P: enlargingSphere : MeshRenderer
+  P: finderActiveTime : Single
+  P: finderFadeOutCurve : AnimationCurve
+  P: highlightColor : Color
+  P: finderFadeOutTime : Single
+  P: fakeScanningStatusEffect : StatusEffect
+  P: lockableEquipmentIds : List`1
+  P: lockableEquipmentIdsFull : List`1
+  P: drawGizmos : Boolean
+  P: _activeInteractionAreas : List`1
+  P: _areasCache : HashSet`1
+  P: _raycastHits : Il2CppStructArray`1
+  P: _raycastDirty : Boolean
+  P: _raycastHitCount : Int32
+  P: _pendingFavoritePickable : Pickable
+  P: _favoritePickable : Pickable
+  P: _favoriteArea : IInteractionArea
+  P: _sessionsPools : Dictionary`2
+  P: _sessionsClearPendingList : List`1
+  P: _activeWidgets : List`1
+  P: _inputManager : InputManager
+  P: _pickManager : PickingManager
+  P: _eqMan : EquipmentManager
+  P: _pp : PlayerParty
+  P: _restrictionManager : InteractRestrictionManager
+  P: _equipmentManager : EquipmentManager
+  P: _playerCharacter : PlayerCharacter
+  P: _inventoryComponent : PlayerInventory
+  P: _attributeManager : AttributeManager
+  P: _cm : CharacterMovement
+  P: _sem : StatusEffectManager
+  P: authority : NetworkCachedAuthority
+  P: _onUpdate : Action
+  P: _framesWithBrokenArea : Int32
+  P: _waitForEquipment : Boolean
+  P: _waitForDefaultEquipment : Boolean
+  P: _lockInteractionArea : Boolean
+  P: _lockEqFlags : Int32
+  P: _lockEqFlagsFull : Int32
+  P: _isInCombatMode : Boolean
+  P: _mtActive : Boolean
+  P: _mtTarget : Transform
+  P: _mtTimeLeft : Single
+  P: _mtMatchHeight : Boolean
+  P: _mtForceRotation : Boolean
+  P: _mtDistance : Single
+  P: _onMtEnd : Action`1
+  P: _mtStage : Int32
+  P: _mtLerpTime : Single
+  P: _mtSlerpTime : Single
+  P: _mtTargetPos : Vector3
+  P: _mtDirToTarget : Vector3
+  P: _mtRawDirection : Vector2
+  P: _mtStartPos : Vector3
+  P: _mtStartRot : Quaternion
+  P: _session : NetworkSession
+  P: _playerManager : PlayerManager
+  P: _populationManager : PopulationManager
+  P: _netTable : NetworkInteractionTable
+  P: _interactionList : List`1
+  P: _netBusyPlayer : Nullable`1
+  P: c_LinkTag : String
+  P: c_ReferenceTag : String
+  P: _camera : Camera
+  P: _pickingRay : Ray
+  P: _resourceFinderRoutine : Coroutine
+  P: State : InteractorState
+  P: Interactable : INetworkInteractable
+  P: UsesPicking : Boolean
+  P: LockAreaDetection : Boolean
+  P: LockActiveInteraction : Boolean
+  P: AllowEatingAnimation : Boolean
+  P: NetworkObject : NetworkObject
+  P: HasAuthority : Boolean
+  P: Authority : PlayerRef
+  P: DisplayOrder : Int32
+  P: InteractorID : Int32
+  P: IsInCombatMode : Boolean
+  M: Void .cctor()
+  M: Void Awake()
+  M: Void _OnSpawned(INetworkLifetimeTracker _)
+  M: Void _OnDespawned(INetworkLifetimeTracker _)
+  M: Void Start()
+  M: Void OnDisable()
+  M: Void OnDestroy()
+  M: Void OnDrawGizmosSelected()
+  M: Void LateUpdate()
+  M: Void FixedUpdate()
+  M: InputAction _GetInputAction(Interaction interaction)
+  M: Void _OnNetworkInteractionsDirty()
+  M: Void _OnPickableChange(Pickable pickable)
+  M: Void _OnTouch(IInteractionAgent agent, Boolean touched)
+  M: Void _AddInteractionArea(IInteractionArea ia)
+  M: Void _RemoveInteractionArea(IInteractionArea ia)
+  M: Void _OnInteractionAreaChanged(IInteractionArea area)
+  M: Void _OnChrGroundedChange(Boolean obj)
+  M: Void _OnChrSlidingChange(Boolean obj)
+  M: Void QuickDropActiveSlotItems()
+  M: IReadOnlyList`1 GetActiveInteractionAreas()
+  M: CharacterMovement GetCharacterMovement()
+  M: Boolean TryRemoteInteract(Interaction targetInteract)
+  M: Ray GetPickingRay() [virt]
+  M: InteractionSession GetInteractionSession(Interaction interaction) [virt]
+  M: InteractionConfiguration GetConfiguration(Interaction interaction)
+  M: Void ClearInteractionAreas()
+  M: Void ClearInteractionSession(InteractionSession session) [virt]
+  M: Void SetFavoriteInteractionArea(IInteractionArea interactionArea)
+  M: PlayerParty GetParty()
+  M: AttributeManager GetAttributes() [virt]
+  M: StatusEffectManager GetStatusEffects() [virt]
+  M: ItemCollection GetInventory() [virt]
+  M: IInventoryManager GetInventoryManager() [virt]
+  M: InteractRestrictionManager GetRestrictions() [virt]
+  M: PlayerCharacter GetCharacter()
+  M: Transform GetTransform() [virt]
+  M: AudioSource GetAudioSource() [virt]
+  M: InputManager GetInputManager()
+  M: IActionResultHandler GetActionResultHandler() [virt]
+  M: IInteractionWidgetProvider GetInteractionWidgetProvider() [virt]
+  M: T GetOtherWidgetOfType()
+  M: Void LockEquipmentFull(Boolean locked)
+  M: Void LockEquipment(Boolean locked) [virt]
+  M: Boolean IsEquipmentLocked()
+  M: Boolean TryMatchTarget(Transform Target, Boolean MustMatchRotation, Action`1 onEnd, Single TimeUntilExit, Single Distance, Boolean MatchHeight) [virt]
+  M: Void AbortMatchTarget() [virt]
+  M: Transform GetGrabbingHand() [virt]
+  M: Transform GetGrabbingOffHand() [virt]
+  M: IInteractionArea GetActiveInteractionArea() [virt]
+  M: EquipmentManager GetEquipmentManager() [virt]
+  M: Void SetCombatMode(Boolean value)
+  M: Void _GetMatchTargetParameters(Transform target, Single& distance, Vector3& pos, Vector3& dirToTarget, Vector2& rawDirection)
+  M: Attribute GetWorkstationRewardCapAttribute() [virt]
+  M: Void ActivateResourceFinder()
+  M: IEnumerator _ResourceFinderRoutine()
+  M: Void SetupWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void RefreshWidgetData(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void ClearWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftingAgent (base: UnityEngine.MonoBehaviour) ----
+  P: _ActiveBlueprint_k__BackingField : CraftBlueprint
+  P: _ItemInventory_k__BackingField : ItemCollection
+  P: craftingCategories : List`1
+  P: _interactionAgent : IInteractionAgent
+  P: _activeInteraction : CraftInteraction
+  P: ActiveBlueprint : CraftBlueprint
+  P: ItemInventory : ItemCollection
+  P: ActiveInteraction : CraftInteraction
+  M: Void .cctor()
+  M: Void Awake()
+  M: Void Start()
+  M: Boolean ActivateBlueprint(CraftBlueprint bp) [virt]
+  M: IInteractionAgent GetInteractionAgent()
+  M: Void _OnCraftingFinished()
+  M: Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.ICraftingAgent (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: ItemInventory : ItemCollection
+  P: ActiveBlueprint : CraftBlueprint
+  M: Void .cctor()
+  M: Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint) [virt]
+  M: Boolean ActivateBlueprint(CraftBlueprint bp) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS T: CraftingStation (: Workstation) + Workstation inventory surface
+==================================================================
+
+---- SSSGame.CraftingStation (base: SSSGame.Workstation) ----
+  P: _GlobalInventoryManifest_k__BackingField : ItemManifest
+  P: _FetchPromiseManifest_k__BackingField : ItemManifest
+  P: _FetchRequirementManifest_k__BackingField : ItemManifest
+  P: _CraftRquirementManifest_k__BackingField : ItemManifest
+  P: _CraftPromiseManifest_k__BackingField : ItemManifest
+  P: _FullCraftingManifest_k__BackingField : ItemManifest
+  P: _StudyManifest_k__BackingField : ItemManifest
+  P: _StudyDecompositionManifest_k__BackingField : ItemManifest
+  P: _Structure_k__BackingField : Structure
+  P: _WhitelistNewVillagers_k__BackingField : Boolean
+  P: OnWhitelistDataReceived : Action
+  P: craftingProjects : List`1
+  P: studyProjects : List`1
+  P: CraftingType : CraftingStationType
+  P: idleCrafterBehaviour : vFSMBehaviour
+  P: complainBehaviour : vFSMBehaviour
+  P: fetchBehaviour : vFSMBehaviour
+  P: craftBehaviour : vFSMBehaviour
+  P: returnBehaviour : vFSMBehaviour
+  P: findToolsBehaviour : vFSMBehaviour
+  P: cleanupInventoryBehaviour : vFSMBehaviour
+  P: studyBehaviour : vFSMBehaviour
+  P: blueprintInventory : InventoryComponent
+  P: stationInventory : InventoryComponent
+  P: shouldSendFetchTargetChangedEvent : Boolean
+  P: _craftingTables : List`1
+  P: _storageSupplies : List`1
+  P: _studyInteractions : List`1
+  P: _storageWrappers : Dictionary`2
+  P: _storagesRegisteredToSettlement : Boolean
+  P: _anvils : List`1
+  P: _curingOutlets : List`1
+  P: _globalFetchQuest : CrafterFetchQuest
+  P: _resultsQuest : CrafterResultsQuest
+  P: _complainQuest : CrafterComplainQuest
+  P: _idleQuest : WorkstationIdleQuest
+  P: _findToolsQuest : FindHarvestingToolsQuest
+  P: _cleanupInventoryQuest : CleanupInventoryQuest
+  P: _deserialized : Boolean
+  P: _intEventData : IntEventData
+  P: _itmManEventData : QuestEventData`1
+  P: _registeredToTaskManager : Boolean
+  P: _dirtyMinimumFetchManifest : Boolean
+  P: _dirtySurplusManifest : Boolean
+  P: _minimumFetchManifest : ItemManifest
+  P: _surplusManifest : ItemManifest
+  P: _knownBlueprints : Dictionary`2
+  P: _outsourcedQuests : Dictionary`2
+  P: _outsourcedBlueprints : Dictionary`2
+  P: s_itemList : List`1
+  P: s_itemManifest : ItemManifest
+  P: _villagersWhitelist : HashSet`1
+  P: _whitelistAllVillagers : Boolean
+  P: _whitelistDataReceived : Boolean
+  P: s_outpostIdEvData : SettlementEventData`1
+  P: _session : NetworkSession
+  P: c_taskDataArray : String
+  P: c_taskDataItem : String
+  P: c_taskDataCount : String
+  P: c_taskDataPriority : String
+  P: c_taskDataVillagers : String
+  P: c_taskDataDye : String
+  P: c_taskDataDyeIdx : String
+  P: c_taskRefurbish : String
+  P: c_whitelistAll : String
+  P: c_whitelistedVillagers : String
+  P: field_CompilerControlled_Static_Changed_1_CraftingStation_0 : Changed`1
+  P: field_CompilerControlled_Static_ChangedDelegate_1_CraftingStation_0 : ChangedDelegate`1
+  P: field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_CraftingStation_0 : NetworkBehaviourCallbacks`1
+  P: GlobalInventoryManifest : ItemManifest
+  P: FetchPromiseManifest : ItemManifest
+  P: FetchRequirementManifest : ItemManifest
+  P: CraftRquirementManifest : ItemManifest
+  P: CraftPromiseManifest : ItemManifest
+  P: FullCraftingManifest : ItemManifest
+  P: StudyManifest : ItemManifest
+  P: StudyDecompositionManifest : ItemManifest
+  P: IsMobile : Boolean
+  P: Structure : Structure
+  P: WhitelistNewVillagers : Boolean
+  P: WhitelistedAllVillagers : Boolean
+  P: WhitelistDataReceived : Boolean
+  P: ShowWhitelistedVillagers : Boolean
+  M: Void .cctor()
+  M: Void Awake() [virt]
+  M: Void _OnChildStructureRemoved(Structure obj)
+  M: Void Start() [virt]
+  M: String GetName() [virt]
+  M: Void Despawned(NetworkRunner runner, Boolean hasState) [virt]
+  M: Void AddTaskData(WorkstationTaskData data) [virt]
+  M: Void RemoveTaskData(WorkstationTaskData data) [virt]
+  M: Boolean CheckForDuplicateTaskData(WorkstationTaskData newData) [virt]
+  M: Boolean SetTaskAgent(ITaskAgent agent) [virt]
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent) [virt]
+  M: StorageSupply FindStorage(Predicate`1 predicate)
+  M: StorageInteraction FindInternalStorage(IItemFilter itemFilter)
+  M: Transform GetTransform() [virt]
+  M: ItemManifest GetItemManifest() [virt]
+  M: StorageInteraction FindStorageInteraction(Func`2 predicate) [virt]
+  M: Void SetDirtyMinimumFetchManifest()
+  M: Void SetDirtyFetchReqManifest()
+  M: ItemManifest GetSurplusManifest()
+  M: ItemManifest GetMinimumFetchManifest()
+  M: CuringOutlet FindCuringOutlet(Predicate`1 predicate)
+  M: Boolean HasCuringOutletWithThisRecipe(CookingRecipeInfo cri)
+  M: Boolean GetFetchDepth(ItemInfo itemInfo, Int32& minDepth)
+  M: Boolean GetPersonalFetchDepth(Villager villager, ItemInfo itemInfo, Int32& minDepth, Int32& topPriority)
+  M: ItemCollection GetInventory() [virt]
+  M: StudyInteraction FindStudyInteraction(Predicate`1 predicate)
+  M: CraftInteraction FindCraftingTable(Predicate`1 predicate)
+  M: Void PopulateStudyInteractionsList(List`1 studyInteractions)
+  M: Void SetCraftingTargetDirty(Int32 bpId)
+  M: Void SetCraftPromiseDirty(ItemManifest itemManifest)
+  M: Boolean AddTaskDispatcher(ITaskDispatcher td) [virt]
+  M: Void _OtherInventory_OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OtherInventory_OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint)
+  M: Boolean IsDyeingAvailableForThisItem(ItemInfo itemInfo, DyeingBlueprintInfo& dyeingBlueprintInfo)
+  M: Void RemoveTaskDispatcher(ITaskDispatcher td) [virt]
+  M: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virt]
+  M: Void _OnStructureActivated(Structure structure)
+  M: Void _OnStructureDeath(Structure obj)
+  M: Boolean _CanUpgradeDyeingProcess(DyeingBlueprintInfo oldDyeBpInfo, Int32 oldDyeIndex, DyeingBlueprintInfo newDyeBpInfo, Int32& newDyeIndex)
+  M: Void _RegisterStorage()
+  M: Void _UnregisterStorage()
+  M: Void _OnActiveRecipeAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnActiveRecipeRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnBpAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnBpRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _SendFetchTargetChangedEvent()
+  M: Void _OnStationEvent(Int32 arg1, IEventData arg2)
+  M: Boolean IsFuelNeededByVillager(ItemInfo itemInfo, Villager villager) [virt]
+  M: Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager) [virt]
+  M: Void RequestWhitelistData() [virt]
+  M: Void SetWhitelistedVillager(Villager villager, Boolean& whitelist)
+  M: Boolean IsShownAsWhitelisted(Villager villager) [virt]
+  M: Boolean IsWhitelisted(Villager villager) [virt]
+  M: Void Rpc_ChangeWhitelistAllState(Boolean whitelistAll)
+  M: Void Rpc_ChangeWhitelistedVillager(Int32 id, Boolean state)
+  M: Void Rpc_RequestWhitelistData(PlayerRef player)
+  M: Void Rpc_ReceiveWhitelistData(PlayerRef target, Il2CppStructArray`1 bytes)
+  M: Boolean DeserializeTaskData(DataObject source) [virt]
+  M: DataObject SerializeTaskData(DataObject destination) [virt]
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Void .ctor()
+  M: Void SSSGame_IWhitelistingSite_SetWhitelistedVillager(Villager villager, Boolean& whitelist) [virt]
+  M: Void _Rpc_RequestWhitelistData_b__157_0(BinaryWriter writer)
+  M: Void _Rpc_ReceiveWhitelistData_b__158_0(BinaryReader reader)
+  M: Void CopyBackingFieldsToState(Boolean ) [virt]
+  M: Void CopyStateToBackingFields() [virt]
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message)
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message)
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message)
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message)
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftingStation/CraftingProject (base: Il2CppSystem.Object) ----
+  P: craftingStation : CraftingStation
+  P: craftingQuest : CraftingQuest
+  P: fetchQuestSpecific : CrafterSpecificFetchQuest
+  P: taskData : CraftingStationTaskData
+  P: crafters : List`1
+  P: pendingRemake : Boolean
+  P: _productsAdded : Int32
+  P: _productManifest : ItemManifest
+  M: Void .cctor()
+  M: Void .ctor(CraftingStation craftingStation, CraftingStationTaskData taskData)
+  M: Void Init()
+  M: Void Dispose()
+  M: Void RemakeQuest()
+  M: ItemManifest GetProductManifest()
+  M: Void _CreateCraftingQuest()
+  M: Void _OnTaskDataChanged()
+  M: Void _OnStationEvent(Int32 evId, IEventData evData)
+  M: Void .ctor(IntPtr pointer)
+
+-- SSSGame.Workstation: inventory/container members --
+  P: usefulItemsToPackUp : List`1
+  P: findUsefulItemsBehaviour : vFSMBehaviour
+  M: ItemCollection GetInventory() [virt]
+  M: List`1 GetItemsNeededFromSettlement() [virt]
+  M: List`1 GetItemsToPrepareForWork() [virt]
+  M: Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager) [virt]
+  M: List`1 get_usefulItemsToPackUp()
+  M: Void set_usefulItemsToPackUp(List`1 )
+  M: vFSMBehaviour get_findUsefulItemsBehaviour()
+  M: Void set_findUsefulItemsBehaviour(vFSMBehaviour )
+
+==================================================================
+PASS U: CraftInteractionDisplay + _CraftRoutine state machine
+==================================================================
+
+---- SSSGame.CraftInteractionDisplay (base: UnityEngine.MonoBehaviour) ----
+  P: tableDisplaySlot : Transform
+  P: _leftHandDisplayObj : GameObject
+  P: _rightHandDisplayObj : GameObject
+  P: _tableDisplayObj : GameObject
+  P: _craftRoutine : Coroutine
+  M: Void .cctor()
+  M: Void StartSession(InteractionSession interactionSession) [virt]
+  M: Void BeginCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void EndCraftingSequence(InteractionSession interactionSession) [virt]
+  M: Void EndSession(InteractionSession interactionSession, InteractionSessionState reason) [virt]
+  M: Void _ClearDisplayObjects() [virt]
+  M: IEnumerator _CraftRoutine(InteractionSession interactionSession) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 (base: Il2CppSystem.Object) ----
+  P: __1__state : Int32
+  P: __2__current : Object
+  P: interactionSession : InteractionSession
+  P: __8__1 : __c__DisplayClass10_0
+  P: __4__this : CraftInteractionDisplay
+  P: _bpInfo_5__2 : CraftBlueprintInfo
+  P: _agentHand_5__3 : Transform
+  P: _agentOffHand_5__4 : Transform
+  P: _canSpawnPartsInHands_5__5 : Boolean
+  P: System.Collections.Generic.IEnumerator<System.Object>.Current : Object
+  P: System.Collections.IEnumerator.Current : Object
+  M: Void .cctor()
+  M: Void .ctor(Int32 <>1__state)
+  M: Void System_IDisposable_Dispose() [virt]
+  M: Boolean MoveNext() [virt]
+  M: Object System_Collections_Generic_IEnumerator_System_Object__get_Current() [virt]
+  M: Void System_Collections_IEnumerator_Reset() [virt]
+  M: Object System_Collections_IEnumerator_get_Current() [virt]
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS V: InventoryComponent + ItemContainerComponent surface
+==================================================================
+
+---- SandSailorStudio.Inventory.InventoryComponent (base: UnityEngine.MonoBehaviour) ----
+  P: items : ItemCollection
+  P: startItems : ItemInfoList
+  P: initialized : Boolean
+  P: _setup : Boolean
+  M: Void .cctor()
+  M: ItemCollection GetItemCollection() [virt]
+  M: Void Awake() [virt]
+  M: Void Start() [virt]
+  M: Void OnDestroy() [virt]
+  M: Void _AddStartingItems() [virt]
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.ItemContainerComponent (base: UnityEngine.MonoBehaviour) ----
+  P: container : ItemContainer
+  P: inventoryComponent : InventoryComponent
+  P: _initialized : Boolean
+  M: Void .cctor()
+  M: Void Initialize() [virt]
+  M: Void Awake() [virt]
+  M: Void Destroy() [virt]
+  M: Void DropItems(Vector3 position, Quaternion rotation, Transform parent) [virt]
+  M: Void DepositItems(ItemTransactionManifest manifest) [virt]
+  M: Void TryAddOneItemOrDropNearby(ItemInfo itemInfo)
+  M: Void RemoveAllItems()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS W: EquipPoint / EquipmentManager (structural blacklist rule)
+==================================================================
+
+---- SandSailorStudio.Inventory.EquipPoint (base: Il2CppSystem.Object) ----
+  P: OnItemAttatched : Action`1
+  P: name : String
+  P: id : Int32
+  P: handle : Transform
+  P: subHandles : List`1
+  P: ids : List`1
+  P: containerType : ItemContainerType
+  P: OnSetItemUnityEvent : OnGameObjectUnityEvent
+  P: _item : EquipmentItem
+  P: _itemObject : GameObject
+  P: _itemContainer : ItemContainer
+  P: _equipmentManager : EquipmentManager
+  P: _rendererList : List`1
+  P: _itemCullContext : CullContext
+  P: ItemContainer : ItemContainer
+  M: Void .cctor()
+  M: EquipmentItem GetCurrentItem()
+  M: GameObject GetCurrentItemObject()
+  M: EquipmentManager GetEquipmentManager()
+  M: Boolean HasId(EquipHandleId id)
+  M: Boolean HasId(Predicate`1 predicate)
+  M: Transform FindEquipHandle(EquipmentItemInfo eqInfo)
+  M: Transform FindStowHandle(EquipmentItemInfo eqInfo)
+  M: Void Configure(EquipmentManager manager, Int32 id)
+  M: Void SetItem(EquipmentItem item)
+  M: Void UpdateCulling()
+  M: Void _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnBeforeItemMoved(ItemCollection inventory, Item item, Int32 count)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.EquipmentManager (base: UnityEngine.MonoBehaviour) ----
+  P: OnItemEquipped : Action`1
+  P: OnItemUnquipped : Action`1
+  P: OnItemStow : Action`1
+  P: OnCullingStateChanged : Action`1
+  P: _IgnoreAuthority_k__BackingField : Boolean
+  P: geometryRoot : Transform
+  P: equipPoints : List`1
+  P: playItemAnimations : Boolean
+  P: alwaysQuickEquip : Boolean
+  P: noHiddenContainers : Boolean
+  P: hideSkin : Boolean
+  P: stopCloth : Boolean
+  P: pickupHandleId : EquipHandleId
+  P: objectReplacementTable : Dictionary`2
+  P: rendererCullConfig : RendererCullConfig
+  P: _authority : NetworkObject
+  P: _animator : EquipmentAnimator
+  P: _equipCommands : LinkedList`1
+  P: _equipCommandTable : Dictionary`2
+  P: _routine : Coroutine
+  P: _lockedEquipment : Dictionary`2
+  P: _displayObject : GameObject
+  P: _displayRoutine : IEnumerator
+  P: _itemsVisible : Boolean
+  P: _transferEquipPointsCache : List`1
+  P: _actionResultHandler : IActionResultHandler
+  P: _equipPointsBuffer : List`1
+  P: _cullingState : CullingState
+  P: _filterEquipmentInfo : ItemInfo
+  P: _filterActivePoints : List`1
+  P: _filterEquipmentItem : EquipmentItem
+  P: IgnoreAuthority : Boolean
+  M: Void .cctor()
+  M: Void Awake()
+  M: Void OnEnable()
+  M: Void OnDisable()
+  M: Void OnDestroy()
+  M: IActionResultHandler GetResultHandler()
+  M: Boolean IsLocked(EquipHandleId handleId)
+  M: Boolean IsLocked(EquipPoint equipPoint)
+  M: Void LockHandleId(EquipHandleId handleId, Boolean locked)
+  M: Boolean IsBusy()
+  M: Boolean IsBusy(EquipmentItem equipmentItem)
+  M: Boolean IsBusy(EquipHandleId handleId)
+  M: EquipPoint Find(EquipHandleId id)
+  M: EquipPoint Find(String pointName)
+  M: EquipPoint FindFreePoint(EquipHandleId id)
+  M: EquipPoint Find(Func`2 predicate)
+  M: GameObject GetCurrentlyShownObject()
+  M: Boolean ShowObject(GameObject obj, EquipHandleId handleId, Single time, Single scaleMultiplier)
+  M: IEnumerator _showObjectRoutine(Single time)
+  M: Boolean HasAuthority()
+  M: Void SetAuthority(NetworkObject networkObject)
+  M: Boolean _EquipContainerFilter(ItemContainer c)
+  M: Boolean TransferItemForEquipping(EquipmentItem equipmentItem)
+  M: Void _CancelEquipCommandsForItem(EquipmentItem item, List`1 points, List`1 itemsToMove)
+  M: Boolean TryGetItemInLockedContainer(EquipPoint equipPoint, EquipmentItem& item)
+  M: Boolean _UnequipContainerFilter(ItemContainer c)
+  M: Boolean TransferItemForUnequipping(EquipmentItem equipmentItem)
+  M: Boolean Equip(EquipmentItem item, IEnumerable`1 points)
+  M: Boolean Unequip(EquipmentItem item, EquipPoint stowPoint)
+  M: Void QuickSetup(EquipmentItem item)
+  M: Void QuickEquip(EquipmentItem item, List`1 equipPoints)
+  M: Void QuickStow(EquipmentItem item, EquipPoint stowPoint)
+  M: Void Remove(EquipmentItem item)
+  M: Boolean UnequipSlot(EquipHandleId id)
+  M: Boolean TransferItemForUnequipping(EquipHandleId id)
+  M: Void DropAllEquipment()
+  M: Void DropAllEquipmentDecayed(Single ratio)
+  M: Void DropAllEquipmentDecayedWithLootChance(Single decayRatio)
+  M: Void UnequipAll()
+  M: Void SetCullingState(CullingState cullingState)
+  M: CullingState GetCullingState()
+  M: IEnumerator _WorkRoutine()
+  M: IEnumerator _EquipFirstRoutine()
+  M: IEnumerator _UnequipFirstRoutine()
+  M: Void _OnItemStow(EquipmentItem obj)
+  M: Void _OnItemUnquipped(EquipmentItem obj)
+  M: Void _OnItemEquipped(EquipmentItem obj)
+  M: Void _UpdateSlotsCulling()
+  M: Void EquipCategories(ItemCollection inventory, List`1 equipmentCategories, Boolean equipAll)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+  TYPE: SandSailorStudio.Inventory.EquipPointActionTarget  : InventoryActionTarget
+  TYPE: SandSailorStudio.Inventory.EquipmentAnimator_NewController  : EquipmentAnimator
+  TYPE: SandSailorStudio.Inventory.EquipmentAnimator_NewController/EquipAnimationId  : Object
+  TYPE: SandSailorStudio.Inventory.EquipmentGeometry  : ItemGeometry
+  TYPE: SSSGame.PreferencesManager/EquipmentColorsPreset  : ValueType
+  TYPE: SSSGame.EquipmentItemObject  : ItemObject
+  TYPE: SSSGame.EquipmentDisplaySlot  : ItemDisplaySlot
+  TYPE: SSSGame.EquipmentStackSlot  : CategoryStackSlot
+  TYPE: SSSGame.EquipmentStackSlot/EquipmentStack  : DisplayStack
+  TYPE: SSSGame.EquipmentCullContext  : CullContext
+  TYPE: SSSGame.UI.EquipmentItemPanel  : MonoBehaviour
+  TYPE: SSSGame.Controllers.EquipNewWield  : StateMachineBehaviour
+  TYPE: Invector.vItemManager.vSaveLoadInventory/EquipAreaData  : Object
+  TYPE: Invector.vItemManager.vItemListOperations/EquipedItemInfo  : Object
+  TYPE: Invector.vItemManager.EquipPoint  : Object
+  TYPE: Invector.vItemManager.EquipmentReference  : Object
+  TYPE: MagicaCloth2.RuntimeDressUpDemo/EquipInfo  : Object
+  TYPE: SandSailorStudio.Inventory.EquipHandleId  : ScriptableObject
+  TYPE: SandSailorStudio.Inventory.EquipPoint  : Object
+  TYPE: SandSailorStudio.Inventory.EquipmentAnimator  : MonoBehaviour
+  TYPE: SandSailorStudio.Inventory.EquipmentItem  : Item
+  TYPE: SandSailorStudio.Inventory.EquipmentItemInfo  : ItemInfo
+  TYPE: SandSailorStudio.Inventory.EquipmentManager  : MonoBehaviour
+  TYPE: SandSailorStudio.Inventory.EquipmentManager/EquipCommand  : Object
+
+==================================================================
+PASS X: every method anywhere that takes an ItemManifest (consumption candidates)
+==================================================================
+  SSSGame.AnvilCleanupQuest/AnvilCleanupQuestData :: Void ComplainNoStorageSpace(Boolean complain, ItemManifest itemManifest)
+  SSSGame.KilnkeeperQuest/KilnkeeperQuestData :: Void ComplainNoResources(Boolean complain, ItemManifest itemManifest)
+  SSSGame.KilnkeeperQuest/KilnkeeperQuestData :: Void ComplainNoCarryCapacity(Boolean complain, ItemManifest manifest)
+  SSSGame.BloomstationSupplyQuest/BloomstationSupplyQuestData :: Void ComplainNoCarryCapacity(Boolean complain, ItemManifest manifest)
+  SSSGame.CoalmakerSupplyQuest/CoalmakerSupplyQuestData :: Void ComplainNoCarryCapacity(Boolean complain, ItemManifest manifest)
+  SSSGame.CoalmakerCargoQuest/CoalmakerCargoQuestData :: Void ComplainNoCarryCapacity(Boolean complain, ItemManifest manifest)
+  SSSGame.CookingReturnQuest/CookingReturnQuestData :: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest)
+  SSSGame.CookingPlaceQuest/CookingPlaceQuestData :: Void ComplainNoIngredients(Boolean active, ItemManifest suppliesManifest) [virt]
+  SSSGame.CookingPlaceQuest/CookingPlaceQuestData :: Void ComplainNoStorageSpace(Boolean active, ItemManifest itemManifest)
+  SSSGame.CraftingQuest/CraftingQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest itemManifest)
+  SSSGame.CraftingQuest/CraftingQuestData :: Void ComplainNoStorageSpace(Boolean value, ItemManifest itemManifest)
+  SSSGame.CrafterFetchQuest/CrafterFetchQuestData :: Void ComplainNoStorageSpace(Boolean value, ItemManifest itemManifest)
+  SSSGame.CrafterFetchQuest/CrafterFetchQuestData :: Void ComplainNoPartsFound(Boolean value, ItemManifest itemManifest)
+  SSSGame.CrafterFetchQuest/CrafterFetchQuestData :: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest)
+  SSSGame.CrafterResultsQuest/CrafterResultsQuestData :: Void ComplainNoStorageSpace(Boolean value, ItemManifest itemManifest)
+  SSSGame.CuringCleanupQuest/CuringCleanupQuestData :: Void ComplainNoStorageSpace(Boolean complain, ItemManifest itemManifest)
+  SSSGame.DyeingQuest/DyeingQuestData :: Void ComplainNoPartsFound(Boolean value, ItemManifest itemManifest)
+  SSSGame.DyeingQuest/DyeingQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest itemManifest)
+  SSSGame.KennelFetchQuest/KennelFetchQuestData :: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest)
+  SSSGame.SmolkrPenSlaughterQuest/SmolkrPenSlaughterQuestData :: Void ComplainNoCarryCapacity(Boolean active, ItemManifest neededCapacityForManifest)
+  SSSGame.SmolkrPenHarvestQuest/SmolkrPenHarvestQuestData :: Void ComplainNoStorageSpace(Boolean value, ItemManifest itemManifest)
+  SSSGame.TroughCleanupQuest/TroughCleanupQuestData :: Void ComplainNoStorageSpace(Boolean complain, ItemManifest itemManifest)
+  SSSGame.TroughWaterSupplyQuest/TroughWaterSupplyQuestData :: Void ComplainNoPartsFound(Boolean complain, ItemManifest finderManifest)
+  SSSGame.TroughWaterSupplyQuest/TroughWaterSupplyQuestData :: Void ComplainNoCarryCapacity(Boolean complain, ItemManifest finderManifest)
+  SSSGame.BuildSite :: Void SetScavengedManifest(ItemManifest itemManifest)
+  SSSGame.RepairPart :: ItemManifest _GenerateRepairsManifest(ItemManifest existingManifest)
+  SSSGame.NodeTemplate :: Void FillManifest(ItemManifest manifest, Int32& multiplier) [virt]
+  SSSGame.WallTemplate :: Void FillManifest(ItemManifest manifest, Int32& multiplier) [virt]
+  SSSGame.CharacterInventory :: Void SelectItems(ItemManifest manifest) [virt]
+  SSSGame.PetInventory :: Void SelectItems(ItemManifest manifest) [virt]
+  SSSGame.CarpenterInteraction :: Void FillSpoilsManifest(ItemManifest manifest)
+  SSSGame.CarpenterInteraction :: Void _FillManifestWithSpoils(ItemManifest manifest, ItemInfo itemInfo, Single& multiplier)
+  SSSGame.CraftInteraction :: Boolean _CheckOwnedBlueprintManifest(ItemManifest itemManifest, IInteractionAgent agent) [virt]
+  SSSGame.CraftingStation :: Void SetCraftPromiseDirty(ItemManifest itemManifest)
+  SSSGame.CrockpotInteraction :: BlueprintInfo FindBestRecipe(ItemManifest ingredientsAvailable)
+  SSSGame.CrockpotRecipeInfo :: Int32 GetMatchingScore(ItemManifest ingredientsManifest, ItemManifest unusedIngredients, ItemManifest missingSpecificManifest, ItemManifest missingTableManifest, ItemManifest missingUnfilterTableManifest, Boolean allowError, FiltersTaskData tableFilterTask, Boolean skipFilteredTables)
+  SSSGame.CrockpotRecipeInfo :: Int32 GetMissingIngredientsCount(ItemManifest ingredientsManifest)
+  SSSGame.CrockpotRecipeInfo :: Void _FillOccurenceManifest(ItemManifest occurenceManifest, CookingRecipeRequirementType requirementType)
+  SSSGame.CrockpotRecipeInfo :: Void GetRemainingNeededManifest(ItemManifest ingredientsManifest, CookingRecipeRequirementType requestedType, ItemManifest& neededIngredients)
+  SSSGame.CrockpotRecipeInfo :: Void FillManifest(ItemManifest manifest, Int32& multiplier) [virt]
+  SSSGame.CrockpotRecipeInfo :: Void FillManifest(ItemManifest manifest, CookingRecipeRequirementType type)
+  SSSGame.DyeingBlueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  SSSGame.Marketplace :: Void _ClampManifestToCartInventory(ItemManifest manifest, CartStructure cart)
+  SSSGame.MineResourceConfig :: Single GetWallResourceComposition(ItemManifest resourceManifest, Single depth, IRandomGenerator generator)
+  SSSGame.Network.NetworkMarketplace/NetworkManifest :: Void OverrideOtherManifest(ItemManifest otherManifest)
+  SSSGame.Network.NetworkMarketplace/NetworkManifest :: Void OverrideFromManifest(ItemManifest itemManifest)
+  SSSGame.Network.ExpeditionNetworkState :: Void SetRequiredSupplies(ItemManifest itemManifest)
+  SSSGame.Deeds.DeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.StructureCompletedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.PlayerCraftingDeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.UI.ItemManifestDisplayer :: Void ShowManifestAsync(ItemManifest manifest, Boolean cancelCurrent)
+  SSSGame.UI.ItemManifestDisplayer :: Task _CreateItemPanels(ItemManifest manifest, CancellationTokenSource cancellationTokenSrc)
+  SSSGame.AI.PaintQuest/PaintQuestData :: Void ActivateNoCarryCapacityComplaint(ItemManifest itemManifest)
+  SSSGame.AI.PaintQuest/PaintQuestData :: Void ActivateSuppliesComplaint(ItemManifest itemManifest)
+  SSSGame.AI.RepairQuest/RepairQuestData :: Void ComplainNoCarryCapacity(ItemManifest itemManifest)
+  SSSGame.AI.RepairQuest/RepairQuestData :: Void ActivateSuppliesComplaint(ItemManifest itemManifest)
+  SSSGame.AI.BuildAndSupplyQuest/BuildAndSupplyQuestData :: Void ComplainNoCarryCapacity(ItemManifest itemManifest)
+  SSSGame.AI.BuildAndSupplyQuest/BuildAndSupplyQuestData :: Void ActivateSuppliesComplaint(ItemManifest itemManifest)
+  SSSGame.AI.ItemManifestComplaint :: Boolean ContainsManifest(ItemManifest otherManifest, IItemFilter filter)
+  SSSGame.AI.ItemManifestComplaint :: Boolean CompareManifest(ItemManifest otherManifest, IItemFilter itemFilter)
+  SSSGame.AI.HarborLoadingQuest/HarborLoadingQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest noCarryCapacityManifest)
+  SSSGame.AI.HarborLoadingQuest/HarborLoadingQuestData :: Void ComplainNoResourcesFound(Boolean value, ItemManifest finderManifest)
+  SSSGame.AI.HarborUnloadingQuest/HarborUnloadingQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest noCarryCapacityManifest)
+  SSSGame.AI.HarborHarvestQuest/HarborHarvestQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest noCarryCapacityManifest)
+  SSSGame.AI.StorageInteractionStep :: Void .ctor(Interaction interaction, ItemManifest quota, Boolean deposit)
+  SSSGame.AI.ResourceGatherStep :: Void .ctor(ItemManifest quota, Int32 targetQuantity, HarvestMarkerAreaType markerAreaType, Int32 searchDepth, Boolean checkAroundSelf)
+  SSSGame.AI.ResourceGatherTask :: Void .ctor(ItemManifest manifest, Int32 targetQuantity, StorageInteraction recipient)
+  SSSGame.AI.TradeRouteTaskData :: Void .ctor(Marketplace marketplace, List`1 villagers, ResourceStorage fromStorage, ResourceStorage toStorage, ItemInfo itemInfo, Int32 quantity, ItemManifest tradeManifest)
+  SSSGame.AI.FarmingQuestPlant/FarmingQuestPlantData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest manifest)
+  SSSGame.AI.FarmingQuestPlant/FarmingQuestPlantData :: Void ComplainNoSupplies(Boolean value, ItemManifest finderManifest)
+  SSSGame.AI.FarmingQuestGather/FarmingQuestGatherData :: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest)
+  SSSGame.AI.TradeRouteQuest/TradeRouteQuestData :: Void ComplainNoCarryCapacity(ItemManifest itemManifest, Boolean complain)
+  SSSGame.AI.TradeRouteQuest/TradeRouteQuestData :: Void ComplainNoResources(ItemManifest itemManifest, Boolean complain)
+  SSSGame.AI.TradeRouteQuest/TradeRouteQuestData :: Void FillOwnedManifestExceptEquippedClothes(ItemManifest itemManifest)
+  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData :: Void ComplainNoResourcesFound(Boolean value, ItemManifest finderManifest)
+  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest needsSpageForManifest)
+  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData :: Void ComplainHunterLowProficiencyLevel(Boolean value, ItemManifest dangerousPreyManifest)
+  SSSGame.AI.PrepareForWorkQuest/PrepareForWorkQuestData :: Void ComplainNoCarryCapacity(Boolean value, ItemManifest manifest)
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile/ReturnData :: Func`2 GetStorageInteractionPredicate(ItemManifest itemManifest)
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies/ReturnData :: Void FillRequiredSupplies(ItemManifest requirementsManifest, CrockpotRecipeInfo CrockpotInfo, CookingRecipeRequirementType requestedType)
+  SSSGame.AI.FSM.PriorityItemFilter :: Void FillManifest(ItemManifest manifest)
+  SSSGame.AI.FSM.FSM_FetchBoatCargo/ActionData :: StorageSupply FindStorageSupply(ItemManifest itemManifest, Boolean& checkRemainingCapacity)
+  SSSGame.AI.FSM.InstanceCheckFilter :: Void AddExcludedInstanceManifest(ItemManifest manifest)
+  SandSailorStudio.Inventory.BaseItemsConfig :: Void FillManifest(ItemManifest manifest, Int32& multiplier, IItemFilter itemFilter) [virt]
+  SandSailorStudio.Inventory.ItemContainer :: Void FillManifest(ItemManifest manifest)
+  SandSailorStudio.Inventory.ItemManifestContainer :: Void SetManifest(ItemManifest itemManifest) [virt]
+  SandSailorStudio.Inventory.IInventoryManager :: Void SelectItems(ItemManifest manifest) [virt]
+  SandSailorStudio.Inventory.ItemCollection :: Void FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemCollection :: Int32 ContainsItemManifest(ItemManifest itemManifest)
+  SandSailorStudio.Inventory.ItemCollection :: Boolean OverlapsItemManifest(ItemManifest itemManifest)
+  SandSailorStudio.Inventory.ItemCollection :: Void RemoveOwnedItemManifest(ItemManifest itemManifest)
+  SandSailorStudio.Inventory.ItemManifest :: Void Fill(ItemManifest other, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void FillUpToMax(ItemManifest other, ItemManifest max, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void FillUpToMax(ItemManifest other, ItemManifest max1, ItemManifest max2, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void FillMax(ItemManifest other, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void FillExcluded(ItemManifest other, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void Fill(ItemManifest other, Int32 multiplier, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Void FillRemainingCapacity(ItemManifest other, Func`2 remainingCapacityFunc)
+  SandSailorStudio.Inventory.ItemManifest :: Boolean ContainsKeys(ItemManifest itemManifest, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.ItemManifest :: Int32 Contains(ItemManifest itemManifest)
+  SandSailorStudio.Inventory.ItemManifest :: Void RemoveFromManifest(ItemManifest otherManifest)
+  SandSailorStudio.Inventory.ItemManifest :: Boolean Overlaps(ItemManifest itemManifest)
+  SandSailorStudio.Inventory.ItemManifestConfig :: Void FillManifest(ItemManifest manifest, Int32& multiplier, IItemFilter itemFilter) [virt]
+  SandSailorStudio.Inventory.ItemSelection :: Void FillManifest(ItemManifest manifest)
+  SandSailorStudio.Inventory.ItemTableConfig :: Void FillManifest(ItemManifest manifest, Int32& multiplier, IItemFilter itemFilter) [virt]
+  SandSailorStudio.Inventory.Blueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  SandSailorStudio.Inventory.BlueprintInfo :: Void FillManifest(ItemManifest manifest, Int32& multiplier) [virt]
+
+==================================================================
+PASS Y: PlayerCraftInteractionSession / VillagerCraftSession surface
+==================================================================
+
+---- SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession (base: SSSGame.InteractionSession) ----
+  P: _volumeProgress : Single
+  P: _volumeTarget : Single
+  P: _widgetProvider : IInteractionWidgetProvider
+  P: _touched : Boolean
+  P: CraftConfig : PlayerCraftInteractionConfig
+  P: CraftInteraction : CraftInteraction
+  P: DisplayOrder : Int32
+  P: GetProgressRatio : Single
+  M: Void .cctor()
+  M: Void Touch() [virt]
+  M: Void Untouch() [virt]
+  M: Void Start() [virt]
+  M: Void _OpenMenu() [virt]
+  M: Void Update() [virt]
+  M: Void End(InteractionSessionState lastResult) [virt]
+  M: Void ResetSession() [virt]
+  M: Void _BeginCraftInput(CallbackContext obj)
+  M: Void SetupWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void RefreshWidgetData(IInteractionWidgetProvider interactWidget) [virt]
+  M: Void ClearWidget(IInteractionWidgetProvider interactWidget) [virt]
+  M: CullingState GetCullingState() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession (base: SSSGame.InteractionSession) ----
+  P: _volumeProgress : Single
+  P: _volumeTarget : Single
+  P: CraftConfig : VillagerCraftInteractionConfig
+  P: CraftInteraction : CraftInteraction
+  P: Villager : Villager
+  P: GetProgressRatio : Single
+  M: Void .cctor()
+  M: Void Start() [virt]
+  M: Void Update() [virt]
+  M: Void End(InteractionSessionState lastResult) [virt]
+  M: CullingState GetCullingState() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SSSGame.UI.CraftMenu (base: SSSGame.UI.ContextMenu) ----
+  P: SelectItemTabPage : CreateItemsTabPage
+  P: _params : CraftMenuParameters
+  M: Void .cctor()
+  M: Void OnSetup(MenuParameters parameters) [virt]
+  M: Void OnActivate() [virt]
+  M: InventoryComponent GetCraftStationInventory()
+  M: CraftingStation GetCraftingStation()
+  M: CraftInteraction GetCraftInteraction()
+  M: PlayerCraftInteractionSession GetSession()
+  M: Void OnClosed() [virt]
+  M: Void _TryEndSession()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+DONE

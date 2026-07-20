@@ -89,6 +89,32 @@ if [ -f "sync-plugins.ps1" ]; then
     done
 fi
 
+# --- Doc hygiene: no "journey language" in ADDED documentation lines ---
+# Backstop for the PreToolUse doc-hygiene guard (.claude/hooks/doc-hygiene-guard.ps1), which only
+# sees Write/Edit/MultiEdit. This catches doc text that arrived by any other path (sed, a subagent,
+# a hand edit, a merge). Scans only ADDED lines, so pre-existing prose never blocks an unrelated
+# commit. Docs record current truth, not the journey — see CLAUDE.md "Doc update style".
+guard=".claude/hooks/doc-hygiene-guard.ps1"
+if [ -f "$guard" ] && command -v powershell.exe >/dev/null 2>&1; then
+    added=$(git diff --cached -U0 -- '*.md' | grep '^+' | grep -v '^+++' | sed 's/^+//')
+    if [ -n "$added" ]; then
+        if ! printf '%s\n' "$added" \
+             | powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$guard" -ScanStdin; then
+            err "journey language in added doc lines (rewrite the fact in place — see above)"
+        fi
+    fi
+fi
+
+# --- Surface doc-hygiene BLOCKS for human review (informational; never blocks the commit) ---
+# A guard block is only visible in the model's tool result, so without this the user can never
+# audit whether a block was legitimate — and a false positive would silently bend the writing.
+# Shows only blocks since the last commit, i.e. the ones from the work being committed.
+if [ -f "$guard" ] && command -v powershell.exe >/dev/null 2>&1; then
+    since=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+    CLAUDE_PROJECT_DIR="$(pwd)" powershell.exe -NoProfile -ExecutionPolicy Bypass \
+        -File "$guard" -ShowBlocks -SinceEpoch "$since" || true
+fi
+
 if [ "$fail" -ne 0 ]; then
     echo "" >&2
     echo "Commit blocked by .githooks/pre-commit (see CLAUDE.md rituals)." >&2

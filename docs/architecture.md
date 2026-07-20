@@ -833,6 +833,16 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   .GetGatheredItemQuantity / GetGatheredItemPriority / FillResourceStorageTaskDatas
   .excludedResourcesList (ItemInfoList), onlyGatherNativeItems / _nativeItemsFilter — built-in exclusions
 ```
+- **A villager crafter can only use its OWN station's storage** (user-confirmed from gameplay
+  2026-07-20): the small/medium materials box associated with the armorsmith is what gets consumed
+  to make armor — a crafter does not draw on settlement-wide storage. ⚠️ Mechanism unconfirmed;
+  candidates are `CraftingStation.GetFetchDepth(ItemInfo, out int)` /
+  `GetPersonalFetchDepth(Villager, …)` (a bounded fetch reach) and the vanilla per-building
+  storage-access whitelist (below), either of which would keep a crafter out of warehouses.
+  **Dead-end guard:** the existence of `CrafterFetchQuest` / `FSM_FetchCraftingSupplies` in the
+  type list is NOT evidence that villager fetching reaches settlement-wide — observed behavior is
+  the authority. (Consumed by CraftFromStorageMod / idea 17, whose villager half exists precisely
+  to lift this limit.)
 - **The warehouse pulls from every `StorageSupply` in the settlement.** A `CraftingStation`
   registers supplies for BOTH its **input** material bins (`stationInventory` / `_storageSupplies`)
   and its **output**; the output is additionally wrapped in
@@ -1171,9 +1181,39 @@ trace, workshop crafting table, solo host).
 - **`_OnCraftingSuccess` is NOT the ingredient-consumption site.** PRE and POST snapshots of
   `CraftInteraction.ItemInventory` around a real rope craft were byte-identical (total=26, same
   breakdown) — no ingredient decrement, no product increment. Whatever `ItemInventory` exposes
-  there is neither the ingredient source nor the output destination. The real consumption site is
-  still unidentified (⚠️ open; `_CraftRoutine` coroutine and the `CraftingStation` are the next
-  candidates).
+  there is neither the ingredient source nor the output destination.
+
+**⚠️ OPEN: where player crafting consumes ingredients.** Ruled out so far: `_OnCraftingSuccess`
+(above); **`CraftInteractionDisplay._CraftRoutine`** and its `__CraftRoutine_d__10` state machine
+(Cecil 2026-07-20 — the type is purely cosmetic: `tableDisplaySlot`, `_leftHandDisplayObj`,
+`_rightHandDisplayObj`, `_ClearDisplayObjects`; the state machine holds only a `CraftBlueprintInfo`
+and hand transforms); **`CraftingStation`** (the villager-side fetch/craft/study quest manager, not
+the player craft path). Leading candidate is the agent's own collection via
+`IInteractionAgent.GetInventory()` — consistent with `useAgentInventory=True`, and never sampled by
+the v0.1.1 trace, which watched only `CraftInteraction.ItemInventory`.
+**Cecil cannot settle this**: interop method bodies are trampolines, so there is no IL to read and
+no caller analysis is possible. It needs an in-game delta watcher over every candidate collection,
+or a Cpp2IL body dump.
+
+**Agent-side and station-side inventory accessors (Cecil 2026-07-20):**
+- **`IInteractionAgent.GetInventory() : ItemCollection`** — the agent's own collection; the one the
+  `useAgentInventory=True` path consults. The interface also exposes `GetInventoryManager()`,
+  `GetEquipmentManager()`, `GetAttributes()`, `GetTransform()`.
+- **`Workstation.GetInventory() : ItemCollection`** (overridden by `CraftingStation`) — a station's
+  real stock, and the fix for census limitation 1 below.
+- **`Workstation.GetItemsNeededFromSettlement() : List<…>`** (virtual, Cecil 2026-07-20) — a
+  station declaring what it wants **from the settlement**, i.e. vanilla already models
+  station→settlement demand. Prime lever candidate for a villager-side craft-supply mod: if the
+  vanilla one-station limit lives in fetch reach rather than in this list, widening vanilla's own
+  fetch may beat any custom mover. ⚠️ Element type not resolvable from the Cecil dumps (bare
+  `List\`1`) — read it defensively until an in-game log line names real items. Siblings:
+  `GetItemsToPrepareForWork()`, `IsItemNeededByVillager(ItemInfo, Villager)`.
+- **`SSSGame.CraftingAgent`** (MonoBehaviour): `ItemInventory : ItemCollection`, `ActiveBlueprint`,
+  `ActiveInteraction : CraftInteraction`, `GetInteractionAgent()`, and a **zero-parameter
+  `_OnCraftingFinished()`** — safe to patch as a craft-timeline marker (no inventory-family params,
+  so it avoids the plugin-load crash family).
+- `InventoryComponent.items : ItemCollection` / `GetItemCollection()`;
+  `ItemContainerComponent.container : ItemContainer` + `.inventoryComponent`.
 
 **Settlement storage census ground truth (confirmed in-game 2026-07-20, CraftFromStorageMod
 v0.1.2, a mature ~417-structure settlement):** `GetStructures()` = **417 structures**; a
@@ -1218,6 +1258,10 @@ only knows the container types of the settlement it was built from and would sil
 racks in a world with buildings the author never saw. (Related UI-side types:
 `SSSGame.EquipmentDisplaySlot : ItemDisplaySlot`, `SSSGame.EquipmentStackSlot :
 CategoryStackSlot`.)
+**How to reach them:** `EquipPoint` is **not** a MonoBehaviour (base `Il2CppSystem.Object`), so
+`GetComponent<EquipPoint>()` is impossible. Go through `EquipmentManager` (which IS a
+MonoBehaviour) → `equipPoints : List<EquipPoint>` → `equipPoint.ItemContainer` / `.containerType`.
+`EquipmentManager` also carries `geometryRoot`, `noHiddenContainers`, `OnItemEquipped/Unquipped`.
 ⚠️ **Open (user theory, unconfirmed 2026-07-20):** that `CharacterBuilder` — seen on 'Improved
 Armorsmith 2' — is the **mannequin/display stand** at the armorer/weaver, holding armor the way a
 character equips it. The EquipPoint mechanism above makes this plausible, but its reported

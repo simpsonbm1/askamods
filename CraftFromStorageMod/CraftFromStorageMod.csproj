@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CraftFromStorageMod</AssemblyName>
     <RootNamespace>CraftFromStorageMod</RootNamespace>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

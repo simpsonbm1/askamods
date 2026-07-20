@@ -42,6 +42,36 @@ decayed into chronological fact→correction chains a reader had to replay to le
 - Dead-ends and dated confirmations still accumulate forever — that's the knowledge base's point.
   What gets pruned is narrative accretion: the journey, the corrections, the superseded plans.
 
+**These rules are MECHANIZED — `.claude/hooks/doc-hygiene-guard.ps1`** (wired as a PreToolUse hook
+in the tracked `.claude/settings.json`, so both machines get it from `git pull` with no per-machine
+setup):
+- **Session gate** — the FIRST `.md` write/edit of a session is refused (exit 2), printing this
+  section back. Repeating the edit then proceeds. ⚠️ **The hook greps the exact heading
+  `### Doc update style`** to find this text — renaming that heading silently disconnects the
+  mechanism.
+- **Content scan** — EVERY `.md` write/edit is refused if it contains "journey language": prose
+  narrating how the document changed (former beliefs, corrections, dangling supersede pointers)
+  instead of stating current truth. The refusal quotes the offending phrase.
+- **Backstop** — `.githooks/pre-commit` runs the same scan over ADDED lines in the staged diff,
+  catching doc text that arrived by any path the hook can't see (sed, a subagent, a hand edit).
+- **Audit trail — how a FALSE POSITIVE becomes visible.** A block appears only in the model's tool
+  result, so every content block is appended to `.claude/doc-hygiene-blocks.log` (gitignored,
+  machine-local), and `.githooks/pre-commit` **prints the blocks since the last commit** on every
+  commit — informational, never blocking. This exists because the quiet failure mode is the model
+  rewording to dodge a pattern, degrading the doc unseen. Review on demand:
+  `powershell -File .claude/hooks/doc-hygiene-guard.ps1 -ShowBlocks`
+  A false positive is fixed in `$negatives` + the pattern, never worked around.
+- **Verification ritual (must print PASS):**
+  `powershell -File .claude/hooks/doc-hygiene-guard.ps1 -SelfTest`
+  Audit one file with `-ScanFile <path>` (exit 1 = hits). Whole repo, expected output `0`:
+  `Get-ChildItem -Recurse -Filter *.md | %{ powershell -File .claude/hooks/doc-hygiene-guard.ps1 -ScanFile $_.FullName }`
+- **When a new bad shape gets through, add a pattern** to `$script:Patterns` in that script and add
+  it to `-SelfTest`'s `$positives`; add any legitimate phrasing it wrongly catches to `$negatives`.
+  Both lists are regression locks — a pattern edit that breaks either fails the self-test.
+- The scan is deliberately narrow: `was false` / `SUPERSEDED by SeedScout` / "the first attempt
+  patched X" are all LEGITIMATE (boolean values, current status, dead-end knowledge). It flags only
+  text about the document's own prior content.
+
 ### Diagnostics Default Behavior
 Whenever you add a configuration option for a diagnostic or debug logger, **always default it to `true` initially.** This saves the user from having to boot the game just to generate the config file, close it, edit it, and launch again. Once a mod is verified and ready to ship, update the code to flip the default to `false` so it doesn't spam normal users' logs. These doc updates ride along with the related work when it's committed.
 
@@ -205,6 +235,8 @@ DLLs, not the original game DLLs. The interop layer has sharp edges — see
 ```
 askamods/
   CLAUDE.md                  ← this file (orientation + pointers)
+  .claude/hooks/doc-hygiene-guard.ps1  ← PreToolUse guard enforcing the stateless-docs rules
+                                          (+ pre-commit backstop; see "Doc update style" above)
   sync-plugins.ps1           ← push committed mod DLLs → live BepInEx\plugins (see "Syncing live plugins from git")
   bisect-plugins.ps1         ← enable/disable live plugins for framerate/crash bisection (state-saving; -Restore reverts)
   docs/                      ← detailed knowledge base (read on demand)
@@ -250,12 +282,15 @@ askamods/
                                 DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
                                 Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.1.2 — PHASE 0
-                                READ-ONLY DIAGNOSTIC SPIKE, writes no game state. v0.1.1 trace ran
-                                in-game 2026-07-20: gate/agent/UI facts confirmed (architecture.md
-                                → Player crafting pipeline) and found QuerySettlementResources()
-                                HANGS the game; v0.1.2 replaces it with the proven GetStructures()
-                                walk ⚠️ census half still unrun — NEW_MOD_IDEAS_PLAN.md idea 17]
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.2.0 — READ-ONLY
+                                diagnostic spike, writes no game state. Phase 0 (v0.1.x) confirmed
+                                in-game 2026-07-20: gate/agent/UI facts + storage census
+                                (architecture.md → Player crafting pipeline);
+                                QuerySettlementResources() HANGS the game — census uses the
+                                GetStructures() walk. Blocker: ingredient-consumption site
+                                unidentified → v0.2.0 adds the craft delta watcher + census v2
+                                (all-containers, EquipPoint probe, workstation stock) ⚠️ built,
+                                UNRUN — NEW_MOD_IDEAS_PLAN.md idea 17]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed

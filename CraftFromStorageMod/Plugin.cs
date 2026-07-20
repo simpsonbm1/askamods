@@ -31,10 +31,19 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TraceOnCraftingSuccess = null!;
     internal static ConfigEntry<bool> TraceActivateBlueprint = null!;
     internal static ConfigEntry<bool> TraceRecipeListUI = null!;
+    internal static ConfigEntry<bool> VerboseGateLogging = null!;
+
+    // --- config: Watch (v0.2.0 craft delta watcher - resolves the "where does consumption
+    // actually happen" blocker; see CraftWatcher.cs) ---
+    internal static ConfigEntry<bool> EnableCraftWatcher = null!;
+    internal static ConfigEntry<float> WatchWindowSeconds = null!;
+    internal static ConfigEntry<float> PollIntervalSeconds = null!;
 
     // --- config: Census ---
     internal static ConfigEntry<string> CensusHotkey = null!;
     internal static ConfigEntry<bool> CensusTryQuerySettlementResources = null!;
+    internal static ConfigEntry<bool> IncludeEquipmentProbe = null!;
+    internal static ConfigEntry<bool> IncludeWorkstationStock = null!;
 
     // --- live state ---
     internal static PlayerCharacter? LocalPlayer;
@@ -77,6 +86,29 @@ public class Plugin : BasePlugin
             "Postfix-log SSSGame.UI.CreateItemsTabPage.Show(bool, TabButton) - AvailableBlueprints/UnavailableBlueprints " +
             "counts at recipe-list-open time (may be null/empty at this point, which is itself informative).");
 
+        VerboseGateLogging = Config.Bind(
+            "Trace", "VerboseGateLogging", false,
+            "v0.2.0: CheckOwnedRequirements / _CheckOwnedBlueprintManifest fire ~96x per recipe-menu-open, so by " +
+            "default they only feed a periodic [CFS] GATE rollup summary (see GatePatches.cs GateRollup). Set true " +
+            "to ALSO emit the old one-line-per-call logging on top of the rollup - noisy, diagnostic-only.");
+
+        EnableCraftWatcher = Config.Bind(
+            "Watch", "EnableCraftWatcher", true,
+            "Master switch for the v0.2.0 delta watcher (CraftWatcher.cs). While armed it samples every candidate " +
+            "ingredient ItemCollection (agent inventory, station inventory/blueprint inventory, workstation stock, " +
+            "crafting-agent inventory) every PollIntervalSeconds and logs only what changed - this is what resolves " +
+            "the 'where does crafting actually consume ingredients' blocker that _OnCraftingSuccess snapshots could not.");
+
+        WatchWindowSeconds = Config.Bind(
+            "Watch", "WatchWindowSeconds", 20f,
+            "How long (seconds) after BeginCraftingSequence the CraftWatcher keeps sampling before disarming and " +
+            "emitting its [CFS] WATCH SUMMARY line. A single craft should complete well inside the default 20s.");
+
+        PollIntervalSeconds = Config.Bind(
+            "Watch", "PollIntervalSeconds", 0.1f,
+            "CraftWatcher sampling cadence (seconds) while armed. Lower = finer-grained timing at the cost of more " +
+            "frequent snapshot work; only changed slots are ever logged, so a lower value does not spam the log.");
+
         CensusHotkey = Config.Bind(
             "Census", "CensusHotkey", "F12",
             "Hotkey (a Unity KeyCode name, parsed via Enum.TryParse<KeyCode>) that dumps a read-only settlement " +
@@ -91,10 +123,27 @@ public class Plugin : BasePlugin
             "GetStructures() walk instead. Setting this true re-attempts the hanging call, bracketed by log " +
             "markers that isolate whether QuerySettlementResources() or GetTotalQuantity() is the one that hangs.");
 
+        IncludeEquipmentProbe = Config.Bind(
+            "Census", "IncludeEquipmentProbe", true,
+            "v0.2.0: per-container structural equip-slot probe (walk up for an EquipmentManager, compare its " +
+            "equipPoints' ItemContainer by pointer) so armor racks / character slots are tagged and excluded from " +
+            "the settlement-wide grand total instead of relying on a container-type name blacklist.");
+
+        IncludeWorkstationStock = Config.Bind(
+            "Census", "IncludeWorkstationStock", true,
+            "v0.2.0: per-structure Workstation.GetInventory()/GetItemsNeededFromSettlement() line - the fix for " +
+            "the v0.1.2 limitation where crafting stations reported a decorative CharacterFlask container instead " +
+            "of their real stock, and evidence for the villager-fetch question (idea-17 Phase 1).");
+
         ClassInjector.RegisterTypeInIl2Cpp<StorageCensus>();
+        ClassInjector.RegisterTypeInIl2Cpp<CraftWatcher>();
         var go = new GameObject("CraftFromStorageMod_Census");
         UnityEngine.Object.DontDestroyOnLoad(go);
         go.AddComponent<StorageCensus>();
+        go.AddComponent<CraftWatcher>();
+
+        if (!EnableCraftWatcher.Value)
+            Logger.LogInfo("[CFS] EnableCraftWatcher=false - CraftWatcher will not arm on BeginCraftingSequence.");
 
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 
@@ -132,10 +181,13 @@ public class Plugin : BasePlugin
         {
             harmony.PatchAll(typeof(Patches.OnCraftingSuccessCraftPatch));
             harmony.PatchAll(typeof(Patches.OnCraftingSuccessDyeingPatch));
+            // v0.2.0: CraftingAgent._OnCraftingFinished() is zero-parameter (no inventory-family
+            // crash exposure), gated under this same flag rather than a new one.
+            harmony.PatchAll(typeof(Patches.OnCraftingFinishedPatch));
         }
         else
         {
-            Logger.LogInfo("[CFS] TraceOnCraftingSuccess=false - _OnCraftingSuccess patches NOT applied.");
+            Logger.LogInfo("[CFS] TraceOnCraftingSuccess=false - _OnCraftingSuccess/_OnCraftingFinished patches NOT applied.");
         }
 
         if (TraceActivateBlueprint.Value)
@@ -149,7 +201,9 @@ public class Plugin : BasePlugin
             Logger.LogInfo("[CFS] TraceRecipeListUI=false - CreateItemsTabPage.Show patch NOT applied.");
 
         Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded (READ-ONLY diagnostic spike - " +
-            $"changes NO game state). CensusHotkey='{CensusHotkey.Value}'.");
+            $"changes NO game state). CraftWatcher arms automatically on BeginCraftingSequence and samples every " +
+            $"candidate ingredient collection until it resolves the consumption site or WatchWindowSeconds expires " +
+            $"(EnableCraftWatcher={EnableCraftWatcher.Value}). CensusHotkey='{CensusHotkey.Value}'.");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide

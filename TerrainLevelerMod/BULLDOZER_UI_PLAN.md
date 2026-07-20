@@ -158,7 +158,7 @@ layers select the squares:
    `GetKey(token)`). Custom display strings need entries injected into the game's localization
    table (see runbook).
 6. Useful runtime facts: vanilla terrain-field template = asset `Item_Structures_TerrainLevelField`,
-   **id 12664862**, vanilla `maxNumberOfTiles` **25** (docs previously said 100 — wrong), category
+   **id 12664862**, vanilla `maxNumberOfTiles` **25**, category
    `Categ_Blueprints_Structures`; blueprint items live in the PLAYER's inventory collection
    (component on `CharacterRagnar(Clone)`, `startItems='StartItems_Aska_Vanilla'`).
 
@@ -222,9 +222,8 @@ to keying off `_currentPreviewData.DynamicTemplate` inside each tool prefix.
   manually (uglier; only if needed).
 - Standing gotchas apply: no `Action` subscriptions (use the polling tracker), never patch
   `Copy*State` methods, never patch by-ref-primitive signatures
-  (`PlacementGrid.SetDimensions(Int32&, Int32&)` is off-limits). ⚠️ The old note that "C# `as`
-  casts work on interop types" is now known to be WRONG for base-declared materializations — see
-  gotcha #1 above.
+  (`PlacementGrid.SetDimensions(Int32&, Int32&)` is off-limits). ⚠️ C# `as`/`is` casts do NOT work
+  on interop types for base-declared materializations — see gotcha #1 above.
 - Don't touch the v1.3.22 crash fixes while refactoring — they ship as-is, unconditional.
 
 ---

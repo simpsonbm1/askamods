@@ -201,8 +201,8 @@ Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); 
   change-transport field: reads 0x0 at rest, mass-resets mid-session, and UI edits never pulse it.
   Diff `_schedule` array contents instead. (Ground truth: architecture.md → Schedule clock.)
 - `WeatherSystem.DayNightValue` as a clock — saturates at 0/1 for long stretches; use `TimeOfDay`.
-- Assuming `ConfigEntry.Value` reads the edited .cfg live — BepInEx never re-reads the file; a code
-  review claimed "reads live each pass" and was wrong. `Cfg.Reload()` polling is required.
+- Assuming `ConfigEntry.Value` reads the edited .cfg live — BepInEx never re-reads the file, so a
+  value read each pass is still the value loaded at startup. `Cfg.Reload()` polling is required.
 - Subsystem-level dead-ends (`overrideSchedule`, get-only happiness rates, warmth-as-trigger, wake
   threshold as "sleep less") live in architecture.md → Villager Schedule / Needs / Happiness.
 

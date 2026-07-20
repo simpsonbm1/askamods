@@ -20,3 +20,6 @@ SESSION_HANDOFF.md
 # "import Claude configurations" setup step — Codex regenerates them; committing them would
 # recreate the parallel-copy drift problem retired 2026-07-16)
 .codex/
+
+# Doc-hygiene guard block log (local audit trail, surfaced by .githooks/pre-commit)
+.claude/doc-hygiene-blocks.log
