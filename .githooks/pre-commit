@@ -9,6 +9,60 @@
 # (Do NOT bypass with --no-verify; fix the drift instead — that's the whole point.)
 
 set -u
+
+# Emit "<fileLineNo> <version>" for the FIRST vX.Y.Z token inside a mod's ENTIRE Project
+# Structure entry — its "  <mod>/" tree line THROUGH the closing ']' of the bracketed blurb.
+# A wrapped blurb can carry the version token on a continuation line, not the tree line
+# (OuthouseComposter regression, 2026-07-21): scanning only the tree line silently skips BOTH
+# the auto-fix and the drift block, committing a stale token. Prints nothing if none is found.
+# Args: <file> <mod>.  Verify with:  sh .githooks/pre-commit --selftest
+entry_version() {
+    awk -v mod="$2" '
+        index($0, "  " mod "/") == 1 { instr = 1 }
+        instr {
+            if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+/)) { print NR, substr($0, RSTART + 1, RLENGTH - 1); exit }
+            if (index($0, "]") > 0) exit   # reached the end of the entry with no token
+        }
+    ' "$1"
+}
+
+# --- Self-test: exercise entry_version + the auto-fix replace on all three entry shapes ---
+# Regression lock for the wrapped-blurb blind spot. Run: sh .githooks/pre-commit --selftest
+if [ "${1:-}" = "--selftest" ]; then
+    tmp=$(mktemp) || { echo "SELFTEST: mktemp failed" >&2; exit 1; }
+    # Mirrors the three real entry shapes: single-line, wrapped-token-on-line-1, and
+    # wrapped-token-on-a-CONTINUATION-line (the OuthouseComposter shape).
+    cat > "$tmp" <<'SELFTEST_EOF'
+  FooMod/                    ← Mod 1: single-line entry [COMPLETE v1.0.0 — docs/mods/foo.md]
+  BarMod/                    ← Mod 2: wrapped blurb, token on the FIRST line [COMPLETE v2.0.0 —
+                                more prose continuing here — docs/mods/bar.md]
+  BazMod/                    ← Mod 3: wrapped blurb whose text runs long,
+                                more clauses (a parenthetical) [COMPLETE
+                                v3.1.4, on Nexus — docs/mods/baz.md]
+SELFTEST_EOF
+    st_fail=0
+    st_check() {  # <mod> <expected-version>
+        got=$(entry_version "$tmp" "$1"); gv=${got#* }
+        if [ "$gv" = "$2" ]; then echo "  ok   detect $1 -> v$gv"
+        else echo "  FAIL detect $1 -> got '[$got]', expected v$2"; st_fail=1; fi
+    }
+    echo "entry_version detection:"
+    st_check FooMod 1.0.0
+    st_check BarMod 2.0.0
+    st_check BazMod 3.1.4    # regression: token on the 3rd (continuation) line
+    echo "auto-fix on a continuation-line token (BazMod v3.1.4 -> v3.2.0):"
+    hit=$(entry_version "$tmp" BazMod); vline=${hit%% *}
+    sed -b -i "${vline}s/v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/v3.2.0/" "$tmp"
+    av=$(entry_version "$tmp" BazMod); av=${av#* }
+    if [ "$av" = "3.2.0" ]; then echo "  ok   rewrote continuation-line token to v$av"
+    else echo "  FAIL post-fix got '$av' (expected 3.2.0)"; st_fail=1; fi
+    fv=$(entry_version "$tmp" FooMod); fv=${fv#* }
+    if [ "$fv" = "1.0.0" ]; then echo "  ok   single-line FooMod left untouched (v$fv)"
+    else echo "  FAIL single-line FooMod changed to v$fv"; st_fail=1; fi
+    rm -f "$tmp"
+    if [ "$st_fail" -eq 0 ]; then echo "SELFTEST: PASS"; exit 0; else echo "SELFTEST: FAIL"; exit 1; fi
+fi
+
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
 C="CLAUDE.md"
@@ -44,16 +98,17 @@ for csproj in */*.csproj; do
 
     ver=$(sed -n 's/.*<Version>\([0-9][0-9.]*\)<\/Version>.*/\1/p' "$csproj" | head -1)
     if [ -n "$ver" ]; then
-        line=$(grep "  $mod/" "$C" | head -1)
-        [ -z "$line" ] && line=$(grep "$mod/" "$C" | head -1)
-        stated=$(printf '%s' "$line" | grep -o 'v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1 | tr -d 'v')
+        # Scan the mod's ENTIRE Project Structure entry (tree line through closing ']'), not
+        # just the tree line — the token may live on a wrapped continuation line.
+        hit=$(entry_version "$C" "$mod")
+        vline=${hit%% *}
+        stated=${hit#* }
         if [ -n "$stated" ] && [ "$stated" != "$ver" ]; then
-            # Auto-fix: replace the FIRST version token on the mod's tree line only.
+            # Auto-fix: replace the FIRST version token on the exact line it was found on.
             # -b (binary) is REQUIRED: without it, MSYS sed silently rewrites the whole
             # CRLF file to LF (caught in scratch testing 2026-07-16).
-            sed -b -i "/  $mod\//s/v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/v$ver/" "$C"
-            line2=$(grep "  $mod/" "$C" | head -1)
-            stated2=$(printf '%s' "$line2" | grep -o 'v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1 | tr -d 'v')
+            sed -b -i "${vline}s/v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/v$ver/" "$C"
+            stated2=$(entry_version "$C" "$mod"); stated2=${stated2#* }
             if [ "$stated2" = "$ver" ]; then
                 echo "AUTO-FIXED: $C $mod v$stated -> v$ver (from $csproj)" >&2
                 fixed=1
