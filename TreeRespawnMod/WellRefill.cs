@@ -258,9 +258,16 @@ internal static class WellRefill
 
                     foreach (var gi in gis)
                     {
-                        string itemName = "";
-                        try { itemName = gi?.GetGatherableItemInfo()?.Name ?? ""; } catch { }
-                        if (!itemName.Contains("Water", StringComparison.OrdinalIgnoreCase)) continue;
+                        // Locale-proof (v1.7.1): match the well's gatherable against the display name
+                        // OR the invariant asset name ("Item_Elements_NaturalWaterCollector1" contains
+                        // "Water"). Previously matched only the localized .Name, so in a non-English
+                        // game (German "Wasser") no well was ever recognised and the refill silently
+                        // did nothing. Verified additive against the v0.3.0 locale audit.
+                        var wgii = gi?.GetGatherableItemInfo();
+                        bool isWater = false;
+                        try { var n = wgii?.Name; if (!string.IsNullOrEmpty(n) && n.IndexOf("Water", StringComparison.OrdinalIgnoreCase) >= 0) isWater = true; } catch { }
+                        if (!isWater) { try { var a = wgii?.name; if (!string.IsNullOrEmpty(a) && a.IndexOf("Water", StringComparison.OrdinalIgnoreCase) >= 0) isWater = true; } catch { } }
+                        if (!isWater) continue;
 
                         wellsLive++;
                         string posKey;

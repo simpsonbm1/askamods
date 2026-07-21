@@ -362,10 +362,12 @@ BiomeItemAvailabilityData
   16793610): Season[Autumn] + Other[IsRaining mandatory]; plain Mushrooms (id 16793608): ungated
   (both Season and Other condition lists empty). The v1.4.7 TreeRespawnMod mushroom feature clears
   these gates to remove seasonal/rain culling.
-- **Grey↔Gray plant/yield pairing:** the weather table registers the PLANT ItemInfo named "Grey
-  Mushrooms"; world gather nodes' YIELD is a distinct ItemInfo named "Gray Mushrooms" (both
-  spellings are literal `ItemInfo.Name` strings, NOT localization). Name-based substring filters are
-  locale-safe as far as observed, but plant vs yield items can differ in id and gating.
+- **Grey↔Gray plant/yield pairing:** the weather-table PLANT ItemInfo (asset
+  `Item_Food_BiomeMushroomGrey`, id 16793609) is distinct from the world gather node's YIELD
+  ItemInfo — they differ in id and gating. Their English display names read "Grey Mushrooms" vs
+  "Gray Mushrooms", but `ItemInfo.Name` is LOCALIZED (both are "Graue Pilze" in German), so that
+  spelling split is an English-only artifact. Distinguish plant vs yield by `id` or asset `.name`,
+  never by `ItemInfo.Name`. See the locale-invariant identity section above.
 - **Census recipe (v1.5.8):** read `BiomeItemAvailabilityData.itemDescriptors` (interop List via
   Count+indexer) → per descriptor read `IsAvailable`/`IsHarvestable`/`._instances` → per
   `BiomeItemInstance` read `.Active`/`.Destroyed`/`.GetQuantity()`. Instance lists reflect the
@@ -2409,6 +2411,50 @@ to inject a **new buildable entry** into the build menu. Full recipe in
     (`HashSet<string>`, needs an `Il2CppSystem.Core.dll` reference). Re-inject after `SetLanguage`
     (language switches rebuild the dictionaries); a postfix on `Loc(string, bool)` works as a
     safety net for lookup paths that bypass the dictionaries. (confirmed in-game 2026-07-01, v1.4.7)
+
+## Localization: Locale-invariant identity vs. translated display names
+
+ASKA display names are locale-dependent. For any asset with a display name, the capital-N `.Name`
+property resolves through `SandSailorStudio.Localization.LocalizationManager` and returns the
+TRANSLATED string for the active language. Matching a config token against any of these only
+works in the language the token was written for (usually English).
+
+The locale-INVARIANT identity sits right beside it:
+
+- **`ItemInfo` and `ItemCategoryInfo`** both derive `SandSailorStudio.Assets.AssetNode :
+  UnityEngine.ScriptableObject`, so both expose the lowercase Unity asset name `.name`, which is
+  dev-authored, English-derived, and never translated. Examples: item `Item_Junk_Compost`,
+  categories `Categ_Resources_Food` / `Categ_Tools_Knives`, mushrooms
+  `Item_Food_BiomeMushroom1` / `Item_Food_BiomeMushroomGrey` / `Item_Food_BiomeMushroomYellow`,
+  water `Item_Elements_NaturalWaterCollector1`. `.id` (int) is invariant: Compost 16801794, Food
+  category 16793600, mushrooms 16793608 / 16793609 / 16793610.
+- **Structures:** `Structure.Template` (a `StructureTemplate : BlueprintInfo : AssetNode`) exposes
+  the invariant template asset name via `.name` (e.g. `Item_Structures_OuthouseL1`);
+  `Structure.TemplateID` (int) and `gameObject.name` (e.g. `OuthouseL1(Clone)`) are also invariant.
+- **Creatures:** `CreatureDataSheet` (a `ParameterList : AssetNode`) exposes invariant `.name`
+  (e.g. `WolfDenClusterDataSheet`); `.Faction` is an invariant enum. VillagerFightBack's name
+  whitelist matches `IAttackTarget.GetTargetName()`, which is translated (English-only), but its
+  faction path is enum-based and locale-safe.
+- **Item registry:** the full item database is `ItemInfoDatabase.CompleteItemInfoList.itemInfoList`
+  (a `List<ItemInfo>`). `ItemInfoDatabase` is a MonoBehaviour — reach it via
+  `UnityEngine.Object.FindAnyObjectByType<ItemInfoDatabase>()` or `ItemDatabaseManager.Database`.
+  It also exposes `GetItemInfo(string assetName)` (resolve by invariant asset name),
+  `GetItemInfoFromID(int)`, and `_itemsMap : Dictionary<int, ItemInfo>`. **Dead-end:** `ItemInfo.s_itemInfoList`
+  is NOT the database — it is a small transient working list and must not be enumerated for the
+  full item set.
+
+**Recommended locale-safe matching pattern:** match the config token against BOTH the translated
+`.Name` AND the invariant `.name`. This is additive — a full 1121-item in-game audit (2026-07-21)
+verified that in English no item or category matches on asset name without also matching on display
+name, so English behaviour is unchanged while non-English gains coverage. Because asset names are
+English-derived, existing English config tokens are already substrings of them.
+
+**Dead-end for future locale audits:** a static grep for `.Name.Contains(...)` misses locale bugs
+where the translated string is first assigned to a variable, passed as a method parameter, or used
+as a Dictionary key before comparison. Three such holes in already-swept mods surfaced only under
+non-English in-game testing (2026-07-21): OuthouseComposter's outhouse `StructureNameMatch`,
+TreeRespawn's `GetGatherThreshold` (per-item respawn-rate override), and TreeRespawn's WellRefill
+"Water" filter. Trace variables and map lookups, not just inline `.Name` comparisons.
 
 ## Task Discovery & Bypassing (Fishing/Cooking/Item Journal)
 

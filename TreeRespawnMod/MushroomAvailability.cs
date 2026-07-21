@@ -142,7 +142,7 @@ internal static class MushroomAvailability
                     var data = cur.Value;
 
                     string name = SafeName(item);
-                    if (!MatchesFilter(name, filter)) continue;
+                    if (!MatchesFilterItem(item, filter)) continue;
                     matched++;
 
                     string idStr = "";
@@ -241,6 +241,19 @@ internal static class MushroomAvailability
             if (token.Length == 0) continue;
             if (name.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true;
         }
+        return false;
+    }
+
+    // Locale-proof (v1.7.0): match the filter against the display name (localized) OR the Unity asset
+    // name (item.name, invariant/English-derived — e.g. "Item_Food_BiomeMushroomGrey" contains
+    // "Mushroom"). The English default filter therefore keeps working in every language; previously it
+    // matched nothing outside English because item.Name is translated. Verified additive against the
+    // v0.3.0 locale audit (1121 items): in English every asset-name match already has a display-name
+    // match, so behaviour is unchanged. See docs/architecture.md -> Localization.
+    private static bool MatchesFilterItem(ItemInfo item, string filter)
+    {
+        if (MatchesFilter(SafeName(item), filter)) return true;
+        try { var a = item.name; if (!string.IsNullOrEmpty(a) && MatchesFilter(a, filter)) return true; } catch { }
         return false;
     }
 

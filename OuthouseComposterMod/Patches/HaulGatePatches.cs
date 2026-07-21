@@ -34,7 +34,7 @@ internal static class CanCreateStorageTaskPatch
             if (!OuthouseGate.IsOuthouseSupply(storageSupply)) return true;
 
             bool isCompost = false;
-            try { isCompost = info != null && string.Equals(info.Name, Plugin.CompostItemName.Value, StringComparison.OrdinalIgnoreCase); }
+            try { isCompost = OuthouseGate.ItemIsNamed(info, Plugin.CompostItemName.Value); }
             catch { }
             if (isCompost) return true;
 

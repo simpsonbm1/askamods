@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>TreeRespawnMod</AssemblyName>
     <Description>Restores felled trees and exhausted gather nodes after a configurable number of days.</Description>
-    <Version>1.6.1</Version>
+    <Version>1.7.1</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

@@ -298,7 +298,7 @@ public class ComposterDiag : MonoBehaviour
                     try
                     {
                         var info = list![i];
-                        if (info != null && string.Equals(SafeItemName(info), Plugin.CompostItemName.Value, StringComparison.OrdinalIgnoreCase))
+                        if (info != null && OuthouseGate.ItemIsNamed(info, Plugin.CompostItemName.Value))
                         {
                             _compostInfo = info;
                             break;
@@ -353,7 +353,7 @@ public class ComposterDiag : MonoBehaviour
                 ItemInfo? info = null;
                 try { info = item.info; } catch { }
                 if (info == null) continue;
-                if (string.Equals(SafeItemName(info), name, StringComparison.OrdinalIgnoreCase)) return info;
+                if (OuthouseGate.ItemIsNamed(info, name)) return info;
             }
         }
         catch { }
@@ -743,14 +743,11 @@ public class ComposterDiag : MonoBehaviour
         try { return s.DefaultName ?? "?"; } catch { return "?"; }
     }
 
+    // Routes to the shared locale-proof matcher so the converter identifies the outhouse by its
+    // invariant template asset / gameObject name too (not just the localized display/default name).
+    // This is what makes conversion work in non-English games — see OuthouseGate.StructureMatchesFilter.
     private static bool StructureMatches(Structure s, string filter)
-    {
-        if (string.IsNullOrEmpty(filter)) return false;
-        string disp = SafeName(s);
-        string def = SafeDefaultName(s);
-        return disp.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0
-            || def.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
-    }
+        => OuthouseGate.StructureMatchesFilter(s, filter);
 
     // ── Per-structure component census ──────────────────────────────────────────────────────
     private void DumpStructureComponents(Structure s)

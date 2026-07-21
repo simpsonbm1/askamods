@@ -25,6 +25,14 @@ internal static class Registration
         {
             if (Plugin.PendingGatherRespawns.ContainsKey(posKey)) return false;
 
+            // Locale-proof (v1.7.1): key the per-item respawn override on the INVARIANT asset name
+            // (bi.Descriptor.itemInfo.name, e.g. "Item_Food_BiomeMushroomGrey") rather than the
+            // localized display name passed in — otherwise "Mushroom"->0.1 never matches "Graue Pilze"
+            // and every non-English node falls back to the default rate. Override keys are substrings
+            // of the English-derived asset names, so English behaviour is unchanged. Falls back to the
+            // passed display name if the asset name is unavailable.
+            try { var an = bi.Descriptor?.itemInfo?.name; if (!string.IsNullOrEmpty(an)) itemName = an; } catch { }
+
             float threshold = Plugin.GetGatherThreshold(itemName);
             // Respawn disabled for this item — don't register at all. (The direct patch registers
             // and lets DayTracker drop it, which is fine once per harvest; but data-sync/catch-up

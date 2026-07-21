@@ -4,9 +4,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>FishFilletMod</AssemblyName>
-    <RootNamespace>FishFilletMod</RootNamespace>
-    <Version>1.2.0</Version>
+    <AssemblyName>LocaleAuditMod</AssemblyName>
+    <RootNamespace>LocaleAuditMod</RootNamespace>
+    <Version>0.3.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
@@ -59,10 +59,6 @@
       <HintPath>$(BepInExPath)\interop\Fusion.Runtime.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>$(BepInExPath)\interop\UnityEngine.UI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -72,14 +68,6 @@
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>$(BepInExPath)\unity-libs\UnityEngine.InputLegacyModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>$(BepInExPath)\unity-libs\UnityEngine.IMGUIModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>$(BepInExPath)\unity-libs\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

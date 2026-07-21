@@ -98,13 +98,25 @@ internal static class Fillet
             if (mv == null) return false; // bare-hand items already harvest fine; only unlock tool-gated ones
             var cat = mv.requiredEqippmentCategory;
             if (cat == null) return false;
-            string catName = cat.Name ?? "";
             foreach (var allowed in Plugin.ToolCategories)
-                if (allowed.Length > 0 && catName.IndexOf(allowed, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (allowed.Length > 0 && CatMatches(cat, allowed))
                     return true;
             return false;
         }
         catch { return false; }
+    }
+
+    // Locale-proof (v1.2.0): the tool-category config token ("Knives") is matched against BOTH the
+    // localized display name (cat.Name, e.g. "Messer" in German) AND the Unity asset name (cat.name,
+    // e.g. "Categ_Tools_Knives") — the asset name is dev-authored, English-derived and never
+    // translates, so the English default keeps working in every language. Verified additive against
+    // the v0.3.0 locale audit: in English no category matches on asset name without also matching on
+    // display name, so English behaviour is unchanged.
+    private static bool CatMatches(ItemCategoryInfo cat, string token)
+    {
+        try { var n = cat.Name; if (!string.IsNullOrEmpty(n) && n.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        try { var a = cat.name; if (!string.IsNullOrEmpty(a) && a.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        return false;
     }
 
     // Returns a ResourceInfo wrapper if the item is ResourceInfo-kind, else null. (Managed cast lies for

@@ -175,13 +175,27 @@ internal static class OuthouseGate
     // Shared by IsOuthouseSupply/IsOuthouseOutlet/IsOuthouseSite: case-insensitive substring match
     // of Plugin.StructureNameMatch against the structure's display name OR its DefaultName.
     private static bool StructureNameMatches(Structure s)
+        => StructureMatchesFilter(s, Plugin.StructureNameMatch.Value);
+
+    // Locale-proof structure identity (v1.3.0). The outhouse building is matched by the
+    // StructureNameMatch token ("Outhouse"). Display name (GetName/StructureName) AND DefaultName both
+    // resolve through LocalizationManager, so in a non-English game they read e.g. "Plumpsklo" and the
+    // English token matched nothing — the converter resolved 0 outhouse containers and never composted
+    // (the non-English "accepts food but never converts" report). The Unity template asset name
+    // (Template.name = "Item_Structures_OuthouseL1") and the gameObject name ("OuthouseL1(Clone)") are
+    // dev-authored, English-derived and never translate. Matching all four keeps the English token
+    // working in every language. Verified additive against the v0.3.0 locale audit: in English the
+    // outhouse's default/display name already contains "Outhouse", so English behaviour is unchanged.
+    // Shared by the acceptance/haul/eat gates (here) and the converter's container resolver
+    // (ComposterDiag.StructureMatches routes to this).
+    internal static bool StructureMatchesFilter(Structure s, string filter)
     {
-        string filter = Plugin.StructureNameMatch.Value;
         if (string.IsNullOrEmpty(filter)) return false;
-        string disp = SafeStructureName(s);
-        string def = SafeStructureDefaultName(s);
-        return disp.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0
-            || def.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
+        try { var n = SafeStructureName(s); if (n.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        try { var d = SafeStructureDefaultName(s); if (d.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        try { var t = s.Template; var a = t != null ? t.name : null; if (!string.IsNullOrEmpty(a) && a.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        try { var go = s.gameObject; var g = go != null ? go.name : null; if (!string.IsNullOrEmpty(g) && g.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        return false;
     }
 
     // DefaultName is the pristine type name (survives player renames); StructureName/GetName() is
@@ -218,14 +232,40 @@ internal static class OuthouseGate
         try
         {
             var cat = info.category;
-            string catName = cat != null ? (cat.Name ?? "") : "";
-            if (string.IsNullOrEmpty(catName)) return false;
+            if (cat == null) return false;
             foreach (var needle in ParseCsv(Plugin.FoodCategoryMatch.Value))
             {
-                if (catName.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (CatNameOrAssetContains(cat, needle)) return true;
             }
         }
         catch { }
+        return false;
+    }
+
+    // --- Locale-proof identity matching (v1.3.0) --------------------------------------------------
+    // Display names (.Name) resolve through LocalizationManager, so an English config token only
+    // matches when the game runs in English — the root cause of the non-English "only accepts seeds /
+    // never makes compost" reports. The Unity asset name (.name, lowercase) is the dev-authored,
+    // English-derived id ("Categ_Resources_Food", "Item_Junk_Compost") and never translates. Matching
+    // BOTH keeps the English default token working in every language. Verified ADDITIVE against the
+    // v0.3.0 locale audit (1121 items): in English no category/item has an asset-name match without an
+    // existing display-name match, so English behaviour is unchanged. See docs/architecture.md.
+    internal static bool CatNameOrAssetContains(ItemCategoryInfo? cat, string token)
+    {
+        if (cat == null || string.IsNullOrEmpty(token)) return false;
+        try { var n = cat.Name; if (!string.IsNullOrEmpty(n) && n.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        try { var a = cat.name; if (!string.IsNullOrEmpty(a) && a.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        return false;
+    }
+
+    // Identity of a SPECIFIC named item (the produced Compost). The display name stays an EXACT match
+    // (English behaviour unchanged); the asset name is a substring test because the asset id carries a
+    // prefix ("Item_Junk_Compost" contains the token "Compost").
+    internal static bool ItemIsNamed(ItemInfo? info, string token)
+    {
+        if (info == null || string.IsNullOrEmpty(token)) return false;
+        try { if (string.Equals(info.Name, token, StringComparison.OrdinalIgnoreCase)) return true; } catch { }
+        try { var a = info.name; if (!string.IsNullOrEmpty(a) && a.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
         return false;
     }
 
@@ -236,7 +276,7 @@ internal static class OuthouseGate
         // Never treat the compost item itself as an accepted input.
         try
         {
-            if (string.Equals(info.Name, Plugin.CompostItemName.Value, StringComparison.OrdinalIgnoreCase))
+            if (ItemIsNamed(info, Plugin.CompostItemName.Value))
                 return false;
         }
         catch { }

@@ -1,6 +1,6 @@
 # FishFilletMod (Mod 20)
 
-**Status:** COMPLETE v1.1.1 — confirmed in-game 2026-07-08.
+**Status:** COMPLETE v1.2.0 — confirmed in-game 2026-07-21 in German.
 **What it does:** Shift + Right-click a raw fish in your inventory to fillet it on the spot
 (consumes the fish, grants its normal meat/blubber yield), instead of dropping it and skinning it on
 the ground.
@@ -72,3 +72,10 @@ covers all fish is high (two loot models already validated; failure mode is grac
 non-matching item simply doesn't fillet, no crash — and the tool-category config extends coverage).
 Full-database census not run (chose to ship; any fish that doesn't fillet = add its tool category to
 config or a quick follow-up).
+
+## Version history (compressed)
+
+- **v1.0–v1.1.1:** core filleting (Shift+RMB drive via `ItemThumbnailPanel.OnPointerClick`).
+- **v1.2.0 (2026-07-21):** tool-category gate now matches invariant asset name
+  (`Categ_Tools_Knives`) in addition to translated `.Name`, enabling filleting in every language;
+  confirmed in-game in German.

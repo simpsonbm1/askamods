@@ -1,4 +1,4 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.6.1)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.7.1)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries,
 etc.) after configurable in-game days — plus a configurable refill rate for **constructed wells**
@@ -46,10 +46,13 @@ Wells: architecture.md → "Constructed water structures" under the Gather secti
   exhaustion. Same `ActiveInstances` registry, same `Replenish()` call. No cancel condition —
   gather nodes always respawn unless config disables them.
 - **Config `[GatherRespawn]`:** one `Config.Bind<float>` per known resource (key = **yielded item
-  name**, value = days; `0` = disabled; `Default` = fallback for unlisted resources). Matching is
-  case-insensitive substring `itemName.Contains(configKey)` — key `Mushroom` matches
-  "Gray/Grey/Yellow Mushrooms"; key `Fiber` matches the real plural name `"Fibers"`. The
-  yield-name↔node table lives in architecture.md → Gather.
+  invariant asset name**, value = days; `0` = disabled; `Default` = fallback for unlisted
+  resources). v1.7.1+ matches both asset name AND translated display name (case-insensitive
+  substring — key `Mushroom` matches asset `Item_Food_BiomeMushroom*` AND display names
+  "Gray/Grey/Yellow Mushrooms"; key `Fiber` matches asset prefixes AND `"Fibers"`). Dual matching
+  enables locale-safe configuration in every language (prior v1.6.x matched only the translated
+  yield name and applied zero overrides in non-English, falling back to the `Default` rate for
+  every non-English node). The yield-name↔node table lives in architecture.md → Gather.
 - **Respawn days is NOT a "more stock" lever** — it only sets how soon a node is harvestable
   again. If a raw intermediate still reads ~0 in storage at a `0.01` threshold, the bottleneck is
   consumption or gather labor, not the mod.
@@ -81,7 +84,7 @@ Host authority is validated via `Plugin.LocalPlayer` (tracked by a `PlayerCharac
 postfix) → `LocalPlayer.NetworkObject.Runner.IsServer`. Confirmed in a live co-op session
 2026-07-03. (`WeatherSystem.Instance.Runner.IsServer` reads `false` in co-op — dead-end below.)
 
-## Well water refill (`[WellRefill]` — confirmed in-game 2026-07-04)
+## Well water refill (`[WellRefill]` — confirmed in-game 2026-07-04, locale-safe 2026-07-21)
 
 Built wells are `Structure`s whose water is a charge-based `GatherInteraction` (`'Water Well'` max
 50, `'Rain Collector'` max 10) — the `[GatherRespawn]` `Water` entry only covers the wild Natural
@@ -89,10 +92,14 @@ Water Collector biome node.
 
 - **Mechanism (`WellRefill.cs`, its own 30 s accumulator `RunWellRefillTick`, host-gated):**
   resolve `SettlementManager` (`FindAnyObjectByType`) → settlements via the **getter methods** →
-  `GetStructures()` → manual hierarchy-walk for `GatherInteraction`s → keep those yielding
-  `"Water"`. Per well, accumulate elapsed in-game time and grant `ReplenishCharges(n)` clamped to
-  `CheckMaximumItemCount() - CheckAvailableItemCount()`. Structures deduped by position; cache
-  cleared on world switch; stale wrappers dropped and re-found next scan.
+  `GetStructures()` → manual hierarchy-walk for `GatherInteraction`s → keep those yielding the
+  water gatherable. v1.7.1+ matches both invariant asset name (`Item_Elements_NaturalWaterCollector1`)
+  and translated display name (`"Water"`). Dual matching enables locale-safe well identification
+  in every language (prior v1.6.x matched only the translated name and matched zero water
+  interactions in non-English, so refill silently did nothing). Per well, accumulate elapsed
+  in-game time and grant `ReplenishCharges(n)` clamped to `CheckMaximumItemCount() -
+  CheckAvailableItemCount()`. Structures deduped by position; cache cleared on world switch; stale
+  wrappers dropped and re-found next scan.
 - **Time accounting is anchor+carry:** the anchor is only ever assigned from
   `WeatherSystem.NetworkedCurrentGameTime` and only ever consumed through
   `GetTimeDifferenceFromCurrentGameTimeInSeconds(anchor)`; the sub-charge remainder banks in
@@ -106,7 +113,8 @@ Water Collector biome node.
   on rain). Co-op client-side behavior unverified ⚠️ (refill runs host-side; `ReplenishCharges`
   writes the networked count, so replication is expected but untested).
 
-## Mushroom availability — year-round + rain-independent (`[MushroomAvailability]` — verified end-to-end 2026-07-11)
+## Mushroom availability — year-round + rain-independent (`[MushroomAvailability]` — verified
+end-to-end 2026-07-11, locale-safe 2026-07-21)
 
 The game gates seasonal/weather resources via `WeatherManager._descriptors` (~22 entries; each
 carries an `AvailabilityProcess` ScriptableObject ANDing four condition lists). **Vanilla mushroom
@@ -116,11 +124,13 @@ Season[Autumn] + Other[IsRaining mandatory]; plain Mushrooms (id 16793608) = **u
 lists empty).
 
 - **Mechanism (`MushroomAvailability.MaybeApply()`, driven from `DayTracker.Update()`):** enumerate
-  descriptors, match by case-insensitive substring (`ItemNames`, default `Mushroom`), snapshot each
-  matched process's original lists once (only from a populated read, so a raced-empty read is never
-  recorded as vanilla data), then `.Clear()` the Season and Other lists. First sweep ~5 s after
-  descriptors register, then **re-sweeps every 10 s all session** (late-caught entries log an
-  unconditional `LATE clear:` marker — never observed locally; kept as hardening for slower
+  descriptors, match by invariant asset name substring (`Item_Food_BiomeMushroom*`, checked
+  case-insensitively). v1.7.0+ also checks invariant asset names, enabling locale-safe matching
+  (prior v1.6.x matched only the translated display name and found zero mushrooms in non-English).
+  Snapshot each matched process's original lists once (only from a populated read, so a raced-empty
+  read is never recorded as vanilla data), then `.Clear()` the Season and Other lists. First sweep
+  ~5 s after descriptors register, then **re-sweeps every 10 s all session** (late-caught entries
+  log an unconditional `LATE clear:` marker — never observed locally; kept as hardening for slower
   machines). Not host-gated: the SO edit runs locally on every peer; the host's copy drives biome
   spawning and client edits are harmless.
 - **`AvailabilityProcess` is process-global, NOT per-world** — the edit persists across world
@@ -288,3 +298,5 @@ not this query — still works, still cancels the respawn.
 | v1.5.6 | 2026-07-10 | Typing guard on hotkeys. |
 | v1.5.7–v1.5.8 | 2026-07-10/11 | Mushroom re-sweep hardening; gating ground-truth CORRECTED (plain Mushrooms vanilla-ungated); F8 instance census; two-soak end-to-end verification. |
 | v1.6.0–v1.6.1 | 2026-07-12 | Perf hardening: cheap-first + 8/tick slicing, WellRefill on 30 s cadence, ServiceInterval 3 s (⚠️ pending in-game confirmation). |
+| v1.7.0 (2026-07-21) | Mushroom availability gate now matches invariant asset name (`Item_Food_BiomeMushroom*`) + translated display name, enabling year-round mushroom availability in every language; confirmed in-game in German. |
+| v1.7.1 (2026-07-21) | Per-item gather-respawn rate override (`GetGatherThreshold`) now keys on invariant asset name + translated yield name (dual matching); well-refill "Water" filter now matches invariant asset name (`Item_Elements_NaturalWaterCollector1`) + translated name, enabling locale-safe identification in every language. ⚠️ pending in-game confirmation. |

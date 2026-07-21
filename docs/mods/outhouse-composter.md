@@ -1,4 +1,4 @@
-# Mod 25: OuthouseComposterMod — COMPLETE (v1.2.1, on Nexus as "Outhouse Composter")
+# Mod 25: OuthouseComposterMod — COMPLETE (v1.3.1, on Nexus as "Outhouse Composter")
 
 **Goal:** food and seeds thrown into the Outhouse structure's storage convert into Compost over
 in-game time, protected from villager raiding (warehouse haul gate + villager eat gate). Origin:
@@ -51,8 +51,8 @@ fire-verification marker.
 
 ### Classification (OuthouseGate.cs)
 - **Seed:** `ItemInfo.storageClass` asset name == `SeedItem`
-- **Food:** non-seed whose `ItemInfo.category.Name` contains any CSV substring from FoodCategoryMatch
-  (default "Food")
+- **Food:** non-seed whose `ItemInfo.category.name` (asset name) OR `.category.Name` (translated)
+  contains any CSV substring from FoodCategoryMatch (default "Food") — matches in every language
 - **Compost item itself** never accepted as input (guard against infinite loops)
 
 ### Converter (ComposterDiag.cs, injected MonoBehaviour, Update polling every 2 s)
@@ -90,38 +90,48 @@ on world load).
 Both modes confirmed in-game 2026-07-12.
 
 ### Compost output resolution
-`FarmingStation.composts` (singular `FindAnyObjectByType` works) is queried for the compost ItemInfo.
-Fallback to name-scan of outhouse contents if not found. Conversions wait until resolved.
+Compost ItemInfo resolved by invariant asset name `Item_Junk_Compost` (id 16801794) — lookup by
+`ItemInfoDatabase.GetItemInfo(assetName)` or `GetItemInfoFromID(int)`. Fallback to
+`FarmingStation.composts` for the first matching item. Conversions wait until resolved. Asset-name
+matching enables compost identification in every language (prior v1.2.x matched the translated
+`.Name` and resolved nothing in non-English, causing conversions to wait indefinitely).
 
-### Warehouse haul gate (v1.1.0, Patches/HaulGatePatches.cs — confirmed in-game 2026-07-19)
+### Warehouse haul gate (v1.1.0 concept, v1.3.1 complete, Patches/HaulGatePatches.cs —
+confirmed in-game 2026-07-21)
 Fixes the Nexus-reported theft loop (warehouse workers hauling food back out before it converts).
 Harmony PREFIX on `SSSGame.ResourceStorage.CanCreateStorageTaskForItemInfo(StorageSupply
 storageSupply, ItemInfo info)` (Cecil-confirmed: virtual, single implementation, NO derived-type
 overrides — one patch covers warehouses/huts/outposts). When `storageSupply.OwnerStructure`
-name-matches `StructureNameMatch` AND the item isn't `CompostItemName` → `__result=false`, skip
-original: the haul task is never created. Compost stays haulable; fails open on any exception.
-Outhouse-supply identity cached by supply pointer in `OuthouseGate.IsOuthouseSupply` (cleared with
-the container cache on world leave). In-game 2026-07-19: alive marker fired; only genuine
-outhouses matched the name filter (Outhouse/2/3); user observed zero warehouse theft. The two
-suppression lines (Crawler Slime, Spoiled Food) were PROSPECTIVE queries — the warehouse asks the
-gate about the outhouse container's native accepted types even when the container doesn't hold
-them (containers held only Compost that run). I.e. `CanCreateStorageTaskForItemInfo` is called
+matches the outhouse (by invariant template asset name `Item_Structures_OuthouseL1`, id, or
+`gameObject.name` `OuthouseL1(Clone)`, NOT translated name) AND the item isn't `CompostItemName`
+→ `__result=false`, skip original: the haul task is never created. Compost stays haulable; fails
+open on any exception. Outhouse-supply identity cached by supply pointer in
+`OuthouseGate.IsOuthouseSupply` (cleared with the container cache on world leave).
+Locale-safe structure matching (since v1.3.0 intermediate version) enables the gate to work in
+every language (prior v1.2.x matched `StructureNameMatch` against the translated
+`Structure.DefaultName` and matched zero outhouse containers in non-English, so the theft loop
+persisted). In-game 2026-07-21: all three alive markers fired; only genuine outhouses matched; user
+observed zero warehouse theft. The two suppression lines (Crawler Slime, Spoiled Food) were
+PROSPECTIVE queries — the warehouse asks the gate about the outhouse container's native accepted
+types even when the container doesn't hold them. I.e. `CanCreateStorageTaskForItemInfo` is called
 per accepted/allotted item, NOT per item actually present — it fires at world load / task-list
 rebuilds, so suppression lines cluster early in a session (once per (owner, item) since v1.2.0,
 which also added owner='<name>' to the lines).
 
-### Eat gate (v1.2.0, Patches/EatGatePatches.cs — confirmed in-game 2026-07-19)
+### Eat gate (v1.2.0 concept, v1.3.1 complete, Patches/EatGatePatches.cs — confirmed in-game
+2026-07-21)
 Second raid vector after the haul gate: builders ate raw vegetables out of the outhouse (eating is
 the survival-quest FSM, not haul tasks). Fix: Harmony prefixes on the consume quest's own vanilla
 whitelist checks — nested `SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData`
 `IsWhitelistedByStorage(ResourceOutlet)` / `IsWhitelistedByStorage(IResourceStorageSite)` /
 `IsWhitelistedByAny(IResourceStorageSite)` — denying (`__result=false`) when the outlet/site
-resolves to the outhouse (`ResourceOutlet.Structure`, or `GetTransform()` + bounded parent-walk
-`GetComponent<Structure>()`; pointer-cached in OuthouseGate, cleared on world leave; fail-open).
-Consume-path-only — farmers' compost retrieval unaffected. In-game 2026-07-19: all three alive
-markers fired; denials all came via the `IsWhitelistedByStorage(IResourceStorageSite)` overload
-(one per outhouse, correct owner names); user observed zero removals from a watched outhouse;
-converter kept producing Compost throughout; zero errors. NEVER patch this class's
+resolves to the outhouse. Outhouse identification by invariant structure asset name / id / gameObject
+name (NOT translated `StructureNameMatch` — prior v1.3.0 intermediates matched only the translated
+name and matched zero structures in non-English). Pointer-cached in OuthouseGate, cleared on world
+leave; fail-open. Consume-path-only — farmers' compost retrieval unaffected. In-game 2026-07-21:
+all three alive markers fired; denials all came via the `IsWhitelistedByStorage(IResourceStorageSite)`
+overload (one per outhouse, correct owner names); user observed zero removals from a watched
+outhouse; converter kept producing Compost throughout; zero errors. NEVER patch this class's
 `_FindBestItemToConsume(Item)` / `_OnItemAdded` / `_OnItemRemoved` (inventory-family crash
 signatures). See architecture.md → "Where the consume quest picks its store".
 
@@ -197,3 +207,9 @@ by in-game-clock timers. Do not resurrect.
   confirmed in-game 2026-07-19.
 - **v1.2.1 (2026-07-19):** ship polish — LogHaulGate/LogEatGate defaults flip to false; uploaded
   to Nexus.
+- **v1.3.0 (2026-07-21, intermediate):** food category gate now matches invariant asset name
+  (`Categ_Resources_Food`) + translated `.Name`; Compost output resolution now uses invariant
+  asset name (`Item_Junk_Compost`); warehouse haul gate + eat gate both use invariant outhouse
+  structure identification — enables locale-safe operation in every language.
+- **v1.3.1 (2026-07-21):** confirmed in-game in German — food + seeds convert to compost end to
+  end; haul gate blocks warehouse theft; eat gate blocks villager theft.

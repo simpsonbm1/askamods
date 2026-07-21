@@ -31,7 +31,17 @@ internal static class GatherPatch
                 return;
             }
 
-            string itemName = __instance.GetGatherableItemInfo()?.Name ?? "";
+            // Locale-proof (v1.7.1): key the per-item respawn override on the INVARIANT asset name
+            // ("Item_Food_BiomeMushroomGrey") rather than the localized display name ("Graue Pilze"),
+            // so a config override like "Mushroom"->0.1 resolves in every language. The override keys
+            // are substrings of the English-derived asset names, so English behaviour is unchanged;
+            // in non-English the display name matched nothing and every node fell back to the default
+            // rate. Falls back to the display name if the asset name is unavailable. (Gather-respawn
+            // diagnostic log lines therefore show the asset name, which is locale-stable.)
+            var ggi = __instance.GetGatherableItemInfo();
+            string itemName = "";
+            try { itemName = ggi?.name ?? ""; } catch { }
+            if (string.IsNullOrEmpty(itemName)) { try { itemName = ggi?.Name ?? ""; } catch { } }
             float threshold = Plugin.GetGatherThreshold(itemName);
 
             Plugin.PendingGatherRespawns[posKey] = (weather!.NetworkedCurrentGameTime, itemName);

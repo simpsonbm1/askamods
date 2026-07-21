@@ -36,6 +36,18 @@ same session; the year-wrap warning fires on every L press because of this — h
 **Authority:** gated on `ws.Runner.IsServer || ws.Runner.IsSharedModeMasterClient` (solo = host),
 with try/catch. Proceeds on check failure (permissive fallback).
 
+**Time-measurement note for testing time-based features (confirmed in-game 2026-07-21):**
+The game's built-in fast-forward and skip-day (which this mod toggles) DO advance
+`WeatherSystem.NetworkedCurrentGameTime` correctly — it tracks the day cycle 1:1 with
+daysPassed/dayOfYear. An experiment with 2 skip-days plus 162× fast-forward across 5 days
+advanced `NetworkedCurrentGameTime` by ~6.7 days, matching ~7 day-counter increments. Two
+subtleties: (a) skip-day increments daysPassed/dayOfYear one frame before `NetworkedCurrentGameTime`
+catches up (+1 day), so for a single frame the counter leads the clock — harmless and
+self-correcting; (b) crossing one midnight is one day-boundary but only a few hours of elapsed
+time if you started mid-day, so measure elapsed time by the `NetworkedCurrentGameTime` delta, not
+by midnight crossings. When testing mods that measure elapsed time (e.g. TreeRespawn respawns),
+use `NetworkedCurrentGameTime` deltas directly.
+
 **Files:** TimeWarpMod/{MyPluginInfo.cs, Plugin.cs, TimeWarpTracker.cs, TimeWarpMod.csproj,
 TimeWarpMod.dll}. GUID `com.askamods.timewarp`. PLUGIN_VERSION = csproj `<Version>` = 0.1.1.
 
