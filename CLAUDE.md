@@ -280,7 +280,7 @@ askamods/
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage,
                                 raid-proofed (warehouse haul gate + villager eat gate) [COMPLETE
-                                v1.2.1, on Nexus — docs/mods/outhouse-composter.md]
+                                v1.3.1, on Nexus — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.17.3 — TIER lever
                                 ARMED (TierCaseController, shared F11): armed run 1
                                 in-game-verified 2026-07-16 (full bump→response→resolve cycles
