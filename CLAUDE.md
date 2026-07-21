@@ -255,7 +255,7 @@ askamods/
     archive/                 ← superseded handoffs/investigation logs (history only, never orientation)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.7.1 — v1.6.x perf hardening ⚠️ pending in-game confirmation — docs/mods/tree-respawn.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.7.1, on Nexus, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: player + villager out-of-combat HP regen, per-villager rates [COMPLETE v1.3.1 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled [COMPLETE v1.2.5 — docs/mods/torch-fuel.md]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.9.7 — docs/mods/dynamic-villager-needs.md]
@@ -273,7 +273,7 @@ askamods/
                                 on Nexus — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1, on Nexus — docs/mods/ground-item-vacuum.md]
-  FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0 — docs/mods/fish-fillet.md]
+  FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, on Nexus, locale-safe — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: hotkey/map-pin/timed revive for defeated monster dens [COMPLETE v1.2.2 — v1.2.1 stale-registry timer guard ⚠️ pending in-game confirmation — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
