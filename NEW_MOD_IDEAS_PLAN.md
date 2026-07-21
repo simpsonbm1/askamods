@@ -830,43 +830,38 @@ by other mods.** (Cecil pass 2026-07-20, `_explore/cecil_craft_from_storage*.ps1
 - **The UI available/unavailable split is NOT ingredient-based** (`Available=96, Unavailable=0`
   while clicking unaffordable recipes): it is knowledge/unlock based. UI work must target the
   per-button gray-out, not this list.
-- **`_OnCraftingSuccess` is not where ingredients leave `CraftInteraction.ItemInventory`**
-  (PRE==POST across a real rope craft), so it cannot anchor transfer timing.
+- **Ingredient consumption happens INSIDE `_OnCraftingSuccess`** (confirmed in-game 2026-07-20,
+  CraftFromStorageMod v0.2.0 delta watcher). The site is the ~3–6 ms window between the
+  method's prefix and postfix. Transfer can anchor there safely — prefix to move items,
+  then re-run vanilla's gate and abort on failure (fail-closed).
 - **`Settlement.QuerySettlementResources()` HANGS the game** (AppHangB1) — a dead-end, no managed
   rescue possible. Use the `GetStructures()` walk. Full evidence: architecture.md → Player
   crafting pipeline.
-- **Census (v0.1.2):** 417 structures → 141 containers, 13,630 items — the read half works.
-  Container-type frequencies, biggest holders, and the never-drain set are recorded in
-  architecture.md → Player crafting pipeline → "Settlement storage census ground truth".
-- **Two census limitations to design around:** (1) first-container-per-structure MISSES real
-  crafting-station storage (stations reported CharacterFlask / `?`) — enumerate all containers, or
-  use `Workstation.GetInventory()`; (2) structure display names repeat across distinct buildings
-  (141 containers → 91 distinct names) — key by world position, never name.
+- **Census (v0.2.0, census v2):** 417 structures → **651 containers, 44,670 items**, 71
+  workstations — the read half works. Container-type frequencies, biggest holders, and the
+  never-drain set are recorded in architecture.md → Player crafting pipeline → "Settlement storage
+  census ground truth". `GetItemsNeededFromSettlement()` returns real counts (0–3 observed) and is
+  a live Phase 2 lever; some stations (Guard Tower / DefensiveStation) return null stock.
+- **Census limitation to design around:** structure display names repeat across distinct buildings
+  — key by world position, never by name. (Per-structure enumeration of ALL containers, plus
+  `Workstation.GetInventory()` for station stock, closed the earlier first-container-only gap.)
 
-**Blacklist rule: structural, not name-based.** Skip containers reachable from an
-`EquipPoint`/`EquipmentManager` rather than matching a hardcoded container-type-name list — a name
-list built from one settlement would silently drain armor racks in worlds with buildings we never
-saw. `EquipPoint` is **not** a MonoBehaviour (base `Il2CppSystem.Object`), so it cannot be reached
-by `GetComponent`: walk `EquipmentManager.equipPoints : List<EquipPoint>` → `.ItemContainer`.
-⚠️ Open: is `CharacterBuilder` (capacity=9999, on Improved Armorsmith 2) the armorer mannequin?
-See architecture.md → Player crafting pipeline.
+**Blacklist rule: container TYPE, not structural.** The structural probe is a **dead-end** —
+walking ancestors for an `EquipmentManager` and pointer-matching `equipPoints[i].ItemContainer`
+tagged **0 of 651** containers in census v2, so armor racks are not reachable that way. Use the
+hard-coded never-drain type list instead (`CharacterFlask`, `CharacterBuilder`, `ArmorRack*`
+family, `Storage_Core`, `Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`); it must be
+project-permanent so it covers buildings no test settlement contained. `CharacterBuilder` is **the
+`CraftInteraction`'s own container** (capacity 9999, one per crafting-capable building, usually
+empty) — not a mannequin. See architecture.md → Player crafting pipeline.
 
-**❗ BLOCKER — the ingredient-consumption site is unidentified.** No Phase 1 code until it is
-found: `RemoveOwnedItemManifest` consumes only what is present, so a mistimed transfer duplicates
-items in a live save.
-- **Ruled out:** `_OnCraftingSuccess` (above); `CraftInteractionDisplay._CraftRoutine` and its
-  state machine (Cecil pass 5 — the type is purely cosmetic: `tableDisplaySlot`,
-  `_leftHandDisplayObj`, `_ClearDisplayObjects`); `CraftingStation` (the villager-side
-  fetch/craft/study quest manager, not the player craft path).
-- **Leading candidate:** the agent's own collection via `IInteractionAgent.GetInventory() :
-  ItemCollection` — consistent with `useAgentInventory=True`, and never sampled by v0.1.1, which
-  watched only `CraftInteraction.ItemInventory`.
-- **Cecil cannot settle this** — interop method bodies are trampolines, so there is no IL to read
-  and no caller analysis available. It needs an in-game delta watcher over all candidate
-  collections, or a Cpp2IL body dump.
-- Note that Phase 1 does not strictly need the method's *name*: it needs to know the collection and
-  whether consumption happens at or after `BeginCraftingSequence`. If it does, transfer there, then
-  re-run vanilla's gate and abort on failure — fail-closed without identifying the caller.
+**✓ RESOLVED — the ingredient-consumption site is `_OnCraftingSuccess`** (confirmed in-game
+2026-07-20, CraftFromStorageMod v0.2.0 delta watcher): the ~3–6 ms window between that method's
+prefix and postfix, landing ~1.0 s after `BeginCraftingSequence` (+1.02/+1.06/+1.08 s measured).
+The consumption pool is {agent inventory} ∪ {station composite}, selected by where the items
+physically are — so a `BeginCraftingSequence` prefix has ~1.0 s of headroom to place ingredients
+into either. ⚠️ **Methodological trap:** snapshotting only `CraftInteraction.ItemInventory` reads
+PRE==POST whenever a craft draws from the agent side; watch both collections.
 
 **Approach (phased):**
 - **Phase 0 — read-only diagnostic spike (CraftFromStorageMod v0.1.x): COMPLETE**, results above.
@@ -906,10 +901,12 @@ items in a live save.
 - **Phase 1 — the PLAYER half** (build and confirm in-game before Phase 2 turns villagers on):
   (a) availability: postfix the Phase-0-confirmed gate — when vanilla says false AND the agent is
   the local player AND `EnableForPlayer` is on AND station stock + settlement-wide non-blacklisted
-  stock covers the manifest → flip true. (b) just-in-time transfer: host-gated prefix on the three
-  `BeginCraftingSequence` impls — compute shortfall (bp manifest minus the collection vanilla
-  actually reads), pull it from non-blacklisted settlement storages (`ItemManifest.Transfer`), so
-  vanilla validation + consumption then run untouched against local stock. Fail closed: re-run
+  stock covers the manifest → flip true. (b) just-in-time transfer: host-gated prefix on
+  `BeginCraftingSequence` — compute shortfall (bp manifest minus the collection vanilla actually
+  reads), pull it from non-blacklisted settlement storages (`ItemManifest.Transfer`). **Timing
+  headroom: transfer runs ~1.0 s before consumption** (confirmed in-game 2026-07-20, v0.2.0
+  measurements at +1.02 s rope, +1.06/+1.08 s leather helmet after `BeginCraftingSequence`).
+  Vanilla validation + consumption then run untouched against local stock. Fail closed: re-run
   vanilla's own gate after the transfer and abort the craft if it still fails, so a partial pull can
   never reach consumption. ⚠️ Two hard constraints (Fable audit 2026-07-20): the re-run must
   BYPASS this mod's own availability postfix — a reentrancy guard (static in-verification flag) —
@@ -934,16 +931,22 @@ items in a live save.
   that passes a faked availability check without a completed transfer would consume partial
   ingredients and still produce output. The transfer prefix must run BEFORE vanilla's craft-time
   validation, and availability must never report true unless the pull can actually complete.
-- **Availability-check cost:** if `CheckOwnedRequirements` drives the per-button gray-out it can
-  fire roughly once per blueprint per menu open (~96 on the Phase-0 table) — never walk the
-  settlement inside the postfix; compute against a cached settlement-stock snapshot (short TTL,
-  invalidated on craft/transfer). The v0.2.0 spike should log the gate's call frequency while a
-  crafting menu sits open to size this.
-- **`useAgentInventory` has one data point** (True, one workshop table) yet decides the transfer
-  DESTINATION per station. The v0.2.0 spike should record it per station family (craft/anvil/
-  dyeing — craft at ≥2 families in one run). Also unknown: `ItemManifest.Transfer` behavior on a
-  full destination (player inventory slots/weight) — Phase 1 testing must force the abort path
-  once, and verify what state a skipped `BeginCraftingSequence` leaves the session/UI in.
+- **Availability-check cost is low (resolved by v0.2.0 measurements).** `CheckOwnedRequirements`
+  traffic is dominated by villagers (rollups of 2–209 calls, sustained 3–64 calls/s, agents almost
+  entirely `Villager`); `PlayerInteractionAgent` calls are RARE (1–3 per rollup even with a
+  crafting menu open). Menu open with `AvailableBlueprints=96` sees 0 `UnavailableBlueprints` —
+  the gate does NOT fire once per listed recipe. One outer call can drive many inner
+  `_CheckOwnedBlueprintManifest` checks (31 observed for 1 outer). **Design consequence:** an
+  availability postfix must be agent-gated to `PlayerInteractionAgent` for COST as well as
+  correctness — no settlement walk needed for the villager calls anyway. Compute player availability
+  against a cached settlement-stock snapshot (short TTL, invalidated on craft/transfer).
+- **Consumption pool selectivity is resolved (Fact 2).** Which collection is drawn from is decided
+  by WHERE THE ITEMS ARE, not by `useAgentInventory` (observed True on every craft, both sources).
+  When the same item exists in both station and agent inventory, the STATION copy is consumed
+  first. Phase 1 must transfer into whichever collection is actually drawn from (Fact 2 tells which
+  for each craft path). Also unknown: `ItemManifest.Transfer` behavior on a full destination (player
+  inventory slots/weight) — Phase 1 testing must force the abort path once, and verify what state a
+  skipped `BeginCraftingSequence` leaves the session/UI in.
 - **Villager half must MOVE materials, never just flip the gate.** A villager crafter consumes from
   its station bin; an availability flip with no transfer leaves it believing materials exist with
   nothing local to consume — the fetch-loop / complaint pathologies SupplyChainMod already

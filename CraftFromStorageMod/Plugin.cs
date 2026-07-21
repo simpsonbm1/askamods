@@ -13,11 +13,15 @@ using UnityEngine;
 
 namespace CraftFromStorageMod;
 
-// Phase 0 of idea-17 (NEW_MOD_IDEAS_PLAN.md "17. Craft from settlement storage"). READ-ONLY
-// diagnostic spike: every patch below only LOGS - none of them write inventory, transfer items,
-// or flip a gate result. Purpose: trace the live player-crafting call flow (CraftInteraction
-// family) so Phase 1 (the actual storage-pull mod) can be designed against verified facts instead
-// of Cecil-inferred guesses. All log lines carry the "[CFS]" prefix.
+// idea-17 (NEW_MOD_IDEAS_PLAN.md "17. Craft from settlement storage"). Phase 0 (v0.1.x/v0.2.0) was a
+// READ-ONLY diagnostic spike tracing the live player-crafting call flow (CraftInteraction family) so
+// Phase 1 could be designed against verified facts instead of Cecil-inferred guesses - those trace
+// patches (GatePatches.cs / CraftWatcher.cs) are all still present and still log, unchanged.
+// v0.3.0 (Phase 1, this file's EnablePlayerPull config) adds the actual feature on top of the SAME
+// patches: when the PLAYER is missing ingredients at a crafting station, missing items are pulled
+// just-in-time from non-blacklisted settlement storage into the player's inventory (SettlementStock.
+// cs / CraftTransfer.cs), and unconsumed leftovers are swept back afterward. Villager crafting is
+// OUT OF SCOPE (Phase 2) and untouched. All log lines carry the "[CFS]" prefix.
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class Plugin : BasePlugin
 {
@@ -44,6 +48,21 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> CensusTryQuerySettlementResources = null!;
     internal static ConfigEntry<bool> IncludeEquipmentProbe = null!;
     internal static ConfigEntry<bool> IncludeWorkstationStock = null!;
+
+    // --- config: Transfer (v0.3.0 Phase 1 - the actual storage-pull feature; PLAYER crafting only,
+    // villager crafting is Phase 2/out of scope) ---
+    internal static ConfigEntry<bool> EnablePlayerPull = null!;
+    internal static ConfigEntry<bool> SweepBackLeftovers = null!;
+    internal static ConfigEntry<float> SnapshotTtlSeconds = null!;
+    internal static ConfigEntry<string> BlacklistContainerTypes = null!;
+    internal static ConfigEntry<bool> TransferDiagnostics = null!;
+
+    // --- config: UI (v0.4.0 idea-17 UI follow-up - settlement-stock requirement-UI feature; folds
+    // cached settlement stock into the crafting menu's per-ingredient have/need text. PURELY
+    // ADDITIVE - writes no game state. See CraftUiAvailability.cs / Patches/UiAvailabilityPatches.cs) ---
+    internal static ConfigEntry<bool> ShowSettlementStockInUI = null!;
+    internal static ConfigEntry<bool> UiDiagnostics = null!;
+    internal static ConfigEntry<float> UiPollSeconds = null!;
 
     // --- live state ---
     internal static PlayerCharacter? LocalPlayer;
@@ -135,12 +154,72 @@ public class Plugin : BasePlugin
             "the v0.1.2 limitation where crafting stations reported a decorative CharacterFlask container instead " +
             "of their real stock, and evidence for the villager-fetch question (idea-17 Phase 1).");
 
+        EnablePlayerPull = Config.Bind(
+            "Transfer", "EnablePlayerPull", true,
+            "v0.3.0 Phase 1 MASTER SWITCH: when the PLAYER is missing ingredients at a crafting station, pull them " +
+            "just-in-time from any non-blacklisted settlement storage container into the player's inventory, then " +
+            "sweep unconsumed leftovers back afterward. Player crafting ONLY - villager crafting is untouched " +
+            "(Phase 2, out of scope). Set false to fully disable and fall back to vanilla craft-gating behavior.");
+
+        SweepBackLeftovers = Config.Bind(
+            "Transfer", "SweepBackLeftovers", true,
+            "After a successful craft, return unconsumed pulled items to the settlement containers they came from. " +
+            "Setting false leaves pulled leftovers in the player's inventory instead (never swept back).");
+
+        SnapshotTtlSeconds = Config.Bind(
+            "Transfer", "SnapshotTtlSeconds", 5.0f,
+            "How long (seconds) the cached settlement stock snapshot (SettlementStock.cs) is trusted before the " +
+            "next read re-walks the settlement's structures/containers. The snapshot is also invalidated " +
+            "immediately after any pull or sweep-back, regardless of this TTL.");
+
+        BlacklistContainerTypes = Config.Bind(
+            "Transfer", "BlacklistContainerTypes",
+            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse",
+            "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
+            "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
+            "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead.");
+
+        TransferDiagnostics = Config.Bind(
+            "Transfer", "TransferDiagnostics", true,
+            "Verbose per-pull/per-sweep-back logging (SettlementStock rebuild summaries, PullShortfall per-item " +
+            "lines, HandleCraftingSuccess sweep-back totals). Unverified feature, defaults true per project " +
+            "convention - flip false once Phase 1 is confirmed working in-game.");
+
+        ShowSettlementStockInUI = Config.Bind(
+            "UI", "ShowSettlementStockInUI", true,
+            "v0.4.0 MASTER SWITCH: fold settlement-stock quantities into the crafting menu's per-ingredient " +
+            "have/need display (ItemThumbnailPanel.availability) so a row reads e.g. '3/1' - settlement stock " +
+            "counted as if owned - instead of the vanilla-only count the gate already looks past. Nets out the " +
+            "active station's own inventory so it is never double-counted (that inventory is included in both " +
+            "vanilla's own count AND the settlement-wide snapshot). Purely additive - never writes game state, " +
+            "only rewrites displayed TMP text; the pull/verify/sweep-back logic in CraftTransfer.cs is untouched. " +
+            "Set false to leave the vanilla-only have/need display alone.");
+
+        UiDiagnostics = Config.Bind(
+            "UI", "UiDiagnostics", true,
+            "Verbose logging for the settlement-stock requirement-UI feature: which of _UpdateAvailablility/" +
+            "_UpdateAvailabilityStatus actually fires (AOT inlining risk), raw availability.text plus panel " +
+            "scoping evidence (parent native class, checkAvailability) for the first ~10 panels seen, and " +
+            "rate-limited (first 5) per-item-type rewrite/unparsed-text lines. Defaults true per project " +
+            "convention - flip false once the feature is confirmed working in-game.");
+
+        UiPollSeconds = Config.Bind(
+            "UI", "UiPollSeconds", 0.2f,
+            "v0.5.0: polling interval (seconds) for the settlement-stock requirement-UI feature (CraftUiPoller.cs). " +
+            "Replaces the old postfix-time rewrite - in-game evidence showed the ItemThumbnailPanel postfixes run " +
+            "BEFORE vanilla writes the real have/need text (count.text is still the prefab placeholder '99' at " +
+            "that moment), so a postfix rewrite could never see final values. A MonoBehaviour Update() timer " +
+            "re-reads and, if needed, rewrites each visible requirement row on this interval instead, while a " +
+            "crafting menu is open.");
+
         ClassInjector.RegisterTypeInIl2Cpp<StorageCensus>();
         ClassInjector.RegisterTypeInIl2Cpp<CraftWatcher>();
+        ClassInjector.RegisterTypeInIl2Cpp<CraftUiPoller>();
         var go = new GameObject("CraftFromStorageMod_Census");
         UnityEngine.Object.DontDestroyOnLoad(go);
         go.AddComponent<StorageCensus>();
         go.AddComponent<CraftWatcher>();
+        go.AddComponent<CraftUiPoller>();
 
         if (!EnableCraftWatcher.Value)
             Logger.LogInfo("[CFS] EnableCraftWatcher=false - CraftWatcher will not arm on BeginCraftingSequence.");
@@ -156,17 +235,24 @@ public class Plugin : BasePlugin
         // known native-crash risk (inventory-family ItemManifest parameter on the target method). If it
         // crashes the game at plugin load, the user must be able to disable JUST that patch by editing
         // the config file without a rebuild (rebuilds are expensive here - Smart App Control).
-        if (TraceCheckOwnedRequirements.Value)
+        // v0.3.0: CheckOwnedRequirementsPatch now also carries Phase 1's availability check (design
+        // point A), so it must apply whenever EITHER the old trace flag OR the new master switch
+        // wants it - otherwise setting TraceCheckOwnedRequirements=false while leaving
+        // EnablePlayerPull=true would silently disable the "master switch" it claims to be.
+        if (TraceCheckOwnedRequirements.Value || EnablePlayerPull.Value)
             harmony.PatchAll(typeof(Patches.CheckOwnedRequirementsPatch));
         else
-            Logger.LogInfo("[CFS] TraceCheckOwnedRequirements=false - CheckOwnedRequirements patch NOT applied.");
+            Logger.LogInfo("[CFS] TraceCheckOwnedRequirements=false and EnablePlayerPull=false - CheckOwnedRequirements patch NOT applied.");
 
         if (TraceCheckOwnedBlueprintManifest.Value)
             harmony.PatchAll(typeof(Patches.CheckOwnedBlueprintManifestPatch));
         else
             Logger.LogInfo("[CFS] TraceCheckOwnedBlueprintManifest=false - _CheckOwnedBlueprintManifest patch NOT applied.");
 
-        if (TraceBeginCraftingSequence.Value)
+        // v0.3.0: these three BeginCraftingSequence patches now also carry Phase 1's actual pull
+        // (design point C) - same "trace flag OR master switch" reasoning as CheckOwnedRequirements
+        // above.
+        if (TraceBeginCraftingSequence.Value || EnablePlayerPull.Value)
         {
             harmony.PatchAll(typeof(Patches.BeginCraftingSequenceCraftPatch));
             harmony.PatchAll(typeof(Patches.BeginCraftingSequenceAnvilPatch));
@@ -174,10 +260,14 @@ public class Plugin : BasePlugin
         }
         else
         {
-            Logger.LogInfo("[CFS] TraceBeginCraftingSequence=false - BeginCraftingSequence patches NOT applied.");
+            Logger.LogInfo("[CFS] TraceBeginCraftingSequence=false and EnablePlayerPull=false - BeginCraftingSequence patches NOT applied.");
         }
 
-        if (TraceOnCraftingSuccess.Value)
+        // v0.3.0: the two OnCraftingSuccess patches now also carry Phase 1's sweep-back (design
+        // point D) - same "trace flag OR master switch" reasoning. OnCraftingFinishedPatch rides
+        // along under the same flag as before (Phase 1 doesn't use it; it's a harmless zero-param
+        // diagnostic patch, not worth its own flag).
+        if (TraceOnCraftingSuccess.Value || EnablePlayerPull.Value)
         {
             harmony.PatchAll(typeof(Patches.OnCraftingSuccessCraftPatch));
             harmony.PatchAll(typeof(Patches.OnCraftingSuccessDyeingPatch));
@@ -187,7 +277,7 @@ public class Plugin : BasePlugin
         }
         else
         {
-            Logger.LogInfo("[CFS] TraceOnCraftingSuccess=false - _OnCraftingSuccess/_OnCraftingFinished patches NOT applied.");
+            Logger.LogInfo("[CFS] TraceOnCraftingSuccess=false and EnablePlayerPull=false - _OnCraftingSuccess/_OnCraftingFinished patches NOT applied.");
         }
 
         if (TraceActivateBlueprint.Value)
@@ -200,10 +290,29 @@ public class Plugin : BasePlugin
         else
             Logger.LogInfo("[CFS] TraceRecipeListUI=false - CreateItemsTabPage.Show patch NOT applied.");
 
-        Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded (READ-ONLY diagnostic spike - " +
-            $"changes NO game state). CraftWatcher arms automatically on BeginCraftingSequence and samples every " +
-            $"candidate ingredient collection until it resolves the consumption site or WatchWindowSeconds expires " +
-            $"(EnableCraftWatcher={EnableCraftWatcher.Value}). CensusHotkey='{CensusHotkey.Value}'.");
+        // v0.4.0: settlement-stock requirement-UI feature. All four patches exist solely to serve this
+        // one config flag (unlike the Trace/EnablePlayerPull dual-purpose patches above), so gate
+        // PatchAll on it directly. The postfixes ALSO re-check ShowSettlementStockInUI.Value themselves
+        // (CraftUiAvailability.OnUpdateAvailability) so a live config edit can still silence the
+        // feature's output without a restart, even though re-enabling it live cannot re-patch.
+        if (ShowSettlementStockInUI.Value)
+        {
+            harmony.PatchAll(typeof(Patches.CraftMenuActivatePatch));
+            harmony.PatchAll(typeof(Patches.CraftMenuClosedPatch));
+            harmony.PatchAll(typeof(Patches.UpdateAvailablilityPatch));
+            harmony.PatchAll(typeof(Patches.UpdateAvailabilityStatusPatch));
+        }
+        else
+        {
+            Logger.LogInfo("[CFS] ShowSettlementStockInUI=false - craft-menu availability-UI patches NOT applied.");
+        }
+
+        Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Phase 1 storage-pull: " +
+            $"EnablePlayerPull={EnablePlayerPull.Value} SweepBackLeftovers={SweepBackLeftovers.Value} " +
+            $"SnapshotTtlSeconds={SnapshotTtlSeconds.Value} (player crafting only - villager crafting untouched). " +
+            $"CraftWatcher diagnostics still active (EnableCraftWatcher={EnableCraftWatcher.Value}). " +
+            $"CensusHotkey='{CensusHotkey.Value}'. ShowSettlementStockInUI={ShowSettlementStockInUI.Value} " +
+            $"UiPollSeconds={UiPollSeconds.Value} (requirement-UI have/need combined display via polling).");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide

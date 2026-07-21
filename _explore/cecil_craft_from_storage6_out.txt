@@ -1,0 +1,504 @@
+﻿==================================================================
+PASS L: Blueprint / CraftBlueprint chain (properties+methods+IsStatic)
+==================================================================
+
+---- SSSGame.CraftBlueprint (base: SandSailorStudio.Inventory.Blueprint) ----
+  M: Void .cctor() [static]
+  M: Void Activate() [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.Blueprint (base: SandSailorStudio.Inventory.Item) ----
+  M: Void .cctor() [static]
+  M: Boolean Use(GameObject target) [virt]
+  M: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  M: ItemInfo GetResultInfo()
+  M: Int32 GetResultQuantity()
+  M: Void _OnPartItemAdded(Item item, Int32 quantity)
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.Item (base: Il2CppSystem.Object) ----
+  P: _container : ItemContainer
+  P: _WorldItemContainer_k__BackingField : IWorldItemContainer
+  P: info : ItemInfo
+  P: children : Il2CppReferenceArray`1
+  P: count : Int32
+  P: containerPosition : Int32
+  P: _instanceProperties : Dictionary`2
+  P: s_netAttrList : List`1
+  P: hasAuthority : Boolean
+  P: c_ItemInfoId : String
+  P: c_ItemCount : String
+  P: c_ContainerPosition : String
+  P: c_ItemChildren : String
+  P: c_ItemProperties : String
+  P: Container : ItemContainer
+  P: WorldItemContainer : IWorldItemContainer
+  M: Void .cctor() [static]
+  M: Item Clone(Int32 clonedCount) [virt]
+  M: Boolean CanJoin(Item targetItem) [virt]
+  M: Void Join(Item targetItem) [virt]
+  M: Void Activate() [virt]
+  M: Boolean Use(GameObject target) [virt]
+  M: Int32 Add(Int32 quantity) [virt]
+  M: Int32 Remove(Int32 quantity) [virt]
+  M: Boolean HasUseFunctionality() [virt]
+  M: Void SyncAttribute(Int32& id) [virt]
+  M: Void SyncAllAttributes() [virt]
+  M: Void SyncWorldData(Boolean& onlyOnStateAuthority) [virt]
+  M: Void SyncDecay()
+  M: Void SyncCooked()
+  M: Void SyncBombState()
+  M: Void SyncMaxCooked()
+  M: Void SyncColor()
+  M: Void SyncPrayState()
+  M: Boolean HasAuthority()
+  M: Void RefreshAuthorityCache()
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Boolean HasProperty(Int32& id) [virt]
+  M: Boolean HasInstancedProperty(Int32& id) [virt]
+  M: Boolean TryGetProperty(Int32& id, Property& property) [virt]
+  M: Void RemoveProperty(Int32& id) [virt]
+  M: Void AddProperty(Int32& id, Property& property) [virt]
+  M: Boolean TrySetPropertyValue(Int32& id, Single& value, Boolean& alwaysCreateProperty) [virt]
+  M: Boolean TryGetPropertyValue(Int32& id, Single& value) [virt]
+  M: Boolean GetProperties(List`1 list) [virt]
+  M: Void DebugLogProperties() [virt]
+  M: Void WriteSnapshot(BinaryWriter writer) [virt]
+  M: Void ReadSnapshot(BinaryReader reader) [virt]
+  M: Boolean CountFilter(Item item) [static]
+  M: Boolean IsNetworkedAttribute(Int32& id) [static]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+(chain stops at Il2CppSystem.Object)
+
+==================================================================
+PASS M: BlueprintInfo / CraftBlueprintInfo chain
+==================================================================
+
+---- SSSGame.CraftBlueprintInfo (base: SandSailorStudio.Inventory.BlueprintInfo) ----
+  P: craftVolume : Single
+  P: interaction : CraftInteraction
+  P: blueprintConditionsRules : List`1
+  P: availableInTrialVersion : Boolean
+  P: showUnlockNotification : Boolean
+  P: _knowledgeManager : NetworkKnowledgeManager
+  M: Void .cctor() [static]
+  M: Item CreateItem() [virt]
+  M: Boolean IsUnlocked() [virt]
+  M: List`1 GetAllBlueprintConditionsRules() [virt]
+  M: ItemInfo GetItemInfo() [virt]
+  M: Boolean UnlockableInTrialMode() [virt]
+  M: Void OnUnlock(BlueprintConditionsDatabase database) [virt]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.BlueprintInfo (base: SandSailorStudio.Inventory.ItemInfo) ----
+  P: result : ItemInfo
+  P: quantity : Int32
+  P: cost : ItemInfoQuantity
+  P: parts : Il2CppReferenceArray`1
+  P: autoConstruct : Boolean
+  P: consumeOnUse : Boolean
+  P: Name : String
+  P: Localized : Boolean
+  M: Void .cctor() [static]
+  M: Item CreateItem() [virt]
+  M: Boolean CanBeAcquired(ItemCollection container) [virt]
+  M: Boolean CanBeUsed(ItemCollection container) [virt]
+  M: Int32 NeedsPart(ItemInfo itemInfo) [virt]
+  M: Single GetAvailablePartsPercent(ItemCollection container) [virt]
+  M: Void FillManifest(ItemManifest manifest, Int32& multiplier) [virt]
+  M: Int32 _GetPartsCount(ItemCollection container)
+  M: Boolean _CheckParts(ItemCollection container) [virt]
+  M: Boolean _CheckCost(ItemCollection container)
+  M: String Loc(String keyToken, Il2CppStringArray interpStrings) [virt]
+  M: String GetKey(String token) [virt]
+  M: Dictionary`2 GetLocalizationStrings() [virt]
+  M: Void .ctor()
+  M: String Loc(String keyToken, String[] interpStrings) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.ItemInfo (base: SandSailorStudio.Assets.AssetNode) ----
+  P: id : Int32
+  P: databaseIndex : UInt16
+  P: category : ItemCategoryInfo
+  P: unique : Boolean
+  P: stackSize : Int32
+  P: showTier : Boolean
+  P: tier : Int32
+  P: localizedName : String
+  P: localizedDescription : String
+  P: localizedLore : String
+  P: icon : Sprite
+  P: previewImage : Sprite
+  P: colors : ColorTableConfig
+  P: spawnObject : GameObject
+  P: spawnHeight : Single
+  P: storageClass : ItemStorageClass
+  P: processes : Il2CppReferenceArray`1
+  P: components : Il2CppReferenceArray`1
+  P: attributes : Il2CppReferenceArray`1
+  P: networkedInventoryAttributes : Il2CppReferenceArray`1
+  P: _cachedComponentsTable : Dictionary`2
+  P: _cachedComponents : List`1
+  P: _cachedAttributes : Dictionary`2
+  P: s_itemInfoList : List`1
+  P: _durabAttrData : AttributeData
+  P: _decayRateAttrData : AttributeData
+  P: _localized : Boolean
+  P: Name : String
+  P: Description : String
+  P: Lore : String
+  P: Localized : Boolean
+  M: Void .cctor() [static]
+  M: Void Configure() [virt]
+  M: Item CreateItem() [virt]
+  M: Boolean IsTierRelevant() [virt]
+  M: Boolean CanJoin(ItemInfo targetItemInfo) [virt]
+  M: Boolean CanBeAcquired(ItemCollection container) [virt]
+  M: AttributeData FindAttribute(Int32& attrId) [virt]
+  M: Int32 HasComponent(ItemInfo info, Int32& quantity)
+  M: Int32 _HasComponentUncached(ItemInfo info, Int32& quantity) [virt]
+  M: Int32 HasComponent(IItemFilter itemFilter)
+  M: Int32 _HasComponentUncached(IItemFilter itemFilter) [virt]
+  M: IItemFilter GetItemFilter()
+  M: Void GetFullComponentList(List`1 componentList)
+  M: Void _GetFullComponentUncached(List`1 componentList) [virt]
+  M: List`1 GetFullComponentList() [virt]
+  M: GameObject SpawnObject(ItemObjectSpawnContext& context, Int32& quantity, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt]
+  M: GameObject SpawnObject(ItemObjectSpawnContext& context, Item item, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt]
+  M: GameObject _Spawn(GameObject spawnable, ItemObjectSpawnContext context, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Item item, Int32 itemQuantity, Boolean sampleTerrain)
+  M: String Loc(String keyToken, Il2CppStringArray interpStrings) [virt]
+  M: String GetKey(String token) [virt]
+  M: Dictionary`2 GetLocalizationStrings() [virt]
+  M: Boolean ContainerTypeFilter(ItemContainer container)
+  M: Boolean ContainerCapacityFilter(ItemContainer container)
+  M: Boolean ItemTypeFilter(Item item)
+  M: Void .ctor()
+  M: String Loc(String keyToken, String[] interpStrings) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Assets.AssetNode (base: UnityEngine.ScriptableObject) ----
+  M: Void .cctor() [static]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+(chain stops at UnityEngine.ScriptableObject)
+
+==================================================================
+PASS N: Item / ItemInfo chain (just the .info-relevant bits)
+==================================================================
+
+---- SandSailorStudio.Inventory.Item (base: Il2CppSystem.Object) ----
+  P: _container : ItemContainer
+  P: _WorldItemContainer_k__BackingField : IWorldItemContainer
+  P: info : ItemInfo
+  P: children : Il2CppReferenceArray`1
+  P: count : Int32
+  P: containerPosition : Int32
+  P: _instanceProperties : Dictionary`2
+  P: s_netAttrList : List`1
+  P: hasAuthority : Boolean
+  P: c_ItemInfoId : String
+  P: c_ItemCount : String
+  P: c_ContainerPosition : String
+  P: c_ItemChildren : String
+  P: c_ItemProperties : String
+  P: Container : ItemContainer
+  P: WorldItemContainer : IWorldItemContainer
+  M: Void .cctor() [static]
+  M: Item Clone(Int32 clonedCount) [virt]
+  M: Boolean CanJoin(Item targetItem) [virt]
+  M: Void Join(Item targetItem) [virt]
+  M: Void Activate() [virt]
+  M: Boolean Use(GameObject target) [virt]
+  M: Int32 Add(Int32 quantity) [virt]
+  M: Int32 Remove(Int32 quantity) [virt]
+  M: Boolean HasUseFunctionality() [virt]
+  M: Void SyncAttribute(Int32& id) [virt]
+  M: Void SyncAllAttributes() [virt]
+  M: Void SyncWorldData(Boolean& onlyOnStateAuthority) [virt]
+  M: Void SyncDecay()
+  M: Void SyncCooked()
+  M: Void SyncBombState()
+  M: Void SyncMaxCooked()
+  M: Void SyncColor()
+  M: Void SyncPrayState()
+  M: Boolean HasAuthority()
+  M: Void RefreshAuthorityCache()
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Boolean HasProperty(Int32& id) [virt]
+  M: Boolean HasInstancedProperty(Int32& id) [virt]
+  M: Boolean TryGetProperty(Int32& id, Property& property) [virt]
+  M: Void RemoveProperty(Int32& id) [virt]
+  M: Void AddProperty(Int32& id, Property& property) [virt]
+  M: Boolean TrySetPropertyValue(Int32& id, Single& value, Boolean& alwaysCreateProperty) [virt]
+  M: Boolean TryGetPropertyValue(Int32& id, Single& value) [virt]
+  M: Boolean GetProperties(List`1 list) [virt]
+  M: Void DebugLogProperties() [virt]
+  M: Void WriteSnapshot(BinaryWriter writer) [virt]
+  M: Void ReadSnapshot(BinaryReader reader) [virt]
+  M: Boolean CountFilter(Item item) [static]
+  M: Boolean IsNetworkedAttribute(Int32& id) [static]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+---- SandSailorStudio.Inventory.ItemInfo (base: SandSailorStudio.Assets.AssetNode) ----
+  P: id : Int32
+  P: databaseIndex : UInt16
+  P: category : ItemCategoryInfo
+  P: unique : Boolean
+  P: stackSize : Int32
+  P: showTier : Boolean
+  P: tier : Int32
+  P: localizedName : String
+  P: localizedDescription : String
+  P: localizedLore : String
+  P: icon : Sprite
+  P: previewImage : Sprite
+  P: colors : ColorTableConfig
+  P: spawnObject : GameObject
+  P: spawnHeight : Single
+  P: storageClass : ItemStorageClass
+  P: processes : Il2CppReferenceArray`1
+  P: components : Il2CppReferenceArray`1
+  P: attributes : Il2CppReferenceArray`1
+  P: networkedInventoryAttributes : Il2CppReferenceArray`1
+  P: _cachedComponentsTable : Dictionary`2
+  P: _cachedComponents : List`1
+  P: _cachedAttributes : Dictionary`2
+  P: s_itemInfoList : List`1
+  P: _durabAttrData : AttributeData
+  P: _decayRateAttrData : AttributeData
+  P: _localized : Boolean
+  P: Name : String
+  P: Description : String
+  P: Lore : String
+  P: Localized : Boolean
+  M: Void .cctor() [static]
+  M: Void Configure() [virt]
+  M: Item CreateItem() [virt]
+  M: Boolean IsTierRelevant() [virt]
+  M: Boolean CanJoin(ItemInfo targetItemInfo) [virt]
+  M: Boolean CanBeAcquired(ItemCollection container) [virt]
+  M: AttributeData FindAttribute(Int32& attrId) [virt]
+  M: Int32 HasComponent(ItemInfo info, Int32& quantity)
+  M: Int32 _HasComponentUncached(ItemInfo info, Int32& quantity) [virt]
+  M: Int32 HasComponent(IItemFilter itemFilter)
+  M: Int32 _HasComponentUncached(IItemFilter itemFilter) [virt]
+  M: IItemFilter GetItemFilter()
+  M: Void GetFullComponentList(List`1 componentList)
+  M: Void _GetFullComponentUncached(List`1 componentList) [virt]
+  M: List`1 GetFullComponentList() [virt]
+  M: GameObject SpawnObject(ItemObjectSpawnContext& context, Int32& quantity, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt]
+  M: GameObject SpawnObject(ItemObjectSpawnContext& context, Item item, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt]
+  M: GameObject _Spawn(GameObject spawnable, ItemObjectSpawnContext context, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Item item, Int32 itemQuantity, Boolean sampleTerrain)
+  M: String Loc(String keyToken, Il2CppStringArray interpStrings) [virt]
+  M: String GetKey(String token) [virt]
+  M: Dictionary`2 GetLocalizationStrings() [virt]
+  M: Boolean ContainerTypeFilter(ItemContainer container)
+  M: Boolean ContainerCapacityFilter(ItemContainer container)
+  M: Boolean ItemTypeFilter(Item item)
+  M: Void .ctor()
+  M: String Loc(String keyToken, String[] interpStrings) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS O: ItemContainer full surface (own Add/Remove? owning collection?)
+==================================================================
+
+---- SandSailorStudio.Inventory.ItemContainer (base: Il2CppSystem.Object) ----
+  P: containerType : ItemContainerType
+  P: itemConfig : BaseItemsConfig
+  P: capacity : Int32
+  P: canAddItems : Boolean
+  P: _inventory : ItemCollection
+  P: _ContainerItem_k__BackingField : IContainerContainer
+  P: _Owner_k__BackingField : Object
+  P: SerializationKeyProviderOverride : Func`1
+  P: _SerializationKeyAliases_k__BackingField : Il2CppStringArray
+  P: _CreationType_k__BackingField : InventoryType
+  P: _DisplayTargetTransform_k__BackingField : Transform
+  P: customData : ItemContainerData
+  P: _items : List`1
+  P: OnItemAdded : ItemEventHandler
+  P: OnItemRemoved : ItemEventHandler
+  P: OnItemBeforeMove : ItemEventHandler
+  P: OnItemCreated : Action`1
+  P: OnItemCountChanged : Action`1
+  P: OnBeforeItemSwap : Action`2
+  P: OnItemPropertyChanged : Action`2
+  P: _IsHidden_k__BackingField : Boolean
+  P: _NoActionTargets_k__BackingField : Boolean
+  P: _propContainerOvr : IPropertyContainer
+  P: _hadSetup : Boolean
+  P: _itemSerializeFactory : ItemSerializableFactory
+  P: _containerName : String
+  P: _serializationKeyDirty : Boolean
+  P: _id : Int32
+  P: _childSuffixKey : String
+  P: _serializationKey : String
+  P: c_ItemsKey : String
+  P: c_NotTradeable : String
+  P: ContainerItem : IContainerContainer
+  P: Inventory : ItemCollection
+  P: SerializationKey : String
+  P: Properties : IPropertyContainer
+  P: Owner : Object
+  P: SerializationKeyAliases : Il2CppStringArray
+  P: Name : String
+  P: Id : Int32
+  P: ChildSuffixKey : String
+  P: SerializationKeyDirty : Boolean
+  P: CreationType : InventoryType
+  P: DisplayTargetTransform : Transform
+  P: IsHidden : Boolean
+  P: NoActionTargets : Boolean
+  M: Void .cctor() [static]
+  M: Void .ctor()
+  M: ItemContainer Clone() [virt]
+  M: Void Setup() [virt]
+  M: Boolean IsFull(Boolean checkFullStacks)
+  M: Boolean IsEmpty()
+  M: Single GetFillRatio()
+  M: Int32 GetAllUsedSlotsCount()
+  M: Int32 GetUsedSlotsCount(ItemInfo itemInfo)
+  M: Boolean CanStoreItemType(ItemInfo info) [virt]
+  M: List`1 GetAcceptedItemTypes()
+  M: Boolean HasItem(IItemFilter itemFilter)
+  M: Boolean IsBagInABag()
+  M: Boolean HasItemSurplus(IItemFilter itemFilter)
+  M: Boolean HasSpace(ItemInfo itemInfo, Int32 quantity)
+  M: Int32 GetStackSize(ItemInfo itemInfo) [virt]
+  M: Int32 GetRemainingCapacity(ItemInfo itemInfo) [virt]
+  M: Int32 GetRemainingSlotFillCapacity(ItemInfo itemInfo) [virt]
+  M: Int32 GetItemCount(ItemInfo itemInfo)
+  M: Int32 GetItemCount(IItemFilter itemFilter, Boolean checkStackSizes)
+  M: Int32 GetItemCount(Func`2 predicate)
+  M: Int32 GetItemCount()
+  M: Int32 GetEmptySlots()
+  M: Boolean AddItem(Item item, Int32 quantity, Int32 forcePosition, ItemEventContext context)
+  M: Void DropAllItems(Vector3 pos, Quaternion rot, Transform parent)
+  M: Void RemoveAllItems(IItemFilter itemFilter, ItemEventContext context)
+  M: Void UnregisterAllItems()
+  M: Boolean RemoveItem(Item item, Int32 quantity, ItemEventContext context)
+  M: Int32 MoveItem(Item item, Int32 quantity, Int32 newPosition)
+  M: Void ChangeItemPosition(Item item, Int32 position)
+  M: Void SwapItems(Item first, Item second)
+  M: Int32 MergeItem(Item item, Int32 quantity, Item destination)
+  M: Void DropItem(Item item, Int32 count, Vector3 position, Quaternion rotation, Transform parent)
+  M: Void ChangeItemAttribute(Item item, Int32& attributeId)
+  M: Void FillManifest(ItemManifest manifest)
+  M: Void FillItemInfoList(List`1 items)
+  M: Int32 AddItems(ItemInfo info, Int32 count) [virt]
+  M: Int32 AddItems(Item item, Int32 count) [virt]
+  M: Item GetItem(Int32 id)
+  M: Int32 GetItemsToList(List`1 items)
+  M: Int32 GetItemsToList(List`1 items, Func`2 predicate)
+  M: Int32 GetItemsToList(List`1 items, IItemFilter itemFilter)
+  M: IReadOnlyList`1 GetItems()
+  M: Item FindItem(Func`2 p)
+  M: Void ProcessItems(Action`1 p)
+  M: Item FindItem(IItemFilter itemFilter)
+  M: Boolean TryGetRepresentativeColor(Color& color)
+  M: Boolean Check(ItemInfo itemInfo) [virt]
+  M: Void _SortItemsList()
+  M: Boolean _ValidateItemsList()
+  M: Void AddItemFromDeserialization(Item item)
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]
+  M: Void WriteSnapshot(BinaryWriter writer) [virt]
+  M: Void ReadSnapshot(BinaryReader reader) [virt]
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS P: ItemContainerComponent full surface
+==================================================================
+
+---- SandSailorStudio.Inventory.ItemContainerComponent (base: UnityEngine.MonoBehaviour) ----
+  P: container : ItemContainer
+  P: inventoryComponent : InventoryComponent
+  P: _initialized : Boolean
+  M: Void .cctor() [static]
+  M: Void Initialize() [virt]
+  M: Void Awake() [virt]
+  M: Void Destroy() [virt]
+  M: Void DropItems(Vector3 position, Quaternion rotation, Transform parent) [virt]
+  M: Void DepositItems(ItemTransactionManifest manifest) [virt]
+  M: Void TryAddOneItemOrDropNearby(ItemInfo itemInfo)
+  M: Void RemoveAllItems()
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS Q: ItemInfoQuantity full surface
+==================================================================
+
+---- SandSailorStudio.Inventory.ItemInfoQuantity (base: Il2CppSystem.Object) ----
+  P: itemInfo : ItemInfo
+  P: quantity : Int32
+  M: Void .cctor() [static]
+  M: Void .ctor()
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS R: AddItemRequest full surface
+==================================================================
+
+---- SandSailorStudio.Inventory.AddItemRequest (base: Il2CppSystem.Object) ----
+  P: itemStack : ItemStack
+  P: operations : List`1
+  M: Void .cctor() [static]
+  M: Void .ctor(Item item, Int32 count)
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS S: ItemManifest - IsStatic for the methods Phase 1 needs
+==================================================================
+  M: ItemManifest CreateFromBlueprint(BlueprintInfo bpInfo) [static]
+  M: ItemManifest CreateFromItemObject(ItemInfo info) [static]
+  M: ItemManifest CreateFromComponents(ItemInfo info, Boolean includeChanceComponent) [static]
+  M: ItemManifest CreateFromFilter(ItemCollection collection, IItemFilter filter) [static]
+  M: ItemManifest CreateFromContainer(ItemContainer container) [static]
+  M: Void .ctor()
+  M: Int32 GetQuantity(ItemInfo item)
+  M: Int32 GetTotalQuantity()
+  M: Int32 GetItemInfoCount()
+  M: Int32 Contains(ItemManifest itemManifest)
+  M: Void Transfer(ItemCollection source, ItemCollection destination, Boolean copy)
+  M: Void Transfer(ItemCollection from, ItemContainer to)
+  M: Void Transfer(ItemContainer from, ItemCollection to)
+  M: List`1 GetItems()
+  M: Void GetItems(List`1 itemInfoQuantities)
+  M: Void .ctor(IntPtr pointer)
+
+==================================================================
+PASS T: ItemCollection - IsStatic for the methods Phase 1 needs
+==================================================================
+  M: IReadOnlyList`1 GetContainers()
+  M: List`1 GetItemInfos()
+  M: Int32 GetItemQuantity(ItemInfo itemInfo)
+  M: Int32 ContainsItemManifest(ItemManifest itemManifest)
+  M: Int32 GetTotalItemsQuantity()
+  M: Void RemoveOwnedItemManifest(ItemManifest itemManifest)
+  M: Int32 AddItems(Item item, Int32 quantity, ItemContainer container, List`1 addedItems)
+  M: Int32 AddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container, List`1 addedItems)
+  M: AddItemRequest RequestAddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container)
+  M: AddItemRequest RequestAddItems(Item item, Int32 quantity, ItemContainer container)
+  M: Void SubmitRequest(AddItemRequest request, List`1 addedItems)
+  M: Int32 AddItems(ItemInfo itemInfo, Int32 count) [virt]
+  M: Int32 AddItems(Item item, Int32 count) [virt]
+  M: Int32 RemoveItems(Item item, Int32 quantity)
+  M: Int32 RemoveItems(ItemInfo itemInfo, Int32 quantity)
+
+==================================================================
+PASS U: Workstation - GetInventory / structure-owning-collection candidates
+==================================================================
+  M: ItemCollection GetInventory() [virt]
+
+DONE

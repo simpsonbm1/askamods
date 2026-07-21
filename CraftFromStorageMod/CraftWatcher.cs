@@ -54,6 +54,38 @@ public class CraftWatcher : MonoBehaviour
     private static readonly Stopwatch _stopwatch = new();
     private static float _pollAccumulator;
 
+    // v0.3.0 Phase 1 (design point E): on-screen abort message, same OnGUI/shadow-label pattern as
+    // GroundItemVacuumMod.VacuumTracker.ShowMessage/OnGUI. Static (not instance) since the rest of
+    // this class's state is already all-static and manipulated from Harmony patch callbacks
+    // (GatePatches.cs) via static entry points - OnGUI itself must stay an instance method (Unity
+    // lifecycle callback) but only ever reads these static fields.
+    private static string _guiMessage = "";
+    private static float _guiExpiry;
+
+    internal static void ShowMessage(string message)
+    {
+        _guiMessage = message;
+        _guiExpiry = Time.time + 5.0f;
+    }
+
+    private void OnGUI()
+    {
+        if (Time.time >= _guiExpiry || string.IsNullOrEmpty(_guiMessage)) return;
+
+        var shadow = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 24,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter
+        };
+        shadow.normal.textColor = Color.black;
+        var text = new GUIStyle(shadow);
+        text.normal.textColor = new Color(1f, 0.55f, 0.15f); // orange - warning tone, distinct from GroundItemVacuum's cyan
+
+        GUI.Label(new Rect(0, 81, Screen.width, 100), _guiMessage, shadow);
+        GUI.Label(new Rect(0, 80, Screen.width, 100), _guiMessage, text);
+    }
+
     private void Update()
     {
         // Gate-call rollup flush is independent of the watcher's armed state - it just needs a
@@ -186,6 +218,33 @@ public class CraftWatcher : MonoBehaviour
         {
             Plugin.Logger.LogError($"[CFS] CraftWatcher.ClearWorldState error: {ex}");
         }
+
+        // v0.3.0 Phase 1 (design point F): the transfer ledger and settlement snapshot also hold
+        // per-world ItemContainer/ItemInfo wrappers - never cache interop wrappers of per-world
+        // objects across world sessions (project-wide gotcha). Routed through this one existing
+        // world-leave call site (PlayerDespawnedPatch already calls CraftWatcher.ClearWorldState())
+        // rather than adding a second call in Patches/LifecyclePatches.cs.
+        try { CraftTransfer.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftTransfer.ClearWorldState error: {ex}"); }
+        try { SettlementStock.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] SettlementStock.ClearWorldState error: {ex}"); }
+        // v0.4.0: the settlement-stock requirement-UI feature holds a per-world CraftMenu reference -
+        // never cache interop wrappers of per-world objects across world sessions (project-wide gotcha).
+        try { CraftUiState.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftUiState.ClearWorldState error: {ex}"); }
+        // v0.4.3: drops the per-panel resolved-label cache (interop wrappers of per-world UI objects)
+        // and re-arms the one-shot diagnostics so a second world load logs its own evidence.
+        try { CraftUiAvailability.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftUiAvailability.ClearWorldState error: {ex}"); }
+        // v0.5.0: the requirement-UI poller (CraftUiPoller.cs) holds no interop wrappers of its own,
+        // but re-arms its one-shot "panels found" diagnostic so a second world load logs its own
+        // evidence (same reasoning as CraftUiAvailability.ClearWorldState above).
+        try { CraftUiPoller.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftUiPoller.ClearWorldState error: {ex}"); }
+
+        // Don't let a stale abort banner survive into the next world.
+        _guiMessage = "";
+        _guiExpiry = 0f;
     }
 
     private static void PollOnce(long elapsedMs)

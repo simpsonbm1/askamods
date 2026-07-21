@@ -282,15 +282,15 @@ askamods/
                                 DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
                                 Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.2.0 — READ-ONLY
-                                diagnostic spike, writes no game state. Phase 0 (v0.1.x) confirmed
-                                in-game 2026-07-20: gate/agent/UI facts + storage census
-                                (architecture.md → Player crafting pipeline);
-                                QuerySettlementResources() HANGS the game — census uses the
-                                GetStructures() walk. Blocker: ingredient-consumption site
-                                unidentified → v0.2.0 adds the craft delta watcher + census v2
-                                (all-containers, EquipPoint probe, workstation stock) ⚠️ built,
-                                UNRUN — NEW_MOD_IDEAS_PLAN.md idea 17]
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.5.1 — Phase 1
+                                (PLAYER half) feature-complete, all three halves confirmed in-game
+                                2026-07-20: remote-storage pull + fail-closed verify + sweep-back,
+                                zero-pull abort with on-screen message, and settlement-wide
+                                requirement counts via a 0.2 s UI poller. Host/solo only
+                                (IsHostOrSolo gates); MULTIPLAYER-CLIENT support requested.
+                                Phase 2 (VILLAGER half) is core scope and NOT started — trigger
+                                point unresolved. Not on Nexus; diagnostics still default true —
+                                docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
@@ -326,7 +326,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | Read this | When you're working on |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | **Any** game subsystem — confirmed APIs + dead-ends, grouped by subsystem: damage pipeline, player vs. creature, resource/tree, gather, structures/workstations/task-priority, villager complaints/issue tracker, settlement hauling, inventory/settlement/recipes, cooking pipeline, torch/fire-fuel, villager needs/schedule/happiness, villager combat/fight-vs-flee, villager ranged/ammo, worldgen/streaming, caves/mines, build menu/structure templates/localization, terrain/terraforming, dens/population spawners, villager summoning (Eye of Odin), native crash diagnosis (WER + Cpp2IL) |
-| `docs/mods/<mod>.md` | The matching mod — current recipe, config reference, per-mod dead-ends (pointers also in the Project Structure above): bow-damage.md, tree-respawn.md, health-regen.md, torch-fuel.md, dynamic-villager-needs.md, villager-fight-back.md, seed-scout.md, mine-refresh.md, jotun-blood-yield.md, terrain-leveler.md, resource-marker-radius.md, task-unlocker.md, zero-task-workers.md, ground-item-vacuum.md, fish-fillet.md, den-respawn.md, time-warp.md, summon-timer.md, villager-ammo.md, outhouse-composter.md, supply-chain.md, no-needs.md |
+| `docs/mods/<mod>.md` | The matching mod — current recipe, config reference, per-mod dead-ends (pointers also in the Project Structure above): bow-damage.md, tree-respawn.md, health-regen.md, torch-fuel.md, dynamic-villager-needs.md, villager-fight-back.md, seed-scout.md, mine-refresh.md, jotun-blood-yield.md, terrain-leveler.md, resource-marker-radius.md, task-unlocker.md, zero-task-workers.md, ground-item-vacuum.md, fish-fillet.md, den-respawn.md, time-warp.md, summon-timer.md, villager-ammo.md, outhouse-composter.md, supply-chain.md, no-needs.md, craft-from-storage.md |
 | [`NEW_MOD_IDEAS_PLAN.md`](NEW_MOD_IDEAS_PLAN.md) | Researched mod ideas with Cecil-confirmed API leads. Open: crafting multiplier (idea 3), freezing hunters (5), pre-construction worker/task setup (7), DVN Phase 3 schedule-UI overlap warning (11), demand-driven supply-chain autopilot (12), outhouse composter Phases 2–3 (13), rocks-only remover (14), craft-from-settlement-storage (17). Shipped ideas are one-line pointers to their mod docs |
 | [`AGENTS.md`](AGENTS.md) (repo root) | Onboarding a NEW/non-Claude agent (e.g. OpenAI Codex auto-loads this path): reading order, which CLAUDE.md sections are Claude-Code-specific, the user working agreement, hook automation that must be replaced manually |
 | [`docs/nexus-upload.md`](docs/nexus-upload.md) | Publishing to Nexus Mods |

@@ -1,0 +1,146 @@
+﻿types scanned: 37037
+
+==================================================================
+PASS 1: every UI type whose name smells like a recipe/ingredient row
+==================================================================
+  TYPE: SSSGame.UI.BuildPreviewTabPage/__WaitForCraft_d__39  : Object
+  TYPE: SSSGame.UI.BuildPreviewTabPage/__WaitForCraftInteraction_d__38  : Object
+  TYPE: SSSGame.UI.SaveSlotPanel  : MonoBehaviour
+  TYPE: SSSGame.UI.SaveSlotsDisplayer  : MonoBehaviour
+  TYPE: SSSGame.UI.SelectActionMenu/EntryGroup  : Object
+  TYPE: SSSGame.UI.SelectActionMenu/SelectActionMenuEntry  : Object
+  TYPE: SSSGame.UI.SelectActionMenu/ResourceStorageEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.SelectActionMenu/StructureEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.SelectActionMenu/VillagerEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.SelectActionMenu/ItemInfoEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.SelectActionMenu/PatrolPointEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.SelectActionMenu/GenericEntry  : SelectActionMenuEntry
+  TYPE: SSSGame.UI.UIEventWidgetUser/InteractSlotConfig  : Object
+  TYPE: SSSGame.UI.ExpeditionRequirementsDetailsTabPage  : TabPage
+  TYPE: SSSGame.UI.ExpeditionRequirementsDetailsTabPage/RequirementType  : Enum
+  TYPE: SSSGame.UI.ExpeditionRequirementsDetailsTabPage/RequirementData  : Object
+  TYPE: SSSGame.UI.RepairPartData  : Object
+  TYPE: SSSGame.UI.InteractSlot_Items  : InteractSlot
+  TYPE: SSSGame.UI.CraftMenu  : ContextMenu
+  TYPE: SSSGame.UI.CraftMenu/CraftMenuParameters  : MenuParameters
+  TYPE: SSSGame.UI.StatisticsMenuParameters/IScoreEntry  : Il2CppObjectBase
+  TYPE: SSSGame.UI.StatisticsMenuParameters/ScoreDataEntry  : Object
+  TYPE: SSSGame.UI.StatisticsMenuParameters/ScoreHeaderEntry  : Object
+  TYPE: UnityEngine.Rendering.UI.DebugUIHandlerRow  : DebugUIHandlerFoldout
+  TYPE: UnityEngine.InputForUI.InputEventPartialProvider  : Object
+  TYPE: UnityEngine.UI.StencilMaterial/MatEntry  : Object
+
+==================================================================
+PASS 2: ANY type (namespace-agnostic) with a method named like a count setter
+==================================================================
+  SSSGame.DyeingBlueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  SSSGame.ResourceItem :: Void SetQuantity(Int32 count) [virt]
+  SSSGame.IResourceGatherModifier :: Void SetQuantity(Int32 count) [virt]
+  SSSGame.InteractSlot_Bar :: Void SetQuantityText(String& text)
+  SSSGame.BiomeItemInstance :: Void SetQuantity(Int32 count) [virt]
+  SSSGame.CellWaypoint :: Void UpdateCost()
+  SSSGame.Deeds.DeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.StructureCompletedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.PlayerCraftingDeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.AI.TradeRouteQuest/TradeRouteQuestData :: Void FillOwnedManifestExceptEquippedClothes(ItemManifest itemManifest)
+  MagicaCloth2.ExSimpleNativeArray`1 :: Void SetCount(Int32 newCount)
+  SandSailorStudio.Inventory.ItemCollection :: Void FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter)
+  SandSailorStudio.Inventory.Blueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  UnityEngine.GraphicsBuffer :: Void SetCounterValue(UInt32 counterValue)
+  UnityEngine.GraphicsBuffer :: Void SetCounterValue_Injected(IntPtr _unity_self, UInt32 counterValue)
+  UnityEngine.ComputeBuffer :: Void SetCounterValue(UInt32 counterValue)
+  UnityEngine.ComputeBuffer :: Void SetCounterValue_Injected(IntPtr _unity_self, UInt32 counterValue)
+
+==================================================================
+PASS 3: methods anywhere taking a Blueprint/BlueprintInfo param, in UI-ish types
+==================================================================
+  SSSGame.CraftingQuest/__c__DisplayClass35_0 :: Void set_bpInfo(BlueprintInfo )
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: Void set__bpInfo_5__3(CraftBlueprintInfo )
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: Void set__bpInfo_5__2(CraftBlueprintInfo )
+  SSSGame.SupplyMenu :: Void set__supplyContainer(ItemManifestContainer )
+  SSSGame.UI.CreateItemsTabPage :: Void set__blueprintConditionsDatabase(BlueprintConditionsDatabase )
+  SSSGame.UI.StructureUpgradePreviewPage :: Void set__blueprintConditionsDatabase(BlueprintConditionsDatabase )
+  SSSGame.UI.ExpeditionPanel :: Void _RefreshManifestRequirement(IconTextPairComponent requirementPanelPrefab, ItemManifestConfig manifestConfig, Toggle toggle, TMP_Text label, ProgressBar progressBar, Int32 manifestMultiplier)
+  SSSGame.UI.FarmCropPainterPanel :: Void set__expectedOutcomeManifest(ItemManifest )
+  SSSGame.UI.ItemManifestDisplayer :: Void ShowManifestAsync(ItemManifest manifest, Boolean cancelCurrent)
+  SSSGame.UI.ItemManifestDisplayer :: Task _CreateItemPanels(ItemManifest manifest, CancellationTokenSource cancellationTokenSrc)
+  SSSGame.UI.ItemManifestDisplayer/_ShowManifestAsync_d__7 :: Void set___4__this(ItemManifestDisplayer )
+  SSSGame.UI.ItemManifestDisplayer/_ShowManifestAsync_d__7 :: Void set_manifest(ItemManifest )
+  SSSGame.UI.ItemManifestDisplayer/__CreateItemPanels_d__8 :: Void set___4__this(ItemManifestDisplayer )
+  SSSGame.UI.ItemManifestDisplayer/__CreateItemPanels_d__8 :: Void set_manifest(ItemManifest )
+  SSSGame.UI.JournalSubcategPanel :: Void set__bpConditionsDatabase(BlueprintConditionsDatabase )
+  SSSGame.UI.StructureUpgradePanel :: Void set__blueprintConditionsDatabase(BlueprintConditionsDatabase )
+  SSSGame.UI.TaskDataPanel :: Void set__dyeingBpInfo(DyeingBlueprintInfo )
+  SSSGame.UI.TaskDataPanel :: Void set__undoManifest(ItemManifest )
+  SSSGame.UI.TaskDataPanel :: Void set__previousCartManifset(ItemManifest )
+  SSSGame.UI.CreateTaskTabPage :: Void set__dyeingBpInfo(DyeingBlueprintInfo )
+  SSSGame.UI.CreateTaskTabPage :: Void set__undoManifest(ItemManifest )
+  SSSGame.UI.JournalItemDetailsTabPage :: Void set__blueprintsDatabase(BlueprintConditionsDatabase )
+  SSSGame.UI.SettlementResoucesTabPage :: Void set_manifestDisplayer(ItemManifestDisplayer )
+  SSSGame.UI.PetMenu :: Void set_fetchManifestDisplayer(ItemManifestDisplayer )
+  SSSGame.UI.PetMenu :: Void set__localFetchManifest(ItemManifest )
+  SSSGame.UI.WisdomMenu :: Void set_manifestDisplayer(ItemManifestDisplayer )
+  SSSGame.UI.WisdomMenu :: Void set__requirementsManifestCache(ItemManifest )
+  SSSGame.AI.FSM.FSM_AquireHarvestTool/__c__DisplayClass11_1 :: Void set_containerManifest(ItemManifest )
+  SSSGame.AI.FSM.FSM_UseCraftingStation/__c__DisplayClass9_0 :: Void set_bpInfo(BlueprintInfo )
+
+==================================================================
+PASS 4: CraftMenu + the tab page we already patch, in full
+==================================================================
+
+---- SSSGame.UI.CraftMenu (base: SSSGame.UI.ContextMenu) ----
+  P: SelectItemTabPage : CreateItemsTabPage
+  P: _params : CraftMenuParameters
+  M: Void OnSetup(MenuParameters parameters) [virt]
+  M: Void OnActivate() [virt]
+  M: InventoryComponent GetCraftStationInventory()
+  M: CraftingStation GetCraftingStation()
+  M: CraftInteraction GetCraftInteraction()
+  M: PlayerCraftInteractionSession GetSession()
+  M: Void OnClosed() [virt]
+  M: Void _TryEndSession()
+
+---- SSSGame.UI.CreateItemsTabPage (base: SandSailorStudio.UI.TabPage) ----
+  P: newCreateTaskPage : CreateOrEditTaskPage
+  P: createTaskPage : CreateTaskTabPage
+  P: itemsListRect : RectTransform
+  P: itemButton : ItemThumbnailPanel
+  P: errorMessage : TMP_Text
+  P: detailsPanel : ItemDetailsPanel
+  P: dropdownCategs : Il2CppReferenceArray`1
+  P: dropdownCategories : Il2CppReferenceArray`1
+  P: _DropdownPreferences_k__BackingField : Property
+  P: _availableBlueprints : List`1
+  P: _unavailableBlueprints : List`1
+  P: _blueprintConditionsDatabase : BlueprintConditionsDatabase
+  P: _knowledgeManager : NetworkKnowledgeManager
+  P: _createItemsTask : Task
+  P: _cancelTaskRequested : Boolean
+  P: _openingButton : GameObject
+  P: _dropdownCategMap : Dictionary`2
+  P: AvailableBlueprints : List`1
+  P: UnavailableBlueprints : List`1
+  P: DropdownPreferences : Property
+  M: Void Awake()
+  M: Void Show(Boolean value, TabButton button) [virt]
+  M: Void SaveDropdownPreferences()
+  M: Boolean TryLoadDropdownPreferencesFromWorkstation(IWorkstation ws)
+  M: Void CreateItemsAsync()
+  M: Task _CreateItems()
+  M: Void _RefreshDropdownsExpandState()
+  M: DropdownElement _FindDropdownParent(ItemInfo info)
+  M: Void Init(TabButton button) [virt]
+
+==================================================================
+PASS 5: who owns GetRequirementOccurenceCount / FillRequirementsManifest
+==================================================================
+  SSSGame.CharacterSurvival :: Single GetMissingWater()
+  SSSGame.CharacterSurvival :: Single GetMissingFood()
+  SSSGame.CrockpotRecipeInfo :: Int32 GetMissingIngredientsCount(ItemManifest ingredientsManifest)
+  SSSGame.CrockpotRecipeInfo :: Int32 GetRequirementOccurenceCount(ItemInfo info)
+  SSSGame.DyeingBlueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  SSSGame.Deeds.DeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.StructureCompletedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SSSGame.Deeds.PlayerCraftingDeedCondition :: Void FillRequirementsManifest(ItemManifest manifest) [virt]
+  SandSailorStudio.Inventory.Blueprint :: Void FillPartsManifest(ItemManifest itemManifest) [virt]
+  UnityEngine.UIElements.StyleProperty :: Boolean TryGetMissingAssetReferenceUrl(StyleSheet styleSheet, String& value)

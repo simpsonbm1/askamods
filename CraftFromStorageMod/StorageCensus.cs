@@ -223,7 +223,10 @@ public class StorageCensus : MonoBehaviour
 
     // Never use SettlementManager.settlements - that list stays null even in a loaded world
     // (project-wide gotcha). Try the getter methods in order; first non-null wins.
-    private static Settlement? ResolveSettlement(out string via)
+    // internal (not private): reused by SettlementStock.cs's Phase 1 snapshot walk - "Reuse its
+    // machinery, StorageCensus already has the proven settlement container walk" (visibility-only
+    // change, no behavior change).
+    internal static Settlement? ResolveSettlement(out string via)
     {
         via = "none";
         SettlementManager? sm = null;
@@ -268,7 +271,8 @@ public class StorageCensus : MonoBehaviour
     // or character-slot container earlier in hierarchy order. Same singular-GetComponent + child-
     // recursion shape (plural GetComponentsInChildren<T> is missing through the interop trampoline -
     // project-wide gotcha), just appending instead of returning early.
-    private static void CollectComponents<T>(Transform? node, List<T> results, int depth) where T : UnityEngine.Component
+    // internal (not private): reused by SettlementStock.cs (see ResolveSettlement above).
+    internal static void CollectComponents<T>(Transform? node, List<T> results, int depth) where T : UnityEngine.Component
     {
         if (node == null || depth > 12) return;
 
@@ -339,7 +343,8 @@ public class StorageCensus : MonoBehaviour
         return "no";
     }
 
-    private static string SafeStructureName(Structure? s)
+    // internal (not private): reused by SettlementStock.cs (see ResolveSettlement above).
+    internal static string SafeStructureName(Structure? s)
     {
         if (s == null) return "?";
         try { var n = s.StructureName; if (!string.IsNullOrEmpty(n)) return n; } catch { }

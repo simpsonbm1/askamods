@@ -50,7 +50,14 @@ PopulationInfo, VegetationResourceInfo); WearableItemInfo; PlantableItemInfo; We
   + idle gate — once every known ground is handled, the pass is a single grounds.Count read until
   the registry grows (streaming registers grounds late: 0→101 observed). Confirmed in-game
   2026-07-14: 101 grounds, ~1 ms confirm pass, then idle. Player-unmarked buoys are never
-  re-marked (deliberate: don't fight the player).
+  re-marked **within the session** (deliberate: don't fight the player) — but the handled-set is
+  in-memory per-world state cleared on world leave, so on the NEXT world load an unmarked buoy is
+  seen as unmarked and re-marked (code-confirmed 2026-07-18). While UnlockFish=true, player
+  unmarks don't survive a reload; steering the fisher by unmarking buoys requires
+  UnlockFish=false (existing marks persist in the save, so only unwanted buoys need unmarking).
+  Also note: fish tasks are count-driven (`_UpdateFishStatus`), so with ~100 grounds marked
+  map-wide a fish task can never be starved out by unmarking local buoys — a vanilla lever the
+  mod effectively removes.
 - **Discovery status persists only when the game saves;** unlocks from an unsaved session simply
   re-apply next load (self-healing).
 

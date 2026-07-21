@@ -275,7 +275,11 @@ internal static class StationProfile
 [HarmonyPatch(typeof(CraftInteraction), nameof(CraftInteraction.CheckOwnedRequirements))]
 internal static class CheckOwnedRequirementsPatch
 {
-    static void Postfix(CraftInteraction __instance, Blueprint bp, IInteractionAgent agent, bool __result)
+    // v0.3.0 Phase 1: __result is now `ref` so CraftTransfer.TryReportAvailable can WIDEN a false
+    // vanilla result to true when the cached settlement snapshot can cover the shortfall (design
+    // point A). The rollup/verbose logging below still reads the PRE-flip value deliberately - it is
+    // diagnostic on what VANILLA decided, independent of this mod's override.
+    static void Postfix(CraftInteraction __instance, Blueprint bp, IInteractionAgent agent, ref bool __result)
     {
         try
         {
@@ -288,6 +292,15 @@ internal static class CheckOwnedRequirementsPatch
         catch (Exception ex)
         {
             Plugin.Logger.LogError($"[CFS] CheckOwnedRequirementsPatch: {ex}");
+        }
+
+        try
+        {
+            CraftTransfer.TryReportAvailable(__instance, bp, agent, ref __result);
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] CheckOwnedRequirementsPatch transfer-check: {ex}");
         }
     }
 }
@@ -320,10 +333,16 @@ internal static class CheckOwnedBlueprintManifestPatch
 //          DyeingInteraction each declare their own override; patching only the base would miss the
 //          subclasses). Prefix so it logs before any consumption. Also arms the CraftWatcher delta
 //          watcher and profiles the station type (both v0.2.0). ----
+// v0.3.0 Phase 1: all three Prefix methods below are now `bool`-returning (was `void`) so
+// CraftTransfer.HandleBeginCraftingSequence's return value can gate whether vanilla's own
+// BeginCraftingSequence runs (design point C: false = the pull's fail-closed verify failed, or an
+// exception occurred - abort the craft rather than let a partially-supplied craft proceed). The
+// existing diagnostic calls (GateLog/StationProfile/CraftWatcher.Arm) stay unconditional at the top,
+// exactly as before - they must keep firing regardless of whether the craft is allowed to proceed.
 [HarmonyPatch(typeof(CraftInteraction), nameof(CraftInteraction.BeginCraftingSequence))]
 internal static class BeginCraftingSequenceCraftPatch
 {
-    static void Prefix(CraftInteraction __instance, InteractionSession session)
+    static bool Prefix(CraftInteraction __instance, InteractionSession session)
     {
         try { GateLog.LogBeginCraftingSequence("CraftInteraction", __instance, session); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceCraftPatch: {ex}"); }
@@ -331,46 +350,55 @@ internal static class BeginCraftingSequenceCraftPatch
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceCraftPatch StationProfile: {ex}"); }
         try { CraftWatcher.Arm(__instance, session, "CraftInteraction"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceCraftPatch Arm: {ex}"); }
+        try { return CraftTransfer.HandleBeginCraftingSequence(__instance, session); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceCraftPatch Transfer: {ex}"); return true; }
     }
 }
 
 [HarmonyPatch(typeof(AnvilInteraction), nameof(AnvilInteraction.BeginCraftingSequence))]
 internal static class BeginCraftingSequenceAnvilPatch
 {
-    static void Prefix(AnvilInteraction __instance, InteractionSession session)
+    static bool Prefix(AnvilInteraction __instance, InteractionSession session)
     {
         try { GateLog.LogBeginCraftingSequence("AnvilInteraction", __instance, session); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceAnvilPatch: {ex}"); }
         try { StationProfile.ProfileOnce(__instance); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceAnvilPatch StationProfile: {ex}"); }
-        // __instance is typed as the AnvilInteraction subclass here - CraftWatcher.Arm takes the
-        // base CraftInteraction type, which AnvilInteraction (and CarpenterInteraction) derive from.
+        // __instance is typed as the AnvilInteraction subclass here - CraftWatcher.Arm/CraftTransfer
+        // take the base CraftInteraction type, which AnvilInteraction (and CarpenterInteraction)
+        // derive from.
         try { CraftWatcher.Arm(__instance, session, "AnvilInteraction"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceAnvilPatch Arm: {ex}"); }
+        try { return CraftTransfer.HandleBeginCraftingSequence(__instance, session); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceAnvilPatch Transfer: {ex}"); return true; }
     }
 }
 
 [HarmonyPatch(typeof(DyeingInteraction), nameof(DyeingInteraction.BeginCraftingSequence))]
 internal static class BeginCraftingSequenceDyeingPatch
 {
-    static void Prefix(DyeingInteraction __instance, InteractionSession session)
+    static bool Prefix(DyeingInteraction __instance, InteractionSession session)
     {
         try { GateLog.LogBeginCraftingSequence("DyeingInteraction", __instance, session); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceDyeingPatch: {ex}"); }
         try { StationProfile.ProfileOnce(__instance); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceDyeingPatch StationProfile: {ex}"); }
-        // __instance is typed as the DyeingInteraction subclass here - CraftWatcher.Arm takes the
-        // base CraftInteraction type, which DyeingInteraction derives from.
+        // __instance is typed as the DyeingInteraction subclass here - CraftWatcher.Arm/CraftTransfer
+        // take the base CraftInteraction type, which DyeingInteraction derives from.
         try { CraftWatcher.Arm(__instance, session, "DyeingInteraction"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceDyeingPatch Arm: {ex}"); }
+        try { return CraftTransfer.HandleBeginCraftingSequence(__instance, session); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BeginCraftingSequenceDyeingPatch Transfer: {ex}"); return true; }
     }
 }
 
 // ---- 4. _OnCraftingSuccess - patched by name on BOTH CraftInteraction and DyeingInteraction.
-//          v0.2.0: no longer takes its own PRE/POST ItemInventory snapshot (that only ever covered
-//          one candidate collection, and _OnCraftingSuccess is confirmed NOT the consumption site -
-//          architecture.md "Player crafting pipeline"). Marks the CraftWatcher instead, which
-//          covers every candidate collection in one delta reading. ----
+//          _OnCraftingSuccess IS the ingredient-consumption site: consumption lands in the ~3-6 ms
+//          between this prefix and this postfix (confirmed in-game 2026-07-20 - architecture.md
+//          "Player crafting pipeline"). It takes no PRE/POST ItemInventory snapshot of its own -
+//          that only ever covered one candidate collection, which is exactly why the site read as
+//          absent before. The CraftWatcher marks cover every candidate collection in one delta
+//          reading, and this postfix therefore sees POST-consumption state. ----
 [HarmonyPatch(typeof(CraftInteraction), "_OnCraftingSuccess")]
 internal static class OnCraftingSuccessCraftPatch
 {
@@ -384,6 +412,14 @@ internal static class OnCraftingSuccessCraftPatch
     {
         try { CraftWatcher.Mark("_OnCraftingSuccess[CraftInteraction] POST"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] OnCraftingSuccessCraftPatch Postfix: {ex}"); }
+        // v0.3.0 Phase 1 (design point D): sweep unconsumed pulled leftovers back to their source
+        // containers now that consumption has happened (confirmed fact: it happens inside
+        // _OnCraftingSuccess, between its prefix and postfix - so this postfix sees POST-consumption
+        // quantities). Also covers AnvilInteraction, which inherits this implementation rather than
+        // overriding it (no separate Anvil _OnCraftingSuccess patch exists, matching v0.2.0's own
+        // patch set).
+        try { CraftTransfer.HandleCraftingSuccess(agent); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] OnCraftingSuccessCraftPatch Transfer: {ex}"); }
     }
 }
 
@@ -400,6 +436,8 @@ internal static class OnCraftingSuccessDyeingPatch
     {
         try { CraftWatcher.Mark("_OnCraftingSuccess[DyeingInteraction] POST"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] OnCraftingSuccessDyeingPatch Postfix: {ex}"); }
+        try { CraftTransfer.HandleCraftingSuccess(agent); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] OnCraftingSuccessDyeingPatch Transfer: {ex}"); }
     }
 }
 

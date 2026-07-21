@@ -1,0 +1,256 @@
+﻿
+---- SSSGame.UI.ItemDetailsPanel (base: UnityEngine.MonoBehaviour) ----
+  P: title : RectTransform
+  P: itemDescription : RectTransform
+  P: typeDescription : RectTransform
+  P: itemStats : RectTransform
+  P: itemStatPrefab : GameObject
+  P: itemAttributesPanel : ItemAttributesPanel
+  P: icon : Image
+  P: tierPanel : IconTextPairComponent
+  P: useItemTooltip : RectTransform
+  P: harvestTooltip : RectTransform
+  P: quickbarTooltip : RectTransform
+  P: splitStackTooltip : RectTransform
+  P: tooltipsParent : GameObject
+  P: descriptionFormat : String
+  P: indicatorArrow : RectTransform
+  P: AutoPosition : Boolean
+  P: placeOnLeft : Boolean
+  P: customAction1Bar : ProgressBar
+  P: customAction2Bar : ProgressBar
+  P: _itemInfo : ItemInfo
+  P: _item : Item
+  P: _ignoreNextDimensionChangesCallback : Boolean
+  P: _positionConstraint : PositionConstraint
+  P: _harvestModifierInputPressed : Boolean
+  P: _lastTargetAutoPosition : Vector3
+  P: _holdProgressRoutines : Dictionary`2
+  P: _sourcePanel : ItemThumbnailPanel
+  P: _statsObjects : List`1
+  P: ItemInfo : ItemInfo
+  P: Item : Item
+  M: Void Awake()
+  M: Void LateUpdate()
+  M: Void SelectSourcePanel(ItemThumbnailPanel panel)
+  M: Void DeselectSourcePanel(ItemThumbnailPanel panel)
+  M: Void _HandleCustomCursorHoverState(Boolean isHovering)
+  M: Void DeactivateAndRemoveAllSources()
+  M: Void OnRectTransformDimensionsChange()
+  M: Void _HandlePositioning(RectTransform target)
+  M: Void OnDisable()
+  M: Void OnEnable()
+  M: Void _BeginHoldProgressRoutine(ProgressBar bar, InputAction action)
+  M: IEnumerator _HoldProgressRoutine(ProgressBar bar, InputAction action)
+
+---- SSSGame.UI.ItemManifestDisplayer (base: UnityEngine.MonoBehaviour) ----
+  P: c_TierTransformPrefix : String
+  P: itemPrefab : ItemThumbnailPanel
+  P: itemParents : Il2CppReferenceArray`1
+  P: detailsPanel : ItemDetailsPanel
+  P: _showResourcesTask : Task
+  P: _cancellationToken : CancellationTokenSource
+  M: Void ShowManifestAsync(ItemManifest manifest, Boolean cancelCurrent)
+  M: Task _CreateItemPanels(ItemManifest manifest, CancellationTokenSource cancellationTokenSrc)
+  M: RectTransform _FindSuitableParentForItem(ItemInfo info)
+  M: Void OnDestroy()
+
+---- SSSGame.UI.ItemThumbnailPanel (base: UnityEngine.MonoBehaviour) ----
+  P: label : TextMeshProUGUI
+  P: description : TextMeshProUGUI
+  P: lore : TextMeshProUGUI
+  P: count : TextMeshProUGUI
+  P: availability : TextMeshProUGUI
+  P: durability : IconTextPairComponent
+  P: cooked : IconTextPairComponent
+  P: tier : IconTextPairComponent
+  P: durabilityColors : GradientAsset
+  P: icon : Image
+  P: frame : Image
+  P: background : Image
+  P: fillImage : Image
+  P: knowledgePercentage : Image
+  P: equipStatus : RectTransform
+  P: newStatus : RectTransform
+  P: stackTextParent : RectTransform
+  P: mode : ItemThumbnailMode
+  P: frames : SpriteList
+  P: tierIcons : SpriteList
+  P: checkAvailability : Boolean
+  P: OnPanelClicked : Action`1
+  P: parent : BaseContainerPanel
+  P: details : ItemDetailsPanel
+  P: _itemStack : ItemInfoQuantity
+  P: _item : Item
+  P: _dropPanelBg : DropPanel
+  P: _dropPanelIcon : DropPanel
+  P: _dragPanel : DragPanel
+  P: _dragging : Boolean
+  P: _fillColorDirty : Boolean
+  P: _currentItemMode : ItemThumbnailMode
+  P: _OverrideCanShowStack_k__BackingField : Boolean
+  P: _OverrideNotAvailable_k__BackingField : Boolean
+  P: _click : ItemClickBehaviour
+  P: _emptyIcon : Sprite
+  P: _quickBar : QuickBarWidget
+  P: _actionManager : ActionManager
+  P: Initialized : Boolean
+  P: _notTradeable : Boolean
+  P: _isSubscribed : Boolean
+  P: DropPanelBackground : DropPanel
+  P: DropPanelIcon : DropPanel
+  P: DragPanel : DragPanel
+  P: OverrideCanShowStack : Boolean
+  P: OverrideNotAvailable : Boolean
+  P: OverrideNotTradeable : Boolean
+  P: ItemInfo : ItemInfo
+  P: Quantity : Int32
+  P: Item : Item
+  P: AllowsInteractions : Boolean
+  M: Void _OnItemUnquipped(EquipmentItem obj)
+  M: Void _OnItemEquipped(EquipmentItem obj)
+  M: Void _OnContainerItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void _OnContainerItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context)
+  M: Void Awake()
+  M: Void Start()
+  M: Void SetItemInfo(ItemInfo itemInfo, Int32 quantity)
+  M: Void CommandDropItem()
+  M: Void CommandUseItem()
+  M: Void UpdateItem(Item item, Dictionary`2 map, RectTransform hostPanel, ItemThumbnailPanel itemPrefab)
+  M: Void _SetEmpty()
+  M: Void _UpdateDragComponents()
+  M: Void _UpdateAvailabilityStatus()
+  M: Void _UpdateTier()
+  M: Void _UpdateFrame()
+  M: Void UpdateColors()
+  M: Void _OnHighlighted(Boolean value)
+  M: Void OnDisable()
+  M: Void OnDestroy()
+  M: Void CommandHarvestItem()
+  M: Void _OnDragStart(DragPanel p)
+  M: Void _OnDragEnd(DragPanel p, DropPanel dropPanel)
+  M: Void SetupDragAndDrop(Action`2 objectAddedCallback, Action`2 objectRemovedCallback, Vector2 inflateSize)
+  M: Void SetIconColor(Color color)
+  M: Void EnableDragAndDrop()
+  M: Void DisableDragAndDrop()
+  M: Boolean CanHarvestCurrentItem()
+  M: Boolean CanSplitCurrentItem()
+  M: Void _UpdateContainerFill(ItemContainer itemContainer)
+  M: Void _UpdateAvailablility()
+  M: String TierToRomanString(Int32 tier)
+  M: Void CommandAddToQuickBar()
+  M: Void OnSubmit(BaseEventData eventData) [virt]
+  M: Void OnPointerClick(PointerEventData eventData) [virt]
+  M: Void OnCustomAction1(CustomActionEventData eventData) [virt]
+  M: Void OnCustomAction2(CustomActionEventData eventData) [virt]
+  M: Void OnSelect(BaseEventData eventData) [virt]
+  M: Void OnDeselect(BaseEventData eventData) [virt]
+  M: Void OnCustomClickActionOverride(CustomActionEventData eventData) [virt]
+  M: Void __UpdateFrame_b__81_0()
+  M: Void __UpdateFrame_b__81_1()
+
+---- SSSGame.UI.IconTextPairComponent (base: UnityEngine.MonoBehaviour) ----
+  P: icon : Image
+  P: background : Image
+  P: foreground : Image
+  P: text : TMP_Text
+  P: secondaryText : TMP_Text
+  P: isRunning : Boolean
+  P: _onChangedAction : Action
+  P: _subscribedProperty : Property
+  P: _countdownInitialDuration : Single
+  P: _countdownRemainingDuration : Single
+  P: _countdownSet : Boolean
+  P: _countdownRoutine : IEnumerator
+  M: Void OnEnable()
+  M: Void OnDisable()
+  M: Void OnDestroy()
+  M: Void SetIconColor(Color& color)
+  M: Void SetIconColor(Color& color, Boolean keepAlpha)
+  M: Void SetTextColor(Color& color)
+  M: Void SetSecTextColor(Color& color)
+  M: Void SetIconFill(Single& fill)
+  M: Void SetSprite(Sprite sprite)
+  M: Void SetText(String& text)
+  M: Void SetLocText(String& key)
+  M: Void SetSecText(String& text)
+  M: Void SetSecLocText(String& key)
+  M: Void BeginIconCountdown(Single initialDuration, Single remainingTime, Boolean overridePrevious)
+  M: Void Subscribe(Property property)
+  M: Void Unsubscribe()
+  M: Void SetOnChangedCallback(Action action)
+  M: Void OnChanged()
+  M: IEnumerator _CountdownRoutine()
+
+==================================================================
+Any type named *ItemDetails* / *ManifestDisplay* / *ItemPanel* anywhere
+==================================================================
+  TYPE: SSSGame.SupplyItemPanel  : MonoBehaviour
+  TYPE: SSSGame.UI.ArcheryEquipmentItemPanel  : EquipmentItemPanel
+  TYPE: SSSGame.UI.EquipmentItemPanel  : MonoBehaviour
+  TYPE: SSSGame.UI.ItemDetailsPanel  : MonoBehaviour
+  TYPE: SSSGame.UI.ItemThumbnailMode  : Enum
+  TYPE: SSSGame.UI.ItemThumbnailPanel  : MonoBehaviour
+  TYPE: SSSGame.UI.ItemManifestDisplayer  : MonoBehaviour
+  TYPE: SSSGame.UI.ItemManifestDisplayer/__CreateItemPanels_d__8  : ValueType
+  TYPE: SSSGame.UI.JournalItemDetailsTabPage  : TabPage
+  TYPE: SSSGame.UI.IconTextPairComponent  : MonoBehaviour
+  TYPE: Steamworks.SteamItemDetails_t  : ValueType
+  TYPE: SandSailorStudio.Inventory.ItemManifestContainer  : ItemContainer
+
+==================================================================
+ItemManifest full surface (what a manifest can report per item)
+==================================================================
+
+---- SandSailorStudio.Inventory.ItemManifest (base: Il2CppSystem.Object) ----
+  P: _items : Dictionary`2
+  P: _totalItemQuantity : Int32
+  P: s_infoList : List`1
+  P: c_itemsKey : String
+  M: ItemManifest CreateFromBlueprint(BlueprintInfo bpInfo)
+  M: ItemManifest CreateFromItemObject(ItemInfo info)
+  M: ItemManifest CreateFromComponents(ItemInfo info, Boolean includeChanceComponent)
+  M: ItemManifest CreateFromFilter(ItemCollection collection, IItemFilter filter)
+  M: ItemManifest CreateFromContainer(ItemContainer container)
+  M: Void FillItem(ItemInfo item, ItemCollection inventory)
+  M: Void Fill(ItemManifest other, IItemFilter itemFilter)
+  M: Void FillUpToMax(ItemManifest other, ItemManifest max, IItemFilter itemFilter)
+  M: Void FillUpToMax(ItemManifest other, ItemManifest max1, ItemManifest max2, IItemFilter itemFilter)
+  M: Void FillMax(ItemManifest other, IItemFilter itemFilter)
+  M: Void FillExcluded(ItemManifest other, IItemFilter itemFilter)
+  M: Void Fill(ItemManifest other, Int32 multiplier, IItemFilter itemFilter)
+  M: Void Fill(ItemSelection selection, ItemCollection collection)
+  M: Void FillRemainingCapacity(ItemManifest other, Func`2 remainingCapacityFunc)
+  M: Void AddParts(BlueprintInfo bpInfo)
+  M: Void AddInfoList(ItemInfoList infoList, Int32 count)
+  M: Void AddItem(ItemInfo item, Int32 quantity)
+  M: Void RemoveAll(ItemInfo item)
+  M: Void RemoveAll(IItemFilter itemFilter)
+  M: Void RemoveItem(ItemInfo item, Int32 quantity)
+  M: Void Multiply(Int32 amount)
+  M: Void Multiply(Single ammount)
+  M: Int32 GetQuantity(ItemInfo item)
+  M: Int32 GetItemsQuantity(IItemFilter filter)
+  M: Int32 GetTotalQuantity()
+  M: Void Clear()
+  M: Int32 GetItemInfoCount()
+  M: Boolean ContainsKeys(ItemManifest itemManifest, IItemFilter itemFilter)
+  M: Int32 Contains(ItemManifest itemManifest)
+  M: Void RemoveFromManifest(ItemManifest otherManifest)
+  M: Boolean Overlaps(ItemManifest itemManifest)
+  M: Boolean HasItem(IItemFilter itemFilter)
+  M: Void Transfer(ItemCollection source, ItemCollection destination, Boolean copy)
+  M: Void Transfer(ItemCollection from, ItemContainer to)
+  M: Void Transfer(ItemContainer from, ItemCollection to)
+  M: Void SpawnItemsInArea(Bounds bounds, Boolean snapToTerrain, Single spawnChance)
+  M: List`1 GetItems()
+  M: Int32 GetTopQuantity(ItemInfo& topItem, IItemFilter itemFilter)
+  M: Void GetItems(List`1 itemInfoQuantities)
+  M: List`1 GetItemsList()
+  M: Void PopulateItemsList(List`1 list)
+  M: Boolean Check(ItemInfo itemInfo) [virt]
+  M: Void WriteSnapshot(BinaryWriter writer) [virt]
+  M: Void WriteSnapshot(BinaryWriter writer, Int32 maxItemInfoCount)
+  M: Void ReadSnapshot(BinaryReader reader) [virt]
+  M: Boolean Deserialize(DataObject source) [virt]
+  M: DataObject Serialize(DataObject destination) [virt]

@@ -1178,22 +1178,64 @@ trace, workshop crafting table, solo host).
   player was actively clicking recipes they lacked materials for. The split is knowledge/unlock
   based; the "can't afford" graying is driven per-button elsewhere (`CheckOwnedRequirements` at
   render time is the live candidate).
-- **`_OnCraftingSuccess` is NOT the ingredient-consumption site.** PRE and POST snapshots of
-  `CraftInteraction.ItemInventory` around a real rope craft were byte-identical (total=26, same
-  breakdown) — no ingredient decrement, no product increment. Whatever `ItemInventory` exposes
-  there is neither the ingredient source nor the output destination.
+- **Ingredient consumption happens INSIDE `_OnCraftingSuccess`** — the ~3–6 ms window between
+  that method's prefix and postfix, measured at +1.02 s (rope), +1.06 s and +1.08 s (leather
+  helmet) after `BeginCraftingSequence`. ⚠️ **Methodological trap:** a snapshot of only
+  `CraftInteraction.ItemInventory` reads PRE==POST whenever the craft draws from the agent side.
+  Watch BOTH collections below, or the consumption site looks absent when it is not.
 
-**⚠️ OPEN: where player crafting consumes ingredients.** Ruled out so far: `_OnCraftingSuccess`
-(above); **`CraftInteractionDisplay._CraftRoutine`** and its `__CraftRoutine_d__10` state machine
-(Cecil 2026-07-20 — the type is purely cosmetic: `tableDisplaySlot`, `_leftHandDisplayObj`,
-`_rightHandDisplayObj`, `_ClearDisplayObjects`; the state machine holds only a `CraftBlueprintInfo`
-and hand transforms); **`CraftingStation`** (the villager-side fetch/craft/study quest manager, not
-the player craft path). Leading candidate is the agent's own collection via
-`IInteractionAgent.GetInventory()` — consistent with `useAgentInventory=True`, and never sampled by
-the v0.1.1 trace, which watched only `CraftInteraction.ItemInventory`.
-**Cecil cannot settle this**: interop method bodies are trampolines, so there is no IL to read and
-no caller analysis is possible. It needs an in-game delta watcher over every candidate collection,
-or a Cpp2IL body dump.
+**Collection identity, pool, and timing (v0.2.0 delta watcher, confirmed in-game 2026-07-20):**
+- **Only two distinct collections exist among the six candidates.**
+  `session.Agent.GetInventory()` and `CraftingAgent.ItemInventory` are the SAME collection
+  (identical deltas on every sample); `CraftInteraction.ItemInventory`,
+  `CraftInteraction.inventory`, and `Workstation.GetInventory()` are the SAME collection
+  (identical deltas on every sample). `CraftInteraction.blueprintInv` never changed in any craft.
+- **The consumption pool is {agent inventory} ∪ {station composite}**, and which one is drawn
+  from is decided by **where the items physically are** — NOT by `useAgentInventory` (observed
+  `True` on every craft, both sources). When the same item exists in both, the **station copy is
+  consumed first** (ground truth: player held 1 Cured Leather Hide and the station held 1; the
+  station's went to 0, the player's was untouched).
+- **Player craft:** ingredients come from wherever they are; the output item always goes to the
+  player's agent inventory. **Villager craft** (`VillagerCraftSession`, agent=`Villager`):
+  ingredients come from the station composite, output goes to the villager's own inventory —
+  in-game confirmation that vanilla villager crafters are limited to their own station's storage.
+- **Consequence:** vanilla ALREADY supports crafting from a container — the station you are
+  standing at. A "craft from any storage" mod is a **reach extension**, not a new mechanism.
+- **`Workstation.GetInventory()` is a COMPOSITE** over ALL of a structure's containers, not one
+  container. Arithmetic proof on Improved Armorsmith 2: station `inventoryTotal=11` ==
+  `StorageSmallItemsInput` 3 items + eight ArmorRack pieces at 1 item each.
+
+**Gate call frequency (confirmed in-game 2026-07-20) — the availability-postfix cost budget:**
+`CheckOwnedRequirements` traffic is dominated by villagers (rollups of 2–209 calls, sustained
+3–64 calls/s, agents almost entirely `Villager`). `PlayerInteractionAgent` calls are **rare: 1–3
+per rollup** even with a crafting menu open, and the gate does NOT fire once per listed recipe
+(menu open reports `AvailableBlueprints=96`, then 23 at a second station, `Unavailable=0`). One
+outer `CheckOwnedRequirements` call can drive many inner `_CheckOwnedBlueprintManifest` checks (31
+inner for 1 outer observed). **An availability postfix must be agent-gated to
+`PlayerInteractionAgent` for COST as well as correctness.**
+
+**Crafting-menu requirement rows — the `have/need` UI (confirmed in-game 2026-07-20,
+CraftFromStorageMod v0.4.x–v0.5.1):**
+- The row is `SSSGame.UI.ItemThumbnailPanel`; its number is the TMP at
+  `.../MaterialsDiv/MaterialsList/ItemThumbnailMaterial_Medium/Fitter/Quantity`, reachable as the
+  panel's `count` field. `availability` is **always null** and `checkAvailability` **always False**
+  on requirement rows — neither identifies one.
+- **⚠️ A postfix on `ItemThumbnailPanel._UpdateAvailablility()` /
+  `._UpdateAvailabilityStatus()` CANNOT see the row's real text.** Both fire (not AOT-inlined), but
+  at that moment the label still reads the literal prefab placeholder `"99"` on every row; the real
+  `0/2` is written later by other code. **Use a polling MonoBehaviour** (the DayTracker/RegenTracker
+  idiom), not a patch — this is a timing problem, so no choice of field name can fix it.
+- **The details/preview panel's transform subtree CONTAINS the material rows** (`Quantity` observed
+  at depth 5 from it). A subtree walk started there resolves ANOTHER row's label — so stop
+  descending at any node owning its own `ItemThumbnailPanel`, and cap the walk depth.
+- **Matching a bare `\d+/\d+` anywhere in a label also hits `"Durability 100/100"`.** Require the
+  whole rich-text-stripped string to be the pair.
+- **A poller that re-reads text it wrote compounds it** (`0/2` → `20/2` → `40/2` …). Record the
+  exact string written per label, skip byte-identical text, and recompute only when the game has
+  overwritten it.
+- Vanilla's displayed `have` already includes the active station's own storage, so any
+  settlement-wide total must net the station's quantity out or every row inflates.
+- Observed UI latency with a 0.2 s poll tick: ~100–200 ms after selecting a recipe.
 
 **Agent-side and station-side inventory accessors (Cecil 2026-07-20):**
 - **`IInteractionAgent.GetInventory() : ItemCollection`** — the agent's own collection; the one the
@@ -1216,62 +1258,39 @@ or a Cpp2IL body dump.
   `ItemContainerComponent.container : ItemContainer` + `.inventoryComponent`.
 
 **Settlement storage census ground truth (confirmed in-game 2026-07-20, CraftFromStorageMod
-v0.1.2, a mature ~417-structure settlement):** `GetStructures()` = **417 structures**; a
-first-`ItemContainerComponent`-per-structure walk found **141 containers holding 13,630 items**
-(a LOWER BOUND — see limitation 1). Container types by frequency: `Storage_MediumItems_L1` (28),
-`Storage_WarehouseStorage_WoodMedium` (17), `StorageSupply` (13), `Storage_LargeItems_L1` (10),
-`Storage_SmallItems_L1` (9), `Storage_Barbecue_Small` (9), then a long tail of
-`Storage_WarehouseStorage_*` (CookedFood/BeamPlank/LeatherScraps/Clothes),
-`Storage_SmallItems_{Ore,Seeds,Outhouse,FoodShelf1,FoodTrough,SmallCraftingMaterials,WarehouseCoal}`,
-`Storage_MediumItems_{Arrows,Karvi}`. Biggest holders: Seed Storage (3000, 2918), Farm (1273),
-Smolkr Pen (505), Gatherer (500), Raw Food Silo (440/203/197), Coal Storage (300×2).
-**Two limitations of the naive walk, both proven by this run — any storage-wide mod must handle
-them:**
-1. **One container per structure is NOT enough.** The walk takes the FIRST
-   `ItemContainerComponent` in hierarchy order, and for crafting stations that is a decorative or
-   character slot, not the station's real input storage: Workshop House 2 / Improved Metalworker /
-   Workshop House 5 reported `CharacterFlask` (capacity=1), Improved Armorsmith 2 reported
-   `CharacterBuilder` (capacity=9999, 0 items), and Improved Carpenter / Carpenter / Workshop
-   Hut 6 / Boatbuilder reported an unresolved `?` type. Enumerate ALL containers per structure,
-   or reach station stock via `Workstation.GetInventory()` instead.
-2. **The walk picks up containers that are NOT settlement storage and must never be drained:**
-   `CharacterFlask`, `CharacterBuilder`, `ArmorRackHead` (Armor Rack), `Storage_Core` (The Eye of
-   Odin), `Storage_DecorationsTop` (Yule Tree). Filter by container type / owner, never "any
-   container on any structure". `Storage_SmallItems_Outhouse` (3) also appears — that is
-   OuthouseComposterMod's input pool and must stay excluded.
+v0.2.0 census v2, a mature ~417-structure settlement):** `GetStructures()` = **417 structures**;
+all containers enumerated: **651 containers holding 44,670 items** across **71 workstations**.
+`GetItemsNeededFromSettlement()` returns real counts (0–3 observed across Farm / Hunter's House /
+Bloomery / Cooking House / Guard Tower) and is a live lever. Some stations report
+`inventoryTotal=?` (Guard Tower / DefensiveStation) — that accessor returns null there.
+**Type-based blacklist rule (instead of the structural EquipPoint probe that yielded 0 hits):**
+skip containers reachable from an `EquipmentManager` (via `equipPoints : List<EquipPoint>` →
+`.ItemContainer`), and skip hard-coded never-drain types: `CharacterFlask`, `CharacterBuilder`
+(crafting-interaction's own container, not equipment), `ArmorRack*` family, `Storage_Core` (Eye
+of Odin), `Storage_DecorationsTop` (Yule Tree), `Storage_SmallItems_Outhouse` (OuthouseComposterMod
+input pool). A name-based list built from one settlement would silently drain armor racks in worlds
+with buildings never seen before; always use type-name + structural checks.
 
-**Equipment-slot containers are a first-class mechanism — prefer a STRUCTURAL exclusion rule over
-a name blacklist** (Cecil 2026-07-20). `SandSailorStudio.Inventory.EquipPoint` owns an
-`ItemContainer` and carries its own `containerType : ItemContainerType`:
-```
-EquipPoint  .name/.id  .handle : Transform  .containerType : ItemContainerType
-            ._item : EquipmentItem  ._itemContainer / .ItemContainer : ItemContainer
-            ._equipmentManager : EquipmentManager  .subHandles/.ids  .OnItemAttatched
-```
-So "a container that holds an item the way a character equips it" is a real game mechanism, and
-the odd census container types are its `ItemContainerType` **assets** (no C# type named
-`CharacterFlask`/`ArmorRackHead`/`CharacterBuilder` exists — consistent with asset names).
-`ArmorRackHead` on 'Armor Rack' and `CharacterFlask` (both capacity=1) fit an equip slot exactly.
-**Design consequence:** a storage-wide mod should skip containers reachable from an
-`EquipPoint`/`EquipmentManager` rather than matching a hardcoded type-name list — a name blacklist
-only knows the container types of the settlement it was built from and would silently drain armor
-racks in a world with buildings the author never saw. (Related UI-side types:
-`SSSGame.EquipmentDisplaySlot : ItemDisplaySlot`, `SSSGame.EquipmentStackSlot :
-CategoryStackSlot`.)
-**How to reach them:** `EquipPoint` is **not** a MonoBehaviour (base `Il2CppSystem.Object`), so
-`GetComponent<EquipPoint>()` is impossible. Go through `EquipmentManager` (which IS a
+**Equipment-slot containers are a first-class mechanism** (Cecil 2026-07-20).
+`SandSailorStudio.Inventory.EquipPoint` owns an `ItemContainer` and carries its own
+`containerType : ItemContainerType`. The odd census container types (`ArmorRackHead`,
+`CharacterFlask`) are `ItemContainerType` **assets** (no C# type with those names exists — the
+asset names are their only identity). `ArmorRackHead` on 'Armor Rack' and `CharacterFlask` (both
+capacity=1) fit an equip slot exactly. `CharacterBuilder` (capacity=9999, sits on the
+`CraftInteraction` node, one per crafting building) is the crafting interaction's own container,
+not equipment. **Dead-end: the EquipPoint structural probe (walking ancestors for an
+`EquipmentManager` and pointer-matching `equipPoints[i].ItemContainer`) tagged 0 of 651 containers
+in census v2.** Armor-rack containers are not reachable via that path. **Solution: use a
+TYPE-NAME blacklist instead.** Skip hard-coded never-drain types: `CharacterFlask`,
+`CharacterBuilder`, `ArmorRack*` family, `Storage_Core` (Eye of Odin), `Storage_DecorationsTop`
+(Yule Tree), `Storage_SmallItems_Outhouse` (OuthouseComposterMod's input pool). A name-based list
+built from one settlement would silently drain armor racks in worlds with buildings never seen
+before, so this list must be project-permanent — it covers all buildings across all worlds at load
+time. ⚠️ `EquipPoint` is NOT a MonoBehaviour (base `Il2CppSystem.Object`), so if a future need
+arises to reach equipment via the structural path, go through `EquipmentManager` (which IS a
 MonoBehaviour) → `equipPoints : List<EquipPoint>` → `equipPoint.ItemContainer` / `.containerType`.
-`EquipmentManager` also carries `geometryRoot`, `noHiddenContainers`, `OnItemEquipped/Unquipped`.
-⚠️ **Open (user theory, unconfirmed 2026-07-20):** that `CharacterBuilder` — seen on 'Improved
-Armorsmith 2' — is the **mannequin/display stand** at the armorer/weaver, holding armor the way a
-character equips it. The EquipPoint mechanism above makes this plausible, but its reported
-**capacity=9999 does not fit a single equip slot** (every confirmed one is capacity=1), so it may
-instead be an `EquipmentManager`-level aggregate or something else. Cecil cannot settle it (the
-name is an asset reference). **To confirm:** log, per container, the GameObject node name it was
-found on plus whether an `EquipPoint`/`EquipmentManager` sits on or above that node.
-(Structure display names repeat across distinct structures — 141 container lines resolved to only
-91 distinct owner names, e.g. four separate 'Warehouse Extension' buildings — so **never key
-storage state by display name**; key by world position, per the project-wide rule.)
+(Structure display names repeat across distinct structures — so **never key storage state by
+display name**; key by world position, per the project-wide rule.)
 
 **⚠️ DEAD-END (confirmed in-game 2026-07-20): `Settlement.QuerySettlementResources()` HANGS the
 game.** Called once from a mod (F12 hotkey, ~200-structure settlement), it froze the main thread:
