@@ -137,6 +137,15 @@ learnings into this project's own docs (`docs/architecture.md`, `docs/mods/*.md`
 `*_HANDOFF.md`) per this project's own doc rules, then clear it once absorbed or the task is done.
 Don't create it speculatively — only once there's real in-progress work worth protecting.
 
+**The handoff MUST open with a `## GOAL GROUNDING` section** (exact heading) naming the active mod
+and quoting its **GOAL** verbatim from that mod's `docs/mods/*.md`, followed by the instruction to
+check every next-step below against it. A handoff's next-steps list is specific, recent and shaped
+like a work order, so it drives the session; the goal lives in a different file and loses. Putting
+them in the same section is what forces the reconciliation. Established 2026-07-21 after a session
+acted on the next-steps list without checking it against the goal and spent a Cecil pass, a full
+diagnostic spike and a play session confirming day-one vanilla behavior. **Restate the goal at the
+top every time the handoff is rewritten** — a handoff without it is incomplete.
+
 **Opted in to cross-machine WIP sync** (see `~/.claude/CLAUDE.md` → Session Handoff Continuity —
 this exact phrase is the marker the `handoff-sync.ps1` hook greps for). On every `SESSION_HANDOFF.md`
 update here, the PostToolUse hook automatically snapshots this repo's uncommitted changes (tracked +
@@ -282,14 +291,19 @@ askamods/
                                 DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
                                 Nexus — docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.5.1 — Phase 1
-                                (PLAYER half) feature-complete, all three halves confirmed in-game
-                                2026-07-20: remote-storage pull + fail-closed verify + sweep-back,
-                                zero-pull abort with on-screen message, and settlement-wide
-                                requirement counts via a 0.2 s UI poller. Host/solo only
-                                (IsHostOrSolo gates); MULTIPLAYER-CLIENT support requested.
-                                Phase 2 (VILLAGER half) is core scope and NOT started — trigger
-                                point unresolved. Not on Nexus; diagnostics still default true —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.8.0 — Phase 1
+                                (PLAYER half) feature-complete, confirmed in-game 2026-07-20:
+                                remote-storage pull + fail-closed verify + sweep-back, zero-pull
+                                abort with on-screen message, and settlement-wide requirement
+                                counts via a 0.2 s UI poller. Host/solo only (IsHostOrSolo gates);
+                                MULTIPLAYER-CLIENT support requested. Phase 2 (VILLAGER half) IN
+                                PROGRESS — goal is deleting the supply WALK, not widening reach.
+                                v0.6.0 read-only fetch spike (the DIRECT/TOURED success metric);
+                                v0.7.0/v0.7.1 villager branch on all four Phase 1 points —
+                                confirmed in-game 2026-07-21 to be INSUFFICIENT alone (the craft
+                                gate does not schedule the fetch quest); v0.8.0 suppresses the
+                                fetch quest itself, ⚠️ not yet run in-game. Not on Nexus;
+                                diagnostics still default true —
                                 docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
 ```
 

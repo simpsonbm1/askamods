@@ -22,6 +22,13 @@ full detail is under [IL2CPP interop gotchas](#il2cpp-interop-gotchas-universal)
 These apply regardless of subsystem — they're properties of the BepInEx 6 / Il2CppInterop layer, not
 of any one mod. Condensed copy lives in `CLAUDE.md`.
 
+- **Cecil reads the interop SURFACE only — there is no call graph to mine** (measured 2026-07-21,
+  `_explore/cecil_craft_from_storage7.ps1` PASS Z). Interop method bodies are native trampolines:
+  `SSSGame.Workstation` has 138 methods / 3153 IL instructions but only **2** calls to other game
+  types; `SSSGame.CraftInteraction` 57 / 1204 / **2**. So Cecil answers "what members exist, with
+  what signatures and modifiers" — never "who calls this" or "what does this do". Answering those
+  needs **Cpp2IL** (see [Native Crash Diagnosis](#native-crash-diagnosis-wer--cpp2il)) or a runtime
+  probe. Do not spend a pass building a Cecil caller scan for this game.
 - **`Il2CppSystem.Action(methodRef)` event subscriptions don't work** — the constructor only accepts
   an `IntPtr` in this interop version, so you cannot subscribe a managed lambda to game `Action`
   events (`_onNewDay`, `OnFullyHarvested`, `OnBehaviorTypeChanged`, `OnTakeDamage`, etc.). **Use a
@@ -1197,10 +1204,19 @@ trace, workshop crafting table, solo host).
   station's went to 0, the player's was untouched).
 - **Player craft:** ingredients come from wherever they are; the output item always goes to the
   player's agent inventory. **Villager craft** (`VillagerCraftSession`, agent=`Villager`):
-  ingredients come from the station composite, output goes to the villager's own inventory —
-  in-game confirmation that vanilla villager crafters are limited to their own station's storage.
+  ingredients are consumed from the station composite, output goes to the villager's own
+  inventory.
+- **⚠️ "Limited to its own station's storage" describes the CONSUMPTION POOL, not REACH.** A
+  villager crafter reaches settlement-wide storage perfectly well in vanilla — it just does so by
+  **walking**: the fetch quest hauls materials from warehouses, gathering stations and other
+  workshops into the station bin, and only then does the craft consume from that bin. Measured
+  in-game 2026-07-21: villagers probe 144–149 distinct containers per fetch cycle across ~16
+  building types, and a supply round trip costs **9.6–120 s**. Never read this line as "villagers
+  cannot access settlement storage" — the cost is the WALK, not the reach.
 - **Consequence:** vanilla ALREADY supports crafting from a container — the station you are
-  standing at. A "craft from any storage" mod is a **reach extension**, not a new mechanism.
+  standing at. A "craft from any storage" mod is a **reach extension** for the player and a
+  **trip eliminator** for villagers; in both cases it is the same mechanism (put materials where
+  vanilla already looks, just in time), not a new one.
 - **`Workstation.GetInventory()` is a COMPOSITE** over ALL of a structure's containers, not one
   container. Arithmetic proof on Improved Armorsmith 2: station `inventoryTotal=11` ==
   `StorageSmallItemsInput` 3 items + eight ArmorRack pieces at 1 item each.

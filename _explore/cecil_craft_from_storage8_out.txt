@@ -1,0 +1,419 @@
+﻿==================================================================
+PASS AA: the three state-transition markers the spike traces
+==================================================================
+
+---- SSSGame.AI.FSM.FSM_UseCraftingStation (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: c_MaxMoveWaitTime : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_ReturnCraftingSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldItemMaxDecomposition : Int32
+  P: worldSearchRadius : Single
+  P: searchMarkers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchSuppliesData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchSuppliesData actionData, StorageInteraction storageIntr) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS BB: FSM_QuestAction base + vStateAction (what __instance gives us)
+==================================================================
+
+---- SSSGame.AI.FSM.FSM_QuestAction (base: SSSGame.AI.FSM.vStateAction) ----
+  P: categoryName : String
+  M: Void .cctor() [static,priv]
+  M: QuestRunner GetQuestRunner(IFSMBehaviourController fsmBehaviour) [pub]
+  M: Quest GetQuest(IFSMBehaviourController fsmBehaviour) [pub]
+  M: QuestData GetQuestData(IFSMBehaviourController fsmBehaviour) [pub]
+  M: Void GetDebugInfo(StringBuilder stringBuilder) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.vStateAction (base: UnityEngine.ScriptableObject) ----
+  P: parentFSM : vFSMBehaviour
+  P: categoryName : String
+  P: defaultName : String
+  P: requiredType : Type
+  M: Void .cctor() [static,priv]
+  M: Boolean IsBusy(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS CC: IFSMBehaviourController - the OnStateEnter param (villager route?)
+==================================================================
+
+---- SSSGame.AI.FSM.IFSMBehaviourController (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: transform : Transform
+  P: gameObject : GameObject
+  P: IsStopped : Boolean
+  P: DebugMode : Boolean
+  P: CurrentStateTime : Single
+  P: DebugList : List`1
+  P: AiController : IControlAI
+  P: AiTargeting : ITargetAI
+  P: Behaviour : vFSMBehaviour
+  P: AnyState : vFSMState
+  P: LastState : vFSMState
+  P: CurrentState : vFSMState
+  P: IndexOfCurrentState : Int32
+  P: NameOfCurrentState : String
+  P: DeltaTime : Single
+  P: BehaviourTime : Single
+  M: Void .cctor() [static,priv]
+  M: Void ChangeState(vFSMState state) [virt,pub]
+  M: Void ChangeBehaviour(vFSMBehaviour behaviour, String entryState) [virt,pub]
+  M: Void StartFSM() [virt,pub]
+  M: Void StopFSM() [virt,pub]
+  M: Void SetData(FSMData fsmData, String& name) [virt,pub]
+  M: Void SetData(FSMData fsmData, Int32& id) [virt,pub]
+  M: Boolean TryGetData(String& name, T& fsmData) [virt,pub]
+  M: Boolean TryGetData(Int32& id, T& fsmData) [virt,pub]
+  M: Void SendDebug(String message, Object sender) [virt,pub]
+  M: Void ResetFSM() [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+  (found as SSSGame.AI.FSM.IFSMBehaviourController)
+  (found as SSSGame.AI.FSM.vFSMBehaviour)
+
+---- SSSGame.AI.FSM.vFSMBehaviour (base: UnityEngine.ScriptableObject) ----
+  P: selectedNode : vFSMState
+  P: wantConnection : Boolean
+  P: transitionPreview : TransitionPreview
+  P: connectionNode : vFSMState
+  P: showProperties : Boolean
+  P: states : List`1
+  P: panOffset : Vector2
+  P: overNode : Boolean
+  P: graphName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnEnable() [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS DD: ANY member returning a Villager on FSM / quest / questdata types
+==================================================================
+  SSSGame.BloomstationAnvilQuest :: Villager get_Anviller() [pub]
+  SSSGame.BloomstationAnvilQuest :: Villager get__Anviller_k__BackingField() [pub]
+  SSSGame.BloomstationAnvilQuest :: P: _Anviller_k__BackingField : Villager
+  SSSGame.BloomstationAnvilQuest :: P: Anviller : Villager
+  SSSGame.BloomstationBellowsQuest :: Villager get_Bellower() [pub]
+  SSSGame.BloomstationBellowsQuest :: Villager get__Bellower_k__BackingField() [pub]
+  SSSGame.BloomstationBellowsQuest :: P: _Bellower_k__BackingField : Villager
+  SSSGame.BloomstationBellowsQuest :: P: Bellower : Villager
+  SSSGame.KilnkeeperQuest :: Villager get_Kilnkeeper() [pub]
+  SSSGame.KilnkeeperQuest :: Villager get__Kilnkeeper_k__BackingField() [pub]
+  SSSGame.KilnkeeperQuest :: P: _Kilnkeeper_k__BackingField : Villager
+  SSSGame.KilnkeeperQuest :: P: Kilnkeeper : Villager
+  SSSGame.CookingFirekeeperQuest :: Villager get_DedicatedFirekeeper() [pub]
+  SSSGame.CookingFirekeeperQuest :: Villager get__DedicatedFirekeeper_k__BackingField() [pub]
+  SSSGame.CookingFirekeeperQuest :: P: _DedicatedFirekeeper_k__BackingField : Villager
+  SSSGame.CookingFirekeeperQuest :: P: DedicatedFirekeeper : Villager
+  SSSGame.ICookingFetchQuestData :: Villager GetVillager() [virt,pub]
+  SSSGame.HealerHealingQuest :: Villager get_DesignatedHealer() [pub]
+  SSSGame.HealerHealingQuest :: Villager get__DesignatedHealer_k__BackingField() [pub]
+  SSSGame.HealerHealingQuest :: P: _DesignatedHealer_k__BackingField : Villager
+  SSSGame.HealerHealingQuest :: P: DesignatedHealer : Villager
+  SSSGame.HealerFirekeepQuest :: Villager get_Firekeeper() [pub]
+  SSSGame.HealerFirekeepQuest :: Villager get__Firekeeper_k__BackingField() [pub]
+  SSSGame.HealerFirekeepQuest :: P: _Firekeeper_k__BackingField : Villager
+  SSSGame.HealerFirekeepQuest :: P: Firekeeper : Villager
+  SSSGame.UI.WorkstationMenu/__c__DisplayClass198_0 :: Villager get_obj() [pub]
+  SSSGame.UI.WorkstationMenu/__c__DisplayClass198_0 :: P: obj : Villager
+  SSSGame.AI.QuestEventData :: Villager get_villager() [pub]
+  SSSGame.AI.QuestEventData :: P: villager : Villager
+  SSSGame.AI.CallToArmsQuest/CallToArmsQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.CallToArmsQuest/CallToArmsQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.CallToArmsQuest/CallToArmsQuestData :: P: _villager : Villager
+  SSSGame.AI.CombatQuest/CombatQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.CombatQuest/CombatQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.CombatQuest/CombatQuestData :: P: _villager : Villager
+  SSSGame.AI.AvoidImminentDangerQuest/AvoidImminentDangerQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.AvoidImminentDangerQuest/AvoidImminentDangerQuestData :: P: _villager : Villager
+  SSSGame.AI.ComplainQuest/ComplainQuestData :: Villager get_villager() [pub]
+  SSSGame.AI.ComplainQuest/ComplainQuestData :: P: villager : Villager
+  SSSGame.AI.DressUpQuest :: Villager get__villager() [pub]
+  SSSGame.AI.DressUpQuest :: P: _villager : Villager
+  SSSGame.AI.DressUpQuest/DressUpQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.HomesteadQuest/HomesteadQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.HomesteadQuest/HomesteadQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.HomesteadQuest/HomesteadQuestData :: P: _villager : Villager
+  SSSGame.AI.PaintEquipmentQuest :: Villager get__villager() [pub]
+  SSSGame.AI.PaintEquipmentQuest :: P: _villager : Villager
+  SSSGame.AI.PaintEquipmentQuest/PaintEquipmentQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.PartyInteractQuest/PartyInteractQuestData :: Villager get_villager() [pub]
+  SSSGame.AI.PartyInteractQuest/PartyInteractQuestData :: P: villager : Villager
+  SSSGame.AI.SleepAtHomeQuest/SleepAtHomeQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.SleepAtHomeQuest/SleepAtHomeQuestData :: P: _villager : Villager
+  SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.VillagerSocialQuest/VillagerSocialQuestData :: Villager GetVillager() [pub]
+  SSSGame.AI.VillagerSocialQuest/VillagerSocialQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.VillagerSocialQuest/VillagerSocialQuestData :: P: _villager : Villager
+  SSSGame.AI.TradeRouteQuest :: Villager get_deliveyVillager() [pub]
+  SSSGame.AI.TradeRouteQuest :: P: deliveyVillager : Villager
+  SSSGame.AI.WorkstationQuest/WorkstationQuestData :: Villager GetVillager() [virt,pub]
+  SSSGame.AI.WorkstationQuest/WorkstationQuestData :: Villager get__villager() [pub]
+  SSSGame.AI.WorkstationQuest/WorkstationQuestData :: P: _villager : Villager
+  SSSGame.AI.FSM.FSM_GoToBedAndSleep/SleepData :: Villager get_villager() [pub]
+  SSSGame.AI.FSM.FSM_GoToBedAndSleep/SleepData :: P: villager : Villager
+  SSSGame.AI.FSM.FSM_Training/TrainingData :: Villager get_villager() [pub]
+  SSSGame.AI.FSM.FSM_Training/TrainingData :: P: villager : Villager
+  SSSGame.AI.FSM.FSM_ShipAimAndShoot/ActionData :: Villager get_agent() [pub]
+  SSSGame.AI.FSM.FSM_ShipAimAndShoot/ActionData :: P: agent : Villager
+  SSSGame.AI.FSM.FSM_CleanupInventory/CleanupInventoryData :: Villager get_agent() [pub]
+  SSSGame.AI.FSM.FSM_CleanupInventory/CleanupInventoryData :: P: agent : Villager
+
+==================================================================
+PASS EE: IResourceStorageSite - how to NAME a probed storage in the log
+==================================================================
+
+---- SSSGame.IResourceStorageSite (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: IsMobile : Boolean
+  M: Void .cctor() [static,priv]
+  M: Transform GetTransform() [virt,pub]
+  M: StorageInteraction FindStorageInteraction(Func`2 predicate) [virt,pub]
+  M: ItemManifest GetItemManifest() [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+  (found as SSSGame.IResourceStorageSite)
+
+==================================================================
+PASS FF: CraftingStation - project/quest creation surface (the test trigger)
+==================================================================
+  (base: SSSGame.Workstation)
+  P: _GlobalInventoryManifest_k__BackingField : ItemManifest
+  P: _FetchPromiseManifest_k__BackingField : ItemManifest
+  P: _FetchRequirementManifest_k__BackingField : ItemManifest
+  P: _CraftRquirementManifest_k__BackingField : ItemManifest
+  P: _CraftPromiseManifest_k__BackingField : ItemManifest
+  P: _FullCraftingManifest_k__BackingField : ItemManifest
+  P: _StudyManifest_k__BackingField : ItemManifest
+  P: _StudyDecompositionManifest_k__BackingField : ItemManifest
+  P: _Structure_k__BackingField : Structure
+  P: _WhitelistNewVillagers_k__BackingField : Boolean
+  P: OnWhitelistDataReceived : Action
+  P: craftingProjects : List`1
+  P: studyProjects : List`1
+  P: CraftingType : CraftingStationType
+  P: idleCrafterBehaviour : vFSMBehaviour
+  P: complainBehaviour : vFSMBehaviour
+  P: fetchBehaviour : vFSMBehaviour
+  P: craftBehaviour : vFSMBehaviour
+  P: returnBehaviour : vFSMBehaviour
+  P: findToolsBehaviour : vFSMBehaviour
+  P: cleanupInventoryBehaviour : vFSMBehaviour
+  P: studyBehaviour : vFSMBehaviour
+  P: blueprintInventory : InventoryComponent
+  P: stationInventory : InventoryComponent
+  P: shouldSendFetchTargetChangedEvent : Boolean
+  P: _craftingTables : List`1
+  P: _storageSupplies : List`1
+  P: _studyInteractions : List`1
+  P: _storageWrappers : Dictionary`2
+  P: _storagesRegisteredToSettlement : Boolean
+  P: _anvils : List`1
+  P: _curingOutlets : List`1
+  P: _globalFetchQuest : CrafterFetchQuest
+  P: _resultsQuest : CrafterResultsQuest
+  P: _complainQuest : CrafterComplainQuest
+  P: _idleQuest : WorkstationIdleQuest
+  P: _findToolsQuest : FindHarvestingToolsQuest
+  P: _cleanupInventoryQuest : CleanupInventoryQuest
+  P: _deserialized : Boolean
+  P: _intEventData : IntEventData
+  P: _itmManEventData : QuestEventData`1
+  P: _registeredToTaskManager : Boolean
+  P: _dirtyMinimumFetchManifest : Boolean
+  P: _dirtySurplusManifest : Boolean
+  P: _minimumFetchManifest : ItemManifest
+  P: _surplusManifest : ItemManifest
+  P: _knownBlueprints : Dictionary`2
+  P: _outsourcedQuests : Dictionary`2
+  P: _outsourcedBlueprints : Dictionary`2
+  P: s_itemList : List`1
+  P: s_itemManifest : ItemManifest
+  P: _villagersWhitelist : HashSet`1
+  P: _whitelistAllVillagers : Boolean
+  P: _whitelistDataReceived : Boolean
+  P: s_outpostIdEvData : SettlementEventData`1
+  P: _session : NetworkSession
+  P: c_taskDataArray : String
+  P: c_taskDataItem : String
+  P: c_taskDataCount : String
+  P: c_taskDataPriority : String
+  P: c_taskDataVillagers : String
+  P: c_taskDataDye : String
+  P: c_taskDataDyeIdx : String
+  P: c_taskRefurbish : String
+  P: c_whitelistAll : String
+  P: c_whitelistedVillagers : String
+  P: field_CompilerControlled_Static_Changed_1_CraftingStation_0 : Changed`1
+  P: field_CompilerControlled_Static_ChangedDelegate_1_CraftingStation_0 : ChangedDelegate`1
+  P: field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_CraftingStation_0 : NetworkBehaviourCallbacks`1
+  P: GlobalInventoryManifest : ItemManifest
+  P: FetchPromiseManifest : ItemManifest
+  P: FetchRequirementManifest : ItemManifest
+  P: CraftRquirementManifest : ItemManifest
+  P: CraftPromiseManifest : ItemManifest
+  P: FullCraftingManifest : ItemManifest
+  P: StudyManifest : ItemManifest
+  P: StudyDecompositionManifest : ItemManifest
+  P: IsMobile : Boolean
+  P: Structure : Structure
+  P: WhitelistNewVillagers : Boolean
+  P: WhitelistedAllVillagers : Boolean
+  P: WhitelistDataReceived : Boolean
+  P: ShowWhitelistedVillagers : Boolean
+  M: Void .cctor() [static,priv]
+  M: Void Awake() [virt,pub]
+  M: Void _OnChildStructureRemoved(Structure obj) [pub]
+  M: Void Start() [virt,pub]
+  M: String GetName() [virt,pub]
+  M: Void Despawned(NetworkRunner runner, Boolean hasState) [virt,pub]
+  M: Void AddTaskData(WorkstationTaskData data) [virt,pub]
+  M: Void RemoveTaskData(WorkstationTaskData data) [virt,pub]
+  M: Boolean CheckForDuplicateTaskData(WorkstationTaskData newData) [virt,pub]
+  M: Boolean SetTaskAgent(ITaskAgent agent) [virt,pub]
+  M: Boolean ReleaseTaskAgent(ITaskAgent agent) [virt,pub]
+  M: StorageSupply FindStorage(Predicate`1 predicate) [pub]
+  M: StorageInteraction FindInternalStorage(IItemFilter itemFilter) [pub]
+  M: Transform GetTransform() [virt,pub]
+  M: ItemManifest GetItemManifest() [virt,pub]
+  M: StorageInteraction FindStorageInteraction(Func`2 predicate) [virt,pub]
+  M: Void SetDirtyMinimumFetchManifest() [pub]
+  M: Void SetDirtyFetchReqManifest() [pub]
+  M: ItemManifest GetSurplusManifest() [pub]
+  M: ItemManifest GetMinimumFetchManifest() [pub]
+  M: CuringOutlet FindCuringOutlet(Predicate`1 predicate) [pub]
+  M: Boolean HasCuringOutletWithThisRecipe(CookingRecipeInfo cri) [pub]
+  M: Boolean GetFetchDepth(ItemInfo itemInfo, Int32& minDepth) [pub]
+  M: Boolean GetPersonalFetchDepth(Villager villager, ItemInfo itemInfo, Int32& minDepth, Int32& topPriority) [pub]
+  M: ItemCollection GetInventory() [virt,pub]
+  M: StudyInteraction FindStudyInteraction(Predicate`1 predicate) [pub]
+  M: CraftInteraction FindCraftingTable(Predicate`1 predicate) [pub]
+  M: Void PopulateStudyInteractionsList(List`1 studyInteractions) [pub]
+  M: Void SetCraftingTargetDirty(Int32 bpId) [pub]
+  M: Void SetCraftPromiseDirty(ItemManifest itemManifest) [pub]
+  M: Boolean AddTaskDispatcher(ITaskDispatcher td) [virt,pub]
+  M: Void _OtherInventory_OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OtherInventory_OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Boolean KnowsBlueprintForItem(ItemInfo itemInfo, CraftBlueprint& blueprint) [pub]
+  M: Boolean IsDyeingAvailableForThisItem(ItemInfo itemInfo, DyeingBlueprintInfo& dyeingBlueprintInfo) [pub]
+  M: Void RemoveTaskDispatcher(ITaskDispatcher td) [virt,pub]
+  M: Void RemoveTaskDispatcherData(ITaskDispatcher td) [virt,pub]
+  M: Void _OnStructureActivated(Structure structure) [pub]
+  M: Void _OnStructureDeath(Structure obj) [pub]
+  M: Boolean _CanUpgradeDyeingProcess(DyeingBlueprintInfo oldDyeBpInfo, Int32 oldDyeIndex, DyeingBlueprintInfo newDyeBpInfo, Int32& newDyeIndex) [pub]
+  M: Void _RegisterStorage() [pub]
+  M: Void _UnregisterStorage() [pub]
+  M: Void _OnActiveRecipeAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnActiveRecipeRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnBpAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnBpRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _SendFetchTargetChangedEvent() [pub]
+  M: Void _OnStationEvent(Int32 arg1, IEventData arg2) [pub]
+  M: Boolean IsFuelNeededByVillager(ItemInfo itemInfo, Villager villager) [virt,pub]
+  M: Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager) [virt,pub]
+  M: Void RequestWhitelistData() [virt,pub]
+  M: Void SetWhitelistedVillager(Villager villager, Boolean& whitelist) [pub]
+  M: Boolean IsShownAsWhitelisted(Villager villager) [virt,pub]
+  M: Boolean IsWhitelisted(Villager villager) [virt,pub]
+  M: Void Rpc_ChangeWhitelistAllState(Boolean whitelistAll) [pub]
+  M: Void Rpc_ChangeWhitelistedVillager(Int32 id, Boolean state) [pub]
+  M: Void Rpc_RequestWhitelistData(PlayerRef player) [pub]
+  M: Void Rpc_ReceiveWhitelistData(PlayerRef target, Il2CppStructArray`1 bytes) [pub]
+  M: Boolean DeserializeTaskData(DataObject source) [virt,pub]
+  M: DataObject SerializeTaskData(DataObject destination) [virt,pub]
+  M: Boolean Deserialize(DataObject source) [virt,pub]
+  M: DataObject Serialize(DataObject destination) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void SSSGame_IWhitelistingSite_SetWhitelistedVillager(Villager villager, Boolean& whitelist) [virt,pub]
+  M: Void _Rpc_RequestWhitelistData_b__157_0(BinaryWriter writer) [pub]
+  M: Void _Rpc_ReceiveWhitelistData_b__158_0(BinaryReader reader) [pub]
+  M: Void CopyBackingFieldsToState(Boolean ) [virt,pub]
+  M: Void CopyStateToBackingFields() [virt,pub]
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) [static,pub]
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) [static,pub]
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message) [static,pub]
+  M: Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message) [static,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS GG: CraftingProject / CraftingQuest surface
+==================================================================
+  [NOT FOUND] SSSGame.CraftingProject
+
+---- SSSGame.CraftingQuest (base: SSSGame.AI.WorkstationQuest) ----
+  P: _NeededToolFilter_k__BackingField : TieredCategoryFilter
+  P: behaviour : vFSMBehaviour
+  P: craftingStation : CraftingStation
+  P: depth : Int32
+  P: priority : Int32
+  P: craftQuota : ItemInfoQuantity
+  P: parentQuest : CraftingQuest
+  P: _topLevelTotalParts : ItemManifest
+  P: _partsManifest : ItemManifest
+  P: _blueprint : Blueprint
+  P: _subQuests : List`1
+  P: _suppManifest : ItemManifest
+  P: _partsManifestsAdded : Int32
+  P: _refurbishOption : Boolean
+  P: s_subQuests : List`1
+  P: BlueprintInfo : BlueprintInfo
+  P: Blueprint : Blueprint
+  P: TotalPartsManifest : ItemManifest
+  P: TopLevelTotalPartsManifest : ItemManifest
+  P: NeededToolFilter : TieredCategoryFilter
+  P: PartsManifestsNeededToFetch : Int32
+  P: RefurbishOption : Boolean
+  P: Priority : Int32
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(CraftingStation craftingStation) [pub]
+  M: Void .ctor(CraftingStation craftingStation, ItemInfoQuantity craftQuota, vFSMBehaviour fsmBehaviour, Int32 priority, Int32 depth, CraftingQuest parentCraftingQuest) [pub]
+  M: Void _CreatePartsSubquests() [pub]
+  M: Boolean IsBlueprintRelevantToQuest(BlueprintInfo blueprintInfo) [pub]
+  M: vFSMBehaviour GetFSMBehavior(QuestData questData) [virt,pub]
+  M: Void SetDirty() [virt,pub]
+  M: Void OnStationEvent(Int32& evId, IEventData evData) [pub]
+  M: Boolean RefreshSuppliesManifests() [pub]
+  M: Void _AddPartsManifests() [pub]
+  M: Void RemovePartsManifest() [pub]
+  M: Void PopulateQuestsList(List`1 quests) [virt,pub]
+  M: Single GetResultImportance() [virt,pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: Boolean CanCraftAtWorkshop() [virt,pub]
+  M: QuestData CreateQuestData() [virt,pub]
+  M: Boolean TryGetFetchDepth(ItemInfo itemInfo, Int32& depth) [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+DONE

@@ -1,0 +1,690 @@
+﻿Loaded 37037 types.
+
+==================================================================
+PASS A: EVERY declaration of *FetchDepth* anywhere (the cheap lever)
+==================================================================
+  SSSGame.CraftingQuest :: Boolean TryGetFetchDepth(ItemInfo itemInfo, Int32& depth) [pub]
+  SSSGame.CraftingQuest :: F: NativeMethodInfoPtr_TryGetFetchDepth_Public_Boolean_ItemInfo_byref_Int32_0 : IntPtr
+  SSSGame.CraftingStation :: Boolean GetFetchDepth(ItemInfo itemInfo, Int32& minDepth) [pub]
+  SSSGame.CraftingStation :: Boolean GetPersonalFetchDepth(Villager villager, ItemInfo itemInfo, Int32& minDepth, Int32& topPriority) [pub]
+  SSSGame.CraftingStation :: F: NativeMethodInfoPtr_GetFetchDepth_Public_Boolean_ItemInfo_byref_Int32_0 : IntPtr
+  SSSGame.CraftingStation :: F: NativeMethodInfoPtr_GetPersonalFetchDepth_Public_Boolean_Villager_ItemInfo_byref_Int32_byref_Int32_0 : IntPtr
+
+==================================================================
+PASS B: any member matching fetch/haul REACH vocabulary (depth/range/radius/dist)
+==================================================================
+  SSSGame.CraftingQuest :: Boolean TryGetFetchDepth(ItemInfo itemInfo, Int32& depth) [pub]
+  SSSGame.CraftingQuest :: F: NativeMethodInfoPtr_TryGetFetchDepth_Public_Boolean_ItemInfo_byref_Int32_0 : IntPtr
+  SSSGame.CraftingStation :: Boolean GetFetchDepth(ItemInfo itemInfo, Int32& minDepth) [pub]
+  SSSGame.CraftingStation :: Boolean GetPersonalFetchDepth(Villager villager, ItemInfo itemInfo, Int32& minDepth, Int32& topPriority) [pub]
+  SSSGame.CraftingStation :: F: NativeMethodInfoPtr_GetFetchDepth_Public_Boolean_ItemInfo_byref_Int32_0 : IntPtr
+  SSSGame.CraftingStation :: F: NativeMethodInfoPtr_GetPersonalFetchDepth_Public_Boolean_Villager_ItemInfo_byref_Int32_byref_Int32_0 : IntPtr
+
+==================================================================
+PASS C: storage ACCESS / whitelist / permission surface (the other candidate)
+==================================================================
+  SSSGame.ContainerItem :: Boolean HasUseFunctionality() [virt,pub]
+
+==================================================================
+PASS D: CrafterFetchQuest full chain
+==================================================================
+
+---- SSSGame.ICookingFetchQuestData (base: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase) ----
+  P: RecipeInfo : CrockpotRecipeInfo
+  P: CookingStation : CookingStation
+  P: FetchData : FSMData
+  M: Void .cctor() [static,priv]
+  M: Villager GetVillager() [virt,pub]
+  M: Boolean IsWhitelistedByStorage(IResourceStorageSite rss) [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.StudyFetchQuest (base: SSSGame.CrafterFetchQuest) ----
+  P: studyProject : StudyProject
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(CraftingStation craftingStation, vFSMBehaviour fsmBehaviour, StudyProject studyProject) [pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.CrafterSpecificFetchQuest (base: SSSGame.CrafterFetchQuest) ----
+  P: craftingProject : CraftingProject
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(CraftingStation craftingStation, vFSMBehaviour fsmBehaviour, CraftingProject craftingProject) [pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.CrafterFetchQuest (base: SSSGame.AI.WorkstationQuest) ----
+  P: craftingStation : CraftingStation
+  P: _behaviour : vFSMBehaviour
+  P: _suppManifest : ItemManifest
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(CraftingStation craftingStation, vFSMBehaviour fsmBehaviour) [pub]
+  M: vFSMBehaviour GetFSMBehavior(QuestData questData) [virt,pub]
+  M: QuestData CreateQuestData() [virt,pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.CrafterFetchQuest/CrafterFetchQuestData (base: SSSGame.AI.WorkstationQuest/WorkstationQuestData) ----
+  P: fetchData : FSMData
+  P: returnData : FSMData
+  P: _cfQuest : CrafterFetchQuest
+  P: _qItmManEvData : QuestEventData`1
+  P: _qEvData : QuestEventData
+  P: _noStorageSpace : Boolean
+  P: _noPartsFound : Boolean
+  P: _noCarryCapacity : Boolean
+  P: Quest : CrafterFetchQuest
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(Quest quest) [pub]
+  M: Void Init(QuestRunner questRunner) [virt,pub]
+  M: Void _OnCraftingStationEvent(Int32 evId, IEventData evData) [pub]
+  M: Void Dispose() [virt,pub]
+  M: Void ComplainNoStorageSpace(Boolean value, ItemManifest itemManifest) [pub]
+  M: Void ComplainNoPartsFound(Boolean value, ItemManifest itemManifest) [pub]
+  M: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest) [pub]
+  M: Boolean IsWhitelistedByStorage(IResourceStorageSite rss) [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.KennelFetchQuest (base: SSSGame.AI.WorkstationQuest) ----
+  P: _globalPromiseFoodQuantity : Single
+  P: _behaviour : vFSMBehaviour
+  P: GlobalPromiseFoodQuantity : Single
+  P: Kennel : Kennel
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(Workstation workstation, vFSMBehaviour behaviour) [pub]
+  M: QuestData CreateQuestData() [virt,pub]
+  M: vFSMBehaviour GetFSMBehavior(QuestData questData) [virt,pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.KennelFetchQuest/KennelFetchQuestData (base: SSSGame.AI.WorkstationQuest/WorkstationQuestData) ----
+  P: _HasDogs_k__BackingField : Boolean
+  P: _HasStarvingDogs_k__BackingField : Boolean
+  P: _HasGrownDogs_k__BackingField : Boolean
+  P: _KennelFoodQuantity_k__BackingField : Single
+  P: _HasGiveawayFood_k__BackingField : Boolean
+  P: fetchData : FSMData
+  P: returnData : FSMData
+  P: _localPromiseFoodQuantity : Single
+  P: _noCarryCapacity : Boolean
+  P: _noTool : Boolean
+  P: _noResource : Boolean
+  P: _qEvData : QuestEventData
+  P: _qEvDataItemManif : QuestEventData`1
+  P: _qEvDataItmCat : QuestEventData`1
+  P: _petFoodModifierTable : Dictionary`2
+  P: _additionalPetFoodValues : Dictionary`2
+  P: _neededFoodAttr : Attribute
+  P: _popMan : PopulationManager
+  P: _giveawayFilter : FoodToGiveAwayFilter
+  P: s_itemsList : List`1
+  P: HurryUp : Boolean
+  P: IsWorking : Boolean
+  P: HasDogs : Boolean
+  P: HasStarvingDogs : Boolean
+  P: HasGrownDogs : Boolean
+  P: NeededFoodQuantity : Single
+  P: KennelFoodQuantity : Single
+  P: HasGiveawayFood : Boolean
+  P: LocalPromiseFoodQuantity : Single
+  P: Quest : KennelFetchQuest
+  M: Void .cctor() [static,priv]
+  M: Void .ctor(Quest quest) [pub]
+  M: Void Init(QuestRunner questRunner) [virt,pub]
+  M: Void Dispose() [virt,pub]
+  M: Void Start() [virt,pub]
+  M: Void ComplainNoCarryCapacity(Boolean noCarryCapacity, ItemManifest itemManifest) [pub]
+  M: Void ComplainNoTool(Boolean active, ItemCategoryInfo toolCategory, Int32 tier) [pub]
+  M: Void ComplainNoResource(Boolean active) [pub]
+  M: Single GetFoodValue(Item item) [pub]
+  M: Single GetAllInventoryFoodValueFromDecomposition(IItemFilter itemFilter) [pub]
+  M: Single GetFoodValueFromDecomposition(Item item) [pub]
+  M: Boolean IsWhitelistedByStorage(IResourceStorageSite rss) [virt,pub]
+  M: Void _OnHostPetRemoved(Pet pet) [pub]
+  M: Void _OnHostPetAdded(Pet pet) [pub]
+  M: Void _OnPopulationPetRemoved(Pet pet) [pub]
+  M: Void _OnPopulationPetAdded(Pet pet) [pub]
+  M: Void _CheckAnyGrownPet() [pub]
+  M: Boolean _PetPredicate(Pet pet) [pub]
+  M: Void _RefreshKennelFoodQuantity() [pub]
+  M: Boolean _InitFindPet(Pet pet) [pub]
+  M: Void _AddPetToCare(Pet pet) [pub]
+  M: Void _RemovePetFromCare(Pet pet) [pub]
+  M: Boolean _FindStarvingDog(Pet pet) [pub]
+  M: Boolean _FindAnyDog(Pet pet) [pub]
+  M: Void _OnNeededFoodChanged() [pub]
+  M: Void _OnFoodRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnFoodAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) [pub]
+  M: Void _OnKennelEvent(Int32 evId, IEventData evData) [pub]
+  M: Void _OnPetHungerChanged(Pet pet) [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FetchQuest (base: SSSGame.AI.Quest) ----
+  P: inventoryDropSites : List`1
+  P: questObjectives : List`1
+  M: Void .cctor() [static,priv]
+  M: Void .ctor() [pub]
+  M: Single GetPriority(QuestData questData) [virt,pub]
+  M: vFSMBehaviour GetFSMBehavior(QuestData questData) [virt,pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FetchQuest/FetchQuestObjective (base: Il2CppSystem.Object) ----
+  P: itemManifest : ItemManifest
+  P: priority : Int32
+  M: Void .cctor() [static,priv]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS E: FSM_Fetch* / crafting-supply FSM states
+==================================================================
+  TYPE: SSSGame.AI.FSM.FSM_FetchBloomerySupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchKilnSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchBuildingSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchPaintSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchRepairSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchCoalmakerCargo
+  TYPE: SSSGame.AI.FSM.FSM_FetchCoalmakerFuel
+  TYPE: SSSGame.AI.FSM.FSM_FetchCookingStockpile
+  TYPE: SSSGame.AI.FSM.FSM_FetchCookingSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchCrockpotSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchHomeStockpile
+  TYPE: SSSGame.AI.FSM.FSM_FetchKennelFood
+  TYPE: SSSGame.AI.FSM.FSM_TradeRouteFetch
+  TYPE: SSSGame.AI.FSM.FSM_CraftDyes
+  TYPE: SSSGame.AI.FSM.FSM_Fetch
+  TYPE: SSSGame.AI.FSM.FSM_FetchAnvilResults
+  TYPE: SSSGame.AI.FSM.FSM_FetchBoatCargo
+  TYPE: SSSGame.AI.FSM.FSM_FetchCraftingSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchCuringParts
+  TYPE: SSSGame.AI.FSM.FSM_FetchCuringResults
+  TYPE: SSSGame.AI.FSM.FSM_FetchDyeParts
+  TYPE: SSSGame.AI.FSM.FSM_FetchDyeingSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchExpeditionSupplies
+  TYPE: SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem
+  TYPE: SSSGame.AI.FSM.FSM_FetchSaplings
+  TYPE: SSSGame.AI.FSM.FSM_FetchTroughContents
+  TYPE: SSSGame.AI.FSM.FSM_FetchWaterForTrough
+  TYPE: SSSGame.AI.FSM.FSM_ReturnCraftingResults
+  TYPE: SSSGame.AI.FSM.FSM_ReturnCraftingSupplies
+  TYPE: SSSGame.AI.FSM.FSM_UseCraftingStation
+
+---- SSSGame.AI.FSM.FSM_FetchBloomerySupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchKilnSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchBuildingSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldItemMaxDecomposition : Int32
+  P: worldSearchRadius : Single
+  P: searchMarkers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchSuppliesData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchSuppliesData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchPaintSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldItemMaxDecomposition : Int32
+  P: worldSearchRadius : Single
+  P: searchMarkers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchSuppliesData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchSuppliesData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchRepairSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldItemMaxDecomposition : Int32
+  P: worldSearchRadius : Single
+  P: searchMarkers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchSuppliesData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchSuppliesData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldItemMaxDecomposition : Int32
+  P: worldSearchRadius : Single
+  P: searchMarkers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchSuppliesData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchSuppliesData actionData, StorageInteraction storageIntr) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCoalmakerCargo (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Boolean _EmptyStorageSupplyPredicate(StorageSupply storageSupply) [pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCoalmakerFuel (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCookingStockpile (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: maxFillerCountPerTransaction : Int32
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCookingSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: maxSearchDepth : Int32
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCrockpotSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: unfilteredTablesOnly : Boolean
+  P: maxSearchDepth : Int32
+  P: _missingItem : ItemInfo
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Boolean _MissingItemFilter(ItemContainer cont) [pub]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchHomeStockpile (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: personalItemsToDeposit : List`1
+  P: worldSearchRange : Single
+  P: storageSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchKennelFood (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: searchStorages : Boolean
+  P: storageSearchRange : Single
+  P: searchMarkers : Boolean
+  P: earlyCompleteDistanceForStarvingDogs : Single
+  P: maxDecompositionDepth : Int32
+  P: farDecompositionDistance : Single
+  P: ownedDecompositionBehaviour_Far : OwnedDecompositionBehaviour
+  P: ownedDecompositionBehaviour_Near : OwnedDecompositionBehaviour
+  P: foundItemDecompositionBehaviour_Far : FoundItemDecompositionBehaviour
+  P: foundItemDecompositionBehaviour_Near : FoundItemDecompositionBehaviour
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii, FoundItemDecompositionBehaviour foundItemDecompositionBehaviour) [pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_TradeRouteFetch (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: useFallbackWorldSearch : Boolean
+  P: worldSearchRange : Single
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_Fetch (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: fallbackWorldSearchRadius : Single
+  P: storageSearchRadius : Single
+  P: allowNoResourceComplaints : Boolean
+  P: allowStorageIsFullComplaints : Boolean
+  P: ignoreHiddenFromResourceGatherersProperty : Boolean
+  P: canFetchFromOtherWarehouses : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchAnvilResults (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchBoatCargo (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: allowResourceFinderComplaints : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCraftingSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: maxSearchDepth : Int32
+  P: worldSearchRange : Single
+  P: storageSearchRange : Single
+  P: searchWorld : Boolean
+  P: searchMarkers : Boolean
+  P: searchStorages : Boolean
+  P: searchWorldForCompletedObjects : Boolean
+  P: ignoreHiddenFromResourceGatherers : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCuringParts (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchStorages : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareStorageInteraction(FetchPartsData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchCuringResults (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchDyeParts (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldSearchRange : Single
+  P: searchWorld : Boolean
+  P: searchStorages : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchPartsData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchPartsData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _prepareGatherInteraction(FetchPartsData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchDyeingSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldSearchRange : Single
+  P: storageSearchRange : Single
+  P: searchWorld : Boolean
+  P: searchStorages : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchDyeData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchDyeData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchDyeData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchExpeditionSupplies (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: fallbackWorldSearchRadius : Single
+  P: storageSearchRadius : Single
+  P: allowResourceFinderComplaints : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem (base: SSSGame.AI.FSM.vStateAction) ----
+  P: resultName : String
+  P: worldSearchRange : Single
+  P: minItemCount : Int32
+  P: maxItemCount : Int32
+  P: category : ItemCategoryInfo
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchSaplings (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: searchWorld : Boolean
+  P: worldSearchRange : Single
+  P: holeInfo : ContainerInfo
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(ActionData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareFarmingInteraction(ActionData actionData, FarmCropInteraction farmCropInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchTroughContents (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+---- SSSGame.AI.FSM.FSM_FetchWaterForTrough (base: SSSGame.AI.FSM.FSM_QuestAction) ----
+  P: resultName : String
+  P: worldSearchRange : Single
+  P: storageSearchRange : Single
+  P: searchWorld : Boolean
+  P: searchStorages : Boolean
+  P: categoryName : String
+  P: defaultName : String
+  M: Void .cctor() [static,priv]
+  M: Void OnStateEnter(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateUpdate(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void OnStateExit(IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: Void _PrepareWorldItemInstance(FetchData actionData, WorldItemInstance wii) [static,pub]
+  M: Void _PrepareStorageInteraction(FetchData actionData, StorageInteraction storageIntr) [static,pub]
+  M: Void _PrepareGatherInteraction(FetchData actionData, GatherInteraction gatherInteraction) [static,pub]
+  M: Void .ctor() [pub]
+  M: Void .ctor(IntPtr pointer) [pub]
+
+==================================================================
+PASS F: Workstation - the settlement-demand surface (Phase 2 lever)
+==================================================================
+  List`1 GetItemsNeededFromSettlement() [virt,pub]
+  Boolean IsFuelNeededByVillager(ItemInfo itemInfo, Villager villager) [virt,pub]
+  Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager) [virt,pub]
+
+==================================================================
+PASS G: who else declares GetItemsNeededFromSettlement-shaped members
+==================================================================
+  SSSGame.Workstation :: List`1 GetItemsNeededFromSettlement() [virt,pub]
+  SSSGame.FishingStation :: List`1 GetItemsNeededFromSettlement() [virt,pub]
+  SSSGame.PlayerStorageInteractionConfig :: InteractSlot_Items get_requiredItemsPanel() [pub]
+  SSSGame.PlayerStorageInteractionConfig :: Void set_requiredItemsPanel(InteractSlot_Items ) [pub]
+  SSSGame.CrockpotRecipeInfo :: List`1 GetRequiredItemsDistinct() [pub]
+  SSSGame.Combat.Loadout :: List`1 get_requiredItems() [pub]
+  SSSGame.Combat.Loadout :: Void set_requiredItems(List`1 ) [pub]
+  SSSGame.AI.LoadoutsComplaint :: List`1 get_missingItems() [pub]
+  SSSGame.AI.LoadoutsComplaint :: Void set_missingItems(List`1 ) [pub]
+
+==================================================================
+PASS Z: EMPIRICAL - do interop method bodies carry real IL (call-graph possible?)
+==================================================================
+  SSSGame.Workstation : 138 methods, 138 with body, 3153 instrs, 2 game-to-game calls
+  SSSGame.CraftInteraction : 57 methods, 57 with body, 1204 instrs, 2 game-to-game calls
+  (game-to-game calls ~0 => bodies are native trampolines => Cecil call-graph IMPOSSIBLE)
+
+DONE

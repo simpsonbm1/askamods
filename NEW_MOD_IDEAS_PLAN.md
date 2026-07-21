@@ -914,15 +914,57 @@ PRE==POST whenever a craft draws from the agent side; watch both collections.
   and the abort can never fire; and the prefix must be agent-gated as well as host-gated
   (villagers ride the same methods). (c) UI gray-out: per Phase 0 — if buttons stay gray despite
   (a), patch the per-button count source (`ItemThumbnailPanel`-level).
-- **Phase 2 — the VILLAGER half** (`EnableForVillagers`, independent toggle): make the materials
-  physically arrive at the station bin rather than flipping any gate — see the scope note. ⚠️ The
-  trigger point is unresolved and needs its own evidence pass (crafting-quest creation? fetch-quest
-  failure? per-station poll?). **Probe the cheap lever first** (Fable audit 2026-07-20): if the
-  vanilla one-station limit turns out to be `GetFetchDepth`/`GetPersonalFetchDepth` or the
-  storage-access whitelist, widening vanilla's own fetch may let `CrafterFetchQuest` haul
-  settlement-wide itself — potentially the entire Phase 2 implementation, riding the game's own
-  machinery. Must not fight `CrafterFetchQuest` or re-create the fetch-loop /
-  complaint pathologies documented for SupplyChainMod.
+- **Phase 2 — the VILLAGER half** (`EnableForVillagers`, independent toggle). Goal: materials
+  physically arrive at the station bin — a gate flip alone is actively harmful here (see the scope
+  note). Must not fight `CrafterFetchQuest` or re-create the fetch-loop / complaint pathologies
+  documented for SupplyChainMod.
+
+  **The goal is to delete the WALK, not to widen reach.** Vanilla villagers already fetch
+  settlement-wide by walking (warehouse, gathering stations, other workshops) and haul materials
+  back to their own station bin before crafting. Desired behavior: the villager treats all stored
+  settlement materials as accessible from its workstation and crafts immediately, with no supply
+  run.
+
+  **✗ CLOSED — the fetch-REACH fields are NOT the lever** (Phase 2a spike v0.6.0, confirmed
+  in-game 2026-07-21). `FSM_FetchCraftingSupplies`'s reach fields are already permissive at
+  runtime: `searchStorages=True`, `storageSearchRange=100`, `worldSearchRange=20`,
+  `searchWorld=True`, `searchMarkers=True`, `searchWorldForCompletedObjects=True`,
+  `maxSearchDepth=0`. Widening them would change nothing — villagers already probe 144–149
+  distinct containers per cycle across ~16 building types. Do not re-attempt this line.
+  - **The state actions ARE shared assets — confirmed in-game 2026-07-21.** One instance pointer
+    (`0x201E46684B0`) served all five villagers across 231 state entries;
+    `FSM_QuestAction : vStateAction : UnityEngine.ScriptableObject`, with per-villager data in
+    `QuestData` (via `FSM_QuestAction.GetQuestData(IFSMBehaviourController)`). Any field write on
+    a state action therefore applies settlement-wide — useful to know, even though the reach
+    fields turned out not to be the lever.
+  - **✓ RESOLVED — the trigger point is `FSM_FetchCraftingSupplies.OnStateEnter`** (confirmed
+    in-game 2026-07-21). It fires exactly when a villager begins a supply run, is virtual with
+    safe params, and carries the `IFSMBehaviourController`. `FSM_UseCraftingStation.OnStateEnter`
+    marks arrival-to-craft and `FSM_ReturnCraftingSupplies.OnStateEnter` marks leftover return —
+    together they bracket the round trip to be deleted. Measured tour cost: **9.6–120 s per
+    cycle** (8 of 22 observed cycles toured; the rest were already stocked).
+  - **Storage whitelist lever is patch-safe:** `CrafterFetchQuest/CrafterFetchQuestData
+    .IsWhitelistedByStorage(IResourceStorageSite)` — `[virt,pub]`, Boolean return, interface param
+    (not inventory-family). Vtable-dispatched, so no inlining risk.
+  - **⚠️ DEAD-END — never patch the three fetch-depth methods.** All take by-ref primitives, which
+    is the project's known-fatal trampoline-NRE family: `CraftingStation.GetFetchDepth(ItemInfo,
+    Int32&)`, `CraftingStation.GetPersonalFetchDepth(Villager, ItemInfo, Int32&, Int32&)`,
+    `CraftingQuest.TryGetFetchDepth(ItemInfo, Int32&)`. Read them if needed; never detour them.
+    The FSM fields above make patching them unnecessary.
+  - **Supporting surface:** `CrafterFetchQuest.GetNeededSuppliesManifest() [virt]` (demand side);
+    `CrafterFetchQuestData._noPartsFound` / `_noStorageSpace` / `_noCarryCapacity` (failure
+    signals — candidate trigger points and verification markers);
+    `WorkstationQuestData.GetVillager() [virt]` (villager identity);
+    `Workstation.IsItemNeededByVillager(ItemInfo, Villager) [virt]`;
+    `CraftingStation._storageSupplies` / `_storageWrappers` / `_RegisterStorage()` (the station's
+    own registered storage set); `FSM_ReturnCraftingSupplies` (vanilla already returns leftovers).
+  - **Design direction (⚠️ not yet approved — propose before building):** put the needed materials
+    in the station bin so the supply run is never scheduled, or intercept the fetch-state entry,
+    satisfy the manifest by direct transfer, and let the state exit immediately.
+    `CrafterFetchQuest.GetNeededSuppliesManifest()` supplies the "what"; Phase 1's settlement-stock
+    walk supplies the "from where"; mirror the per-(site, item) whitelist so the mod never sources
+    from a container vanilla would refuse. Open: the earliest safe hook (task creation vs.
+    fetch-state entry), and whether a satisfied fetch state exits cleanly or must be transitioned.
 - **Phase 3 (optional):** cooking-family tables (`ForgeInteraction`), config polish (blacklist
   list, prefer-player-inventory-first toggle, max-pull-distance).
 

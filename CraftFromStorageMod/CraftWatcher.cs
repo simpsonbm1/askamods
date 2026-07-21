@@ -94,6 +94,14 @@ public class CraftWatcher : MonoBehaviour
         try { Patches.GateRollup.Tick(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] GateRollup.Tick error: {ex}"); }
 
+        // v0.8.0: same reasoning - the villager-side Point A log rate limiter (Change 3, in
+        // CraftTransfer.cs) and the fetch-quest priority-suppression rollup (Change 2,
+        // FetchQuestSuppression.cs) both need a per-frame idle-flush tick.
+        try { VillagerAvailabilityRollup.Tick(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] VillagerAvailabilityRollup.Tick error: {ex}"); }
+        try { FetchQuestSuppression.Tick(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] FetchQuestSuppression.Tick error: {ex}"); }
+
         if (!_armed) return;
 
         long elapsedMs;
@@ -241,6 +249,12 @@ public class CraftWatcher : MonoBehaviour
         // evidence (same reasoning as CraftUiAvailability.ClearWorldState above).
         try { CraftUiPoller.ClearWorldState(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftUiPoller.ClearWorldState error: {ex}"); }
+        // v0.6.0: the villager-fetch diagnostic spike (VillagerFetchTrace.cs) holds no interop
+        // wrappers of its own (state is keyed by GameObject NAME strings, not cached wrappers), but
+        // per-cycle counters are still cleared on world-leave so a stale cycle from a previous world
+        // can never produce a misleading DIRECT/TOURED verdict after a reload.
+        try { VillagerFetchTrace.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] VillagerFetchTrace.ClearWorldState error: {ex}"); }
 
         // Don't let a stale abort banner survive into the next world.
         _guiMessage = "";
