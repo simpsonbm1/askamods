@@ -241,6 +241,10 @@ DLLs, not the original game DLLs. The interop layer has sharp edges — see
 [IL2CPP interop gotchas](#il2cpp-interop-gotchas-apply-to-every-mod).
 
 ## Project Structure
+**On-Nexus publication status is NOT tracked in these blurbs** — the single source of truth is the
+group-ID table in [`docs/nexus-upload.md`](docs/nexus-upload.md). Do not add "on Nexus" / "not on
+Nexus" tags here; a mod's presence in that table IS its published status. (A dev tool's `NOT for
+Nexus` tag is fine — that's never-publish *intent*, which the table doesn't record.)
 ```
 askamods/
   CLAUDE.md                  ← this file (orientation + pointers)
@@ -255,11 +259,11 @@ askamods/
     archive/                 ← superseded handoffs/investigation logs (history only, never orientation)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.7.1, on Nexus, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.7.1, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: player + villager out-of-combat HP regen, per-villager rates [COMPLETE v1.3.1 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled [COMPLETE v1.2.5 — docs/mods/torch-fuel.md]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.9.7 — docs/mods/dynamic-villager-needs.md]
-  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.30, on Nexus — docs/mods/villager-fight-back.md]
+  VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.30 — docs/mods/villager-fight-back.md]
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
   SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.1 — docs/mods/seed-scout.md]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins [v1.0.0 — SUPERSEDED by SeedScout; keep for the PlayerDrive.Teleport primitive — docs/archive/WARP_TOUR_HANDOFF.md]
@@ -269,23 +273,23 @@ askamods/
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + per-category
-                                item-journal task discovery (tavern/harbor/etc.) [COMPLETE v1.4.1,
-                                on Nexus — docs/mods/task-unlocker.md]
+                                item-journal task discovery (tavern/harbor/etc.) [COMPLETE v1.4.1 —
+                                docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
-  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1, on Nexus — docs/mods/ground-item-vacuum.md]
-  FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, on Nexus, locale-safe — docs/mods/fish-fillet.md]
+  GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1 — docs/mods/ground-item-vacuum.md]
+  FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, locale-safe — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated monster dens, PLUS bear-den
                                 & wight-spire PopulationSpawner force-respawn via map-pin + timer
-                                [COMPLETE v1.4.4, on Nexus — spawner feature confirmed in-game 2026-07-21
+                                [COMPLETE v1.4.4 — spawner feature confirmed in-game 2026-07-21
                                 (instant SpawnPopulationFree, bypasses the instigator gate); v1.3.0
                                 locale den-key + German auto-revive test ⚠️ pending —
                                 docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
-  VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]
+  VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0 — docs/mods/villager-ammo.md]
   OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage,
                                 raid-proofed (warehouse haul gate + villager eat gate) [COMPLETE
-                                v1.3.1, on Nexus — docs/mods/outhouse-composter.md]
+                                v1.3.1 — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.17.3 — TIER lever
                                 ARMED (TierCaseController, shared F11): armed run 1
                                 in-game-verified 2026-07-16 (full bump→response→resolve cycles
@@ -295,7 +299,7 @@ askamods/
                                 complaint-demand plane (v0.18, design approved —
                                 DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
                                 Nexus — docs/mods/supply-chain.md]
-  NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0, on Nexus ("Max All Needs") — docs/mods/no-needs.md]
+  NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
   CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.8.0 — Phase 1
                                 (PLAYER half) feature-complete, confirmed in-game 2026-07-20:
                                 remote-storage pull + fail-closed verify + sweep-back, zero-pull
@@ -307,8 +311,8 @@ askamods/
                                 v0.7.0/v0.7.1 villager branch on all four Phase 1 points —
                                 confirmed in-game 2026-07-21 to be INSUFFICIENT alone (the craft
                                 gate does not schedule the fetch quest); v0.8.0 suppresses the
-                                fetch quest itself, ⚠️ not yet run in-game. Not on Nexus;
-                                diagnostics still default true —
+                                fetch quest itself, ⚠️ not yet run in-game. Diagnostics still
+                                default true —
                                 docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe [DEV TOOL v0.4.0, NOT for Nexus
                                 — dumps the locale-INVARIANT identity (asset name / id / faction
