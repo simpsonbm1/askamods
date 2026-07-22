@@ -49,6 +49,33 @@ public class Plugin : BasePlugin
     // Parsed from AutoRespawnRules at Load() — den type name (case-insensitive) -> days-after-defeat.
     internal static Dictionary<string, int> AutoRules = new(StringComparer.OrdinalIgnoreCase);
 
+    // Locale-safe auto-rule lookup: exact match on the translated name (unchanged English
+    // behavior) OR a normalized-substring match on the invariant dataSheet asset name, so a
+    // config key like "Skeleton Den" / "Bear Den" resolves in every language (the asset name
+    // "SkeletonDenDataSheet" contains it once spacing/case are normalized).
+    internal static bool TryGetAutoRuleDays(DenRecord rec, out int days)
+    {
+        days = -1;
+        if (rec == null) return false;
+        if (!string.IsNullOrEmpty(rec.TypeName) && AutoRules.TryGetValue(rec.TypeName, out days)) return true;
+        string an = NormalizeDenKey(rec.AssetName);
+        if (an.Length == 0) return false;
+        foreach (var kv in AutoRules)
+        {
+            string kn = NormalizeDenKey(kv.Key);
+            if (kn.Length > 0 && an.Contains(kn)) { days = kv.Value; return true; }
+        }
+        return false;
+    }
+
+    private static string NormalizeDenKey(string s)
+    {
+        if (string.IsNullOrEmpty(s) || s == "?") return "";
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (char c in s) if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+        return sb.ToString();
+    }
+
     public override void Load()
     {
         Logger = base.Log;
@@ -200,13 +227,16 @@ public class Plugin : BasePlugin
             try { posVec = den.transform.position; pos = posVec.ToString(); havePos = true; } catch { }
             try { isActive = den.isActive; } catch { }
 
+            string assetName = "?";
+            try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
+
             if (havePos)
             {
-                try { DenRegistry.Upsert(posVec, name); }
+                try { DenRegistry.Upsert(posVec, name, assetName); }
                 catch (Exception ex) { Logger.LogError($"[DenRespawn] DenRegistry.Upsert error: {ex}"); }
             }
 
-            Logger.LogInfo($"[DenRespawn] Tracking den '{name}' at {pos} isActive={isActive} (total={TrackedDens.Count})");
+            Logger.LogInfo($"[DenRespawn] Tracking den '{name}' at {pos} isActive={isActive} asset='{assetName}' (total={TrackedDens.Count})");
         }
     }
 

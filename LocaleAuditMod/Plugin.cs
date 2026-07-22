@@ -26,8 +26,11 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> DumpAllItems = null!;
     internal static ConfigEntry<bool> CaptureCreatures = null!;
     internal static ConfigEntry<int> MaxTargetExamples = null!;
+    internal static ConfigEntry<string> SpawnerHotkeyRaw = null!;
+    internal static ConfigEntry<int> SpawnerDumpMax = null!;
 
     internal static KeyCode HotKey = KeyCode.F5;
+    internal static KeyCode SpawnerKey = KeyCode.F6;
 
     public override void Load()
     {
@@ -53,10 +56,27 @@ public class Plugin : BasePlugin
             "Per probe token, how many matching rows to print under the TARGETS section. The match " +
             "COUNT is always reported in full regardless of this cap.");
 
+        SpawnerHotkeyRaw = Config.Bind(
+            "LocaleAudit", "SpawnerHotkey", "F6",
+            "Key that dumps nearby PopulationSpawners (bear dens / spires are these, not SSSGame.Den) — "
+            + "position, what creature each spawns (invariant dataSheet), live count. Stand at a bear "
+            + "den or spire and press it. May collide with another mod's F6, but this is a dev probe run "
+            + "deliberately; change it here if that is a problem.");
+
+        SpawnerDumpMax = Config.Bind(
+            "LocaleAudit", "SpawnerDumpMax", 40,
+            "How many nearest spawners to print per spawner-dump.");
+
         if (!Enum.TryParse<KeyCode>(AuditHotkeyRaw.Value, true, out HotKey))
         {
             HotKey = KeyCode.F5;
             Logger.LogWarning($"[LocaleAudit] Unrecognised AuditHotkey '{AuditHotkeyRaw.Value}' - using F5.");
+        }
+
+        if (!Enum.TryParse<KeyCode>(SpawnerHotkeyRaw.Value, true, out SpawnerKey))
+        {
+            SpawnerKey = KeyCode.F6;
+            Logger.LogWarning($"[LocaleAudit] Unrecognised SpawnerHotkey '{SpawnerHotkeyRaw.Value}' - using F6.");
         }
 
         ClassInjector.RegisterTypeInIl2Cpp<AuditRunner>();
@@ -77,7 +97,8 @@ public class Plugin : BasePlugin
         }
 
         Logger.LogInfo($"LocaleAuditMod v{MyPluginInfo.PLUGIN_VERSION} loaded. "
-                       + $"Load a world, then press {HotKey} to dump the locale-audit tables.");
+                       + $"Load a world, then press {HotKey} for the locale-audit tables, "
+                       + $"or {SpawnerKey} (standing at a bear den / spire) to dump nearby spawners.");
     }
 }
 
@@ -90,6 +111,7 @@ public class AuditRunner : MonoBehaviour
         try
         {
             if (Input.GetKeyDown(Plugin.HotKey)) AuditDump.Run();
+            if (Input.GetKeyDown(Plugin.SpawnerKey)) SpawnerDump.Run();
         }
         catch (Exception ex)
         {

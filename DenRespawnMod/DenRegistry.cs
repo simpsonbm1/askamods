@@ -16,6 +16,7 @@ internal class DenRecord
     public string TypeName = "?";
     public bool Defeated;
     public int DefeatedOnDay = -1;
+    public string AssetName = "?";   // INVARIANT dataSheet asset name (e.g. "SkeletonDenDataSheet")
 }
 
 // Position-keyed, per-world-persisted den registry. Mirrors TreeRespawnMod's per-world save
@@ -34,7 +35,7 @@ internal static class DenRegistry
         $"{Mathf.RoundToInt(x)},{Mathf.RoundToInt(z)}";
 
     // Create-or-get a record for this position. Refreshes TypeName if it was previously unknown.
-    internal static DenRecord Upsert(Vector3 pos, string typeName)
+    internal static DenRecord Upsert(Vector3 pos, string typeName, string? assetName = null)
     {
         lock (Records)
         {
@@ -43,6 +44,7 @@ internal static class DenRegistry
             {
                 if (rec.TypeName == "?" && !string.IsNullOrEmpty(typeName) && typeName != "?")
                     rec.TypeName = typeName;
+                if (!string.IsNullOrEmpty(assetName) && assetName != "?") rec.AssetName = assetName;
                 return rec;
             }
 
@@ -53,6 +55,7 @@ internal static class DenRegistry
                 Z = pos.z,
                 TypeName = string.IsNullOrEmpty(typeName) ? "?" : typeName
             };
+            if (!string.IsNullOrEmpty(assetName) && assetName != "?") rec.AssetName = assetName;
             Records[key] = rec;
             return rec;
         }
@@ -117,7 +120,8 @@ internal static class DenRegistry
                         rec.Z.ToString("R", CultureInfo.InvariantCulture),
                         rec.TypeName,
                         rec.Defeated ? "1" : "0",
-                        rec.DefeatedOnDay.ToString(CultureInfo.InvariantCulture)));
+                        rec.DefeatedOnDay.ToString(CultureInfo.InvariantCulture),
+                        rec.AssetName));
                 }
                 File.WriteAllLines(_saveFilePath, lines);
             }
@@ -159,8 +163,9 @@ internal static class DenRegistry
                     bool defeated = parts[4] == "1";
                     if (!int.TryParse(parts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out int defeatedOnDay))
                         defeatedOnDay = -1;
+                    string assetName = parts.Length >= 7 ? parts[6] : "?";
 
-                    var rec = new DenRecord { X = x, Y = y, Z = z, TypeName = typeName, Defeated = defeated, DefeatedOnDay = defeatedOnDay };
+                    var rec = new DenRecord { X = x, Y = y, Z = z, TypeName = typeName, Defeated = defeated, DefeatedOnDay = defeatedOnDay, AssetName = assetName };
                     Records[Key(x, z)] = rec;
                     loaded++;
                 }

@@ -131,3 +131,33 @@ Opus: research + plan the change (docs/architecture.md, Cecil, interop) — main
   → at commit checkpoint: doc-scribe (Haiku): "Record: TorchFuelMod v1.2.5, confirmed in-game (YYYY-MM-DD), technique …; run rituals 1–3"
   → Opus: ask user, then commit/push (never delegated)
 ```
+
+## Enforcement: the delegation gate (`.claude/hooks/delegation-gate.ps1`)
+
+A PreToolUse hook (wired in `.claude/settings.json`, so both machines get it on `git pull`) that
+refuses a MAIN-SESSION code edit / build / BepInEx-log review and forces the one-off-vs-delegate
+decision, then lets the retry through. Delegated work passes silently. Prose guidance executes only
+when remembered; this gates the action, not the memory.
+
+**Discriminator (fire-verified 2026-07-21):** a PreToolUse payload carries `agent_id` ONLY inside a
+subagent. So a gated action with no `agent_id` is the main thread doing it inline; with `agent_id`
+present it is a subagent (mod-implementer / log-analyst) and passes.
+
+**What it gates (main session only):**
+- Write/Edit/MultiEdit to `*.cs` / `*.csproj`, and `dotnet build` / `msbuild` → refusal points at mod-implementer.
+- Read/Grep/shell touching `LogOutput.log` / `ErrorLog.log` → refusal points at log-analyst.
+- Docs (`*.md`), config, hooks, reads of non-log files, and non-build shell are NOT gated.
+
+**Block-then-allow:** exit 2 on the first matching action, with a per-session marker so the deliberate
+retry proceeds. Code markers are per-file (edits) / per-command (builds); the log marker is coarse
+(per-session). Fails OPEN on any error — never wedges the session.
+
+**Verify:** `powershell -File .claude/hooks/delegation-gate.ps1 -SelfTest` must print `SELFTEST PASS`
+(synthesized events: positive/negative/idempotency/fail-open). A reworded refusal that breaks an
+assertion fails the self-test rather than silently reopening a hole — fix the assertion alongside the reword.
+
+**Residual gaps (named, not covered):** a source edit or log read done via a shell command that does
+not literally name the file (`sed -i`, a path in a variable) evades the matcher; the coarse log marker
+gates only the first log review per session; and it is a prompt with retry, not a hard block — the
+one-off judgment stays with the model. A new evasion gets a matcher line plus a self-test case, never
+a workaround.

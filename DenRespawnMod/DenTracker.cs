@@ -293,7 +293,10 @@ public class DenTracker : MonoBehaviour
             {
                 try
                 {
-                    var rec = DenRegistry.Upsert(posVec, name);
+                    string assetName = "?";
+                    try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
+
+                    var rec = DenRegistry.Upsert(posVec, name, assetName);
                     DenRegistry.MarkAlive(rec);
                     DenRegistry.Save();
                 }
@@ -380,7 +383,10 @@ public class DenTracker : MonoBehaviour
                 }
                 catch { }
 
-                var rec = DenRegistry.Upsert(pos, name);
+                string assetName = "?";
+                try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
+
+                var rec = DenRegistry.Upsert(pos, name, assetName);
 
                 if (defeated && !rec.Defeated)
                 {
@@ -626,7 +632,7 @@ public class DenTracker : MonoBehaviour
             foreach (var rec in DenRegistry.Records.Values)
             {
                 if (!rec.Defeated || rec.DefeatedOnDay < 0) continue;
-                if (!Plugin.AutoRules.TryGetValue(rec.TypeName, out int ruleDays)) continue;
+                if (!Plugin.TryGetAutoRuleDays(rec, out int ruleDays)) continue;
                 if (DayCounter.CurrentDay - rec.DefeatedOnDay >= ruleDays)
                     due.Add(rec);
             }
@@ -634,7 +640,7 @@ public class DenTracker : MonoBehaviour
 
         foreach (var rec in due)
         {
-            int ruleDays = Plugin.AutoRules.TryGetValue(rec.TypeName, out var d) ? d : -1;
+            int ruleDays = Plugin.TryGetAutoRuleDays(rec, out var d) ? d : -1;
             Plugin.Logger.LogInfo($"[DenRespawn] Auto-respawn rule '{rec.TypeName}:{ruleDays}' firing for den at ({rec.X:F0},{rec.Z:F0}) (defeated day {rec.DefeatedOnDay}, now day {DayCounter.CurrentDay})");
             EnqueueRemoteRefresh(rec, "timer");
         }
