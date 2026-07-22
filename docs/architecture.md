@@ -1732,6 +1732,52 @@ isolated from defeat-freshness with current data.
 **Map pin labels ≠ den type names**
 - "Small Cemetery"/"Large Cemetery" pins = Skeleton Den / Skeleton Den Cluster dens internally
 
+### Standalone PopulationSpawners — bear dens & wight spires (confirmed in-game 2026-07-21)
+
+**Bear dens and wight spires are NOT `SSSGame.Den`.** They are standalone
+`SSSGame.Combat.PopulationSpawner` instances in `PopulationManager._populationSpawners` (reach the
+manager via `FindAnyObjectByType<PopulationManager>()`). Invariant identity = the spawner's
+`gameObject.name` (strip a trailing `(Clone)`); it is locale-invariant. Captured via LocaleAudit's F6
+spawner probe:
+- **Bear den** = `HabitatBear`, parent `Biomes` — the same `Habitat*` family as ambient wildlife
+  (`Habitat_Smolkr`, `Habitat_Deer`), just with a visible den structure.
+- **Large wight spire** = a CLUSTER: `WightPopulationBig` + `WightPopulation` + several
+  `Follower Population`, parent `Populations`. (Followers are their own enemy type — giant wights.)
+- **Small spire** = `FollowerDen`, parent `BiomeFollower(Clone)`.
+- `ExplorationTower` is a map-ping beacon, NOT the wight spire (dead-end).
+
+These have **no durable "defeated" flag** (unlike `Den.affectedSpawners[].ignoreRespawning`); only
+current occupancy is readable via `GetCreatureCount()` / `HasNoAliveCreatures()`.
+
+**The instigator gate is the key mechanism.** These spawners will NOT instantiate a creature while the
+player (the "instigator") is in range — `PopulationSpawner.IsInstigatorInRange == true` blocks it
+(ambient "don't spawn in the player's face" design). Vanilla respawns them once the player leaves the
+area (user-confirmed). Consequence:
+- `RespawnAllPopulations(false)` and `Spawn()` only **SCHEDULE an async respawn** — they flip
+  `HasNoAliveCreatures()` False (population now "wants creatures"), but the creature instantiates a
+  later frame, gated on the instigator being gone. `GetCreatureCount()` read synchronously right after
+  the call still returns 0 — the spawn hasn't happened yet (a red herring; the creature appears a
+  moment later). So these levers spawn when triggered from AWAY (instigator out of range) but do
+  nothing visible while the player stands on the POI.
+
+**Direct instant spawn — `SpawnPopulationFree(SpawnPopulation pop, int count, NetworkObject foreign)`**
+(pass `foreign = null`) instantiates `count` creatures for that population NOW, bypassing the
+instigator gate — works even while the player stands on the spawner (confirmed in-game 2026-07-21,
+DenRespawn v1.4.3). Iterate `PopulationSpawner._populations` (a `List<PopulationSpawner.SpawnPopulation>`);
+each nested `SpawnPopulation` exposes `config` (a `CreaturePopulationConfiguration`; its
+`GetNetworkComponent()` is the creature prefab `NetworkObject`), `creatures` (`List<Creature>`),
+`size`, `MaxPopulationSize`, `HasSpaceToSpawn()`. **These "free" creatures are not tracked in
+`pop.creatures`**, so `SpawnPopulationFree` never sees the population as full — repeated calls spawn
+unlimited creatures. Host-gate it (it spawns networked objects). The base `CreatureSpawner` also has
+`AddCreature(prefab, pos, rot, onBeforeInitialize)` / `AddFreeCreature(...)` for even lower-level
+instantiation, but `SpawnPopulationFree` was sufficient.
+
+**Map pins for these POIs resolve at world `Y = 0`** (the map is a flat plane) while the spawner sits
+at terrain height — match a clicked pin to a spawner by **horizontal (XZ) distance**, not 3D (a 3D
+gate overshoots by the vertical delta). Structure-block clearing is already covered by the existing
+`PopulationSpawner._UpdateBlockedByStructures` postfix when `AllowRespawnNearStructures=true`.
+(DenRespawnMod v1.4.x, [`docs/mods/den-respawn.md`](mods/den-respawn.md).)
+
 ---
 
 ## Creature Corpses & Death Cleanup

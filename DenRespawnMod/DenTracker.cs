@@ -64,7 +64,9 @@ public class DenTracker : MonoBehaviour
                     Plugin.Logger.LogInfo($"[DenRespawn] Pin click: reviving '{DenMapRevive.HoveredName}' at {posStr}");
                 }
 
-                DenMapRevive.TryRevive(DenMapRevive.HoveredName, DenMapRevive.HoveredPos);
+                bool claimed = SpawnerRespawn.TryForce(DenMapRevive.HoveredPos);
+                if (!claimed)
+                    DenMapRevive.TryRevive(DenMapRevive.HoveredName, DenMapRevive.HoveredPos);
             }
             catch (Exception ex)
             {
@@ -331,6 +333,9 @@ public class DenTracker : MonoBehaviour
         try { ScanPendingRefreshes(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[DenRespawn] ScanPendingRefreshes error: {ex}"); }
 
+        try { SpawnerRespawn.ServicePending(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[DenRespawn] SpawnerRespawn.ServicePending error: {ex}"); }
+
         try
         {
             if (dayChanged)
@@ -339,6 +344,16 @@ public class DenTracker : MonoBehaviour
         catch (Exception ex)
         {
             Plugin.Logger.LogError($"[DenRespawn] TickAutoRespawnRules error: {ex}");
+        }
+
+        try
+        {
+            if (dayChanged)
+                SpawnerRespawn.TickTimer();
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[DenRespawn] SpawnerRespawn.TickTimer error: {ex}");
         }
     }
 

@@ -274,7 +274,12 @@ askamods/
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1, on Nexus — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, on Nexus, locale-safe — docs/mods/fish-fillet.md]
-  DenRespawnMod/             ← Mod 21: hotkey/map-pin/timed revive for defeated monster dens [COMPLETE v1.3.0 — v1.2.1 stale-registry timer guard ⚠️ pending in-game confirmation — docs/mods/den-respawn.md]
+  DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated monster dens, PLUS bear-den
+                                & wight-spire PopulationSpawner force-respawn via map-pin + timer
+                                [COMPLETE v1.4.4 — spawner feature confirmed in-game 2026-07-21
+                                (instant SpawnPopulationFree, bypasses the instigator gate); v1.3.0
+                                locale den-key + German auto-revive test ⚠️ pending —
+                                docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0, on Nexus — docs/mods/villager-ammo.md]

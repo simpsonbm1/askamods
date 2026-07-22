@@ -27,6 +27,12 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> AutoRespawnRules = null!;
     internal static ConfigEntry<string> MapReviveModifier = null!;
     internal static ConfigEntry<float> MapPinMatchRadius = null!;
+    internal static ConfigEntry<bool> SpawnerRespawnEnable = null!;
+    internal static ConfigEntry<string> SpawnerNames = null!;
+    internal static ConfigEntry<float> SpawnerMatchRadius = null!;
+    // Raw config text for the spawner-rule list. Named distinctly from the parsed
+    // Plugin.SpawnerRules dictionary below (same split as AutoRespawnRules/AutoRules).
+    internal static ConfigEntry<string> SpawnerRulesConfig = null!;
 
     internal static readonly List<Den> TrackedDens = new();
     internal static PlayerCharacter? LocalPlayer;
@@ -48,6 +54,14 @@ public class Plugin : BasePlugin
 
     // Parsed from AutoRespawnRules at Load() — den type name (case-insensitive) -> days-after-defeat.
     internal static Dictionary<string, int> AutoRules = new(StringComparer.OrdinalIgnoreCase);
+
+    // Parsed from SpawnerNames at Load() — trimmed, lowercased, non-empty gameObject.name prefixes
+    // for standalone PopulationSpawners (bear dens / spires) the SpawnerRespawn path may act on.
+    internal static List<string> SpawnerNameList = new();
+
+    // Parsed from SpawnerRulesConfig at Load() — spawner name (case-insensitive) -> days-empty
+    // before the SpawnerRespawn timer force-respawns any loaded matching spawner.
+    internal static Dictionary<string, int> SpawnerRules = new(StringComparer.OrdinalIgnoreCase);
 
     // Locale-safe auto-rule lookup: exact match on the translated name (unchanged English
     // behavior) OR a normalized-substring match on the invariant dataSheet asset name, so a
@@ -134,7 +148,32 @@ public class Plugin : BasePlugin
             defaultValue: 75.0f,
             description: "Max distance (m) between a clicked map pin and a known den for them to be considered the same POI.");
 
+        SpawnerRespawnEnable = Config.Bind(
+            section: "SpawnerRespawn",
+            key: "SpawnerRespawnEnable",
+            defaultValue: true,
+            description: "Master on/off switch for force-respawning bear dens / spires (standalone PopulationSpawners, not SSSGame.Den).");
+
+        SpawnerNames = Config.Bind(
+            section: "SpawnerRespawn",
+            key: "SpawnerNames",
+            defaultValue: "HabitatBear, WightPopulationBig, WightPopulation, FollowerDen, Follower Population",
+            description: "Comma-separated spawner gameObject.name prefixes for bear dens / spires to force-respawn.");
+
+        SpawnerMatchRadius = Config.Bind(
+            section: "SpawnerRespawn",
+            key: "SpawnerMatchRadius",
+            defaultValue: 40.0f,
+            description: "Max distance (m) from a clicked pin / from a spawner for it to count as 'at this POI'.");
+
+        SpawnerRulesConfig = Config.Bind(
+            section: "SpawnerRespawn",
+            key: "SpawnerRules",
+            defaultValue: "",
+            description: "Comma-separated <SpawnerName>:<days> rules, e.g. 'HabitatBear:3, WightPopulationBig:5'. Every N in-game days, any loaded matching spawner that is currently empty is force-respawned. Loaded POIs only.");
+
         ParseAutoRules();
+        ParseSpawnerConfig();
 
         // Register our custom Mono class into IL2CPP
         ClassInjector.RegisterTypeInIl2Cpp<DenTracker>();
@@ -148,7 +187,7 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"DenRespawnMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. MapReviveModifier='{MapReviveModifier.Value}', AllowRespawnNearStructures={AllowRespawnNearStructures.Value}");
+        Logger.LogInfo($"DenRespawnMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. MapReviveModifier='{MapReviveModifier.Value}', AllowRespawnNearStructures={AllowRespawnNearStructures.Value}, SpawnerRespawnEnable={SpawnerRespawnEnable.Value}, SpawnerNames={SpawnerNameList.Count}, SpawnerRules={SpawnerRules.Count}");
     }
 
     // Parses AutoRespawnRules ("<Den Name>:<days>, ...") into AutoRules. Malformed entries are
@@ -185,6 +224,52 @@ public class Plugin : BasePlugin
         }
 
         AutoRules = rules;
+    }
+
+    // Parses SpawnerNames ("<prefix>, <prefix>, ...") into SpawnerNameList (trimmed, lowercased,
+    // empties dropped) and SpawnerRulesConfig ("<SpawnerName>:<days>, ...") into SpawnerRules
+    // (reusing ParseAutoRules' malformed-entry-skip pattern) at Load().
+    internal static void ParseSpawnerConfig()
+    {
+        var names = new List<string>();
+        foreach (var entry in SpawnerNames.Value.Split(','))
+        {
+            string e = entry.Trim().ToLowerInvariant();
+            if (e.Length == 0) continue;
+            names.Add(e);
+        }
+        SpawnerNameList = names;
+
+        var rules = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        string raw = SpawnerRulesConfig.Value;
+
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            foreach (var entry in raw.Split(','))
+            {
+                string e = entry.Trim();
+                if (e.Length == 0) continue;
+
+                var parts = e.Split(':');
+                if (parts.Length != 2)
+                {
+                    Logger.LogWarning($"[DenRespawn] Malformed SpawnerRules rule '{e}' — expected '<SpawnerName>:<days>'. Skipped.");
+                    continue;
+                }
+
+                string name = parts[0].Trim();
+                if (name.Length == 0 || !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int days) || days < 0)
+                {
+                    Logger.LogWarning($"[DenRespawn] Malformed SpawnerRules rule '{e}' — days must be a non-negative integer. Skipped.");
+                    continue;
+                }
+
+                rules[name] = days;
+                Logger.LogInfo($"[DenRespawn] Accepted spawner-respawn rule: '{name}' -> {days} day(s).");
+            }
+        }
+
+        SpawnerRules = rules;
     }
 
     // Dedupe by native pointer (managed wrapper instances can differ while wrapping the same
@@ -262,6 +347,7 @@ public class Plugin : BasePlugin
         DenMapRevive.HaveHovered = false;
         DenMapRevive.HoveredWidgetPtr = IntPtr.Zero;
         DenTracker.ClearTransientState(); // pending remote-refresh queue + anchor GameObjects
+        SpawnerRespawn.ClearTransientState();
         DayCounter.ClearTransientState();
     }
 }

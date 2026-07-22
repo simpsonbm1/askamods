@@ -1,6 +1,6 @@
 # LocaleAuditMod (Mod 29) — locale-invariant identity probe
 
-**Status: DEV TOOL v0.3.0, NOT for Nexus. Confirmed in-game (2026-07-21).**
+**Status: DEV TOOL v0.4.0, NOT for Nexus. Confirmed in-game (2026-07-21).**
 
 **GOAL:** for every game entity our mods identify by its *translated* display string, print the
 *locale-invariant* identity sitting next to it, so those gates can be retargeted to something that
@@ -45,7 +45,9 @@ Sections written to `LogOutput.log` on the audit key:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `AuditHotkey` | `F5` | Dump key. F5 is the only function key not already claimed in this repo. |
+| `AuditHotkey` | `F5` | Locale-audit dump key (items/categories/structures/creatures). |
+| `SpawnerHotkey` | `F6` | Spawner-probe dump key (see "F6 spawner probe" below). |
+| `SpawnerDumpMax` | `40` | Max nearest `PopulationSpawner` rows the F6 probe prints. |
 | `DumpAllItems` | `true` | Full per-item table. TARGETS/CATEGORIES print regardless. |
 | `CaptureCreatures` | `true` | Wires the `Creature.Spawned` postfix. False skips the patch entirely. |
 | `MaxTargetExamples` | `12` | Rows printed per probe token. Match counts are always reported in full. |
@@ -58,6 +60,16 @@ walking past a few enemies before pressing F5 gives that section more coverage.
 The run's language does not matter for harvesting asset names — they are identical in every
 locale. An English run additionally confirms which asset name each current config token maps to;
 a non-English run additionally demonstrates the `0`-match failure directly.
+
+## F6 spawner probe (v0.4.0)
+
+A second key (`SpawnerHotkey`, default `F6`, `SpawnerDump.cs`) dumps every nearby `PopulationSpawner`
+in `PopulationManager._populationSpawners` — distance from the player, `gameObject`/parent names,
+`isActive` / `ignoreRespawning` / `HasNoAliveCreatures` / live-creature count, and the spawned
+creature's invariant `dataSheet` asset name (read off a live creature). It exists to capture the
+locale-invariant identity of bear dens and wight spires, which are `PopulationSpawner`s (not
+`SSSGame.Den`), so DenRespawnMod can target them. That capture was completed in-game 2026-07-21 —
+see [den-respawn.md](den-respawn.md) and architecture.md's Dens section.
 
 ## Design notes
 
@@ -78,6 +90,9 @@ a non-English run additionally demonstrates the `0`-match failure directly.
 
 ## Version history
 
+- **v0.4.0 (2026-07-21)** — added the F6 spawner probe (`SpawnerDump.cs`, `SpawnerHotkey`/
+  `SpawnerDumpMax` config) that dumps nearby `PopulationSpawner`s with their invariant identity;
+  used to identify bear-den/spire spawners for DenRespawnMod.
 - **v0.3.0 (2026-07-21)** — item enumeration fixed to use the real registry
   `ItemInfoDatabase.CompleteItemInfoList.itemInfoList` (prior v0.2.0 used
   `ItemInfo.s_itemInfoList`, a transient working list that missed the vast majority of items);

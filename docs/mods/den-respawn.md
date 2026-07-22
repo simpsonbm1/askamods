@@ -1,8 +1,9 @@
-# Mod 21: DenRespawnMod — COMPLETE (v1.2.2, shipped 2026-07-09)
+# Mod 21: DenRespawnMod — COMPLETE (v1.4.4)
 
-**Status:** map-pin Shift+click revive + pin recolor, timed auto-respawn day rule, defeat-day
-reload persistence, and natural-respawn suppression all confirmed in-game (2026-07-09). The
-v1.2.1 stale-registry timer guard is ⚠️ still pending in-game confirmation (has never fired).
+**Status:** Den path (map-pin Shift+click revive + pin recolor, timed auto-respawn day rule,
+defeat-day reload persistence, natural-respawn suppression) and new Spawner path (bear-den /
+wight-spire PopulationSpawner force-respawn via map-pin / timer) both confirmed in-game
+2026-07-21. v1.3.0 locale den-key + German auto-revive test ⚠️ pending in-game.
 
 **Goal:** Refresh/revive defeated monster and beast dens (wulfar, bear, skeleton, etc.) back to life
 via a configurable hotkey, bringing them back into the creature-spawning rotation.
@@ -29,6 +30,41 @@ via a configurable hotkey, bringing them back into the creature-spawning rotatio
      true)` then `RespawnAllPopulations(false)` — triggers instant repopulation (verified: creatures
      appear immediately post-call, native in-game toast "The monsters from [Den Name] are back!").
 - **NEVER touch `alphaSpawner`** — the boss spawner; empty/inactive is its normal pre-boss state.
+
+**PopulationSpawner Respawn Path (v1.4.x)** — force-respawn bear dens and wight spires:
+Bear dens and wight spires are standalone `SSSGame.Combat.PopulationSpawner` instances, not
+`Den` objects; a parallel code path (`SpawnerRespawn.cs`) handles them independently.
+- **Identity:** spawner's invariant `gameObject.name` (trailing "(Clone)" stripped), matched
+  case-insensitively as a `StartsWith` prefix against a config whitelist. Locale-safe (asset
+  names identical in every language).
+- **Manual Trigger:** hold the MapRevive modifier (default LeftShift) + click a bear-den /
+  spire map pin. `SpawnerRespawn.TryForce` runs in `DenTracker.Update`'s Shift+click block
+  BEFORE the Den path's `TryRevive`, "claiming" the click (skipping Den path) whenever
+  `DenRegistry` finds no known Den near the clicked position. If the tile is loaded,
+  force-spawns immediately; if not, force-streams it (anchor + `RequestLoadWorldTile`) and
+  forces on pending scan.
+- **Spawn Primitive:** `PopulationSpawner.SpawnPopulationFree(population, count, null)`
+  per population in the spawner's `_populations` list, sized to each population's
+  `MaxPopulationSize`. Creates creatures immediately, even while standing at the spawner.
+  Falls back to `SetActiveSpawner(true,true)+RespawnAllPopulations(false)` (deferred) only
+  if direct spawn produced zero creatures.
+- **Optional Timer:** config rule list "<SpawnerName>:<days>" fires every N in-game days and
+  force-respawns loaded matching spawners currently empty.
+- **Host-gated:** only the host/master client spawns.
+- **Unlimited Spawning:** repeated clicks spawn unlimited creatures — `SpawnPopulationFree`
+  creatures are uncounted, so per-click top-up never saturates. Intended sandbox feature.
+- **Confirmed in-game 2026-07-21:** bear on-demand works both standing at den and via map-pin
+  from far away (remote path spawns exactly one, no doubling). Spire pins (wight/follower)
+  use identical path.
+
+**Spawner Identities** (in `PopulationManager._populationSpawners`):
+- Bear den = gameObject.name "HabitatBear(Clone)", parent "Biomes".
+- Large wight spire = cluster: "WightPopulationBig" + "WightPopulation" + several
+  "Follower Population", parent "Populations".
+- Small spire = "FollowerDen", parent "BiomeFollower(Clone)".
+(No durable "defeated" flag like `Den.affectedSpawners.ignoreRespawning`; only current
+occupancy readable via `GetCreatureCount()` / `HasNoAliveCreatures()`.)
+
 - **Structure-Block Bypass** (config-gated, patches fire-verified in-game):
   - `Den.IsBlockedByStructures()` postfix → returns `false` if config `AllowRespawnNearStructures=true`, allowing revive even when buildings are nearby.
   - `SSSGame.Combat.PopulationSpawner._UpdateBlockedByStructures()` postfix clears
@@ -51,13 +87,33 @@ via a configurable hotkey, bringing them back into the creature-spawning rotatio
   the clear on a state machine transition, not a value presence check.
 
 **Config (`com.askamods.denrespawn.cfg`):**
+
+Den path:
 - ~~`General/ReviveHotkey`~~ (REMOVED in v1.2.0 — hotkey revive deleted per user decision)
 - ~~`General/ReviveRadiusMeters`~~ (REMOVED in v1.2.0)
-- `General/AllowRespawnNearStructures` (bool, default: `true`): If true, bypass the game's structure-block check so dens near buildings can respawn.
-- `General/ClearIgnoreRespawning` (bool, default: `true`): Clear the spawner `ignoreRespawning` flags as part of refresh.
-- `General/ForceRespawnPopulations` (bool, default: `true`): Call `RespawnAllPopulations()` to instantly repopulate.
-- `Diagnostics/DenDiagnostics` (bool, default: `true` — must flip to `false` before shipping to Nexus): Log den state and refresh steps.
-- `Diagnostics/DiagnosticsIntervalSeconds` (float, default: `30`): How often to poll and log.
+- `General/AllowRespawnNearStructures` (bool, default: `true`): If true, bypass the game's
+  structure-block check so dens near buildings can respawn.
+- `General/ClearIgnoreRespawning` (bool, default: `true`): Clear the spawner
+  `ignoreRespawning` flags as part of refresh.
+- `General/ForceRespawnPopulations` (bool, default: `true`): Call `RespawnAllPopulations()`
+  to instantly repopulate.
+
+Spawner path (PopulationSpawner force-respawn):
+- `SpawnerRespawn/SpawnerRespawnEnable` (bool, default: `true`): Master on/off for bear-den
+  / spire feature.
+- `SpawnerRespawn/SpawnerNames` (string, default: "HabitatBear, WightPopulationBig,
+  WightPopulation, FollowerDen, Follower Population"): comma-separated gameObject.name
+  prefixes to force-respawn.
+- `SpawnerRespawn/SpawnerMatchRadius` (float, default: `40`): max HORIZONTAL (XZ-plane)
+  distance in metres from a clicked pin to a spawner for it to count as "at this POI".
+- `SpawnerRespawn/SpawnerRules` (string, default: empty): comma-separated
+  "<SpawnerName>:<days>" timer rules.
+
+Diagnostics:
+- `Diagnostics/DenDiagnostics` (bool, default: `true` — must flip to `false` before shipping
+  to Nexus): Log den state and refresh steps.
+- `Diagnostics/DiagnosticsIntervalSeconds` (float, default: `30`): How often to poll and
+  log.
 
 **v1.1.x MVP Features (⚠️ ALL pending in-game confirmation):**
 
@@ -171,6 +227,20 @@ position which can end up duplicating the real den's record (den-actual-position
   saved" hook; this point-of-action guard is the chosen mitigation.)
 - v1.2.2: Ship-prep release — `DenDiagnostics` config default flipped `true`→`false` per project
   convention (no behavior changes). FileVersion 1.2.2.0 deployed clean.
+- v1.3.0: Dens keyed on the invariant `dataSheet` asset name (e.g. `SkeletonDenDataSheet`); auto-revive
+  `Rules` match a normalized form of it so config keys like "Bear Den" resolve in every language.
+  Asset capture confirmed in-game (German log); isolated German auto-revive test ⚠️ still pending.
+- v1.4.0: Added the parallel `SpawnerRespawn.cs` path for bear dens / wight spires (standalone
+  `PopulationSpawner`s, not `Den`) — `[SpawnerRespawn]` config, map-pin claim-before-Den, day-timer.
+- v1.4.1: Pin-match uses horizontal XZ distance (map pins resolve at Y=0, spawners at terrain height;
+  a 3D 40 m gate overshoots by the vertical delta) + a `forced==0` candidate diagnostic.
+- v1.4.2: Diagnostic build that root-caused the blocker — the `IsInstigatorInRange` gate (the engine
+  won't spawn a creature while the player is present; `RespawnAllPopulations`/`Spawn` only schedule).
+- v1.4.3 CONFIRMED IN-GAME (2026-07-21): switched the force primitive to
+  `SpawnPopulationFree(pop, count, null)` — direct instant spawn that bypasses the instigator gate;
+  bear-on-demand works standing at the den and via remote map-click.
+- v1.4.4: Force-spawn toast is generic ("Repopulating (N)...") so it reads correctly on spire pins,
+  not just bear dens.
 
 **Confirmed in-game (2026-07-09):**
 - Timed auto-respawn day rule: 'Wulfar Den' DEFEATED (day 56) → TimeWarp day-skip (daysPassed 56→57)
