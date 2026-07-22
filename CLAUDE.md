@@ -276,7 +276,7 @@ askamods/
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, on Nexus, locale-safe — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated monster dens, PLUS bear-den
                                 & wight-spire PopulationSpawner force-respawn via map-pin + timer
-                                [COMPLETE v1.4.4 — spawner feature confirmed in-game 2026-07-21
+                                [COMPLETE v1.4.4, on Nexus — spawner feature confirmed in-game 2026-07-21
                                 (instant SpawnPopulationFree, bypasses the instigator gate); v1.3.0
                                 locale den-key + German auto-revive test ⚠️ pending —
                                 docs/mods/den-respawn.md]

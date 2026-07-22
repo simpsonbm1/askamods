@@ -1,4 +1,4 @@
-# Mod 21: DenRespawnMod — COMPLETE (v1.4.4)
+# Mod 21: DenRespawnMod — COMPLETE (v1.4.4, on Nexus as "Enemy Den Respawner")
 
 **Status:** Den path (map-pin Shift+click revive + pin recolor, timed auto-respawn day rule,
 defeat-day reload persistence, natural-respawn suppression) and new Spawner path (bear-den /
