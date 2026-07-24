@@ -177,12 +177,16 @@ internal static class FleeCombatGetSpookedPatch
 
             bool whitelisted = Plugin.IsWhitelisted(spookyTarget);
 
-            // Discovery log: name + faction of each distinct spook source, once.
+            // Discovery log: localized name + invariant asset name + faction of each distinct spook
+            // source, once. The asset name is language-independent — prefer it in FightBackAgainst.
             if (Plugin.DebugLogging.Value && !Plugin.AlreadyLoggedSpook(Plugin.SafeName(spookyTarget)))
+            {
+                string invName = Plugin.InvariantCreatureName(spookyTarget) ?? "(none)";
                 Plugin.Logger.LogInfo(
                     $"[VillagerFightBack] Villager spooked by '{Plugin.SafeName(spookyTarget)}' " +
-                    $"(faction={Plugin.FactionName(spookyTarget.Faction)}) — " +
-                    $"{(whitelisted ? "ON whitelist" : "not on whitelist; add this name to FightBackAgainst to fight it")}.");
+                    $"(assetName='{invName}', faction={Plugin.FactionName(spookyTarget.Faction)}) — " +
+                    $"{(whitelisted ? "ON whitelist" : "not on whitelist; add assetName (language-proof) or the display name to FightBackAgainst, or the faction to FightBackFactions")}.");
+            }
 
             if (!Plugin.EnabledCfg.Value) return true; // mod off → vanilla
             if (!whitelisted) return true;             // flee real threats normally

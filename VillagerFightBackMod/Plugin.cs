@@ -5,6 +5,7 @@ using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
 using BepInEx.Logging;
 using HarmonyLib;
+using SSSGame;
 using SSSGame.AI;
 using SSSGame.Combat;
 using UnityEngine;
@@ -58,8 +59,9 @@ public class Plugin : BasePlugin
             key: "FightBackAgainst",
             defaultValue: "Wisp",
             description: "Comma-separated list of enemy NAME substrings villagers will fight instead of " +
-                         "flee (case-insensitive, matched against the attacker's display name). " +
-                         "Empty = fight nobody (vanilla flee). Turn on DebugLogging to discover exact names.");
+                         "flee (case-insensitive). Matched against BOTH the attacker's display name AND its " +
+                         "language-independent asset name, so a token like Wisp or Crawler works in any game " +
+                         "language. Empty = fight nobody (vanilla flee). Turn on DebugLogging to see both names.");
 
         FightBackFactions = Config.Bind(
             section: "VillagerFightBack",
@@ -135,6 +137,45 @@ public class Plugin : BasePlugin
         return list.ToArray();
     }
 
+    // Locale-invariant creature identity: the CreatureDataSheet asset name
+    // (SSSGame.Creature.dataSheet.name), identical in every language — unlike GetTargetName(),
+    // which is translated. Returns null for non-creature targets (players/structures) or if the
+    // datasheet can't be read; callers fall back to the localized display name.
+    internal static string? InvariantCreatureName(IAttackTarget? target)
+    {
+        if (target == null) return null;
+        try
+        {
+            var b = target as Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase;
+            if (b == null) return null;
+
+            // TryCast<SSSGame.Creature>() won't compile here: Creature's base chain runs through the
+            // stripped unity-libs MonoBehaviour/UnityEngine.Object stub, so there's no compile-time
+            // reference conversion to Il2CppObjectBase (the standard "TryCast on a UnityEngine.Object
+            // type" gotcha). Walk the NATIVE class chain instead and rewrap via new T(IntPtr) once
+            // confirmed — same pattern as TaskUnlockerMod/SupplyChainMod's ancestor walks.
+            IntPtr cls = Il2CppInterop.Runtime.IL2CPP.il2cpp_object_get_class(b.Pointer);
+            bool isCreature = false;
+            int depth = 0;
+            while (cls != IntPtr.Zero && depth < 16)
+            {
+                string? name = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(
+                    Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_name(cls));
+                if (name == "Creature") { isCreature = true; break; }
+                cls = Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_parent(cls);
+                depth++;
+            }
+            if (!isCreature) return null;
+
+            var creature = new SSSGame.Creature(b.Pointer);
+            var sheet = creature.dataSheet;
+            if (sheet == null) return null;
+            var n = sheet.name;
+            return string.IsNullOrEmpty(n) ? null : n;
+        }
+        catch { return null; }
+    }
+
     // Is this attacker one the villager should fight rather than flee?
     internal static bool IsWhitelisted(IAttackTarget target)
     {
@@ -142,12 +183,14 @@ public class Plugin : BasePlugin
         {
             if (_nameTokens.Length > 0)
             {
-                string name = target.GetTargetName();
-                if (!string.IsNullOrEmpty(name))
+                string locName = target.GetTargetName();
+                string? invName = InvariantCreatureName(target);
+                foreach (var token in _nameTokens)
                 {
-                    foreach (var token in _nameTokens)
-                        if (name.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
-                            return true;
+                    if (!string.IsNullOrEmpty(locName) && locName.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+                        return true;
+                    if (!string.IsNullOrEmpty(invName) && invName.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+                        return true;
                 }
             }
 

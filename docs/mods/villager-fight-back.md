@@ -1,8 +1,13 @@
-# Mod 7: VillagerFightBackMod — COMPLETE (v1.0.30, on Nexus as "Villager Fight Back")
+# Mod 7: VillagerFightBackMod — COMPLETE (v1.0.31, on Nexus as "Villager Fight Back")
 
 **Goal:** let regular (non-warrior) villagers **stand and fight a whitelisted set of enemies**
 instead of fleeing — e.g. Wisps, which anything can kill — while still fleeing from genuinely
 dangerous attackers (draugar, wolves, …). Villager-only; the player is never touched.
+
+**Locale-safe as of v1.0.31 (confirmed in-game, German, 2026-07-24):** the `FightBackAgainst` name
+whitelist matches the enemy's locale-invariant creature asset name (`CreatureDataSheet.name`) in
+addition to its translated display name, so a token like `Wisp` or `Crawler` works in every game
+language, not just English.
 
 **Game subsystem:** [Villager Combat / Fight-vs-Flee System](../architecture.md#villager-combat--fight-vs-flee-system).
 Deep lever-by-lever evidence: [`VILLAGER_FIGHTBACK_HANDOFF.md`](../../VILLAGER_FIGHTBACK_HANDOFF.md).
@@ -49,8 +54,9 @@ Three cooperating pieces — behavior swap, quest arbitration, and combat-timer 
 ## Config (`[VillagerFightBack]`, `com.askamods.villagerfightback.cfg`)
 
 - `Enabled` (`true`) — master switch (false = vanilla flee).
-- `FightBackAgainst` (`"Wisp"`) — comma-separated enemy NAME substrings (case-insensitive, vs the
-  attacker's display name). Empty = fight nobody.
+- `FightBackAgainst` (`"Wisp"`) — comma-separated enemy NAME substrings (case-insensitive). Matched
+  against BOTH the attacker's translated display name AND its locale-invariant creature asset name
+  (`CreatureDataSheet.name`), so a token works in every game language. Empty = fight nobody.
 - `FightBackFactions` (`""`) — optional coarser faction list (Critters, Danger, Undead, Vikings,
   Neutral, Structures, Ignore). Note Undead includes draugar — usually leave empty and use names.
 - `CombatTopUpSeconds` (`8.0`) — combat kept active this long after the last attack; ends
@@ -60,6 +66,19 @@ Three cooperating pieces — behavior swap, quest arbitration, and combat-timer 
 - `TimerDiagnostics` (`false` since v1.0.30 — shipped) — logs re-arm clamps, end-of-combat
   zero-out, and a short post-combat quest watch; flip on if a villager ever gets stuck in combat
   (the log names the quest holding her).
+
+## Locale-invariant name matching (v1.0.31)
+
+`Plugin.IsWhitelisted(IAttackTarget)` is the single chokepoint every patch routes through. It
+matches each `FightBackAgainst` token against two names: the translated `IAttackTarget.GetTargetName()`
+(as before) and the invariant `Creature.dataSheet.name`. Reaching the datasheet from an
+`IAttackTarget`: `TryCast<Creature>()` does NOT compile (`Creature`'s base chain runs through the
+stripped unity-libs stub — the universal "no TryCast on a UnityEngine.Object type" gotcha), so
+`Plugin.InvariantCreatureName` walks the native class chain (`il2cpp_object_get_class` →
+`il2cpp_class_get_parent`, matching class name `"Creature"`, depth-bounded) and rewraps
+`new Creature(b.Pointer)` — the TaskUnlocker/SupplyChain ancestor-walk pattern. Non-creature targets
+(players/structures) return null and fall back to display-name matching. The `DebugLogging` spook
+line prints both names + faction, so the language-proof token is visible in the log.
 
 ## Verified in-game findings (2026-06-27)
 
@@ -82,3 +101,8 @@ Three cooperating pieces — behavior swap, quest arbitration, and combat-timer 
   frame-gate) — patch cost fell ~75%, confirmed in-game.
 - **v1.0.30** (2026-07-12): `TimerDiagnostics` default flipped to false (shipped; the v1.0.27
   verification it defaulted on for is long done).
+- **v1.0.31** (2026-07-24): `FightBackAgainst` matches the locale-invariant creature asset name
+  (`Creature.dataSheet.name`) alongside the translated display name, fixing non-English games where
+  the whitelist matched nothing (Nexus report: German miners fleeing mine crawlers). Discovery log
+  prints both names. Confirmed in-game in a German session (2026-07-24): crawlers respawned via
+  DenRespawn, two miners stood and fought them with `Crawler` in the whitelist.
