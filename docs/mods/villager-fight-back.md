@@ -82,6 +82,9 @@ line prints both names + faction, so the language-proof token is visible in the 
 
 ## Verified in-game findings (2026-06-27)
 
+0. **Mine crawler** (confirmed 2026-07-24): faction `Critters`, asset name contains `Crawler`.
+   `Crawler` in `FightBackAgainst` makes miners fight them; verified in a German session.
+
 1. **Wisp:** `IAttackTarget.GetTargetName() == "Wisp"`, faction `Undead`. Whitelisting "Wisp"
    targets them precisely without affecting draugar (also `Undead`).
 2. Standard villagers on `naturalCombatBehaviour` swing weapons/fists and successfully kill Wisps.
