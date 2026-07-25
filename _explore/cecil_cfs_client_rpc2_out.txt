@@ -1,0 +1,516 @@
+﻿loaded 37037 types
+
+=========== A. EVERY Rpc_* method on a game type (the whole callable RPC surface) ===========
+    filtered to ones whose name or parameters mention item/storage/container/inventory
+  SSSGame.CaveResourceStorage
+      Rpc_LinkWorkstationToCaveEntrance(Int32 caveId) : Void
+  SSSGame.Combat.SpellsManager
+      Rpc_SpellCast(WorldTileId worldTileID, WorldItemInstanceId instanceID, Int32 spellIdx, Int32 castID) : Void
+  SSSGame.Network.NetworkDyerState
+      Rpc_SetItem(Int32 itemId) : Void
+  SSSGame.Network.NetworkExtendedInventory
+      Rpc_RequestCreateNetworkItem(Item networkItem, Byte itemPosition) : Void
+  SSSGame.Network.NetworkExtendedInventory
+      Rpc_RequestChangeNetworkItemIntegrities(Byte itemPosition, Int32 propertyID, Byte networkAttributeValue) : Void
+  SSSGame.Network.NetworkHittable
+      Rpc_Hit(NetworkRunner runner, PlayerRef _, ItemHitInfo hitInfo) : Void
+  SSSGame.Network.NetworkInventory`1
+      Rpc_RequestCreateNetworkItem(ItemType networkItem, Byte itemPosition) : Void
+  SSSGame.Network.NetworkInventory`1
+      Rpc_MoveNetworkItem(Byte itemPosition, Byte newItemPosition) : Void
+  SSSGame.Network.NetworkInventory`1
+      Rpc_SwapNetworkItems(Byte firstItemPosition, Byte secondItemPosition) : Void
+  SSSGame.Network.NetworkItemCount
+      Rpc_ChangeCount(Int32 newCount) : Void
+  SSSGame.Network.NetworkItemCount
+      Rpc_AddCount(Int32 addCount, Int32 min, Int32 max) : Void
+  SSSGame.Network.NetworkItemCountItemStorage
+      Rpc_ChangeNetworkItemCount(Byte itemCount) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendRequest(NetworkRunner runner, PlayerRef _, Request request, ItemObjectIdentity interactableID, PlayerRef source) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendRequest(NetworkRunner runner, PlayerRef _, Request request, ItemObjectIdentity interactableID, Int16 maxItemCount, Int32 proxyInteractionID, PlayerRef source) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendResponse(NetworkRunner runner, PlayerRef _, Response response, ItemObjectIdentity interactableID) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendResponse(NetworkRunner runner, PlayerRef _, Response response, ItemObjectIdentity interactableID, Il2CppStructArray`1 additionalInteractables) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_AddProgress(NetworkRunner runner, PlayerRef _, ItemObjectIdentity interactableID, Int32 sessionID, PlayerRef source) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendOrder(NetworkRunner runner, PlayerRef _, ItemObjectIdentity interactableID, Int32 sessionID, PlayerRef source) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendOrdersModification(NetworkRunner runner, PlayerRef _, ItemObjectIdentity interactableID, Int32 sessionID, OrderModification operation) : Void
+  SSSGame.Network.NetworkItemInteractable
+      Rpc_SendOrdersAbort(NetworkRunner runner, PlayerRef _, ItemObjectIdentity interactableID, Int32 sessionID, PlayerRef source) : Void
+  SSSGame.Network.NetworkItemStorage
+      Rpc_ChangeNetworkItemCount(Byte itemPosition, Byte newCount) : Void
+  SSSGame.Network.NetworkItemStorage
+      Rpc_DestroyNetworkItem(Byte itemPosition) : Void
+  SSSGame.Network.NetworkNoAttributeInventory
+      Rpc_RequestCreateNetworkItem(Item networkItem, Byte itemPosition) : Void
+  SSSGame.Network.NetworkPreviewAddonsContainer
+      Rpc_AddPreview(PlayerRef previewOwner) : Void
+  SSSGame.Network.NetworkPreviewAddonsContainer
+      Rpc_RemovePreview(PlayerRef previewOwner) : Void
+  SSSGame.Network.NetworkSpecificInventory
+      Rpc_RequestCreateNetworkItem(Item networkItem, Byte itemPosition) : Void
+  SSSGame.Network.NetworkSpecificNoAttributeItemStorage
+      Rpc_RequestCreateNetworkItem(Byte itemPosition) : Void
+  SSSGame.Network.NetworkSpecificNoAttributeItemStorage
+      Rpc_MoveNetworkItem(Byte itemPosition, Byte newItemPosition) : Void
+  SSSGame.Network.NetworkStandardInventory
+      Rpc_RequestCreateNetworkItem(Item networkItem, Byte itemPosition) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_RequestAddInventoryItemInstance(Il2CppStructArray`1 bytes) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_RequestUpdateWorldItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_RequestDestroyItemInstance(WorldTileId worldTileId, WorldItemInstanceId instanceId) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_UpdateBiomeItemDescriptor(Int16 setIndex, Int16 packageIndex, Int32 itemIndex, Boolean available) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_AddInventoryItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_UpdateInventoryItemInstanceItemOnly(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  SSSGame.Network.NetworkWorldDataManager
+      Rpc_RemoveWorldItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  SSSGame.Pet
+      Rpc_FeedPetItem(Int32 itemId, Il2CppStructArray`1 bytes) : Void
+  SSSGame.ResourceStorage
+      Rpc_ChangeWhitelistAllState(Boolean whitelistAll) : Void
+  SSSGame.ResourceStorage
+      Rpc_ChangeWhitelistedVillager(Int32 id, Boolean state) : Void
+  SSSGame.ResourceStorage
+      Rpc_RequestWhitelistData(PlayerRef player) : Void
+  SSSGame.ResourceStorage
+      Rpc_ReceiveWhitelistData(PlayerRef target, Il2CppStructArray`1 bytes) : Void
+  41 item/storage-related Rpc_ methods
+
+=========== B. Full surface of the real networked-storage + interaction types ===========
+
+  ### SSSGame.Network.NetworkItemStorage   base=SSSGame.Network.NetworkComponent
+        _BindToBuildSite() : Void
+        _BindToContainerEvents() : Void
+        _BindToInventoryEvents() : Void
+        _BindToRepairPart() : Void
+        _ChangeItemCount(Item item, Byte newCount) : Void
+        _ChangeNetworkItemCount(Item item) : Void
+        _ChangeNetworkItemCount(Int32 itemPosition, Int32 itemCount) : Void
+        _ClearAllNetworkItems() : Void
+        _ClearNetworkItem(Int32 itemPosition) : Void
+        _CreateInitialNetworkItems() : Void
+        _CreateNetworkItem(Item item) : Void
+        _FindItem(Int32 itemPosition, Int32& itemIndex, Int32 startingIndex) : Item
+        _GetInventoryComponentListIndex(ItemContainer container) : Int32
+        _HasCount(Item item, ItemContainer container) : Boolean
+        _IsItemOfSimpleContainer(Item item, ContainerItem& containerItem) : Boolean
+        _IsSimpleContainer(Item item, ContainerItem& containerItem) : Boolean
+        _MoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _OnBuildSiteLayerActivated(BuildLayer layer) : Void
+        _OnDynamicContainerItemAdded(Item item) : Void
+        _OnDynamicContainerItemCountChanged(Item item) : Void
+        _ProxyBindToContainerEvents() : Void
+        _ProxyOverwriteInventory() : Void
+        _ProxyUnbindFromContainerEvents() : Void
+        _RequestChangeNetworkItemCount(Item item) : Void
+        _RequestCreateNetworkItem(Item item) : Void
+        _RequestMoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _RequestSwapNetworkItems(Item first, Item second) : Void
+        _SwapNetworkItems(Item first, Item second) : Void
+        _TryGetPosition(Item item, Int32& position) : Boolean
+        _UnbindFromContainerEvents() : Void
+        _UnbindFromInventoryEvents() : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+        Despawned(NetworkRunner runner, Boolean hasState) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        OnProxyObjectsLinked(NetworkLink previous, NetworkLink parent) : Void
+     >> Rpc_ChangeNetworkItemCount(Byte itemPosition, Byte newCount) : Void
+     >> Rpc_DestroyNetworkItem(Byte itemPosition) : Void
+        Spawned() : Void
+
+  ### SSSGame.Network.NetworkItemCountItemStorage   base=SSSGame.Network.NetworkItemStorage
+        _ChangeNetworkItemCount(Item item) : Void
+        _ChangeNetworkItemCount(Int32 itemPosition, Int32 itemCount) : Void
+        _ClearAllNetworkItems() : Void
+        _ClearNetworkItem(Int32 position) : Void
+        _CreateNetworkItem(Item item) : Void
+        _HaveAsManyItemsAs(Int32 itemCount) : Void
+        _IsValidPosition(Item item, Int32& itemPosition) : Boolean
+        _MoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _OnProxyItemCountChanged(Changed`1 changed) : Void
+        _ProxyOverwriteInventory() : Void
+        _ProxyRefreshInventory() : Void
+        _RequestChangeNetworkItemCount(Item item) : Void
+        _RequestCreateNetworkItem(Item item) : Void
+        _RequestMoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _RequestSwapNetworkItems(Item first, Item second) : Void
+        _SwapNetworkItems(Item first, Item second) : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+     >> Rpc_ChangeNetworkItemCount(Byte itemCount) : Void
+
+  ### SSSGame.Network.NetworkSpecificNoAttributeItemStorage   base=SSSGame.Network.NetworkItemStorage
+        _ChangeNetworkItemCount(Item item) : Void
+        _ChangeNetworkItemCount(Int32 itemPosition, Int32 itemCount) : Void
+        _ClearAllNetworkItems() : Void
+        _ClearNetworkItem(Int32 position) : Void
+        _CreateItem(Int32 itemPosition) : Void
+        _CreateNetworkItem(Item item) : Void
+        _IsValidPosition(Item item, Int32& itemPosition) : Boolean
+        _MoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _OnProxyItemsChanged(Changed`1 changed) : Void
+        _ProxyOverwriteInventory() : Void
+        _ProxyRefreshInventory() : Void
+        _RequestChangeNetworkItemCount(Item item) : Void
+        _RequestCreateNetworkItem(Item item) : Void
+        _RequestMoveNetworkItem(ItemCollection inventory, Item item, Int32 newPosition, ItemEventContext context) : Void
+        _RequestSwapNetworkItems(Item first, Item second) : Void
+        _SwapNetworkItems(Item first, Item second) : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+     >> Rpc_MoveNetworkItem(Byte itemPosition, Byte newItemPosition) : Void
+     >> Rpc_RequestCreateNetworkItem(Byte itemPosition) : Void
+
+  ### SSSGame.Network.NetworkComponent   base=Fusion.NetworkBehaviour
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+
+  ### SSSGame.StorageInteraction   base=SSSGame.Interaction
+        _container_OnItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+        _container_OnItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+        _OnFinishSession(InteractionSession s, InteractionSessionState reason) : Void
+        _OnStartSession(InteractionSession session) : Void
+        Awake() : Void
+        Check(ItemInfo itemInfo) : Boolean
+        GetContainerComponent() : ItemContainerComponent
+        GetInteractionArea() : IInteractionArea
+        OnDisable() : Void
+        OnWorldInstanceDataChanged(WorldItemInstance instance) : Void
+        SetWorldInstance(WorldItemInstance instance) : Void
+
+  ### SSSGame.StorageInteractionSession   base=SSSGame.InteractionSession
+        _OnItemTransferComplete(Boolean result) : Void
+        _StorageInteraction_OnItemAdded(Item item, Int32 count) : Void
+        _StorageInteraction_OnItemRemoved(Item item, Int32 count) : Void
+        End(InteractionSessionState lastResult) : Void
+        ExecuteTransfer() : Boolean
+        ResetSession() : Void
+        Start() : Void
+
+  ### SSSGame.PlayerStorageInteractionSession   base=SSSGame.StorageInteractionSession
+        _ActivationInteraction_OnBecomeFull(Boolean isFull) : Void
+        _BeginAction_b__23_0() : Void
+        _FindItemToDepositPredicate(Item item) : Boolean
+        _GetKeeperManifest() : ItemManifest
+        _Inv_OnItemChanged(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+        _OnItemTransferComplete(Boolean result) : Void
+        _StorageInteraction_OnChange(Item arg1, Int32 arg2) : Void
+        _StorageInteraction_OnManifestChange() : Void
+        BeginAction() : Void
+        ClearWidget(IInteractionWidgetProvider interactWidget) : Void
+        End(InteractionSessionState lastResult) : Void
+        InteractWithStorage(CallbackContext obj) : Void
+        OnEnd(Boolean obj) : Void
+        OpenMilitiaPage(CallbackContext obj) : Void
+        OpenStructurePage(CallbackContext obj) : Void
+        RefreshWidgetData(IInteractionWidgetProvider interactWidget) : Void
+        ResetSession() : Void
+        SetupWidget(IInteractionWidgetProvider interactWidget) : Void
+        Start() : Void
+        Touch() : Void
+        Untouch() : Void
+        Update() : Void
+        VillagerAbortTask(CallbackContext obj) : Void
+        VillagerInteractWithStorage(CallbackContext obj) : Void
+
+  ### SandSailorStudio.Inventory.MoveItemToContainerOperation   base=SandSailorStudio.Inventory.ItemOperation
+        Apply() : Item
+        GetTargetContainer() : ItemContainer
+
+  ### SandSailorStudio.Inventory.ItemContainer   base=Il2CppSystem.Object
+        _SortItemsList() : Void
+        _ValidateItemsList() : Boolean
+        AddItem(Item item, Int32 quantity, Int32 forcePosition, ItemEventContext context) : Boolean
+        AddItemFromDeserialization(Item item) : Void
+        AddItems(ItemInfo info, Int32 count) : Int32
+        AddItems(Item item, Int32 count) : Int32
+        CanStoreItemType(ItemInfo info) : Boolean
+        ChangeItemAttribute(Item item, Int32& attributeId) : Void
+        ChangeItemPosition(Item item, Int32 position) : Void
+        Check(ItemInfo itemInfo) : Boolean
+        Clone() : ItemContainer
+        Deserialize(DataObject source) : Boolean
+        DropAllItems(Vector3 pos, Quaternion rot, Transform parent) : Void
+        DropItem(Item item, Int32 count, Vector3 position, Quaternion rotation, Transform parent) : Void
+        FillItemInfoList(List`1 items) : Void
+        FillManifest(ItemManifest manifest) : Void
+        FindItem(IItemFilter itemFilter) : Item
+        FindItem(Func`2 p) : Item
+        GetAcceptedItemTypes() : List`1
+        GetAllUsedSlotsCount() : Int32
+        GetEmptySlots() : Int32
+        GetFillRatio() : Single
+        GetItem(Int32 id) : Item
+        GetItemCount(Func`2 predicate) : Int32
+        GetItemCount() : Int32
+        GetItemCount(ItemInfo itemInfo) : Int32
+        GetItemCount(IItemFilter itemFilter, Boolean checkStackSizes) : Int32
+        GetItems() : IReadOnlyList`1
+        GetItemsToList(List`1 items, Func`2 predicate) : Int32
+        GetItemsToList(List`1 items, IItemFilter itemFilter) : Int32
+        GetItemsToList(List`1 items) : Int32
+        GetRemainingCapacity(ItemInfo itemInfo) : Int32
+        GetRemainingSlotFillCapacity(ItemInfo itemInfo) : Int32
+        GetStackSize(ItemInfo itemInfo) : Int32
+        GetUsedSlotsCount(ItemInfo itemInfo) : Int32
+        HasItem(IItemFilter itemFilter) : Boolean
+        HasItemSurplus(IItemFilter itemFilter) : Boolean
+        HasSpace(ItemInfo itemInfo, Int32 quantity) : Boolean
+        IsBagInABag() : Boolean
+        IsEmpty() : Boolean
+        IsFull(Boolean checkFullStacks) : Boolean
+        MergeItem(Item item, Int32 quantity, Item destination) : Int32
+        MoveItem(Item item, Int32 quantity, Int32 newPosition) : Int32
+        ProcessItems(Action`1 p) : Void
+        ReadSnapshot(BinaryReader reader) : Void
+        RemoveAllItems(IItemFilter itemFilter, ItemEventContext context) : Void
+        RemoveItem(Item item, Int32 quantity, ItemEventContext context) : Boolean
+        Serialize(DataObject destination) : DataObject
+        Setup() : Void
+        SwapItems(Item first, Item second) : Void
+        TryGetRepresentativeColor(Color& color) : Boolean
+        UnregisterAllItems() : Void
+        WriteSnapshot(BinaryWriter writer) : Void
+
+=========== C. NetworkWorldDataManager - full surface (has RequestAddInventoryItemInstance) ===========
+        __WaitForClientWorldGen_b__49_0() : Boolean
+        _ApplyQueuedTileChanges(WorldTileData tile) : Void
+        _ApplyReceivedTileData(BinaryReader reader, WorldTileId worldTileId, MessageCompletionToken completionToken) : IEnumerator
+        _DisplayBiomeDiscoveredNotification(MarkerInfo markerInfo, PlayerCharacter discoverer, Boolean caveVersion, Boolean hostile) : Void
+        _DisplayInvasionDiscoveredNotification(Int32 invasionId, PlayerCharacter discoverer) : Void
+        _DisplayTrapTriggeredNotification(ItemInfo trapInfo) : Void
+        _HandlePendingBiomeAreaChanges() : Void
+        _HandlePendingCaveChanges() : Void
+        _HandlePendingDescriptorChanges() : Void
+        _HasStartedReceivingTile(WorldTileId& tileId) : Boolean
+        _ReceiveAddedInventoryItemInstance(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveBiomeAreaData(WorldTileData tile, BinaryReader reader) : IEnumerator
+        _ReceiveBiomeAreaInstanceChange(Int32 areaID, Il2CppStructArray`1 payload, Boolean runtime) : Void
+        _ReceiveBiomeCellData(WorldDataCell cell, Boolean cellIsOfInterest, BinaryReader reader) : Void
+        _ReceiveBiomeItemDescriptorChange(VegetationItemIndexes vegeId, Boolean available) : Void
+        _ReceiveBiomeTileData(WorldTileData tile, BinaryReader reader) : Void
+        _ReceiveCaveDigStateChange(Int32 caveId, Int32 caveNodeId, Il2CppStructArray`1 bytes) : Void
+        _ReceiveCaveExplorationChange(Int32 caveId, Boolean explored, Boolean runtime) : Void
+        _ReceiveCaveNodeOpenChange(Int32 caveId, Int32 caveNodeId, Boolean openedState) : Void
+        _ReceiveChangedFishCount(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveChangedFishingGroundSize(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveDataBlock(BinaryReader reader, WorldTileData tile, WorldDataCell cell, Action block) : Void
+        _ReceiveDisabledFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveDiscoveredFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveExplorationData(BinaryReader reader) : Void
+        _ReceiveHeightmapData(WorldTileData tile, BinaryReader reader, List`1 cells) : IEnumerator
+        _ReceiveInventoryCellData(WorldDataCell cell, Boolean cellIsOfInterest, BinaryReader reader) : Void
+        _ReceiveItemData(WorldTileData tile, BinaryReader reader, List`1 cells) : Void
+        _ReceiveMarkedFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveNavmeshData(WorldTileData tile, BinaryReader reader) : Void
+        _ReceiveRemovedWorldItemInstance(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveTerraformingData(WorldTileData tile, BinaryReader reader, List`1 cells) : Void
+        _ReceiveTerrainToolData(BinaryReader reader, MessageCompletionToken completionToken) : Void
+        _ReceiveTile(BinaryReader reader, MessageCompletionToken completionToken) : Void
+        _ReceiveTileChange(WorldTileId worldTileId, Il2CppStructArray`1 payload, Action`2 processor, Boolean isCompressed) : Void
+        _ReceiveUpdatedItemInstanceItem(WorldTileId worldTileId, BinaryReader reader) : Void
+        _ReceiveUpdatedWorldItemInstance(WorldTileId worldTileId, BinaryReader reader) : Void
+        _SendBiomeAreaData(WorldTileData tile, BinaryWriter writer) : Void
+        _SendBiomeTileData(WorldTileData tile, BinaryWriter writer) : Void
+        _SendCellItemData(WorldDataCell cell, BinaryWriter writer) : Void
+        _SendCellsData(WorldTileData tile, BinaryWriter writer) : Void
+        _SendDataBlock(BinaryWriter writer, Action block) : Void
+        _SendExplorationData(BinaryWriter writer) : Void
+        _SendHeightMapData(BinaryWriter writer, List`1 cells) : Void
+        _SendItemData(WorldTileData tile, BinaryWriter writer, List`1 cells) : Void
+        _SendTerraformingData(WorldTileData tile, BinaryWriter writer, List`1 cells) : Void
+        _SendTerrainToolData(BinaryWriter writer) : Void
+        _SendTile(BinaryWriter writer) : Void
+        _SendTileWhenAvailable(WorldTileId worldTileId, PlayerRef source) : IEnumerator
+        _SendWorldItemInstance(WorldItemInstance worldItemInstance, BinaryWriter writer) : Void
+        _TryAddRequestedTile(WorldTileId& tileId) : Boolean
+        _TryGetFishingGround(Int32 id, FishingGround& fishingGround) : Boolean
+        _WaitForClientWorldGen() : IEnumerator
+        AddInventoryItemInstance(InventoryItemInstance inventoryItemInstance, UInt32 predictedSpawnUniqueID, Byte owner) : Void
+        AddStage(WorldTileData tile, TileStage stage) : Void
+        Awake() : Void
+        ChangeFishCount(Int32 fishingGroundID) : Void
+        ChangeFishingGroundSize(Int32 fishingGroundID) : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+        DisableFishingGround(Int32 fishingGroundID) : Void
+        DiscoverFishingGround(Int32 fishingGroundID) : Void
+        DoAfterTileStageReached(WorldTileData tile, TileStage stage, Action onFinish) : IEnumerator
+        ExploreCave(Int32 caveId, Boolean explored) : Void
+        MarkFishingGround(Int32 fishingGroundID) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_10(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_11(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_12(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_13(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_14(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_15(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_16(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_17(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_18(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_19(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_20(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_21(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_22(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_23(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_24(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_25(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_26(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_4(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_5(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_6(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_7(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_8(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_9(NetworkBehaviour behaviour, SimulationMessage* message) : Void
+        NotifyNavmeshDataBuilt(WorldTileId tileId) : Void
+        OnDestroy() : Void
+        OnGameStateReset() : Void
+        OpenCave(Int32 caveId, Int32 caveNodeId, Boolean openedState) : Void
+        PropagateTerrainToolOperation(TerrainToolData data) : Void
+        ReadWorldData(BinaryReader reader) : Void
+        ReadWorldGeneratorData(BinaryReader reader) : Void
+        RemoveWorldItemInstance(WorldItemInstance instance) : Void
+     >> RequestAddInventoryItemInstance(InventoryItemInstance instance) : Void
+     >> RequestDestroyItemInstance(WorldTileId& worldTileId, WorldItemInstanceId& instanceId) : Void
+     >> RequestDiscoverFishingGround(Int32 fishingGroundID) : Void
+     >> RequestMarkFishinGround(Int32 fishingGroundID, Boolean marked) : Void
+     >> RequestRemoveFishFromFishinGround(Int32 fishingGroundID) : Void
+     >> RequestTile(WorldTileId& tileId) : Void
+     >> RequestTileGeneration(WorldTileId& tileId) : Void
+     >> RequestUpdateWorldItemInstance(WorldItemInstance worldItemInstance) : Void
+     >> Rpc_AddInventoryItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_ChangeFishCount(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_ChangeFishingGroundSize(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_DisableFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_DiscoverFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_MarkFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_NotifyNavmeshDataBuilt(WorldTileId tileID) : Void
+     >> Rpc_RemoveWorldItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_RequestAddInventoryItemInstance(Il2CppStructArray`1 bytes) : Void
+     >> Rpc_RequestDestroyItemInstance(WorldTileId worldTileId, WorldItemInstanceId instanceId) : Void
+     >> Rpc_RequestDiscoverFishinGround(Int32 fishingGroundID) : Void
+     >> Rpc_RequestMarkFishinGround(Int32 fishingGroundID, NetworkBool marked) : Void
+     >> Rpc_RequestOpenCaveNode(Int32 caveId, Int32 nodeId, Boolean state) : Void
+     >> Rpc_RequestRemoveFishFromFishinGround(Int32 fishingGroundID) : Void
+     >> Rpc_RequestTile(WorldTileId worldTileId, PlayerRef source) : Void
+     >> Rpc_RequestUpdateWorldItemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_SendBiomeDiscoveredNotification(UInt16 trapInfoId, NetworkId playerNetId, Boolean caveVersion, Boolean hostile) : Void
+     >> Rpc_SendInvasionDiscoveredNotification(Int32 invasionId, NetworkId playerNetId) : Void
+     >> Rpc_SendTrapTriggeredNotification(UInt16 trapInfoId) : Void
+     >> Rpc_TileGenerateRequest(PlayerRef sender, WorldTileId worldTileId) : Void
+     >> Rpc_UpdateBiomeAreaInstance(Int32 areaID, Il2CppStructArray`1 payload) : Void
+     >> Rpc_UpdateBiomeItemDescriptor(Int16 setIndex, Int16 packageIndex, Int32 itemIndex, Boolean available) : Void
+     >> Rpc_UpdateCaveExploration(Int32 caveId, Boolean explored) : Void
+     >> Rpc_UpdateCaveNodeOpenState(Int32 caveId, Int32 caveNodeId, Boolean openedState) : Void
+     >> Rpc_UpdateCaveWallDigState(Int32 caveId, Int32 caveNodeId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_UpdateInventoryItemInstanceItemOnly(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+     >> Rpc_UpdateWorldtemInstance(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+        SendBiomeDiscoveredNotification(MarkerInfo markerInfo, PlayerCharacter playerCharacter, Boolean caveVersion, Boolean hostile) : Void
+        SendInvasionDiscoveredNotification(Int32 invasionId, PlayerCharacter playerCharacter) : Void
+        SendTrapTriggeredNotification(ItemInfo trapInfo) : Void
+        Start() : Void
+        UpdateBiomeAreaInstance(AreaInstance areaInstance, Boolean justDiscovered) : Void
+        UpdateBiomeItemDescriptor(BiomeItemDescriptor biomeItemDescriptor) : Void
+        UpdateCaveWallDigState(Int32& caveId, Int32& caveNodeId, DigData digData) : Void
+        UpdateInventoryItemInstanceItemOnly(InventoryItemInstance inventoryItemInstance) : Void
+        UpdateWorldItemInstance(WorldItemInstance worldItemInstance) : Void
+        WaitUntilTileStageReached(WorldTileData tile, TileStage stage) : IEnumerator
+        WriteJoinData(BinaryWriter writer) : Void
+
+=========== D. Authority helpers: what does the game itself test before a storage write? ===========
+    (members named HasAuthority/HasStateAuthority/IsServer/IsHost on game types)
+  SandSailorStudio.Inventory.EquipmentManager._IgnoreAuthority_k__BackingField : Boolean
+  SandSailorStudio.Inventory.EquipmentManager._authority : NetworkObject
+  SandSailorStudio.Inventory.EquipmentManager.IgnoreAuthority : Boolean
+  SandSailorStudio.Inventory.Item.hasAuthority : Boolean
+  SandSailorStudio.Inventory.ItemProcess.NeedsStateAuthority : Boolean
+  SandSailorStudio.Network.NetworkChangeMask._IsMaster : Boolean
+  SSSGame.ActivateContextProcess.NeedsStateAuthority : Boolean
+  SSSGame.BiomeProceduralDataHandler.IsMaster : Boolean
+  SSSGame.Character.authority : PlayerRef
+  SSSGame.Character.hasAuthority : Boolean
+  SSSGame.CharacterSurvival._hasAuthority : Boolean
+  SSSGame.Combat.AOESpell._isMaster : Boolean
+  SSSGame.Combat.AOESpell.IsMaster : Boolean
+  SSSGame.Combat.DamageNumbersHelper._authority : NetworkCachedAuthority
+  SSSGame.Combat.DiggingMeleeObject._hasAuthority : Boolean
+  SSSGame.Combat.ForestryCellProcess.NeedsStateAuthority : Boolean
+  SSSGame.Combat.IDamageDealer.HasAuthority : Boolean
+  SSSGame.Combat.MeleeManager.HasAuthority : Boolean
+  SSSGame.Combat.PlayerMeleeManager._cachedAuthority : NetworkCachedAuthority
+  SSSGame.Combat.PlayerMeleeManager.HasAuthority : Boolean
+  SSSGame.Combat.PopulationSpawner._isHostile : Boolean
+  SSSGame.Combat.PopulationSpawner.shouldUpdateIsHostile : Boolean
+  SSSGame.Combat.PopulationSpawner.isHostile : Boolean
+  SSSGame.Combat.ProjectileTargetHelper._hasAuthority : Boolean
+  SSSGame.Combat.RangedManager.authority : PlayerRef
+  SSSGame.Combat.RangedManager.hasAuthority : Boolean
+  SSSGame.Combat.RangedManager/Turret.HasAuthority : Boolean
+  SSSGame.Combat.SaplingGrowthProcess.NeedsStateAuthority : Boolean
+  SSSGame.Combat.SpellsManager.HasAuthority : Boolean
+  SSSGame.Combat.StoneGolemBoss/__c__DisplayClass68_0.isMaster : Boolean
+  SSSGame.Combat.StructureDamageDealer.HasAuthority : Boolean
+  SSSGame.ContainerItemObject.containerEventsAuthority : ContainerEvents
+  SSSGame.Controllers.CharacterMovement.authority : NetworkCachedAuthority
+  SSSGame.Creature.HasAuthority : Boolean
+  SSSGame.Creature.Authority : PlayerRef
+  SSSGame.DangerPingSource._isMasterCache : Boolean
+  SSSGame.HostileVikingSettlement._isMaster : Boolean
+  SSSGame.IInstanceDataHandler.IsMaster : Boolean
+  SSSGame.IInteractionAgent.HasAuthority : Boolean
+  SSSGame.IInteractionAgent.Authority : PlayerRef
+  SSSGame.InventoryItemDataHandler.IsMaster : Boolean
+  SSSGame.ItemDurablilityProcess.NeedsStateAuthority : Boolean
+  SSSGame.ItemSpawner.checkStateAuthority : Boolean
+  SSSGame.Network.AnimationDrivenFakingProcessor._hasAuthority : Boolean
+  SSSGame.Network.NetworkAnimator._hasAuthority : Boolean
+  SSSGame.Network.NetworkAnimator._authority : PlayerRef
+  SSSGame.Network.NetworkAttributes._hasAuthority : Boolean
+  SSSGame.Network.NetworkCachedAuthority.hasAuthority : Boolean
+  SSSGame.Network.NetworkCachedAuthority.authority : PlayerRef
+  SSSGame.Network.NetworkCuller._hasAuthority : Boolean
+  SSSGame.Network.NetworkDynamicDimensionBuildingState.hasAuthority : Boolean
+  SSSGame.Network.NetworkHittable.authority : INetworkIdentity
+  SSSGame.Network.NetworkItemStorage._hasAuthority : Boolean
+  SSSGame.Network.NetworkKnowledgeManager._isMaster : Boolean
+  SSSGame.Network.NetworkLink._hasAuthority : Boolean
+  SSSGame.Network.NetworkMatchTarget._hasAuthority : Boolean
+  SSSGame.Network.NetworkMover`1._hasAuthority : Boolean
+  SSSGame.Network.NetworkMoverController._hasAuthority : Boolean
+  SSSGame.Network.NetworkOnMovingPlatform._hasAuthority : Boolean
+  SSSGame.Network.NetworkRigidbodyConstraints._hasAuthority : Boolean
+  SSSGame.Network.NetworkSession.isMaster : Boolean
+  SSSGame.Network.NetworkSession.IsServerOwnedSession : Boolean
+  SSSGame.Network.PlayerWaypoint.hasAuthority : Boolean
+  SSSGame.Network.PlayerWaypoint.authority : PlayerRef
+  SSSGame.PathfindingCellContainer._isHostile_k__BackingField : Boolean
+  SSSGame.PathfindingCellContainer.isHostile : Boolean
+  SSSGame.Pet.IsHostile : Boolean
+  SSSGame.PlayerBuilder_NewController._authority : NetworkCachedAuthority
+  SSSGame.PlayerInteractionAgent.authority : NetworkCachedAuthority
+  SSSGame.PlayerInteractionAgent.HasAuthority : Boolean
+  SSSGame.PlayerParty._hasAuthority : Boolean
+  SSSGame.PlayerParty._authority : PlayerRef
+  SSSGame.Preview.hasAuthority : Boolean
+  SSSGame.StatusEffectManager.hasAuthority : Boolean
+  SSSGame.TrackTarget._isMasterCache : Boolean
+  SSSGame.UI.BombStateIndicator._isMasterCache : Boolean
+  SSSGame.Weather.WeatherStation.authorityEvents : Events

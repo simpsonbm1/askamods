@@ -1053,6 +1053,34 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
 Confirmed via interop dump 2026-06-21 while scoping a (cancelled) fisher-bait mod. None of this is
 mod-specific — reuse it for any storage / crafting / needs idea.
 
+### Networked inventory: the client→host request convention (Cecil 2026-07-25)
+Any mod that writes settlement-container state from a NON-HOST client needs this. The networked
+inventory family (`SSSGame.Network.NetworkItemStorage` and its subclasses
+`NetworkItemCountItemStorage` / `NetworkSpecificNoAttributeItemStorage`, plus `NetworkInventory<T>`,
+`NetworkExtendedInventory`, `NetworkStandardInventory`, `NetworkWorldDataManager`) uses a **three-tier
+naming convention** that says which direction a call travels:
+
+| Shape | Example | Direction |
+|---|---|---|
+| `_Request*` (private helper) | `NetworkItemStorage._RequestCreateNetworkItem(Item)` | "I may not be the authority — route it" |
+| `Rpc_Request*` (public RPC) | `NetworkExtendedInventory.Rpc_RequestCreateNetworkItem(Item, Byte)`, `NetworkWorldDataManager.Rpc_RequestAddInventoryItemInstance(byte[])` | client → host |
+| `Rpc_*` without `Request` | `NetworkItemStorage.Rpc_ChangeNetworkItemCount(Byte, Byte)`, `Rpc_DestroyNetworkItem(Byte)` | host → clients |
+
+The `_Request*` helpers on the base class are invoked from the game's own container-event bindings
+(`_BindToContainerEvents`, `_OnDynamicContainerItemAdded`, `_OnDynamicContainerItemCountChanged`),
+so a plain `ItemCollection` mutation on a client may already be routed to the host by the game
+itself. ⚠️ Pending: that routing has not been observed live, and whether a given `Rpc_Request*`
+actually accepts a client caller is NOT statically decidable — see the attribute dead-end below.
+The parallel precedent for a client-callable door is `NetworkItemInteractable.Rpc_SendRequest` /
+`Rpc_SendResponse`.
+
+**Dead-end — Fusion RPC attributes are NOT readable from the interop assemblies.** Il2CppInterop
+strips custom attributes, so `[Rpc(RpcSources.…, RpcTargets.…)]` is absent: a full sweep of all
+37,037 interop types found **zero** methods carrying any `Rpc`-named attribute. "Who is allowed to
+invoke this RPC" therefore cannot be decided with Cecil, only from the naming convention above plus
+a runtime probe. Don't re-run the attribute sweep. Enumeration scripts:
+`_explore/cecil_cfs_client_rpc.ps1` and `_explore/cecil_cfs_client_rpc2.ps1`.
+
 **Settlement-wide access & enumeration**
 ```
 SSSGame.SettlementManager (MonoBehaviour)

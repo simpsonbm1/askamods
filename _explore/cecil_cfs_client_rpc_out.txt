@@ -1,0 +1,904 @@
+﻿loaded 37037 types
+
+=========== 1. Which Rpc attribute types exist at all ===========
+  NONE FOUND - attributes may be stripped from the interop assemblies.
+
+=========== 2. Rpc-attributed methods mentioning item/container/storage ===========
+  0 matching Rpc methods
+
+=========== 3. Method surface of the types CFS writes to ===========
+  ### SandSailorStudio.Inventory.ItemCollection   base=Object
+      _AddItem(Item item, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+      _ContainerAddProcess(Item itm) : Void
+      _ContainerRemoveProcess(Item itm) : Void
+      _CreateAddItemRequest(Item item, Int32 quantity, ItemContainer container, Boolean includeHidden) : AddItemRequest
+      _ItemAdded(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+      _ItemRemoved(ItemCollection inventory, Item item, Int32 count, ItemEventContext context) : Void
+      AddContainer(ItemContainer container) : Void
+      AddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+      AddItems(ItemInfo itemInfo, Int32 count) : Int32
+      AddItems(Item item, Int32 count) : Int32
+      AddItems(Item item, Int32 quantity, ItemContainer container, List`1 addedItems) : Int32
+      ContainsItemManifest(ItemManifest itemManifest) : Int32
+      Deserialize(DataObject source) : Boolean
+      FillOwnedItemManifest(ItemManifest itemManifest, IItemFilter itemFilter) : Void
+      FindContainer(Int32 id) : ItemContainer
+      FindContainer(String& name) : ItemContainer
+      FindContainer(Func`2 predicate, Boolean includeHidden) : ItemContainer
+      FindContainer(ItemContainerType type, Boolean includeHidden) : ItemContainer
+      FindItemInContainers(Func`2 predicate, Boolean includeHidden) : Item
+      FindLargestMatchingContainer(ItemInfo infoToStore, Boolean includeHidden) : ItemContainer
+      GetAllItems() : List`1
+      GetAllItems(IItemFilter itemFilter) : List`1
+      GetAllItems() : List`1
+      GetCategoryItems(ItemCategoryInfo categoryInfo) : List`1
+      GetCategoryItemsCount(ItemCategoryInfo categoryInfo) : Int32
+      GetContainers() : IReadOnlyList`1
+      GetContainersFillRatio(Predicate`1 predicate) : Single
+      GetFirstItem(ItemInfo itemInfo) : T
+      GetFirstItem(Int32 id) : Item
+      GetFirstItem(Predicate`1 predicate) : Item
+      GetFirstItem(Int32 id) : T
+      GetFirstItem(IItemFilter filter) : Item
+      GetFirstItem(ItemInfo itemInfo) : Item
+      GetFlags() : InventoryFlags
+      GetFormalName() : String
+      GetFreeContainer(ItemInfo itemInfo, Boolean includeHidden) : ItemContainer
+      GetHighestTierOfCategory(ItemCategoryInfo categoryInfo) : Int32
+      GetItemInfos() : List`1
+      GetItemQuantity(ItemInfo itemInfo) : Int32
+      GetItems(ItemInfo itemInfo) : List`1
+      GetItems(IItemFilter itemFilter) : List`1
+      GetItemsList(IItemFilter itemFilter, List`1 itemList, Predicate`1 predicate) : Void
+      GetItemsList(ItemInfo itemInfo, List`1 itemList, Predicate`1 predicate) : Void
+      GetItemsList(List`1 itemList, Predicate`1 predicate) : Void
+      GetItemsQuantity(IItemFilter filter) : Int32
+      GetLastItem(Predicate`1 predicate) : Item
+      GetMatchingContainers(ItemInfo item, Boolean includeHidden) : List`1
+      GetMatchingContainers(ItemInfo item, List`1 containers, Boolean includeHidden) : Int32
+      GetMaximumStorageCapacity(ItemInfo itemInfo, Boolean includeHidden) : Int32
+      GetTotalItemsQuantity() : Int32
+      GetTotalRemainingCapacity(ItemInfo itemInfo, Boolean includeHidden) : Int32
+      GetTotalRemainingCapacity(ItemInfo itemInfo) : Int32
+      HasCategoryItems(ItemCategoryInfo categoryInfo) : Boolean
+      HasItem(IItemFilter itemFilter) : Boolean
+      HasItem(ItemInfo itemInfo) : Boolean
+      HasMatchingContainer(ItemInfo itemInfo, Boolean includeHidden) : Boolean
+      IsEmpty() : Boolean
+      IsPersistent() : Boolean
+      List() : Void
+      OverlapsItemManifest(ItemManifest itemManifest) : Boolean
+      RemoveAllItems(IItemFilter itemFilter, Boolean includeHidden) : Void
+      RemoveContainer(ItemContainer container) : Void
+      RemoveItems(Item item, Int32 quantity) : Int32
+      RemoveItems(ItemInfo itemInfo, Int32 quantity) : Int32
+      RemoveOwnedItemManifest(ItemManifest itemManifest) : Void
+      RemovePercentageOfEveryItem(Single percentage) : Void
+      RequestAddItems(Item item, Int32 quantity, ItemContainer container) : AddItemRequest
+      RequestAddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container) : AddItemRequest
+      Reset() : Void
+      Serialize(DataObject destination) : DataObject
+      Setup(GameObject owner, String name) : Void
+      SubmitRequest(AddItemRequest request, List`1 addedItems) : Void
+  NO TYPE SandSailorStudio.Inventory.Container
+  NO TYPE SSSGame.Container
+  NO TYPE SSSGame.StorageManager
+  NO TYPE SSSGame.NetworkContainer
+  NO TYPE SSSGame.ContainerInteraction
+
+=========== 4. Types named like a networked container ===========
+  AwesomeTechnologies.MeshTerrains.BVHRaycastContainer   base=ValueType
+  AwesomeTechnologies.Vegetation.PersistentStorage.ExportData   base=Object
+  AwesomeTechnologies.Vegetation.PersistentStorage.IVegetationImporter   base=Il2CppObjectBase
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationCell   base=Object
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationInfo   base=Object
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationInstanceInfo   base=Object
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationItem   base=ValueType
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationStorage   base=MonoBehaviour
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationStoragePackage   base=ScriptableObject
+  AwesomeTechnologies.Vegetation.PersistentStorage.PersistentVegetationStorageTools   base=Object
+  AwesomeTechnologies.Vegetation.PersistentStorage.PrecisionPaintingMode   base=Enum
+  AwesomeTechnologies.Vegetation.PersistentStorage.SourceCount   base=Object
+  AwesomeTechnologies.VegetationSystem.LoadPersistentStorageToMatrixJob   base=ValueType
+  AwesomeTechnologies.VegetationSystem.LoadPersistentStorageToMatrixWideJob   base=ValueType
+  AwesomeTechnologies.VegetationSystem.RaycastContainers   base=Object
+  Fusion.FixedStorage   base=Object
+  Fusion.IFixedStorage   base=Il2CppObjectBase
+  Fusion.IHitboxColliderContainer   base=Il2CppObjectBase
+  Fusion.Photon.Realtime.ConnectionCallbacksContainer   base=List`1
+  Fusion.Photon.Realtime.ErrorInfoCallbacksContainer   base=List`1
+  Fusion.Photon.Realtime.InRoomCallbacksContainer   base=List`1
+  Fusion.Photon.Realtime.LobbyCallbacksContainer   base=List`1
+  Fusion.Photon.Realtime.MatchMakingCallbacksContainer   base=List`1
+  Fusion.Photon.Realtime.WebRpcCallbacksContainer   base=List`1
+  Il2CppSystem.ComponentModel.Container   base=Object
+  Il2CppSystem.ComponentModel.Container/Site   base=Object
+  Il2CppSystem.ComponentModel.ContainerFilterService   base=Object
+  Il2CppSystem.ComponentModel.IContainer   base=Il2CppObjectBase
+  Il2CppSystem.ComponentModel.INestedContainer   base=Il2CppObjectBase
+  Il2CppSystem.ComponentModel.NestedContainer   base=Container
+  Il2CppSystem.ComponentModel.NestedContainer/Site   base=Object
+  Il2CppSystem.Data.Common.BigIntegerStorage   base=DataStorage
+  Il2CppSystem.Data.Common.BooleanStorage   base=DataStorage
+  Il2CppSystem.Data.Common.ByteStorage   base=DataStorage
+  Il2CppSystem.Data.Common.CharStorage   base=DataStorage
+  Il2CppSystem.Data.Common.DataStorage   base=Object
+  Il2CppSystem.Data.Common.DateTimeOffsetStorage   base=DataStorage
+  Il2CppSystem.Data.Common.DateTimeStorage   base=DataStorage
+  Il2CppSystem.Data.Common.DecimalStorage   base=DataStorage
+  Il2CppSystem.Data.Common.DoubleStorage   base=DataStorage
+  Il2CppSystem.Data.Common.Int16Storage   base=DataStorage
+  Il2CppSystem.Data.Common.Int32Storage   base=DataStorage
+  Il2CppSystem.Data.Common.Int64Storage   base=DataStorage
+  Il2CppSystem.Data.Common.ObjectStorage   base=DataStorage
+  Il2CppSystem.Data.Common.ObjectStorage/Families   base=Enum
+  Il2CppSystem.Data.Common.ObjectStorage/TempAssemblyComparer   base=Object
+  Il2CppSystem.Data.Common.SByteStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SingleStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlBinaryStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlBooleanStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlBytesStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlByteStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlCharsStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlDateTimeStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlDecimalStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlDoubleStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlGuidStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlInt16Storage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlInt32Storage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlInt64Storage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlMoneyStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlSingleStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlStringStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlUdtStorage   base=DataStorage
+  Il2CppSystem.Data.Common.SqlUdtStorage/__c__DisplayClass6_0   base=Object
+  Il2CppSystem.Data.Common.StorageType   base=Enum
+  Il2CppSystem.Data.Common.StringStorage   base=DataStorage
+  Il2CppSystem.Data.Common.TimeSpanStorage   base=DataStorage
+  Il2CppSystem.Data.Common.UInt16Storage   base=DataStorage
+  Il2CppSystem.Data.Common.UInt32Storage   base=DataStorage
+  Il2CppSystem.Data.Common.UInt64Storage   base=DataStorage
+  Il2CppSystem.Net.CookieContainer   base=Object
+  Il2CppSystem.Security.Cryptography.CspKeyContainerInfo   base=Object
+  Il2CppSystem.Security.Cryptography.X509Certificates.X509KeyStorageFlags   base=Enum
+  Il2CppSystem.Xml.Linq.XContainer   base=XNode
+  Il2CppSystem.Xml.Linq.XContainer/_Nodes_d__18   base=Object
+  Il2CppSystem.Xml.Linq.XContainer/ContentReader   base=Object
+  MagicaCloth2.GameObjectContainer   base=MonoBehaviour
+  MagicaCloth2.VirtualMeshContainer   base=Object
+  Newtonsoft.Json.Bson.BsonReader/ContainerContext   base=Object
+  Newtonsoft.Json.Converters.XContainerWrapper   base=XObjectWrapper
+  Newtonsoft.Json.JsonContainerAttribute   base=Attribute
+  Newtonsoft.Json.JsonContainerType   base=Enum
+  Newtonsoft.Json.Linq.JContainer   base=JToken
+  Newtonsoft.Json.Linq.JContainer/_GetDescendants_d__36   base=Object
+  Newtonsoft.Json.Linq.JContainer/_ReadContentFromAsync_d__1   base=ValueType
+  Newtonsoft.Json.Linq.JContainer/_ReadTokenFromAsync_d__0   base=ValueType
+  Newtonsoft.Json.Serialization.JsonContainerContract   base=JsonContract
+  Newtonsoft.Json.Utilities.CollectionUtils/EmptyArrayContainer`1   base=Object
+  Pathfinding.Ionic.Zip.ZipContainer   base=Object
+  Photon.Realtime.ConnectionCallbacksContainer   base=List`1
+  Photon.Realtime.ErrorInfoCallbacksContainer   base=List`1
+  Photon.Realtime.InRoomCallbacksContainer   base=List`1
+  Photon.Realtime.LobbyCallbacksContainer   base=List`1
+  Photon.Realtime.MatchMakingCallbacksContainer   base=List`1
+  Photon.Realtime.WebRpcCallbacksContainer   base=List`1
+  PlayFab.ClientModels.CatalogItemContainerInfo   base=PlayFabBaseModel
+  PlayFab.ClientModels.Container_Dictionary_String_String   base=PlayFabBaseModel
+  PlayFab.ClientModels.UnlockContainerInstanceRequest   base=PlayFabRequestCommon
+  PlayFab.ClientModels.UnlockContainerItemRequest   base=PlayFabRequestCommon
+  PlayFab.ClientModels.UnlockContainerItemResult   base=PlayFabResultCommon
+  PlayFab.EconomyModels.GetItemContainersRequest   base=PlayFabRequestCommon
+  PlayFab.EconomyModels.GetItemContainersResponse   base=PlayFabResultCommon
+  PlayFab.InsightsModels.InsightsSetStorageRetentionRequest   base=PlayFabRequestCommon
+  PlayFab.Internal.CallRequestContainer   base=Object
+  PlayFab.MultiplayerModels.ContainerFlavor   base=Enum
+  PlayFab.MultiplayerModels.ContainerImageReference   base=PlayFabBaseModel
+  PlayFab.MultiplayerModels.CreateBuildWithCustomContainerRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.CreateBuildWithCustomContainerResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.CreateBuildWithManagedContainerRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.CreateBuildWithManagedContainerResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.DeleteContainerImageRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.GetContainerRegistryCredentialsRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.GetContainerRegistryCredentialsResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.ListContainerImagesRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.ListContainerImagesResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.ListContainerImageTagsRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.ListContainerImageTagsResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.RolloverContainerRegistryCredentialsRequest   base=PlayFabRequestCommon
+  PlayFab.MultiplayerModels.RolloverContainerRegistryCredentialsResponse   base=PlayFabResultCommon
+  PlayFab.MultiplayerModels.UntagContainerImageRequest   base=PlayFabRequestCommon
+  RuntimePrefabStorage   base=Object
+  SandSailorStudio.Attributes.IPropertyContainer   base=Il2CppObjectBase
+  SandSailorStudio.Inventory.ContainerComponentListener   base=MonoBehaviour
+  SandSailorStudio.Inventory.ContainerComponentListener/__c__DisplayClass5_0   base=Object
+  SandSailorStudio.Inventory.ContainerComponentListener/ContainerEvents   base=Object
+  SandSailorStudio.Inventory.ContainerConfigProcess   base=ItemProcess
+  SandSailorStudio.Inventory.ContainerEventHandler   base=MulticastDelegate
+  SandSailorStudio.Inventory.DefaultItemPrefabPoolContainer   base=PrefabPoolContainer
+  SandSailorStudio.Inventory.DisplayItemPrefabPoolContainer   base=PrefabPoolContainer
+  SandSailorStudio.Inventory.DynamicItemPrefabPoolContainer   base=PrefabPoolContainer
+  SandSailorStudio.Inventory.EmptyContainerSelfDestructProcess   base=ItemProcess
+  SandSailorStudio.Inventory.EmptyContainerSelfDestructProcess/ContainerSelfDestructWrapper   base=Object
+  SandSailorStudio.Inventory.EmptyContainerSelfDestructProcess/DestroyMethod   base=Enum
+  SandSailorStudio.Inventory.EmptyContainerSelfDestructProcess/DestroyWhen   base=Enum
+  SandSailorStudio.Inventory.IContainerContainer   base=Il2CppObjectBase
+  SandSailorStudio.Inventory.ItemContainer   base=Object
+  SandSailorStudio.Inventory.ItemContainer/__c   base=Object
+  SandSailorStudio.Inventory.ItemContainer/__c__DisplayClass86_0   base=Object
+  SandSailorStudio.Inventory.ItemContainer/InventoryType   base=Enum
+  SandSailorStudio.Inventory.ItemContainerComponent   base=MonoBehaviour
+  SandSailorStudio.Inventory.ItemContainerData   base=Object
+  SandSailorStudio.Inventory.ItemContainerType   base=ScriptableObject
+  SandSailorStudio.Inventory.ItemContainerType/StorageClassData   base=Object
+  SandSailorStudio.Inventory.ItemManifestContainer   base=ItemContainer
+  SandSailorStudio.Inventory.ItemStorageClass   base=ScriptableObject
+  SandSailorStudio.Inventory.IWorldItemContainer   base=Il2CppObjectBase
+  SandSailorStudio.Inventory.MoveItemToContainerOperation   base=ItemOperation
+  SandSailorStudio.Inventory.StorageCapacityFilter   base=ValueType
+  SandSailorStudio.Inventory.StorageCapacityFilter/CheckMode   base=Enum
+  SandSailorStudio.Inventory.WorldItemPrefabPoolContainer   base=PrefabPoolContainer
+  SandSailorStudio.Parameters.ParameterContainer   base=MonoBehaviour
+  SandSailorStudio.Parameters.ParameterContainer/Operation   base=Enum
+  SandSailorStudio.Pooling.PrefabPoolContainer   base=Object
+  SandSailorStudio.Rendering.IVirtualRenderOperationContainer   base=Il2CppObjectBase
+  SandSailorStudio.Rendering.IVirtualRenderOperationSourceContainer   base=Il2CppObjectBase
+  SandSailorStudio.Rendering.SimpleVirtualRenderOperationContainer   base=Object
+  SandSailorStudio.Rendering.SimpleVirtualRenderOperationContainer/__c__DisplayClass7_0   base=Object
+  SandSailorStudio.Storage.DataArray   base=DataElement
+  SandSailorStudio.Storage.DataElement   base=Object
+  SandSailorStudio.Storage.DataElementBool   base=DataElement
+  SandSailorStudio.Storage.DataElementDirectBuffer   base=DataElement
+  SandSailorStudio.Storage.DataElementFloat   base=DataElement
+  SandSailorStudio.Storage.DataElementInt   base=DataElement
+  SandSailorStudio.Storage.DataElementInt2   base=DataElement
+  SandSailorStudio.Storage.DataElementInt3   base=DataElement
+  SandSailorStudio.Storage.DataElementMatrix   base=DataElement
+  SandSailorStudio.Storage.DataElementQuaternion   base=DataElement
+  SandSailorStudio.Storage.DataElementString   base=DataElement
+  SandSailorStudio.Storage.DataElementUInt   base=DataElement
+  SandSailorStudio.Storage.DataElementVector3   base=DataElement
+  SandSailorStudio.Storage.DataObject   base=DataElement
+  SandSailorStudio.Storage.FileTransferOperation   base=Enum
+  SandSailorStudio.Storage.IStorageCacheClient   base=Il2CppObjectBase
+  SandSailorStudio.Storage.IStorageClient   base=Il2CppObjectBase
+  SandSailorStudio.Storage.IStorageSerializable   base=Il2CppObjectBase
+  SandSailorStudio.Storage.PackAccessMode   base=Enum
+  SandSailorStudio.Storage.PackFormatType   base=Enum
+  SandSailorStudio.Storage.PackLocation   base=Enum
+  SandSailorStudio.Storage.SerializableFactory`1   base=Object
+  SandSailorStudio.Storage.SerializationReturnCode   base=Enum
+  SandSailorStudio.Storage.SessionMetaData   base=ValueType
+  SandSailorStudio.Storage.StorageClientPack   base=StorageFilePack
+  SandSailorStudio.Storage.StorageClientPack/_Read_d__9   base=ValueType
+  SandSailorStudio.Storage.StorageClientPackDescriptor   base=Object
+  SandSailorStudio.Storage.StorageConfiguration   base=ScriptableObject
+  SandSailorStudio.Storage.StorageFilePack   base=StoragePack
+  SandSailorStudio.Storage.StorageManager   base=MonoBehaviour
+  SandSailorStudio.Storage.StorageManager/__c   base=Object
+  SandSailorStudio.Storage.StorageManager/__c__DisplayClass91_0   base=Object
+  SandSailorStudio.Storage.StorageManager/__c__DisplayClass93_0   base=Object
+  SandSailorStudio.Storage.StorageManager/__SaveCurrentSession_d__93   base=ValueType
+  SandSailorStudio.Storage.StorageManager/_LoadActiveSession_d__79   base=ValueType
+  SandSailorStudio.Storage.StorageManager/_ResumeFromSuspensionTask_d__103   base=ValueType
+  SandSailorStudio.Storage.StorageManager/_SaveCurrentSession_d__80   base=ValueType
+  SandSailorStudio.Storage.StorageManager/WantsToQuitStage   base=Enum
+  SandSailorStudio.Storage.StoragePack   base=Object
+  SandSailorStudio.Storage.StoragePackBinFormat   base=StoragePackFormat
+  SandSailorStudio.Storage.StoragePackBinFormat/DecodeFunc   base=MulticastDelegate
+  SandSailorStudio.Storage.StoragePackBinFormat/EncodeFunc   base=MulticastDelegate
+  SandSailorStudio.Storage.StoragePackBinFormat/SerializedType   base=Object
+  SandSailorStudio.Storage.StoragePackFormat   base=Object
+  SandSailorStudio.Storage.StoragePackTextFormat   base=StoragePackFormat
+  SandSailorStudio.Storage.StoragePackXmlFormat   base=StoragePackFormat
+  SandSailorStudio.Storage.StoragePackXmlFormat/DecodeFunc   base=MulticastDelegate
+  SandSailorStudio.Storage.StoragePackXmlFormat/EncodeFunc   base=MulticastDelegate
+  SandSailorStudio.Storage.StoragePackXmlFormat/SerializedType   base=Object
+  SandSailorStudio.Storage.StorageSessionStage   base=Enum
+  SandSailorStudio.Storage.StorageUtils   base=Object
+  SandSailorStudio.WorldGen.AreaComponentContainer`1   base=Object
+  SandSailorStudio.WorldGen.AreaInstancesContainer   base=Object
+  SSSGame.AI.FSM.FSM_CleanupInventory/StorageSpaceItemFilter   base=Object
+  SSSGame.AI.FSM.FSM_DropItemFromStorage   base=vStateAction
+  SSSGame.AI.FSM.FSM_MoveToStorageInteraction   base=vStateAction
+  SSSGame.AI.FSM.FSM_RemoveFromStorage   base=vStateAction
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies   base=FSM_QuestAction
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies/GatherData   base=Object
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies/ReturnStage   base=Enum
+  SSSGame.AI.GetItemFromStorageStep   base=StorageInteractionStep
+  SSSGame.AI.ResourceStorageComplainQuest   base=WorkstationQuest
+  SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData   base=WorkstationQuestData
+  SSSGame.AI.ResourceStorageTaskData   base=WorkstationTaskData
+  SSSGame.AI.StorageFullComplaint   base=GenericMessageComplaint
+  SSSGame.AI.StorageInteractionStep   base=InteractionStep
+  SSSGame.AI.WorkstationIdleQuest/ResourceStorageIdleQuestData   base=WorkstationQuestData
+  SSSGame.AnimalPen/PenStorageWrapper   base=Object
+  SSSGame.BaseContainerPanel   base=MonoBehaviour
+  SSSGame.BaseContainerProvider   base=MonoBehaviour
+  SSSGame.BiomeAreaCellContainer   base=CellDataContainer
+  SSSGame.BiomeAreaDataContainer   base=TileDataContainer
+  SSSGame.BiomeCellDataContainer   base=CellDataContainer
+  SSSGame.BiomeTileDataContainer   base=TileDataContainer
+  SSSGame.BuildingModuleAnchorInfluenced/InfluenceContainer   base=ValueType
+  SSSGame.BuildingModuleAnchorInfluenced/InfluenceContainerType   base=Enum
+  SSSGame.CaveDataContainer   base=TileDataContainer
+  SSSGame.CaveResourceStorage   base=ResourceStorage
+  SSSGame.CellDataContainer   base=Object
+  SSSGame.CharacterItemContainerData   base=ItemContainerData
+  SSSGame.CharacterItemContainerType   base=ItemContainerType
+  SSSGame.CharacterItemContainerType/CarryAnimationSetup   base=Object
+  SSSGame.CharacterItemContainerType/StorageClassAnimationSetup   base=Object
+  SSSGame.CompassObjectiveMarkerContainer   base=ObjectiveMarkerContainer
+  SSSGame.ContainerInfo   base=ItemInfo
+  SSSGame.ContainerItem   base=Item
+  SSSGame.ContainerItemActionTarget   base=ItemActionTarget
+  SSSGame.ContainerItemDurabilityProcess   base=ItemDurablilityProcess
+  SSSGame.ContainerItemDurabilityProcess/__c__DisplayClass1_0   base=ValueType
+  SSSGame.ContainerItemObject   base=ItemObject
+  SSSGame.ContainerItemObject/ContainerEvents   base=Object
+  SSSGame.ContainerTypeProvider   base=BaseContainerProvider
+  SSSGame.CookingStation/CookingHouseStorageWrapper   base=Object
+  SSSGame.CookingStation/StorageOutlet   base=Object
+  SSSGame.CraftingStation/OutputStorageWrapper   base=Object
+  SSSGame.DedicatedStructureContainer   base=StructureContainer
+  SSSGame.DedicatedStructureContainer/ChildPosition   base=ValueType
+  SSSGame.DependendTaskStorageSupply   base=StorageSupply
+  SSSGame.EntityCellContainer   base=CellDataContainer
+  SSSGame.EntityDataContainer   base=TileDataContainer
+  SSSGame.FillContainerPanel   base=BaseContainerPanel
+  SSSGame.FillContainerPanel/__c__DisplayClass13_0   base=Object
+  SSSGame.FillContainerPanel/__c__DisplayClass13_1   base=Object
+  SSSGame.ForestryCellDataContainer   base=CellDataContainer
+  SSSGame.Homestead/StorageRoom   base=Object
+  SSSGame.Homestead/StorageRoomComparer   base=ValueType
+  SSSGame.InventoryCellDataContainer   base=CellDataContainer
+  SSSGame.InventoryTileDataContainer   base=TileDataContainer
+  SSSGame.IOverridableContainerType   base=Il2CppObjectBase
+  SSSGame.IResourceStorageSite   base=Il2CppObjectBase
+  SSSGame.ItemContainerBarPanel   base=BaseContainerPanel
+  SSSGame.ItemContainerComponentAliases   base=ItemContainerComponent
+  SSSGame.ItemContainerComponentMultiversion   base=ItemContainerComponent
+  SSSGame.ItemContainerComponentMultiversion/VersionData   base=Object
+  SSSGame.ItemContainerComponentUpgradeable   base=MonoBehaviour
+  SSSGame.ItemContainerComponentUpgradeable/UpgradeData   base=Object
+  SSSGame.ItemContainerComponentVegetationSpawner   base=VegetationItemSpawner
+  SSSGame.ItemContainerRetargeter   base=MonoBehaviour
+  SSSGame.ItemContainerRetargeter/RetargetingSetup   base=Object
+  SSSGame.ItemContainerRetargeter/RetargetOrder   base=Enum
+  SSSGame.ItemContainerRetargeterTarget   base=MonoBehaviour
+  SSSGame.LootChestBuilder   base=MonoBehaviour
+  SSSGame.LootChestConfigurations   base=ScriptableObject
+  SSSGame.LootChestConfigurations/Configuration   base=ValueType
+  SSSGame.LootChestTemplate   base=NodeTemplate
+  SSSGame.Network.NetworkCompositeResourceStorage   base=NetworkWorkstation`1
+  SSSGame.Network.NetworkCompositeResourceStorage/__c__DisplayClass10_0   base=Object
+  SSSGame.Network.NetworkCompositeResourceStorage/NetworkTask   base=ValueType
+  SSSGame.Network.NetworkItemCountItemStorage   base=NetworkItemStorage
+  SSSGame.Network.NetworkItemStorage   base=NetworkComponent
+  SSSGame.Network.NetworkItemStorage/InventoryType   base=Enum
+  SSSGame.Network.NetworkLootChestState   base=NetworkBehaviour
+  SSSGame.Network.NetworkPreviewAddonsContainer   base=NetworkBehaviour
+  SSSGame.Network.NetworkSimpleResourceStorage   base=NetworkWorkstation`1
+  SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask   base=ValueType
+  SSSGame.Network.NetworkSimpleResourceStorage_12   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_2   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_22   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_3   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_4   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_42   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_45   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_5   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSimpleResourceStorage_8   base=NetworkSimpleResourceStorage
+  SSSGame.Network.NetworkSpecificNoAttributeItemStorage   base=NetworkItemStorage
+  SSSGame.Network.NetworkTaskContainer   base=NetworkBehaviour
+  SSSGame.Network.NetworkTaskContainer/Task   base=ValueType
+  SSSGame.Network.NetworkTaskContainer_1   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_10   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_17   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_2   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_50   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_65   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_7   base=NetworkTaskContainer
+  SSSGame.Network.NetworkTaskContainer_80   base=NetworkTaskContainer
+  SSSGame.ObjectiveMarkerContainer   base=Object
+  SSSGame.ObjectiveMarkerContainer/__c__DisplayClass24_0   base=Object
+  SSSGame.ObjectiveMarkerContainer/__c__DisplayClass27_0   base=Object
+  SSSGame.Pathfinding.NavigationDataContainer   base=TileDataContainer
+  SSSGame.PathfindingCellContainer   base=CellDataContainer
+  SSSGame.PathfindingDataContainer   base=TileDataContainer
+  SSSGame.PetStorageInteractionConfig   base=InteractionConfiguration`1
+  SSSGame.PetStorageInteractionConfig/PetStorageInteractionSession   base=StorageInteractionSession
+  SSSGame.PlayerStorageInteractionConfig   base=InteractionConfiguration`1
+  SSSGame.PlayerStorageInteractionSession   base=StorageInteractionSession
+  SSSGame.PlayerStorageInteractionSession/__c__DisplayClass23_0   base=Object
+  SSSGame.ResourceStorage   base=Workstation
+  SSSGame.ResourceStorage/__c__DisplayClass100_0   base=Object
+  SSSGame.ResourceStorage/__c__DisplayClass100_1   base=Object
+  SSSGame.ResourceStorage/NativeItemsFilter   base=Object
+  SSSGame.StorageClassStackSlot   base=ItemPrefabStackSlot
+  SSSGame.StorageInteraction   base=Interaction
+  SSSGame.StorageInteraction/StorageEvents   base=Object
+  SSSGame.StorageInteraction/StorageInteractionType   base=Enum
+  SSSGame.StorageInteractionSession   base=InteractionSession
+  SSSGame.StorageSupply   base=StructureTaskDispatcher
+  SSSGame.StructureContainer   base=MonoBehaviour
+  SSSGame.StructureContainer/__c__DisplayClass16_0   base=Object
+  SSSGame.StructureContainer/__c__DisplayClass21_0   base=Object
+  SSSGame.StructureContainersInitializer   base=MonoBehaviour
+  SSSGame.TerrainTileDataContainer   base=TileDataContainer
+  SSSGame.TileDataContainer   base=Object
+  SSSGame.UI.ConfirmItemContainerPanel   base=ItemContainerPanel
+  SSSGame.UI.ContainerItemProvider   base=BaseContainerProvider
+  SSSGame.UI.ExplorationTileDataContainer   base=TileDataContainer
+  SSSGame.UI.ItemContainerPanel   base=BaseContainerPanel
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_0   base=Object
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_1   base=Object
+  SSSGame.UI.ItemContainerPanel/__c__DisplayClass37_2   base=Object
+  SSSGame.UI.ItemContainerPanel/IInventorySortingOptionProvider   base=Il2CppObjectBase
+  SSSGame.UI.ItemContainerPanel/Sorter   base=MulticastDelegate
+  SSSGame.UI.ItemContainerPanel/SortingOption   base=Enum
+  SSSGame.UI.SelectActionMenu/ResourceStorageEntry   base=SelectActionMenuEntry
+  SSSGame.UI.StorageMenu   base=ContextMenu
+  SSSGame.UI.StorageMenu/__c__DisplayClass33_0   base=ValueType
+  SSSGame.UI.StorageMenu/ConfirmButtonBehaviour   base=Enum
+  SSSGame.UI.StorageMenu/StorageMenuParameters   base=MenuParameters
+  SSSGame.UI.StorageMenu/StoragePanel   base=Object
+  SSSGame.UI.TabContainerButton   base=TabButton
+  SSSGame.UI.TaskDataPanel/FromStorageFilter   base=ValueType
+  SSSGame.Vegetation.VegetationItemInstancesContainer   base=Object
+  SSSGame.Vegetation.VegetationItemInstancesContainer/VegeDataArray   base=ValueType
+  SSSGame.Vegetation.VFXItemRenderer/InstanceContainerData   base=Object
+  SSSGame.VehicleResourceStorage   base=ResourceStorage
+  SSSGame.VillagerInventory/StorageSlot   base=Object
+  SSSGame.VillagerStorageInteractionConfig   base=InteractionConfiguration`1
+  SSSGame.VillagerStorageInteractionSession   base=StorageInteractionSession
+  SSSGame.VillagerSupplyInteraction/__StorageSessionWait_d__9   base=Object
+  Steamworks.ERemoteStorageFilePathType   base=Enum
+  Steamworks.ERemoteStorageLocalFileChange   base=Enum
+  Steamworks.ERemoteStoragePlatform   base=Enum
+  Steamworks.ERemoteStoragePublishedFileVisibility   base=Enum
+  Steamworks.HTTPCookieContainerHandle   base=ValueType
+  Steamworks.RemoteStorageDeletePublishedFileResult_t   base=ValueType
+  Steamworks.RemoteStorageDownloadUGCResult_t   base=ValueType
+  Steamworks.RemoteStorageEnumeratePublishedFilesByUserActionResult_t   base=ValueType
+  Steamworks.RemoteStorageEnumerateUserPublishedFilesResult_t   base=ValueType
+  Steamworks.RemoteStorageEnumerateUserSharedWorkshopFilesResult_t   base=ValueType
+  Steamworks.RemoteStorageEnumerateUserSubscribedFilesResult_t   base=ValueType
+  Steamworks.RemoteStorageEnumerateWorkshopFilesResult_t   base=ValueType
+  Steamworks.RemoteStorageFileReadAsyncComplete_t   base=ValueType
+  Steamworks.RemoteStorageFileShareResult_t   base=ValueType
+  Steamworks.RemoteStorageFileWriteAsyncComplete_t   base=ValueType
+  Steamworks.RemoteStorageGetPublishedFileDetailsResult_t   base=ValueType
+  Steamworks.RemoteStorageGetPublishedItemVoteDetailsResult_t   base=ValueType
+  Steamworks.RemoteStorageLocalFileChange_t   base=ValueType
+  Steamworks.RemoteStoragePublishedFileDeleted_t   base=ValueType
+  Steamworks.RemoteStoragePublishedFileSubscribed_t   base=ValueType
+  Steamworks.RemoteStoragePublishedFileUnsubscribed_t   base=ValueType
+  Steamworks.RemoteStoragePublishedFileUpdated_t   base=ValueType
+  Steamworks.RemoteStoragePublishFileProgress_t   base=ValueType
+  Steamworks.RemoteStoragePublishFileResult_t   base=ValueType
+  Steamworks.RemoteStorageSetUserPublishedFileActionResult_t   base=ValueType
+  Steamworks.RemoteStorageSubscribePublishedFileResult_t   base=ValueType
+  Steamworks.RemoteStorageUnsubscribePublishedFileResult_t   base=ValueType
+  Steamworks.RemoteStorageUpdatePublishedFileResult_t   base=ValueType
+  Steamworks.RemoteStorageUpdateUserPublishedItemVoteResult_t   base=ValueType
+  Steamworks.RemoteStorageUserVoteDetails_t   base=ValueType
+  Steamworks.SteamRemoteStorage   base=Object
+  TMPro.TextContainer   base=UIBehaviour
+  TMPro.TextContainerAnchors   base=Enum
+  TMPro.TMP_Text/TextBackingContainer   base=ValueType
+  Unity.Collections.LowLevel.Unsafe.NativeContainerAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerIsAtomicWriteOnlyAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerIsReadOnlyAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerNeedsThreadIndexAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerSupportsDeallocateOnJobCompletionAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerSupportsDeferredConvertListToArray   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeContainerSupportsMinMaxWriteRestrictionAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestrictionAttribute   base=Attribute
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtility/IsValidNativeContainerElementTypeDelegate   base=MulticastDelegate
+  Unity.Hierarchy.HierarchyPropertyStorageType   base=Enum
+  Unity.Hierarchy.HierarchyViewItemContainer   base=VisualElement
+  Unity.IO.LowLevel.Unsafe.AsyncReadManagerMetrics/GetSummaryOfMetrics_FromContainer_InternalDelegate   base=MulticastDelegate
+  Unity.IO.LowLevel.Unsafe.AsyncReadManagerMetrics/GetSummaryOfMetricsWithFilters_FromContainer_InternalDelegate   base=MulticastDelegate
+  Unity.Properties.ContainerPropertyBag`1   base=PropertyBag`1
+  Unity.Properties.InvalidContainerTypeException   base=Exception
+  Unity.Properties.PropertyContainer   base=Object
+  Unity.Properties.PropertyContainer/ExistsAtPathVisitor   base=PathVisitor
+  Unity.Properties.PropertyContainer/GetPropertyVisitor   base=PathVisitor
+  Unity.Properties.PropertyContainer/GetValueVisitor`1   base=PathVisitor
+  Unity.Properties.PropertyContainer/ValueAtPathVisitor   base=PathVisitor
+  Unity.Services.Analytics.AnalyticsContainer   base=MonoBehaviour
+  Unity.Services.Analytics.IAnalyticsContainer   base=Il2CppObjectBase
+  Unity.Services.Analytics.Internal.IContainerDebug   base=Il2CppObjectBase
+  UnityEngine.Audio.AudioContainerElement   base=Object
+  UnityEngine.Audio.AudioContainerElement/get_audioClip_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/get_enabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/get_volume_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/Internal_CreateDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/set_audioClip_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/set_enabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioContainerElement/set_volume_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer   base=AudioResource
+  UnityEngine.Audio.AudioRandomContainer/ChangeEventType   base=Enum
+  UnityEngine.Audio.AudioRandomContainer/get_automaticTriggerMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_automaticTriggerTime_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_automaticTriggerTimeRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_automaticTriggerTimeRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_avoidRepeatingLast_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_elements_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_loopCount_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_loopCountRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_loopCountRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_loopMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_pitch_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_pitchRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_pitchRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_playbackMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_triggerMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_volume_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_volumeRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/get_volumeRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/Internal_CreateDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/NotifyObservers_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_automaticTriggerMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_automaticTriggerTime_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_automaticTriggerTimeRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_automaticTriggerTimeRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_avoidRepeatingLast_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_elements_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_loopCount_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_loopCountRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_loopCountRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_loopMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_pitch_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_pitchRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_pitchRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_playbackMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_triggerMode_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_volume_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_volumeRandomizationEnabled_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainer/set_volumeRandomizationRange_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Audio.AudioRandomContainerAutomaticTriggerMode   base=Enum
+  UnityEngine.Audio.AudioRandomContainerLoopMode   base=Enum
+  UnityEngine.Audio.AudioRandomContainerPlaybackMode   base=Enum
+  UnityEngine.Audio.AudioRandomContainerTriggerMode   base=Enum
+  UnityEngine.AudioSource/get_containerActivePlayables_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.AudioSource/get_isContainerPlaying_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.AudioSource/GetAudioRandomContainerRuntimeMeterValue_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.AudioSource/SkipToNextElementIfHasContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.LineRenderer/GetPositionsWithNativeContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.Rendering.ContextContainer   base=Object
+  UnityEngine.Rendering.ContextContainer/Item   base=ValueType
+  UnityEngine.Rendering.ContextContainer/TypeId`1   base=Object
+  UnityEngine.Rendering.DebugUI/Container   base=Widget
+  UnityEngine.Rendering.DebugUI/IContainer   base=Il2CppObjectBase
+  UnityEngine.Rendering.DynamicResolutionHandler/ScalerContainer   base=ValueType
+  UnityEngine.Rendering.HighDefinition.IFrameSettingsHistoryContainer   base=Il2CppObjectBase
+  UnityEngine.Rendering.IndirectBufferContextStorage   base=ValueType
+  UnityEngine.Rendering.RenderGraphModule.RenderGraphDebugSession/DebugDataContainer   base=Object
+  UnityEngine.Rendering.RenderPipelineGraphicsSettingsContainer   base=Object
+  UnityEngine.Rendering.UI.DebugUIHandlerContainer   base=MonoBehaviour
+  UnityEngine.Rendering.UI.DebugUIHandlerContainer/__c__DisplayClass3_0   base=Object
+  UnityEngine.Rendering.VirtualTexturing.Procedural/GetGPUCacheStagingAreaCapacityDelegate   base=MulticastDelegate
+  UnityEngine.Rendering.VirtualTexturing.Procedural/SetGPUCacheStagingAreaCapacityDelegate   base=MulticastDelegate
+  UnityEngine.TextCore.Text.TextBackingContainer   base=ValueType
+  UnityEngine.TrailRenderer/AddPositionsWithNativeContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.TrailRenderer/GetPositionsWithNativeContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.TrailRenderer/GetVisiblePositionsWithNativeContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.TrailRenderer/SetPositionsWithNativeContainer_InjectedDelegate   base=MulticastDelegate
+  UnityEngine.UIElements.HierarchyV2.ScrollContainer   base=VisualElement
+  UnityEngine.UIElements.IMGUIContainer   base=VisualElement
+  UnityEngine.UIElements.IMGUIContainer/GUIGlobals   base=ValueType
+  UnityEngine.UIElements.IMGUIContainer/NotUITKScope   base=ValueType
+  UnityEngine.UIElements.IMGUIContainer/UITKScope   base=ValueType
+  UnityEngine.UIElements.IMGUIContainer/UxmlFactory   base=UxmlFactory`2
+  UnityEngine.UIElements.IMGUIContainer/UxmlSerializedData   base=UxmlSerializedData
+  UnityEngine.UIElements.IMGUIContainer/UxmlTraits   base=UxmlTraits
+  UnityEngine.UIElements.TabView/TabViewContentContainer   base=VisualElement
+  UnityEngine.UIElements.TemplateContainer   base=BindableElement
+  UnityEngine.UIElements.TemplateContainer/UxmlFactory   base=UxmlFactory`2
+  UnityEngine.UIElements.TemplateContainer/UxmlSerializedData   base=UxmlSerializedData
+  UnityEngine.UIElements.TemplateContainer/UxmlTraits   base=UxmlTraits
+  UnityEngine.UIElements.ToggleButtonGroup/ButtonGroupContainer   base=VisualElement
+  UnityEngine.UIElements.UIR.BaseShaderInfoStorage   base=Object
+  UnityEngine.UIElements.UIR.ShaderInfoStorage`1   base=BaseShaderInfoStorage
+  UnityEngine.UIElements.UIR.ShaderInfoStorageRGBA32   base=ShaderInfoStorage`1
+  UnityEngine.UIElements.UIR.ShaderInfoStorageRGBAFloat   base=ShaderInfoStorage`1
+  UnityEngine.UIElements.UIR.ShaderInfoStorageRGBAFloat/__c   base=Object
+  UnityEngine.VFX.EventTesting.VFXEventTestContainer   base=MonoBehaviour
+  UnityStandardAssets.Water.MeshContainer   base=Object
+  vObjectContainer   base=MonoBehaviour
+
+=========== 5. Precedent: every Request* method (TaskUnlocker found its door here) ===========
+  SSSGame.IResourceAgent.RequestResources(ResourceSearchContext context, ResourceInfo resource, Int32 quantity, StorageInteraction recipient) : Boolean   (no rpc attr)
+  SSSGame.BuildInteraction.RequestAddBuildVolume(Single& deltaVolume) : Void   (no rpc attr)
+  SSSGame.BuildPart.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.PlayerCharacter.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.Bloomstation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.CharcoalStation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.CookingStation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.CookingStation/CookingHouseStorageWrapper.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.CraftingStation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.CraftingStation/OutputStorageWrapper.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.HarboringStation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.Praystation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.Creature.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.FarmingStation.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.IInteractionArea.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.StandaloneInteractionArea.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.ItemObject.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.AnimalPen.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.AnimalPen/PenStorageWrapper.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.Villager.Request(IInteractionAgent agent, Boolean& active) : Void   (no rpc attr)
+  SSSGame.IResourceProvider.RequestResources(BlueprintInfo blueprint, ItemCollection receiver) : Boolean   (no rpc attr)
+  SSSGame.IResourceResupply.Request() : Void   (no rpc attr)
+  SSSGame.DiningStation/DiningStationOutputWrapper.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.IWhitelistingSite.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.ResourceStorage.RequestWhitelistData() : Void   (no rpc attr)
+  SSSGame.WorldDataManager.RequestInstances(ICollection`1 cells, IWorldItemInstanceSearchProcessor processor, InstanceActivationContext activationContext) : Boolean   (no rpc attr)
+  SSSGame.NavMeshInterestArea.RequestNavigationBuild() : Void   (no rpc attr)
+  SSSGame.TerrainNavmeshBuilder.RequestBuildArea(Rect worldArea) : Void   (no rpc attr)
+  SSSGame.TerrainNavmeshBuilder.RequestBuildAreaAsync(Rect worldArea) : Void   (no rpc attr)
+  SSSGame.TerrainNavmeshBuilder.RequestDynamicTileUpdate(Vector3 position) : Void   (no rpc attr)
+  SSSGame.TerrainNavmeshBuilder.RequestBuildTileAsync(WorldTileId tileId) : Void   (no rpc attr)
+  SSSGame.TerrainNavmeshBuilder.RequestBuildTile(WorldTileId tileId) : Void   (no rpc attr)
+  SSSGame.PathfindingManager.RequestStateUpdate(List`1 tiles) : PathfindingTileStateRequest   (no rpc attr)
+  SSSGame.StreamingInstigator.Request() : Void   (no rpc attr)
+  SSSGame.StreamingInstigator.RequestFromEvent() : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestTileGeneration(WorldTileId& tileId) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestTile(WorldTileId& tileId) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestAddInventoryItemInstance(InventoryItemInstance instance) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestUpdateWorldItemInstance(WorldItemInstance worldItemInstance) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestDestroyItemInstance(WorldTileId& worldTileId, WorldItemInstanceId& instanceId) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestDiscoverFishingGround(Int32 fishingGroundID) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestRemoveFishFromFishinGround(Int32 fishingGroundID) : Void   (no rpc attr)
+  SSSGame.Network.NetworkWorldDataManager.RequestMarkFishinGround(Int32 fishingGroundID, Boolean marked) : Void   (no rpc attr)
+  SSSGame.AI.ITargetAI.RequestTarget() : Void   (no rpc attr)
+  SSSGame.AI.ProxyTargetAI.RequestTarget() : Void   (no rpc attr)
+  SSSGame.AI.TargetingController.RequestTarget() : Void   (no rpc attr)
+  SSSGame.AI.FSM.FSM_KeepItemRequested.Request(IFSMBehaviourController fSMBehaviour) : Void   (no rpc attr)
+  AwesomeTechnologies.Vegetation.VegetationInstanceDataPool.RequestDataWithSize(Int32 size) : VegetationInstanceData   (no rpc attr)
+  AwesomeTechnologies.VegetationSystem.InstancesBuffer.Request(Int32 instanceCount) : Void   (no rpc attr)
+  Steamworks.SteamApps.RequestAppProofOfPurchaseKey(AppId_t nAppID) : Void   (no rpc attr)
+  Steamworks.SteamApps.RequestAllProofOfPurchaseKeys() : Void   (no rpc attr)
+  Steamworks.SteamFriends.RequestUserInformation(CSteamID steamIDUser, Boolean bRequireNameOnly) : Boolean   (no rpc attr)
+  Steamworks.SteamFriends.RequestClanOfficerList(CSteamID steamIDClan) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamFriends.RequestFriendRichPresence(CSteamID steamIDFriend) : Void   (no rpc attr)
+  Steamworks.SteamGameServer.RequestUserGroupStatus(CSteamID steamIDUser, CSteamID steamIDGroup) : Boolean   (no rpc attr)
+  Steamworks.SteamGameServerInventory.RequestEligiblePromoItemDefinitionsIDs(CSteamID steamID) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamGameServerInventory.RequestPrices() : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamGameServerStats.RequestUserStats(CSteamID steamIDUser) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamGameServerUGC.RequestUGCDetails(PublishedFileId_t nPublishedFileID, UInt32 unMaxAgeSeconds) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamInventory.RequestEligiblePromoItemDefinitionsIDs(CSteamID steamID) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamInventory.RequestPrices() : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamMatchmaking.RequestLobbyList() : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamMatchmaking.RequestLobbyData(CSteamID steamIDLobby) : Boolean   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestInternetServerList(AppId_t iApp, Il2CppReferenceArray`1 ppchFilters, UInt32 nFilters, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestLANServerList(AppId_t iApp, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestFriendsServerList(AppId_t iApp, Il2CppReferenceArray`1 ppchFilters, UInt32 nFilters, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestFavoritesServerList(AppId_t iApp, Il2CppReferenceArray`1 ppchFilters, UInt32 nFilters, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestHistoryServerList(AppId_t iApp, Il2CppReferenceArray`1 ppchFilters, UInt32 nFilters, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamMatchmakingServers.RequestSpectatorServerList(AppId_t iApp, Il2CppReferenceArray`1 ppchFilters, UInt32 nFilters, ISteamMatchmakingServerListResponse pRequestServersResponse) : HServerListRequest   (no rpc attr)
+  Steamworks.SteamGameSearch.RequestPlayersForGame(Int32 nPlayerMin, Int32 nPlayerMax, Int32 nMaxTeamSize) : EGameSearchErrorCode_t   (no rpc attr)
+  Steamworks.SteamUGC.RequestUGCDetails(PublishedFileId_t nPublishedFileID, UInt32 unMaxAgeSeconds) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamUser.RequestEncryptedAppTicket(Il2CppStructArray`1 pDataToInclude, Int32 cbDataToInclude) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamUser.RequestStoreAuthURL(String pchRedirectURL) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamUserStats.RequestCurrentStats() : Boolean   (no rpc attr)
+  Steamworks.SteamUserStats.RequestUserStats(CSteamID steamIDUser) : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamUserStats.RequestGlobalAchievementPercentages() : SteamAPICall_t   (no rpc attr)
+  Steamworks.SteamUserStats.RequestGlobalStats(Int32 nHistoryDays) : SteamAPICall_t   (no rpc attr)
+  Fusion.NetworkPhysicsSimulation2D.RequestPhysicsSyncTransform() : Void   (no rpc attr)
+  Fusion.NetworkPhysicsSimulation3D.RequestPhysicsSyncTransform() : Void   (no rpc attr)
+  Fusion.NetworkObject.RequestStateAuthority() : Void   (no rpc attr)
+  Fusion.Simulation.RequestStateAuthority(NetworkId id, Boolean wants) : Void   (no rpc attr)
+  Il2CppSystem.Threading.ThreadPool.RequestWorkerThread() : Boolean   (no rpc attr)
+  Il2CppMono.Net.Security.AsyncProtocolRequest.RequestRead(Int32 size) : Void   (no rpc attr)
+  Il2CppMono.Net.Security.AsyncProtocolRequest.RequestWrite() : Void   (no rpc attr)
+  Il2CppSystem.Net.FtpWebRequest.RequestCallback(Object obj) : Void   (no rpc attr)
+  PlayFab.PlayFabMultiplayerAPI.RequestMultiplayerServer(RequestMultiplayerServerRequest request, Action`1 resultCallback, Action`1 errorCallback, Object customData, Dictionary`2 extraHeaders) : Void   (no rpc attr)
+  PlayFab.PlayFabMultiplayerInstanceAPI.RequestMultiplayerServer(RequestMultiplayerServerRequest request, Action`1 resultCallback, Action`1 errorCallback, Object customData, Dictionary`2 extraHeaders) : Void   (no rpc attr)
+  SandSailorStudio.Streaming.WorldStreamingManager.RequestLoadWorldTile(Int32 requestId, Transform requestTransform, WorldTileId tileId) : WorldTile   (no rpc attr)
+  SandSailorStudio.Inventory.ItemCollection.RequestAddItems(ItemInfo itemInfo, Int32 quantity, ItemContainer container) : AddItemRequest   (no rpc attr)
+  SandSailorStudio.Inventory.ItemCollection.RequestAddItems(Item item, Int32 quantity, ItemContainer container) : AddItemRequest   (no rpc attr)
+  Unity.Burst.BurstCompiler.RequestSetProtocolVersion(Int32 version) : Int32   (no rpc attr)
+  UnityEngine.InputSystem.InputAction.RequestInitialStateCheckOnEnabledAction() : Void   (no rpc attr)
+  UnityEngine.InputSystem.InputDevice.RequestSync() : Boolean   (no rpc attr)
+  UnityEngine.InputSystem.InputDevice.RequestReset() : Boolean   (no rpc attr)
+  UnityEngine.InputSystem.Plugins.InputForUI.InputSystemProvider.RequestCurrentState(Type type) : Boolean   (no rpc attr)
+  UnityEngine.Rendering.PostProcessing.PostProcessDebugLayer.RequestMonitorPass(MonitorType monitor) : Void   (no rpc attr)
+  UnityEngine.Rendering.PostProcessing.PostProcessDebugLayer.RequestDebugOverlay(DebugOverlay mode) : Void   (no rpc attr)
+  UnityEngine.Rendering.IPerFrameHistoryAccessTracker.RequestAccess() : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.IUnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.UnsafeCommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.DynamicResolutionHandler.RequestsHardwareDynamicResolution() : Boolean   (no rpc attr)
+  UnityEngine.Rendering.DebugManager.RequestEditorWindowPanelIndex(Int32 index) : Void   (no rpc attr)
+  UnityEngine.Rendering.DebugShapes.RequestSphereMesh() : Mesh   (no rpc attr)
+  UnityEngine.Rendering.DebugShapes.RequestBoxMesh() : Mesh   (no rpc attr)
+  UnityEngine.Rendering.DebugShapes.RequestConeMesh() : Mesh   (no rpc attr)
+  UnityEngine.Rendering.DebugShapes.RequestPyramidMesh() : Mesh   (no rpc attr)
+  UnityEngine.Rendering.ProbeVolumeBakingSet.RequestScratchBuffer(Int32 size) : NativeArray`1   (no rpc attr)
+  UnityEngine.Rendering.UI.DebugUIHandlerCanvas.RequestHierarchyReset() : Void   (no rpc attr)
+  UnityEngine.VFX.Utility.HDRPCameraBinder.RequestHDRPBuffersAccess(BufferAccess& access) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDAdditionalLightData.RequestShadowMapRendering() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDAdditionalLightData.RequestSubShadowMapRendering(Int32 shadowIndex) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestShadowHistoryBuffer(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestShadowHistoryValidityBuffer(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestShadowHistoryDistanceBuffer(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestedScreenSpaceShadows() : Boolean   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestVrsHistory(HDCamera hdCamera, Int32 bufferCount) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestVrsRTHandle(HDCamera hdCamera, Int32 bufferCount, Int32 id) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestSkyEnvironmentUpdate() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestStaticSkyUpdate() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestAccelerationStructure(HDCamera hdCamera) : RayTracingAccelerationStructure   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestLightCluster() : HDRaytracingLightCluster   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestAmbientOcclusionHistoryTexture(RenderGraph renderGraph, HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestRayTracedIndirectDiffuseHistoryTexture(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestIndirectDiffuseHistoryTextureHF(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestIndirectDiffuseHistoryTextureLF(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestRayTracedReflectionLightingDistanceHistoryTexture(HDCamera hdCamera, Boolean& realloc) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestRayTracedReflectionAccumulationHistoryTexture(HDCamera hdCamera, Boolean& realloc) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestRayTracedReflectionStabilizationHistoryTexture(HDCamera hdCamera, Boolean& realloc) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline.RequestRayTracedSSSHistoryTexture(HDCamera hdCamera) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDAdditionalReflectionDataExtensions.RequestRenderNextUpdate(ReflectionProbe probe) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDProbe.RequestRenderNextUpdate() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.VolumetricCloudsSystem.RequestVolumetricCloudsHistoryTexture(HDCamera hdCamera, Boolean current, HDCameraFrameHistoryType type, Boolean fullscale, VolumetricClouds settings) : RTHandle   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData/BufferAccess.RequestAccess(BufferAccessType flags) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestGpuExposureValue(RTHandle exposureTexture) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestGpuDeExposureValue(RTHandle exposureTexture) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestGpuTexelValue(RTHandle exposureTexture, Boolean isDeExposure) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestStpHistory(Boolean& useHwDrs, Boolean& hasValidHistory, HistoryContext& history) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestDynamicResolution(Boolean cameraRequestedDynamicRes, DynamicResolutionHandler dynResHandler) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.HDCamera.RequestClearHistoryBuffers() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.DLSSPass/ViewState.RequestUseAutomaticSettings(Boolean useAutomaticSettings, DLSSQuality quality, Rect viewport, OptimalDLSSSettingsData& optimalSettings) : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.SkyManager.RequestEnvironmentUpdate() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.SkyManager.RequestStaticEnvironmentUpdate() : Void   (no rpc attr)
+  UnityEngine.Rendering.HighDefinition.WaterDecal.RequestUpdate() : Void   (no rpc attr)
+  Unity.Services.Analytics.AnalyticsServiceInstance.RequestDataDeletion() : Void   (no rpc attr)
+  Unity.Services.Analytics.IAnalyticsService.RequestDataDeletion() : Void   (no rpc attr)
+  UnityEngine.Android.AndroidAssetPacks.RequestToUseMobileDataAsync(Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Android.AndroidAssetPacks.RequestToUseMobileDataAsync() : RequestToUseMobileDataAsyncOperation   (no rpc attr)
+  UnityEngine.Android.Permission.RequestUserPermission(String permission) : Void   (no rpc attr)
+  UnityEngine.Android.Permission.RequestUserPermissions(Il2CppStringArray permissions) : Void   (no rpc attr)
+  UnityEngine.Android.Permission.RequestUserPermission(String permission, PermissionCallbacks callbacks) : Void   (no rpc attr)
+  UnityEngine.Android.Permission.RequestUserPermissions(Il2CppStringArray permissions, PermissionCallbacks callbacks) : Void   (no rpc attr)
+  Unity.Profiling.Memory.MemoryProfiler.RequestEditorTakeSnapshotOfPlayer(UInt32 captureFlags, Boolean requestScreenshot) : Void   (no rpc attr)
+  UnityEngine.Application.RequestUserAuthorization(UserAuthorization mode) : AsyncOperation   (no rpc attr)
+  UnityEngine.Application.RequestUserAuthorization_Injected(UserAuthorization mode) : IntPtr   (no rpc attr)
+  UnityEngine.Screen.RequestOrientation(ScreenOrientation orient) : Void   (no rpc attr)
+  UnityEngine.HDROutputSettings.RequestHDRModeChange(Boolean enabled) : Void   (no rpc attr)
+  UnityEngine.HDROutputSettings.RequestHDRModeChangeInternal(Int32 displayIndex, Boolean enabled) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(GraphicsBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_ComputeBuffer_1(ComputeBuffer buffer, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_ComputeBuffer_2(ComputeBuffer src, Int32 size, Int32 offset, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_GraphicsBuffer_1(GraphicsBuffer buffer, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_GraphicsBuffer_2(GraphicsBuffer src, Int32 size, Int32 offset, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_1(Texture src, Int32 mipIndex, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_2(Texture src, Int32 mipIndex, GraphicsFormat dstFormat, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_3(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_4(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, AsyncRequestNativeArrayData* data) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_ComputeBuffer_1_Injected(IntPtr buffer, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_ComputeBuffer_2_Injected(IntPtr src, Int32 size, Int32 offset, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_GraphicsBuffer_1_Injected(IntPtr buffer, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_GraphicsBuffer_2_Injected(IntPtr src, Int32 size, Int32 offset, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_1_Injected(IntPtr src, Int32 mipIndex, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_2_Injected(IntPtr src, Int32 mipIndex, GraphicsFormat dstFormat, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_3_Injected(IntPtr src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request_Internal_Texture_4_Injected(IntPtr src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, AsyncRequestNativeArrayData* data, AsyncGPUReadbackRequest& ret) : Void   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(ComputeBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.Request(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, ComputeBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, GraphicsBuffer src, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : AsyncGPUReadbackRequest   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadback(Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeArray(NativeArray`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, ComputeBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, ComputeBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, GraphicsBuffer src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, GraphicsBuffer src, Int32 size, Int32 offset, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, TextureFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Rendering.CommandBuffer.RequestAsyncReadbackIntoNativeSlice(NativeSlice`1& output, Texture src, Int32 mipIndex, Int32 x, Int32 width, Int32 y, Int32 height, Int32 z, Int32 depth, GraphicsFormat dstFormat, Action`1 callback) : Void   (no rpc attr)
+  UnityEngine.Experimental.GlobalIllumination.Lightmapping.RequestLights(Il2CppReferenceArray`1 lights, IntPtr outLightsPtr, Int32 outLightsCount) : Void   (no rpc attr)
+  UnityEngine.U2D.SpriteAtlasManager.RequestAtlas(String tag) : Boolean   (no rpc attr)
+  UnityEngine.Device.Application.RequestUserAuthorization(UserAuthorization mode) : AsyncOperation   (no rpc attr)
+  UnityEngine.InputForUI.EventProvider.RequestCurrentState(Il2CppStructArray`1 types) : Void   (no rpc attr)
+  UnityEngine.InputForUI.EventProvider.RequestCurrentState(Type[] types) : Void   (no rpc attr)
+  UnityEngine.InputForUI.InputEventPartialProvider.RequestCurrentState(Type type) : Boolean   (no rpc attr)
+  UnityEngine.InputForUI.InputManagerProvider.RequestCurrentState(Type type) : Boolean   (no rpc attr)
+  UnityEngine.Font.RequestCharactersInTexture(String characters, Int32 size, FontStyle style) : Void   (no rpc attr)
+  UnityEngine.Font.RequestCharactersInTexture(String characters, Int32 size) : Void   (no rpc attr)
+  UnityEngine.Font.RequestCharactersInTexture(String characters) : Void   (no rpc attr)
+  UnityEngine.Font.RequestCharactersInTexture_Injected(IntPtr _unity_self, ManagedSpanWrapper& characters, Int32 size, FontStyle style) : Void   (no rpc attr)
+  UnityEngine.UIElements.StyleSheet.RequestRebuild(RebuildOptions options) : Void   (no rpc attr)
+  UnityEngine.UIElements.UIEventRegistration.RequestRepaintForPanels(Action`1 repaintCallback) : Void   (no rpc attr)
+  UnityEngine.VFX.VFXManager.RequestRtasAabbConstruction() : Void   (no rpc attr)
+  UnityEngine.Rendering.VirtualTexturing.Streaming.RequestRegion(Material mat, Int32 stackNameId, Rect r, Int32 mipMap, Int32 numMips) : Void   (no rpc attr)
+  UnityEngine.Rendering.VirtualTexturing.Streaming.RequestRegion_Injected(IntPtr mat, Int32 stackNameId, Rect& r, Int32 mipMap, Int32 numMips) : Void   (no rpc attr)
