@@ -552,21 +552,12 @@ notes here): `SupplyChainMod/DEMAND_MODEL_PLAN.md`.
 
 ---
 
-## 13. Outhouse composter — BUILT as OuthouseComposterMod v0.2.0 (⚠️ pending in-game confirmation); Phases 2–3 unbuilt
+## 13. Outhouse composter — SHIPPED as OuthouseComposterMod v1.3.1; Phases 2–3 open
 
-**Goal:** throw vegetables/seeds (and other food) into the Outhouse's storage; they convert to
-**compost** usable on farm plots — the compost-bin fantasy without new assets. Source: Nexus
-discussion (rondi112 + author, 2026-07-10).
-
-**Status (2026-07-11):** Phase 0 diagnostics confirmed in-game; Phase 1 built as
-**OuthouseComposterMod v0.2.0**, ⚠️ pending its in-game test — per-category independent repeating
-REAL-TIME timers (food ratio 1:1 @ 5 min, seeds 20:1 @ 10 min defaults, full-ratio-or-skip,
-output item 'Compost' added to the same grid, host/solo-gated, timers reset on load). Conversion
-timers, acceptance patches, and the villager-raiding risk are all unverified. Container/acceptance
-ground truth (unique containerType 'Storage_SmallItems_Outhouse', per-item acceptance beyond
-storage class, capacity=20, no Fusion backing observed, the ItemContainer API surface, the
-`GameObject.GetComponents(Type)` dead-end) is recorded in `docs/architecture.md` → "Storage
-acceptance / the Outhouse container".
+Phases 0–1 complete as OuthouseComposterMod v1.3.1 (per-category independent REAL-TIME timers,
+raid-proofed). Full recipe and architecture ground truth:
+[`docs/mods/outhouse-composter.md`](docs/mods/outhouse-composter.md) and `docs/architecture.md`
+→ Storage acceptance / the Outhouse container.
 
 **Unbuilt Phase 2 (bigger grid, config-gated, host/solo only):** bump `ItemContainer.capacity` for
 the outhouse instance. ⚠️ verify: the UI grid panel copes with extra slots; serialization
@@ -737,6 +728,9 @@ Nexus ship — users shouldn't silently lose loot) + `ExcludeCorpseNames`
 **Status:** built as GroundItemVacuumMod v1.2.1, ⚠️ pending in-game
 confirmation (2026-07-18). Open ⚠️ items: does `DespawnImmediatelyIfStateAuthority()`
 visually remove the body cleanly; are deer/boar `Monster` too.
+⚠️ The mod doc `docs/mods/ground-item-vacuum.md` is stale at v1.1.3 and carries NONE of this —
+so this section is the only written record. Do not collapse it to a pointer until the mod doc
+absorbs it.
 
 ---
 

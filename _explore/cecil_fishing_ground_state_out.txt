@@ -1,0 +1,1653 @@
+﻿loaded 37037 types
+
+=========== 1. Anything named FishingGround (find the real type name) ===========
+  SSSGame.AI.FishingComplainQuest   base=SSSGame.CrafterComplainQuest
+  SSSGame.AI.FishingComplainQuest/FishingComplainQuestData   base=SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData
+  SSSGame.AI.FishingOutlet   base=SSSGame.AI.TaskDispatcher
+  SSSGame.AI.FSM.FSM_Fishing   base=SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_Fishing/__c   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass15_0   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass15_1   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass17_0   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass24_0   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/FishingData   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/FishingOutletData   base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_Fishing/FishingStage   base=System.Enum
+  SSSGame.Combat.FishingMeleeObject   base=SSSGame.Combat.MeleeObject
+  SSSGame.Combat.FishingMeleeObject/__FishingRoutine_d__73   base=Il2CppSystem.Object
+  SSSGame.Combat.FishingMeleeObject/IkBone   base=Il2CppSystem.Object
+  SSSGame.Combat.FishingMeleeObject/UseContext   base=System.Enum
+  SSSGame.Deeds.FishingCondition   base=SSSGame.Deeds.DeedCondition
+  SSSGame.FishingGround   base=SSSGame.AI.FishingOutlet
+  SSSGame.FishingGround/FishingConditions   base=Il2CppSystem.ValueType
+  SSSGame.FishingGround/GroundsMultiplier   base=Il2CppSystem.ValueType
+  SSSGame.FishingGroundMarkerInfo   base=SSSGame.MarkerInfo
+  SSSGame.FishingInteraction   base=SSSGame.Interaction
+  SSSGame.FishingInteraction/FishingResult   base=System.Enum
+  SSSGame.FishingItem   base=SandSailorStudio.Inventory.WeaponizedItem
+  SSSGame.FishingItemInfo   base=SandSailorStudio.Inventory.WeaponizedItemInfo
+  SSSGame.FishingStation   base=SSSGame.ResourceStorage
+  SSSGame.FishingStation/__c__DisplayClass28_0   base=Il2CppSystem.Object
+  SSSGame.FishingStation/__c__DisplayClass41_0   base=Il2CppSystem.Object
+  SSSGame.FishingStation/__c__DisplayClass41_1   base=Il2CppSystem.Object
+  SSSGame.FishingStation/FishingStationEvent   base=Il2CppSystem.Object
+  SSSGame.FishingStation/FishingStationEventType   base=System.Enum
+  SSSGame.Network.NetworkFishingStation   base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkFishingStation/NetworkTask>
+  SSSGame.Network.NetworkFishingStation/NetworkTask   base=System.ValueType
+  SSSGame.UI.FishingEquipmentPanel   base=SSSGame.UI.EquipmentItemPanel
+  SSSGame.VillagerFishingInteractionConfig   base=SSSGame.InteractionConfiguration`1<SSSGame.FishingInteraction>
+  SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession   base=SSSGame.InteractionSession
+  SSSGame.Water.FishingLineSinker   base=UnityEngine.MonoBehaviour
+  SSSGame.Water.FishingLineSinker/_MoveToTarget_d__43   base=Il2CppSystem.Object
+  SSSGame.Water.FishingLineSinker/FishingEvents   base=Il2CppSystem.Object
+
+=========== 2. Every member mentioning fishing, anywhere ===========
+    (locates _fishingGrounds and the call surface, whatever type they actually live on)
+  FIELD  ExtinguishableFire.NativeMethodInfoPtr_Extinguishing_Private_IEnumerator_0 : System.IntPtr
+  METHOD ExtinguishableFire.Extinguishing() : IEnumerator
+  FIELD  SandSailorStudio.Inventory.ItemsConstants.NativeFieldInfoPtr_c_FishingState : System.IntPtr
+  PROP   SandSailorStudio.Inventory.ItemsConstants.c_FishingState : System.Int32
+  METHOD SandSailorStudio.Inventory.ItemsConstants.get_c_FishingState() : Int32
+  METHOD SandSailorStudio.Inventory.ItemsConstants.set_c_FishingState(Int32 ) : Void
+  FIELD  SSSGame.AI.Complaint.NativeFieldInfoPtr_c_workstation_noFishingOutlet : System.IntPtr
+  FIELD  SSSGame.AI.Complaint.NativeFieldInfoPtr_c_fishing_noTool : System.IntPtr
+  FIELD  SSSGame.AI.Complaint.NativeFieldInfoPtr_c_fishing_noIngredients_formatSingle : System.IntPtr
+  FIELD  SSSGame.AI.Complaint.NativeFieldInfoPtr_c_fishing_noIngredients_format : System.IntPtr
+  PROP   SSSGame.AI.Complaint.c_workstation_noFishingOutlet : System.String
+  PROP   SSSGame.AI.Complaint.c_fishing_noTool : System.String
+  PROP   SSSGame.AI.Complaint.c_fishing_noIngredients_formatSingle : System.String
+  PROP   SSSGame.AI.Complaint.c_fishing_noIngredients_format : System.String
+  METHOD SSSGame.AI.Complaint.get_c_workstation_noFishingOutlet() : String
+  METHOD SSSGame.AI.Complaint.set_c_workstation_noFishingOutlet(String ) : Void
+  METHOD SSSGame.AI.Complaint.get_c_fishing_noTool() : String
+  METHOD SSSGame.AI.Complaint.set_c_fishing_noTool(String ) : Void
+  METHOD SSSGame.AI.Complaint.get_c_fishing_noIngredients_formatSingle() : String
+  METHOD SSSGame.AI.Complaint.set_c_fishing_noIngredients_formatSingle(String ) : Void
+  METHOD SSSGame.AI.Complaint.get_c_fishing_noIngredients_format() : String
+  METHOD SSSGame.AI.Complaint.set_c_fishing_noIngredients_format(String ) : Void
+  FIELD  SSSGame.AI.FishingOutlet.NativeFieldInfoPtr_fishingInteraction : System.IntPtr
+  PROP   SSSGame.AI.FishingOutlet.fishingInteraction : SSSGame.FishingInteraction
+  METHOD SSSGame.AI.FishingOutlet.get_fishingInteraction() : FishingInteraction
+  METHOD SSSGame.AI.FishingOutlet.set_fishingInteraction(FishingInteraction ) : Void
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeFieldInfoPtr_changeFishingGroundAfterCatches : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeFieldInfoPtr_fishingEquipmentCategories : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_GetAvailableFishingSpots_Private_Void_GatherAndHarvestData_FishingData_Boolean_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_SetFishingInteraction_Private_Boolean_FishingData_FishingInteraction_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr__EndFishingSession_Private_Void_FishingData_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_GetNextOutlet_Private_FishingOutletData_FishingData_Boolean_Int32_Int32_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_CurrentOutletDepleted_Private_Boolean_FishingData_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_MountBoat_Private_Void_IFSMBehaviourController_FishingData_RowingInteraction_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_BoatsInUseByOtherVillagers_Private_Boolean_FishingStation_ITaskAgent_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing.NativeMethodInfoPtr_CheckBaitForFishingOutlet_Private_Boolean_Villager_FishingOutlet_FishableItemsConfig_0 : System.IntPtr
+  PROP   SSSGame.AI.FSM.FSM_Fishing.changeFishingGroundAfterCatches : System.Int32
+  PROP   SSSGame.AI.FSM.FSM_Fishing.fishingEquipmentCategories : Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemCategoryInfo>
+  METHOD SSSGame.AI.FSM.FSM_Fishing.GetAvailableFishingSpots(GatherAndHarvestData questData, FishingData actionData, Boolean filterNoBait) : Void
+  METHOD SSSGame.AI.FSM.FSM_Fishing.SetFishingInteraction(FishingData actionData, FishingInteraction interaction) : Boolean
+  METHOD SSSGame.AI.FSM.FSM_Fishing._EndFishingSession(FishingData actionData) : Void
+  METHOD SSSGame.AI.FSM.FSM_Fishing.CheckBaitForFishingOutlet(Villager villager, FishingOutlet fishingOutlet, FishableItemsConfig fishables) : Boolean
+  METHOD SSSGame.AI.FSM.FSM_Fishing.get_changeFishingGroundAfterCatches() : Int32
+  METHOD SSSGame.AI.FSM.FSM_Fishing.set_changeFishingGroundAfterCatches(Int32 ) : Void
+  METHOD SSSGame.AI.FSM.FSM_Fishing.get_fishingEquipmentCategories() : List`1
+  METHOD SSSGame.AI.FSM.FSM_Fishing.set_fishingEquipmentCategories(List`1 ) : Void
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/__c.NativeMethodInfoPtr__GetAvailableFishingSpots_b__17_0_Internal_Int32_FishingOutletData_FishingOutletData_0 : System.IntPtr
+  METHOD SSSGame.AI.FSM.FSM_Fishing/__c._GetAvailableFishingSpots_b__17_0(FishingOutletData a, FishingOutletData b) : Int32
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass17_0.NativeMethodInfoPtr__GetAvailableFishingSpots_b__1_Internal_Boolean_ITaskDispatcher_0 : System.IntPtr
+  METHOD SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass17_0._GetAvailableFishingSpots_b__1(ITaskDispatcher taskDispatcher) : Boolean
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass24_0.NativeMethodInfoPtr__CheckBaitForFishingOutlet_b__0_Internal_Boolean_Fishable_0 : System.IntPtr
+  METHOD SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass24_0._CheckBaitForFishingOutlet_b__0(Fishable e) : Boolean
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeFieldInfoPtr_fishingOutlets : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeFieldInfoPtr_fishingStationEvent : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeFieldInfoPtr_fishingManifest : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeMethodInfoPtr_get_CurrentOutlet_Public_get_FishingOutlet_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeMethodInfoPtr_get_CurrentOutletData_Public_get_FishingOutletData_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeMethodInfoPtr_get_CurrentOutletIsFishingGround_Public_get_Boolean_0 : System.IntPtr
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingData.NativeMethodInfoPtr_ConsumeEvent_Public_FishingStationEventType_0 : System.IntPtr
+  PROP   SSSGame.AI.FSM.FSM_Fishing/FishingData.fishingOutlets : Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.FSM.FSM_Fishing/FishingOutletData>
+  PROP   SSSGame.AI.FSM.FSM_Fishing/FishingData.fishingStationEvent : SSSGame.FishingStation/FishingStationEvent
+  PROP   SSSGame.AI.FSM.FSM_Fishing/FishingData.fishingManifest : SandSailorStudio.Inventory.ItemManifest
+  PROP   SSSGame.AI.FSM.FSM_Fishing/FishingData.CurrentOutletIsFishingGround : System.Boolean
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.get_CurrentOutletIsFishingGround() : Boolean
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.get_fishingOutlets() : List`1
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.set_fishingOutlets(List`1 ) : Void
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.get_fishingStationEvent() : FishingStationEvent
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.set_fishingStationEvent(FishingStationEvent ) : Void
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.get_fishingManifest() : ItemManifest
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingData.set_fishingManifest(ItemManifest ) : Void
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingOutletData.NativeMethodInfoPtr_get_IsFishingGround_Public_get_Boolean_0 : System.IntPtr
+  PROP   SSSGame.AI.FSM.FSM_Fishing/FishingOutletData.IsFishingGround : System.Boolean
+  METHOD SSSGame.AI.FSM.FSM_Fishing/FishingOutletData.get_IsFishingGround() : Boolean
+  FIELD  SSSGame.AI.FSM.FSM_Fishing/FishingStage.ERROR_NO_FISHING_SPOT : SSSGame.AI.FSM.FSM_Fishing/FishingStage
+  FIELD  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData.NativeFieldInfoPtr_fishingData : System.IntPtr
+  PROP   SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData.fishingData : SSSGame.AI.FSM.FSMData
+  METHOD SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData.get_fishingData() : FSMData
+  METHOD SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData.set_fishingData(FSMData ) : Void
+  FIELD  SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData.NativeFieldInfoPtr__noFishingOutletComplaint : System.IntPtr
+  PROP   SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData._noFishingOutletComplaint : SSSGame.AI.GenericMessageComplaint
+  METHOD SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData.get__noFishingOutletComplaint() : GenericMessageComplaint
+  METHOD SSSGame.AI.ResourceStorageComplainQuest/ResourceStorageComplainData.set__noFishingOutletComplaint(GenericMessageComplaint ) : Void
+  FIELD  SSSGame.AnimationDebugAddon.NativeMethodInfoPtr__FishingByVillager_Private_Void_0 : System.IntPtr
+  METHOD SSSGame.AnimationDebugAddon._FishingByVillager() : Void
+  FIELD  SSSGame.CharacterConstants.NativeFieldInfoPtr_c_FishingProf_Attr : System.IntPtr
+  FIELD  SSSGame.CharacterConstants.NativeFieldInfoPtr_c_FishingExpMultiplier_Attr : System.IntPtr
+  FIELD  SSSGame.CharacterConstants.NativeFieldInfoPtr_c_FishingExpertise_VAttr : System.IntPtr
+  PROP   SSSGame.CharacterConstants.c_FishingProf_Attr : System.Int32
+  PROP   SSSGame.CharacterConstants.c_FishingExpMultiplier_Attr : System.Int32
+  PROP   SSSGame.CharacterConstants.c_FishingExpertise_VAttr : System.Int32
+  METHOD SSSGame.CharacterConstants.get_c_FishingProf_Attr() : Int32
+  METHOD SSSGame.CharacterConstants.set_c_FishingProf_Attr(Int32 ) : Void
+  METHOD SSSGame.CharacterConstants.get_c_FishingExpMultiplier_Attr() : Int32
+  METHOD SSSGame.CharacterConstants.set_c_FishingExpMultiplier_Attr(Int32 ) : Void
+  METHOD SSSGame.CharacterConstants.get_c_FishingExpertise_VAttr() : Int32
+  METHOD SSSGame.CharacterConstants.set_c_FishingExpertise_VAttr(Int32 ) : Void
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeFieldInfoPtr_baseFishingIkWeight : System.IntPtr
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeFieldInfoPtr__fishingRoutine : System.IntPtr
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeMethodInfoPtr_get_FishingItem_Public_get_FishingItem_0 : System.IntPtr
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeMethodInfoPtr_ActivateFishing_Public_Void_Boolean_0 : System.IntPtr
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeMethodInfoPtr__FishingRoutine_Private_IEnumerator_0 : System.IntPtr
+  FIELD  SSSGame.Combat.FishingMeleeObject.NativeMethodInfoPtr__UpdateFishingLine_Private_Void_byref_Boolean_0 : System.IntPtr
+  PROP   SSSGame.Combat.FishingMeleeObject.baseFishingIkWeight : System.Single
+  PROP   SSSGame.Combat.FishingMeleeObject._fishingRoutine : UnityEngine.Coroutine
+  PROP   SSSGame.Combat.FishingMeleeObject.FishingItem : SSSGame.FishingItem
+  METHOD SSSGame.Combat.FishingMeleeObject.get_FishingItem() : FishingItem
+  METHOD SSSGame.Combat.FishingMeleeObject.ActivateFishing(Boolean active) : Void
+  METHOD SSSGame.Combat.FishingMeleeObject._FishingRoutine() : IEnumerator
+  METHOD SSSGame.Combat.FishingMeleeObject._UpdateFishingLine(Boolean& worldSpace) : Void
+  METHOD SSSGame.Combat.FishingMeleeObject.get_baseFishingIkWeight() : Single
+  METHOD SSSGame.Combat.FishingMeleeObject.set_baseFishingIkWeight(Single ) : Void
+  METHOD SSSGame.Combat.FishingMeleeObject.get__fishingRoutine() : Coroutine
+  METHOD SSSGame.Combat.FishingMeleeObject.set__fishingRoutine(Coroutine ) : Void
+  FIELD  SSSGame.Deeds.DeedEvents.NativeFieldInfoPtr_c_FishingSuccessEvent : System.IntPtr
+  PROP   SSSGame.Deeds.DeedEvents.c_FishingSuccessEvent : System.Int32
+  METHOD SSSGame.Deeds.DeedEvents.get_c_FishingSuccessEvent() : Int32
+  METHOD SSSGame.Deeds.DeedEvents.set_c_FishingSuccessEvent(Int32 ) : Void
+  FIELD  SSSGame.ExplorationPredicateType.FISHING_GROUND : SSSGame.ExplorationPredicateType
+  FIELD  SSSGame.FishableItemsConfig.NativeMethodInfoPtr_GetFishableItemInfo_Public_Fishable_byref_FishingResult_WeatherManager_Single_0 : System.IntPtr
+  FIELD  SSSGame.FishableItemsConfig.NativeMethodInfoPtr_GetFishableItemInfo_Public_Fishable_byref_FishingResult_WeatherManager_EquipmentItem_Vector3_Single_0 : System.IntPtr
+  FIELD  SSSGame.FishableItemsConfig.NativeMethodInfoPtr_GetFishableItemInfo_Public_Fishable_byref_FishingResult_WeatherManager_EquipmentItem_Vector3_0 : System.IntPtr
+  FIELD  SSSGame.FishingInteraction.NativeMethodInfoPtr_FishItem_Public_Boolean_IInteractionAgent_byref_FishingResult_byref_Fishable_EquipmentItem_Vector3_Single_0 : System.IntPtr
+  FIELD  SSSGame.FishingItem.NativeMethodInfoPtr_SetFishingState_Public_Void_byref_Int32_0 : System.IntPtr
+  FIELD  SSSGame.FishingItem.NativeMethodInfoPtr_GetFishingState_Public_Int32_0 : System.IntPtr
+  FIELD  SSSGame.FishingItem.NativeMethodInfoPtr_SyncFishingState_Public_Void_0 : System.IntPtr
+  METHOD SSSGame.FishingItem.SetFishingState(Int32& state) : Void
+  METHOD SSSGame.FishingItem.GetFishingState() : Int32
+  METHOD SSSGame.FishingItem.SyncFishingState() : Void
+  FIELD  SSSGame.FishingStation.NativeFieldInfoPtr_maxFishingGroundRange : System.IntPtr
+  FIELD  SSSGame.FishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_Changed_1_FishingStation_0 : System.IntPtr
+  FIELD  SSSGame.FishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0 : System.IntPtr
+  FIELD  SSSGame.FishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0 : System.IntPtr
+  FIELD  SSSGame.FishingStation.NativeMethodInfoPtr__OnFishingGroundMarkChanged_Private_Void_FishingGround_Int32_0 : System.IntPtr
+  FIELD  SSSGame.FishingStation.NativeMethodInfoPtr__NotifyAgents_Private_Void_FishingStationEventType_0 : System.IntPtr
+  PROP   SSSGame.FishingStation.maxFishingGroundRange : System.Single
+  PROP   SSSGame.FishingStation.field_CompilerControlled_Static_Changed_1_FishingStation_0 : Fusion.Changed`1<SSSGame.FishingStation>
+  PROP   SSSGame.FishingStation.field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0 : Fusion.ChangedDelegate`1<SSSGame.FishingStation>
+  PROP   SSSGame.FishingStation.field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0 : Fusion.NetworkBehaviourCallbacks`1<SSSGame.FishingStation>
+  METHOD SSSGame.FishingStation._OnFishingGroundMarkChanged(FishingGround fishingGround, Int32 count) : Void
+  METHOD SSSGame.FishingStation.get_maxFishingGroundRange() : Single
+  METHOD SSSGame.FishingStation.set_maxFishingGroundRange(Single ) : Void
+  METHOD SSSGame.FishingStation.get_field_CompilerControlled_Static_Changed_1_FishingStation_0() : Changed`1
+  METHOD SSSGame.FishingStation.set_field_CompilerControlled_Static_Changed_1_FishingStation_0(Changed`1 ) : Void
+  METHOD SSSGame.FishingStation.get_field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0() : ChangedDelegate`1
+  METHOD SSSGame.FishingStation.set_field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0(ChangedDelegate`1 ) : Void
+  METHOD SSSGame.FishingStation.get_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0() : NetworkBehaviourCallbacks`1
+  METHOD SSSGame.FishingStation.set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0(NetworkBehaviourCallbacks`1 ) : Void
+  FIELD  SSSGame.FishingStation/FishingStationEvent.NativeMethodInfoPtr__ctor_Public_Void_FishingStationEventType_0 : System.IntPtr
+  FIELD  SSSGame.Interaction.NativeFieldInfoPtr__finishingAllSessions : System.IntPtr
+  PROP   SSSGame.Interaction._finishingAllSessions : System.Boolean
+  METHOD SSSGame.Interaction.get__finishingAllSessions() : Boolean
+  METHOD SSSGame.Interaction.set__finishingAllSessions(Boolean ) : Void
+  FIELD  SSSGame.LiveOps.PlayfabManager.NativeFieldInfoPtr_c_ev_fishing_success : System.IntPtr
+  FIELD  SSSGame.LiveOps.PlayfabManager.NativeFieldInfoPtr_c_ev_fishing_fail : System.IntPtr
+  FIELD  SSSGame.LiveOps.PlayfabManager.NativeMethodInfoPtr_SendPlayerFishingSuccessEvent_Public_Void_ItemInfo_ItemInfo_String_0 : System.IntPtr
+  FIELD  SSSGame.LiveOps.PlayfabManager.NativeMethodInfoPtr_SendPlayerFishingFailEvent_Public_Void_Boolean_String_0 : System.IntPtr
+  PROP   SSSGame.LiveOps.PlayfabManager.c_ev_fishing_success : System.String
+  PROP   SSSGame.LiveOps.PlayfabManager.c_ev_fishing_fail : System.String
+  METHOD SSSGame.LiveOps.PlayfabManager.SendPlayerFishingSuccessEvent(ItemInfo fishInfo, ItemInfo baitInfo, String seed) : Void
+  METHOD SSSGame.LiveOps.PlayfabManager.SendPlayerFishingFailEvent(Boolean latePull, String seed) : Void
+  METHOD SSSGame.LiveOps.PlayfabManager.get_c_ev_fishing_success() : String
+  METHOD SSSGame.LiveOps.PlayfabManager.set_c_ev_fishing_success(String ) : Void
+  METHOD SSSGame.LiveOps.PlayfabManager.get_c_ev_fishing_fail() : String
+  METHOD SSSGame.LiveOps.PlayfabManager.set_c_ev_fishing_fail(String ) : Void
+  FIELD  SSSGame.Network.NetworkFishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkFishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkFishingStation.NativeFieldInfoPtr_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0 : System.IntPtr
+  PROP   SSSGame.Network.NetworkFishingStation.field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0 : Fusion.Changed`1<SSSGame.Network.NetworkFishingStation>
+  PROP   SSSGame.Network.NetworkFishingStation.field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0 : Fusion.ChangedDelegate`1<SSSGame.Network.NetworkFishingStation>
+  PROP   SSSGame.Network.NetworkFishingStation.field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0 : Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkFishingStation>
+  METHOD SSSGame.Network.NetworkFishingStation.get_field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0() : Changed`1
+  METHOD SSSGame.Network.NetworkFishingStation.set_field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0(Changed`1 ) : Void
+  METHOD SSSGame.Network.NetworkFishingStation.get_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0() : ChangedDelegate`1
+  METHOD SSSGame.Network.NetworkFishingStation.set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0(ChangedDelegate`1 ) : Void
+  METHOD SSSGame.Network.NetworkFishingStation.get_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0() : NetworkBehaviourCallbacks`1
+  METHOD SSSGame.Network.NetworkFishingStation.set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0(NetworkBehaviourCallbacks`1 ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_RequestDiscoverFishingGround_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_RequestDiscoverFishinGround_Private_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr__TryGetFishingGround_Private_Boolean_Int32_byref_FishingGround_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_RequestRemoveFishFromFishinGround_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_RequestRemoveFishFromFishinGround_Private_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_RequestMarkFishinGround_Public_Void_Int32_Boolean_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_RequestMarkFishinGround_Private_Void_Int32_NetworkBool_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_MarkFishingGround_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_MarkFishingGround_Private_Void_WorldTileId_Il2CppStructArray_1_Byte_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr__ReceiveMarkedFishingGround_Private_Void_WorldTileId_BinaryReader_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_DiscoverFishingGround_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_DiscoverFishingGround_Private_Void_WorldTileId_Il2CppStructArray_1_Byte_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr__ReceiveDiscoveredFishingGround_Private_Void_WorldTileId_BinaryReader_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_DisableFishingGround_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_DisableFishingGround_Private_Void_WorldTileId_Il2CppStructArray_1_Byte_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr__ReceiveDisabledFishingGround_Private_Void_WorldTileId_BinaryReader_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_ChangeFishingGroundSize_Public_Void_Int32_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr_Rpc_ChangeFishingGroundSize_Private_Void_WorldTileId_Il2CppStructArray_1_Byte_0 : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager.NativeMethodInfoPtr__ReceiveChangedFishingGroundSize_Private_Void_WorldTileId_BinaryReader_0 : System.IntPtr
+  METHOD SSSGame.Network.NetworkWorldDataManager.RequestDiscoverFishingGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_RequestDiscoverFishinGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager._TryGetFishingGround(Int32 id, FishingGround& fishingGround) : Boolean
+  METHOD SSSGame.Network.NetworkWorldDataManager.RequestRemoveFishFromFishinGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_RequestRemoveFishFromFishinGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.RequestMarkFishinGround(Int32 fishingGroundID, Boolean marked) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_RequestMarkFishinGround(Int32 fishingGroundID, NetworkBool marked) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.MarkFishingGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_MarkFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager._ReceiveMarkedFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.DiscoverFishingGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_DiscoverFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager._ReceiveDiscoveredFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.DisableFishingGround(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_DisableFishingGround(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager._ReceiveDisabledFishingGround(WorldTileId worldTileId, BinaryReader reader) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.ChangeFishingGroundSize(Int32 fishingGroundID) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager.Rpc_ChangeFishingGroundSize(WorldTileId worldTileId, Il2CppStructArray`1 bytes) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager._ReceiveChangedFishingGroundSize(WorldTileId worldTileId, BinaryReader reader) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.NativeFieldInfoPtr_fishingGroundID : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.NativeMethodInfoPtr__MarkFishingGround_b__0_Internal_Void_BinaryWriter_0 : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.fishingGroundID : System.Int32
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0._MarkFishingGround_b__0(BinaryWriter writer) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.get_fishingGroundID() : Int32
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.set_fishingGroundID(Int32 ) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass111_0.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.NativeFieldInfoPtr_fishingGroundID : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.NativeMethodInfoPtr__DiscoverFishingGround_b__0_Internal_Void_BinaryWriter_0 : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.fishingGroundID : System.Int32
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0._DiscoverFishingGround_b__0(BinaryWriter writer) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.get_fishingGroundID() : Int32
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.set_fishingGroundID(Int32 ) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass114_0.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.NativeFieldInfoPtr_fishingGroundID : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.NativeMethodInfoPtr__DisableFishingGround_b__0_Internal_Void_BinaryWriter_0 : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.fishingGroundID : System.Int32
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0._DisableFishingGround_b__0(BinaryWriter writer) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.get_fishingGroundID() : Int32
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.set_fishingGroundID(Int32 ) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass117_0.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.NativeFieldInfoPtr_fishingGroundID : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.fishingGroundID : System.Int32
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.get_fishingGroundID() : Int32
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.set_fishingGroundID(Int32 ) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass120_0.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.NativeFieldInfoPtr_fishingGroundID : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.NativeMethodInfoPtr__ChangeFishingGroundSize_b__0_Internal_Void_BinaryWriter_0 : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.fishingGroundID : System.Int32
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0._ChangeFishingGroundSize_b__0(BinaryWriter writer) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.get_fishingGroundID() : Int32
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.set_fishingGroundID(Int32 ) : Void
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass123_0.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass58_1.NativeFieldInfoPtr_fishingGround : System.IntPtr
+  PROP   SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass58_1.fishingGround : SSSGame.FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass58_1.get_fishingGround() : FishingGround
+  METHOD SSSGame.Network.NetworkWorldDataManager/__c__DisplayClass58_1.set_fishingGround(FishingGround ) : Void
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr_OnFishingGroundsMarkedCountChanged : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr__fishingGroundsMap : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr__fishingGrounds : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr__markedFishingGroundsMap : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr__fishingGroundsWeatherUpdateIndex : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeFieldInfoPtr_c_FishingGrounds : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_add_OnFishingGroundsMarkedCountChanged_Public_add_Void_Action_2_FishingGround_Int32_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_remove_OnFishingGroundsMarkedCountChanged_Public_rem_Void_Action_2_FishingGround_Int32_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_Register_Public_Void_FishingGround_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_UpdateFishingGrounds_Private_Void_WeatherEventData_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr__OnFishingGroundStateChanged_Private_Void_FishingGround_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr__UpdateDirtyMarkedFishingGroundsCount_Private_Void_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_TryGetFishingGroundAtPosition_Public_Boolean_Vector3_byref_FishingGround_ItemInfo_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_TryGetFishingGroundsForItem_Public_Boolean_ItemInfo_byref_IEnumerator_1_FishingGround_0 : System.IntPtr
+  FIELD  SSSGame.PopulationManager.NativeMethodInfoPtr_GetMarkedFishingGroundsCountForItem_Public_Int32_ItemInfo_0 : System.IntPtr
+  PROP   SSSGame.PopulationManager.OnFishingGroundsMarkedCountChanged : Il2CppSystem.Action`2<SSSGame.FishingGround,System.Int32>
+  PROP   SSSGame.PopulationManager._fishingGroundsMap : Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.Collections.Generic.List`1<SSSGame.FishingGround>>
+  PROP   SSSGame.PopulationManager._fishingGrounds : Il2CppSystem.Collections.Generic.List`1<SSSGame.FishingGround>
+  PROP   SSSGame.PopulationManager._markedFishingGroundsMap : Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,System.Int32>
+  PROP   SSSGame.PopulationManager._fishingGroundsWeatherUpdateIndex : System.Int32
+  PROP   SSSGame.PopulationManager.c_FishingGrounds : System.String
+  METHOD SSSGame.PopulationManager.add_OnFishingGroundsMarkedCountChanged(Action`2 value) : Void
+  METHOD SSSGame.PopulationManager.remove_OnFishingGroundsMarkedCountChanged(Action`2 value) : Void
+  METHOD SSSGame.PopulationManager.UpdateFishingGrounds(WeatherEventData obj) : Void
+  METHOD SSSGame.PopulationManager._OnFishingGroundStateChanged(FishingGround fishingGround) : Void
+  METHOD SSSGame.PopulationManager._UpdateDirtyMarkedFishingGroundsCount() : Void
+  METHOD SSSGame.PopulationManager.TryGetFishingGroundAtPosition(Vector3 extractPosition, FishingGround& fishingGround, ItemInfo requestedFishInfo) : Boolean
+  METHOD SSSGame.PopulationManager.TryGetFishingGroundsForItem(ItemInfo targetFish, IEnumerator`1& fishinGroundsEnum) : Boolean
+  METHOD SSSGame.PopulationManager.GetMarkedFishingGroundsCountForItem(ItemInfo targetFish) : Int32
+  METHOD SSSGame.PopulationManager.get_OnFishingGroundsMarkedCountChanged() : Action`2
+  METHOD SSSGame.PopulationManager.set_OnFishingGroundsMarkedCountChanged(Action`2 ) : Void
+  METHOD SSSGame.PopulationManager.get__fishingGroundsMap() : Dictionary`2
+  METHOD SSSGame.PopulationManager.set__fishingGroundsMap(Dictionary`2 ) : Void
+  METHOD SSSGame.PopulationManager.get__fishingGrounds() : List`1
+  METHOD SSSGame.PopulationManager.set__fishingGrounds(List`1 ) : Void
+  METHOD SSSGame.PopulationManager.get__markedFishingGroundsMap() : Dictionary`2
+  METHOD SSSGame.PopulationManager.set__markedFishingGroundsMap(Dictionary`2 ) : Void
+  METHOD SSSGame.PopulationManager.get__fishingGroundsWeatherUpdateIndex() : Int32
+  METHOD SSSGame.PopulationManager.set__fishingGroundsWeatherUpdateIndex(Int32 ) : Void
+  METHOD SSSGame.PopulationManager.get_c_FishingGrounds() : String
+  METHOD SSSGame.PopulationManager.set_c_FishingGrounds(String ) : Void
+  FIELD  SSSGame.StructureScoreManager.NativeFieldInfoPtr_diminishingReturnsCurve : System.IntPtr
+  PROP   SSSGame.StructureScoreManager.diminishingReturnsCurve : UnityEngine.AnimationCurve
+  METHOD SSSGame.StructureScoreManager.get_diminishingReturnsCurve() : AnimationCurve
+  METHOD SSSGame.StructureScoreManager.set_diminishingReturnsCurve(AnimationCurve ) : Void
+  FIELD  SSSGame.UI.FishingEquipmentPanel.NativeFieldInfoPtr_FishingRodPoint : System.IntPtr
+  FIELD  SSSGame.UI.FishingEquipmentPanel.NativeFieldInfoPtr_fishingRodEquipPoint : System.IntPtr
+  PROP   SSSGame.UI.FishingEquipmentPanel.FishingRodPoint : System.String
+  PROP   SSSGame.UI.FishingEquipmentPanel.fishingRodEquipPoint : SandSailorStudio.Inventory.EquipPoint
+  METHOD SSSGame.UI.FishingEquipmentPanel.get_FishingRodPoint() : String
+  METHOD SSSGame.UI.FishingEquipmentPanel.set_FishingRodPoint(String ) : Void
+  METHOD SSSGame.UI.FishingEquipmentPanel.get_fishingRodEquipPoint() : EquipPoint
+  METHOD SSSGame.UI.FishingEquipmentPanel.set_fishingRodEquipPoint(EquipPoint ) : Void
+  FIELD  SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.NativeFieldInfoPtr__fishingMeleeObject : System.IntPtr
+  FIELD  SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.NativeMethodInfoPtr_get_FishingConfig_Public_get_VillagerFishingInteractionConfig_0 : System.IntPtr
+  FIELD  SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.NativeMethodInfoPtr_get_FishingInteraction_Public_get_FishingInteraction_0 : System.IntPtr
+  PROP   SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession._fishingMeleeObject : SSSGame.Combat.FishingMeleeObject
+  PROP   SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.FishingConfig : SSSGame.VillagerFishingInteractionConfig
+  PROP   SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.FishingInteraction : SSSGame.FishingInteraction
+  METHOD SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.get_FishingConfig() : VillagerFishingInteractionConfig
+  METHOD SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.get_FishingInteraction() : FishingInteraction
+  METHOD SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.get__fishingMeleeObject() : FishingMeleeObject
+  METHOD SSSGame.VillagerFishingInteractionConfig/VillagerFishingInteractionSession.set__fishingMeleeObject(FishingMeleeObject ) : Void
+  FIELD  SSSGame.Water.FishingLineSinker.NativeFieldInfoPtr_minFishingDepth : System.IntPtr
+  PROP   SSSGame.Water.FishingLineSinker.minFishingDepth : System.Single
+  METHOD SSSGame.Water.FishingLineSinker.get_minFishingDepth() : Single
+  METHOD SSSGame.Water.FishingLineSinker.set_minFishingDepth(Single ) : Void
+  FIELD  SSSGame.Water.Pier.NativeMethodInfoPtr_IsFishingStationPier_Public_Boolean_0 : System.IntPtr
+  METHOD SSSGame.Water.Pier.IsFishingStationPier() : Boolean
+  FIELD  SSSGame.Workstation/WorkstationStationEvents.NativeFieldInfoPtr_c_AddComplaint_NoFishingOutlet : System.IntPtr
+  FIELD  SSSGame.Workstation/WorkstationStationEvents.NativeFieldInfoPtr_c_RemoveComplaint_NoFishingOutlet : System.IntPtr
+  PROP   SSSGame.Workstation/WorkstationStationEvents.c_AddComplaint_NoFishingOutlet : System.Int32
+  PROP   SSSGame.Workstation/WorkstationStationEvents.c_RemoveComplaint_NoFishingOutlet : System.Int32
+  METHOD SSSGame.Workstation/WorkstationStationEvents.get_c_AddComplaint_NoFishingOutlet() : Int32
+  METHOD SSSGame.Workstation/WorkstationStationEvents.set_c_AddComplaint_NoFishingOutlet(Int32 ) : Void
+  METHOD SSSGame.Workstation/WorkstationStationEvents.get_c_RemoveComplaint_NoFishingOutlet() : Int32
+  METHOD SSSGame.Workstation/WorkstationStationEvents.set_c_RemoveComplaint_NoFishingOutlet(Int32 ) : Void
+  FIELD  UnityEditor.Analytics.PackageManagerResolvePackageAnalytic.NativeFieldInfoPtr_package_publishing_channels : System.IntPtr
+  PROP   UnityEditor.Analytics.PackageManagerResolvePackageAnalytic.package_publishing_channels : Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray
+  METHOD UnityEditor.Analytics.PackageManagerResolvePackageAnalytic.get_package_publishing_channels() : Il2CppStringArray
+  METHOD UnityEditor.Analytics.PackageManagerResolvePackageAnalytic.set_package_publishing_channels(Il2CppStringArray ) : Void
+
+=========== 3. FULL state surface of the fishing-ground type(s) ===========
+    THIS is the probe's dump list - every field/prop that could encode 'exhausted'.
+
+  ### SSSGame.AI.FishingOutlet   base=SSSGame.AI.TaskDispatcher
+      -- fields --
+        NativeFieldInfoPtr_fishingInteraction : IntPtr [static]
+        NativeFieldInfoPtr_InWater : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+      -- properties --
+        fishingInteraction : FishingInteraction
+        InWater : Boolean
+      -- methods --
+
+  ### SSSGame.AI.FSM.FSM_Fishing   base=SSSGame.AI.FSM.FSM_QuestAction
+      -- fields --
+        NativeFieldInfoPtr_baitStacksNeeded : IntPtr [static]
+        NativeFieldInfoPtr_boatInteraction : IntPtr [static]
+        NativeFieldInfoPtr_boatRecoveryRange : IntPtr [static]
+        NativeFieldInfoPtr_boatStartPosName : IntPtr [static]
+        NativeFieldInfoPtr_changeFishingGroundAfterCatches : IntPtr [static]
+        NativeFieldInfoPtr_fishingEquipmentCategories : IntPtr [static]
+        NativeFieldInfoPtr_resultName : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__EndFishingSession_Private_Void_FishingData_0 : IntPtr [static]
+        NativeMethodInfoPtr_BoatsInUseByOtherVillagers_Private_Boolean_FishingStation_ITaskAgent_0 : IntPtr [static]
+        NativeMethodInfoPtr_CheckBaitForFishingOutlet_Private_Boolean_Villager_FishingOutlet_FishableItemsConfig_0 : IntPtr [static]
+        NativeMethodInfoPtr_CurrentOutletDepleted_Private_Boolean_FishingData_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_categoryName_Public_Virtual_get_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_defaultName_Public_Virtual_get_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetAvailableFishingSpots_Private_Void_GatherAndHarvestData_FishingData_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetNextOutlet_Private_FishingOutletData_FishingData_Boolean_Int32_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_MountBoat_Private_Void_IFSMBehaviourController_FishingData_RowingInteraction_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnStateEnter_Public_Virtual_Void_IFSMBehaviourController_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnStateExit_Public_Virtual_Void_IFSMBehaviourController_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnStateUpdate_Public_Virtual_Void_IFSMBehaviourController_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetFishingInteraction_Private_Boolean_FishingData_FishingInteraction_0 : IntPtr [static]
+        NativeMethodInfoPtr_ShouldConsumeSurvival_Private_Boolean_Villager_SurvivalObjectiveQuest_0 : IntPtr [static]
+      -- properties --
+        baitStacksNeeded : Int32
+        boatInteraction : String
+        boatRecoveryRange : Single
+        boatStartPosName : String
+        categoryName : String
+        changeFishingGroundAfterCatches : Int32
+        defaultName : String
+        fishingEquipmentCategories : List`1
+        resultName : String
+      -- methods --
+        _EndFishingSession(FishingData actionData) : Void
+        BoatsInUseByOtherVillagers(FishingStation fishingStation, ITaskAgent ourVillager) : Boolean
+        CheckBaitForFishingOutlet(Villager villager, FishingOutlet fishingOutlet, FishableItemsConfig fishables) : Boolean
+        CurrentOutletDepleted(FishingData actionData) : Boolean
+        GetAvailableFishingSpots(GatherAndHarvestData questData, FishingData actionData, Boolean filterNoBait) : Void
+        GetNextOutlet(FishingData actionData, Boolean increment, Int32 depth, Int32 maxDepth) : FishingOutletData
+        MountBoat(IFSMBehaviourController fsmBehaviour, FishingData actionData, RowingInteraction boat) : Void
+        OnStateEnter(IFSMBehaviourController fsmBehaviour) : Void
+        OnStateExit(IFSMBehaviourController fsmBehaviour) : Void
+        OnStateUpdate(IFSMBehaviourController fsmBehaviour) : Void
+        SetFishingInteraction(FishingData actionData, FishingInteraction interaction) : Boolean
+        ShouldConsumeSurvival(Villager villager, SurvivalObjectiveQuest quest) : Boolean
+
+  ### SSSGame.AI.FSM.FSM_Fishing/__c   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr___9 : IntPtr [static]
+        NativeFieldInfoPtr___9__15_0 : IntPtr [static]
+        NativeFieldInfoPtr___9__15_2 : IntPtr [static]
+        NativeFieldInfoPtr___9__15_3 : IntPtr [static]
+        NativeFieldInfoPtr___9__15_4 : IntPtr [static]
+        NativeFieldInfoPtr___9__17_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__GetAvailableFishingSpots_b__17_0_Internal_Int32_FishingOutletData_FishingOutletData_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__15_0_Internal_Int32_WorkstationTaskData_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__15_2_Internal_ItemInfo_WorkstationTaskData_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__15_3_Internal_IEnumerable_1_FishableBait_Fishable_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__15_4_Internal_Boolean_FishableBait_0 : IntPtr [static]
+      -- properties --
+        __9 : __c
+        __9__15_0 : Func`2
+        __9__15_2 : Func`2
+        __9__15_3 : Func`2
+        __9__15_4 : Func`2
+        __9__17_0 : Comparison`1
+      -- methods --
+        _GetAvailableFishingSpots_b__17_0(FishingOutletData a, FishingOutletData b) : Int32
+        _OnStateUpdate_b__15_0(WorkstationTaskData x) : Int32
+        _OnStateUpdate_b__15_2(WorkstationTaskData x) : ItemInfo
+        _OnStateUpdate_b__15_3(Fishable x) : IEnumerable`1
+        _OnStateUpdate_b__15_4(FishableBait x) : Boolean
+
+  ### SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass15_0   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_resultData : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__5_Internal_Void_0 : IntPtr [static]
+      -- properties --
+        resultData : FSMData`1
+      -- methods --
+        _OnStateUpdate_b__5() : Void
+
+  ### SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass15_1   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_lowestPriority : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnStateUpdate_b__1_Internal_Boolean_WorkstationTaskData_0 : IntPtr [static]
+      -- properties --
+        lowestPriority : Int32
+      -- methods --
+        _OnStateUpdate_b__1(WorkstationTaskData x) : Boolean
+
+  ### SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass17_0   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr___9__1 : IntPtr [static]
+        NativeFieldInfoPtr_actionData : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__GetAvailableFishingSpots_b__1_Internal_Boolean_ITaskDispatcher_0 : IntPtr [static]
+      -- properties --
+        __9__1 : Predicate`1
+        actionData : FishingData
+      -- methods --
+        _GetAvailableFishingSpots_b__1(ITaskDispatcher taskDispatcher) : Boolean
+
+  ### SSSGame.AI.FSM.FSM_Fishing/__c__DisplayClass24_0   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_fish : IntPtr [static]
+        NativeMethodInfoPtr__CheckBaitForFishingOutlet_b__0_Internal_Boolean_Fishable_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+      -- properties --
+        fish : ItemInfo
+      -- methods --
+        _CheckBaitForFishingOutlet_b__0(Fishable e) : Boolean
+
+  ### SSSGame.AI.FSM.FSM_Fishing/FishingData   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_addedToGlobalPromiseManifest : IntPtr [static]
+        NativeFieldInfoPtr_agent : IntPtr [static]
+        NativeFieldInfoPtr_area : IntPtr [static]
+        NativeFieldInfoPtr_eventData : IntPtr [static]
+        NativeFieldInfoPtr_fishingManifest : IntPtr [static]
+        NativeFieldInfoPtr_fishingOutlets : IntPtr [static]
+        NativeFieldInfoPtr_fishingStationEvent : IntPtr [static]
+        NativeFieldInfoPtr_fishTarget : IntPtr [static]
+        NativeFieldInfoPtr_globalPromiseManifest : IntPtr [static]
+        NativeFieldInfoPtr_interaction : IntPtr [static]
+        NativeFieldInfoPtr_lastSearchNoResource : IntPtr [static]
+        NativeFieldInfoPtr_localPromiseManifest : IntPtr [static]
+        NativeFieldInfoPtr_maxCarryCapacityManifest : IntPtr [static]
+        NativeFieldInfoPtr_neededIngredients : IntPtr [static]
+        NativeFieldInfoPtr_outletIndex : IntPtr [static]
+        NativeFieldInfoPtr_outlets : IntPtr [static]
+        NativeFieldInfoPtr_rowingSession : IntPtr [static]
+        NativeFieldInfoPtr_session : IntPtr [static]
+        NativeFieldInfoPtr_storageInteraction : IntPtr [static]
+        NativeFieldInfoPtr_storageSession : IntPtr [static]
+        NativeFieldInfoPtr_toolCategoryNeeded : IntPtr [static]
+        NativeFieldInfoPtr_veryPoor : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_ConsumeEvent_Public_FishingStationEventType_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentOutlet_Public_get_FishingOutlet_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentOutletData_Public_get_FishingOutletData_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentOutletIsFishingGround_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_Reset_Public_Void_0 : IntPtr [static]
+      -- properties --
+        addedToGlobalPromiseManifest : ItemManifest
+        agent : IInteractionAgent
+        area : IInteractionArea
+        CurrentOutlet : FishingOutlet
+        CurrentOutletData : FishingOutletData
+        CurrentOutletIsFishingGround : Boolean
+        eventData : QuestEventData`1
+        fishingManifest : ItemManifest
+        fishingOutlets : List`1
+        fishingStationEvent : FishingStationEvent
+        fishTarget : ItemInfo
+        globalPromiseManifest : ItemManifest
+        interaction : Interaction
+        lastSearchNoResource : Boolean
+        localPromiseManifest : ItemManifest
+        maxCarryCapacityManifest : ItemManifest
+        neededIngredients : ItemManifest
+        outletIndex : Int32
+        outlets : List`1
+        rowingSession : VillagerRowingInteractionSession
+        session : VillagerFishingInteractionSession
+        storageInteraction : StorageInteraction
+        storageSession : StorageInteractionSession
+        toolCategoryNeeded : ItemCategoryInfo
+        veryPoor : Boolean
+      -- methods --
+        ConsumeEvent() : FishingStationEventType
+        Reset() : Void
+
+  ### SSSGame.AI.FSM.FSM_Fishing/FishingOutletData   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_outlet : IntPtr [static]
+        NativeFieldInfoPtr_priority : IntPtr [static]
+        NativeFieldInfoPtr_reachable : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_IsFishingGround_Public_get_Boolean_0 : IntPtr [static]
+      -- properties --
+        IsFishingGround : Boolean
+        outlet : FishingOutlet
+        priority : Single
+        reachable : Boolean
+      -- methods --
+
+  ### SSSGame.AI.FSM.FSM_Fishing/FishingStage   base=System.Enum
+      -- fields --
+        COMPLETE : FishingStage [static]
+        ERROR_ABORTED : FishingStage [static]
+        ERROR_NO_BOAT : FishingStage [static]
+        ERROR_NO_FISHING_SPOT : FishingStage [static]
+        ERROR_NO_INTERACTION : FishingStage [static]
+        ERROR_NO_INVENTORY_SPACE : FishingStage [static]
+        ERROR_NO_OBJECTIVE : FishingStage [static]
+        ERROR_NO_SESSION : FishingStage [static]
+        ERROR_NO_STORAGE_SPACE : FishingStage [static]
+        ERROR_NO_TOOLS : FishingStage [static]
+        EVALUATE : FishingStage [static]
+        INTERACT : FishingStage [static]
+        LOOK_FOR_BAIT : FishingStage [static]
+        MOUNT : FishingStage [static]
+        MOVE : FishingStage [static]
+        MOVE_TO_BAIT : FishingStage [static]
+        RESTART : FishingStage [static]
+        START : FishingStage [static]
+        TAKE_BAIT : FishingStage [static]
+        TRY_RECOVER_BOAT : FishingStage [static]
+        value__ : Int32
+      -- properties --
+      -- methods --
+
+  ### SSSGame.Combat.FishingMeleeObject   base=SSSGame.Combat.MeleeObject
+      -- fields --
+        NativeFieldInfoPtr__baitEquipPoint : IntPtr [static]
+        NativeFieldInfoPtr__bitingTimeReductionBonusPercentage : IntPtr [static]
+        NativeFieldInfoPtr__chrGeo : IntPtr [static]
+        NativeFieldInfoPtr__chrInv : IntPtr [static]
+        NativeFieldInfoPtr__currentUseContext : IntPtr [static]
+        NativeFieldInfoPtr__displayBait : IntPtr [static]
+        NativeFieldInfoPtr__equipped : IntPtr [static]
+        NativeFieldInfoPtr__evRec : IntPtr [static]
+        NativeFieldInfoPtr__fishingRoutine : IntPtr [static]
+        NativeFieldInfoPtr__ikFishPullTime : IntPtr [static]
+        NativeFieldInfoPtr__ikInit : IntPtr [static]
+        NativeFieldInfoPtr__ikWeightCurrent : IntPtr [static]
+        NativeFieldInfoPtr__ikWeightRefVel : IntPtr [static]
+        NativeFieldInfoPtr__ikWeightTarget : IntPtr [static]
+        NativeFieldInfoPtr__interactionAgent : IntPtr [static]
+        NativeFieldInfoPtr__lastSuccessBait : IntPtr [static]
+        NativeFieldInfoPtr__pendingFish : IntPtr [static]
+        NativeFieldInfoPtr__ranAction : IntPtr [static]
+        NativeFieldInfoPtr__rangedManager : IntPtr [static]
+        NativeFieldInfoPtr__session : IntPtr [static]
+        NativeFieldInfoPtr__weatherManager : IntPtr [static]
+        NativeFieldInfoPtr_BaitCategInfo : IntPtr [static]
+        NativeFieldInfoPtr_BaitHandleId : IntPtr [static]
+        NativeFieldInfoPtr_baitParent : IntPtr [static]
+        NativeFieldInfoPtr_baseFishingIkWeight : IntPtr [static]
+        NativeFieldInfoPtr_baseFishWaitTime : IntPtr [static]
+        NativeFieldInfoPtr_bendableBones : IntPtr [static]
+        NativeFieldInfoPtr_c_CatchAnimatorParam : IntPtr [static]
+        NativeFieldInfoPtr_c_fishMaterialRefName : IntPtr [static]
+        NativeFieldInfoPtr_debugIk : IntPtr [static]
+        NativeFieldInfoPtr_debugIkValue : IntPtr [static]
+        NativeFieldInfoPtr_defaultHook : IntPtr [static]
+        NativeFieldInfoPtr_fakePullIkWeight : IntPtr [static]
+        NativeFieldInfoPtr_fakeSinkInterval : IntPtr [static]
+        NativeFieldInfoPtr_FishableItems : IntPtr [static]
+        NativeFieldInfoPtr_fishEscapeTime : IntPtr [static]
+        NativeFieldInfoPtr_fishSuccessRate : IntPtr [static]
+        NativeFieldInfoPtr_ikFishPullInterval : IntPtr [static]
+        NativeFieldInfoPtr_ikTarget : IntPtr [static]
+        NativeFieldInfoPtr_linePosRodFar : IntPtr [static]
+        NativeFieldInfoPtr_linePosRodNear : IntPtr [static]
+        NativeFieldInfoPtr_linePosSinker : IntPtr [static]
+        NativeFieldInfoPtr_lineRenderer : IntPtr [static]
+        NativeFieldInfoPtr_OnBaitCountChanged : IntPtr [static]
+        NativeFieldInfoPtr_resourceRowDisplay : IntPtr [static]
+        NativeFieldInfoPtr_rootBone : IntPtr [static]
+        NativeFieldInfoPtr_sinker : IntPtr [static]
+        NativeFieldInfoPtr_sinkerTarget : IntPtr [static]
+        NativeFieldInfoPtr_smootIkWeightTime : IntPtr [static]
+        NativeFieldInfoPtr_tipBone : IntPtr [static]
+        NativeFieldInfoPtr_useIk : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__FishingRoutine_Private_IEnumerator_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnAnimEvent_Private_Void_String_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnEqManEquip_Private_Void_EquipmentItem_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnEqManUnequip_Private_Void_EquipmentItem_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnEquip_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnPullRod_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnUnequip_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__ResetHook_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__SetBaitHook_Private_Void_BaitItem_0 : IntPtr [static]
+        NativeMethodInfoPtr__UpdateFishingLine_Private_Void_byref_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_ActivateFishing_Public_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_Awake_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CalculateBonusBitingTimeReduction_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_DropHook_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_FishItem_Public_Void_byref_Fishable_byref_Item_0 : IntPtr [static]
+        NativeMethodInfoPtr_FixedUpdate_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentUseContext_Public_get_UseContext_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_FishingItem_Public_get_FishingItem_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_FishWaitTime_Public_get_Vector2_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetEquippedBait_Private_EquipmentItem_0 : IntPtr [static]
+        NativeMethodInfoPtr_ItemDisplay_OnItemSet_Private_Void_Item_GameObject_0 : IntPtr [static]
+        NativeMethodInfoPtr_LateUpdate_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDestroy_Protected_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDisable_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnEnable_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_CurrentUseContext_Public_set_Void_UseContext_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetupWeaponizedComponent_Public_Virtual_Void_WeaponizedItemObject_0 : IntPtr [static]
+        NativeMethodInfoPtr_TakeHookItems_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_TryAutoEquipBait_Private_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_UpdateVisuals_Public_Void_0 : IntPtr [static]
+      -- properties --
+        _baitEquipPoint : EquipPoint
+        _bitingTimeReductionBonusPercentage : Single
+        _chrGeo : CharacterGeometry
+        _chrInv : IInventoryManager
+        _currentUseContext : UseContext
+        _displayBait : GameObject
+        _equipped : Boolean
+        _evRec : AnimatorEventReceiver
+        _fishingRoutine : Coroutine
+        _ikFishPullTime : Single
+        _ikInit : Boolean
+        _ikWeightCurrent : Single
+        _ikWeightRefVel : Single
+        _ikWeightTarget : Single
+        _interactionAgent : IInteractionAgent
+        _lastSuccessBait : ItemInfo
+        _pendingFish : Item
+        _ranAction : Int32
+        _rangedManager : RangedManager
+        _session : NetworkSession
+        _weatherManager : WeatherManager
+        BaitCategInfo : ItemCategoryInfo
+        BaitHandleId : EquipHandleId
+        baitParent : Transform
+        baseFishingIkWeight : Single
+        baseFishWaitTime : Vector2
+        bendableBones : Il2CppReferenceArray`1
+        c_CatchAnimatorParam : String
+        c_fishMaterialRefName : String
+        CurrentUseContext : UseContext
+        debugIk : Boolean
+        debugIkValue : Single
+        defaultHook : GameObject
+        fakePullIkWeight : Single
+        fakeSinkInterval : Vector2
+        FishableItems : FishableItemsConfig
+        fishEscapeTime : Vector2
+        FishingItem : FishingItem
+        fishSuccessRate : Single
+        FishWaitTime : Vector2
+        ikFishPullInterval : Vector2
+        ikTarget : Transform
+        linePosRodFar : Transform
+        linePosRodNear : Transform
+        linePosSinker : Transform
+        lineRenderer : LineRenderer
+        OnBaitCountChanged : Action`1
+        resourceRowDisplay : ResourceRowDisplay
+        rootBone : Transform
+        sinker : FishingLineSinker
+        sinkerTarget : Nullable`1
+        smootIkWeightTime : Single
+        tipBone : Transform
+        useIk : Boolean
+      -- methods --
+        _FishingRoutine() : IEnumerator
+        _OnAnimEvent(String animEvent) : Void
+        _OnEqManEquip(EquipmentItem item) : Void
+        _OnEqManUnequip(EquipmentItem item) : Void
+        _OnEquip() : Void
+        _OnPullRod() : Void
+        _OnUnequip() : Void
+        _ResetHook() : Void
+        _SetBaitHook(BaitItem bait) : Void
+        _UpdateFishingLine(Boolean& worldSpace) : Void
+        ActivateFishing(Boolean active) : Void
+        Awake() : Void
+        CalculateBonusBitingTimeReduction() : Void
+        DropHook() : Void
+        FishItem(Fishable& fishable, Item& fish) : Void
+        FixedUpdate() : Void
+        GetEquippedBait() : EquipmentItem
+        ItemDisplay_OnItemSet(Item item, GameObject itemObject) : Void
+        LateUpdate() : Void
+        OnDestroy() : Void
+        OnDisable() : Void
+        OnEnable() : Void
+        SetupWeaponizedComponent(WeaponizedItemObject weaponizedItemObject) : Void
+        TakeHookItems() : Void
+        TryAutoEquipBait() : Boolean
+        UpdateVisuals() : Void
+
+  ### SSSGame.Combat.FishingMeleeObject/__FishingRoutine_d__73   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr___1__state : IntPtr [static]
+        NativeFieldInfoPtr___2__current : IntPtr [static]
+        NativeFieldInfoPtr___4__this : IntPtr [static]
+        NativeFieldInfoPtr__firstWater_5__7 : IntPtr [static]
+        NativeFieldInfoPtr__fishEscape_5__6 : IntPtr [static]
+        NativeFieldInfoPtr__sinkTarget_5__4 : IntPtr [static]
+        NativeFieldInfoPtr__sinkTime_5__5 : IntPtr [static]
+        NativeFieldInfoPtr__waitTarget_5__2 : IntPtr [static]
+        NativeFieldInfoPtr__waitTime_5__3 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_MoveNext_Private_Virtual_Final_New_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_Generic_IEnumerator_System_Object__get_Current_Private_Virtual_Final_New_get_Object_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_IEnumerator_get_Current_Private_Virtual_Final_New_get_Object_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_IEnumerator_Reset_Private_Virtual_Final_New_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_IDisposable_Dispose_Private_Virtual_Final_New_Void_0 : IntPtr [static]
+      -- properties --
+        __1__state : Int32
+        __2__current : Object
+        __4__this : FishingMeleeObject
+        _firstWater_5__7 : Boolean
+        _fishEscape_5__6 : Single
+        _sinkTarget_5__4 : Single
+        _sinkTime_5__5 : Single
+        _waitTarget_5__2 : Single
+        _waitTime_5__3 : Single
+        System.Collections.Generic.IEnumerator<System.Object>.Current : Object
+        System.Collections.IEnumerator.Current : Object
+      -- methods --
+        MoveNext() : Boolean
+        System_Collections_Generic_IEnumerator_System_Object__get_Current() : Object
+        System_Collections_IEnumerator_get_Current() : Object
+        System_Collections_IEnumerator_Reset() : Void
+        System_IDisposable_Dispose() : Void
+
+  ### SSSGame.Combat.FishingMeleeObject/IkBone   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr__initLocalRot : IntPtr [static]
+        NativeFieldInfoPtr__length : IntPtr [static]
+        NativeFieldInfoPtr__nextBone : IntPtr [static]
+        NativeFieldInfoPtr__prevBone : IntPtr [static]
+        NativeFieldInfoPtr_bendAngle : IntPtr [static]
+        NativeFieldInfoPtr_transform : IntPtr [static]
+        NativeFieldInfoPtr_weight : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Init_Public_Void_Transform_Transform_0 : IntPtr [static]
+        NativeMethodInfoPtr_Reset_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Update_Public_Void_byref_Vector3_byref_Single_byref_Boolean_0 : IntPtr [static]
+      -- properties --
+        _initLocalRot : Quaternion
+        _length : Single
+        _nextBone : Transform
+        _prevBone : Transform
+        bendAngle : Single
+        transform : Transform
+        weight : Single
+      -- methods --
+        Init(Transform prevBone, Transform nextBone) : Void
+        Reset() : Void
+        Update(Vector3& targetPos, Single& strenght, Boolean& debug) : Void
+
+  ### SSSGame.Combat.FishingMeleeObject/UseContext   base=System.Enum
+      -- fields --
+        MeleeObject : UseContext [static]
+        value__ : Int32
+        VillagerInteract : UseContext [static]
+      -- properties --
+      -- methods --
+
+  ### SSSGame.Deeds.FishingCondition   base=SSSGame.Deeds.DeedCondition
+      -- fields --
+        NativeFieldInfoPtr_allowedBaits : IntPtr [static]
+        NativeFieldInfoPtr_allowedFishes : IntPtr [static]
+        NativeFieldInfoPtr_anyBait : IntPtr [static]
+        NativeFieldInfoPtr_anyFish : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CheckEvent_Public_Virtual_Boolean_byref_Int32_byref_IEventData_byref_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_EventId_Public_Virtual_get_Int32_0 : IntPtr [static]
+      -- properties --
+        allowedBaits : Il2CppReferenceArray`1
+        allowedFishes : Il2CppReferenceArray`1
+        anyBait : Boolean
+        anyFish : Boolean
+        EventId : Int32
+      -- methods --
+        CheckEvent(Int32& eventId, IEventData& eventData, Int32& score) : Boolean
+
+  ### SSSGame.FishingGround   base=SSSGame.AI.FishingOutlet
+      -- fields --
+        NativeFieldInfoPtr__biome : IntPtr [static]
+        NativeFieldInfoPtr__currentCount : IntPtr [static]
+        NativeFieldInfoPtr__currentMultiplier : IntPtr [static]
+        NativeFieldInfoPtr__currentSize : IntPtr [static]
+        NativeFieldInfoPtr__deserialized : IntPtr [static]
+        NativeFieldInfoPtr__disabled : IntPtr [static]
+        NativeFieldInfoPtr__discovered : IntPtr [static]
+        NativeFieldInfoPtr__fishAvailabilityProcessCache : IntPtr [static]
+        NativeFieldInfoPtr__guid : IntPtr [static]
+        NativeFieldInfoPtr__id : IntPtr [static]
+        NativeFieldInfoPtr__lastAvailable : IntPtr [static]
+        NativeFieldInfoPtr__marked : IntPtr [static]
+        NativeFieldInfoPtr__networkCommunicator : IntPtr [static]
+        NativeFieldInfoPtr__vfx : IntPtr [static]
+        NativeFieldInfoPtr_averageStateStart : IntPtr [static]
+        NativeFieldInfoPtr_c_currentmark : IntPtr [static]
+        NativeFieldInfoPtr_c_currentSize : IntPtr [static]
+        NativeFieldInfoPtr_c_fishCount : IntPtr [static]
+        NativeFieldInfoPtr_c_wasMarked : IntPtr [static]
+        NativeFieldInfoPtr_cappacity : IntPtr [static]
+        NativeFieldInfoPtr_discoveryContexts : IntPtr [static]
+        NativeFieldInfoPtr_fewStateStart : IntPtr [static]
+        NativeFieldInfoPtr_fish : IntPtr [static]
+        NativeFieldInfoPtr_mark : IntPtr [static]
+        NativeFieldInfoPtr_markInteraction : IntPtr [static]
+        NativeFieldInfoPtr_maxSize : IntPtr [static]
+        NativeFieldInfoPtr_minSize : IntPtr [static]
+        NativeFieldInfoPtr_multiplierConditions : IntPtr [static]
+        NativeFieldInfoPtr_multipliers : IntPtr [static]
+        NativeFieldInfoPtr_onDisabledChanged : IntPtr [static]
+        NativeFieldInfoPtr_onMarkChanged : IntPtr [static]
+        NativeFieldInfoPtr_plentifulStateStart : IntPtr [static]
+        NativeFieldInfoPtr_replenishPercentage : IntPtr [static]
+        NativeFieldInfoPtr_unmarkInteraction : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnBiomeDiscovered_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__Replenish_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Awake_Protected_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_BiomeExplorationPredicate_Public_Static_Boolean_Biome_Explorer_0 : IntPtr [static]
+        NativeMethodInfoPtr_CheckReplenish_Public_Void_WeatherEventData_0 : IntPtr [static]
+        NativeMethodInfoPtr_Deserialize_Public_Virtual_Final_New_Boolean_DataObject_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentCount_Public_get_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_CurrentSize_Public_get_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_Disabled_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_Discovered_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_FishAvailabilityProcess_Public_get_AvailabilityProcess_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_IsDepleted_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_IsMarked_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_NetworkCommunicator_Public_get_NetworkWorldDataManager_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_VFX_Public_get_VisualEffect_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetFish_Public_ItemInfo_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetGuid_Public_Virtual_Final_New_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetKey_Public_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_Mark_Public_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDestroy_Protected_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Serialize_Public_Virtual_Final_New_DataObject_DataObject_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_CurrentCount_Public_set_Void_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_CurrentSize_Public_set_Void_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_Disabled_Public_set_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_Discovered_Public_set_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_IsMarked_Public_set_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetGuid_Public_Virtual_Final_New_Void_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_Start_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_UnlockMarking_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_UpdateState_Public_Void_0 : IntPtr [static]
+      -- properties --
+        _biome : Biome
+        _currentCount : Int32
+        _currentMultiplier : Single
+        _currentSize : Single
+        _deserialized : Boolean
+        _disabled : Boolean
+        _discovered : Boolean
+        _fishAvailabilityProcessCache : AvailabilityProcess
+        _guid : String
+        _id : Int32
+        _lastAvailable : Boolean
+        _marked : Boolean
+        _networkCommunicator : NetworkWorldDataManager
+        _vfx : VisualEffect
+        averageStateStart : Single
+        c_currentmark : String
+        c_currentSize : String
+        c_fishCount : String
+        c_wasMarked : String
+        cappacity : Int32
+        CurrentCount : Int32
+        CurrentSize : Single
+        Disabled : Boolean
+        Discovered : Boolean
+        discoveryContexts : List`1
+        fewStateStart : Single
+        fish : ItemInfo
+        FishAvailabilityProcess : AvailabilityProcess
+        IsDepleted : Boolean
+        IsMarked : Boolean
+        mark : GameObject
+        markInteraction : GameObject
+        maxSize : Single
+        minSize : Single
+        multiplierConditions : List`1
+        multipliers : GroundsMultiplier
+        NetworkCommunicator : NetworkWorldDataManager
+        onDisabledChanged : Action`1
+        onMarkChanged : Action`1
+        plentifulStateStart : Single
+        replenishPercentage : RangedFloat
+        unmarkInteraction : GameObject
+        VFX : VisualEffect
+      -- methods --
+        _OnBiomeDiscovered() : Void
+        _Replenish() : Void
+        Awake() : Void
+        BiomeExplorationPredicate(Biome biome, Explorer explorer) : Boolean
+        CheckReplenish(WeatherEventData obj) : Void
+        Deserialize(DataObject source) : Boolean
+        GetFish(Boolean remove) : ItemInfo
+        GetGuid() : String
+        GetKey() : String
+        Mark(Boolean state) : Void
+        OnDestroy() : Void
+        Serialize(DataObject destination) : DataObject
+        SetGuid(String guid) : Void
+        Start() : Void
+        UnlockMarking() : Void
+        UpdateState() : Void
+
+  ### SSSGame.FishingGround/FishingConditions   base=Il2CppSystem.ValueType
+      -- fields --
+        NativeFieldInfoPtr_condition : IntPtr [static]
+        NativeFieldInfoPtr_multiplier : IntPtr [static]
+      -- properties --
+        condition : AvailabilityProcess
+        multiplier : Single
+      -- methods --
+
+  ### SSSGame.FishingGround/GroundsMultiplier   base=Il2CppSystem.ValueType
+      -- fields --
+        NativeFieldInfoPtr_condition : IntPtr [static]
+        NativeFieldInfoPtr_multiplier : IntPtr [static]
+      -- properties --
+        condition : AvailabilityProcess
+        multiplier : Single
+      -- methods --
+
+  ### SSSGame.FishingGroundMarkerInfo   base=SSSGame.MarkerInfo
+      -- fields --
+        NativeFieldInfoPtr_fish : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+      -- properties --
+        fish : ItemInfo
+      -- methods --
+
+  ### SSSGame.FishingItem   base=SandSailorStudio.Inventory.WeaponizedItem
+      -- fields --
+        NativeFieldInfoPtr__hookContainer : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_HookContainer_Public_get_ItemContainer_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetContainer_Public_ItemContainer_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetFishingState_Public_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetTrajectory_Public_Vector3_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetFishingState_Public_Void_byref_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetTrajectory_Public_Void_byref_Vector3_0 : IntPtr [static]
+        NativeMethodInfoPtr_SyncFishingState_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_SyncTrajectory_Public_Void_0 : IntPtr [static]
+      -- properties --
+        _hookContainer : ItemContainer
+        HookContainer : ItemContainer
+      -- methods --
+        GetContainer() : ItemContainer
+        GetFishingState() : Int32
+        GetTrajectory() : Vector3
+        SetFishingState(Int32& state) : Void
+        SetTrajectory(Vector3& trajectory) : Void
+        SyncFishingState() : Void
+        SyncTrajectory() : Void
+
+  ### SSSGame.FishingItemInfo   base=SandSailorStudio.Inventory.WeaponizedItemInfo
+      -- fields --
+        NativeFieldInfoPtr_hookContainer : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CreateItem_Public_Virtual_Item_0 : IntPtr [static]
+      -- properties --
+        hookContainer : ItemContainer
+      -- methods --
+        CreateItem() : Item
+
+  ### SSSGame.FishingStation   base=SSSGame.ResourceStorage
+      -- fields --
+        NativeFieldInfoPtr__aiManager : IntPtr [static]
+        NativeFieldInfoPtr__foundVehicles : IntPtr [static]
+        NativeFieldInfoPtr__OnLake_k__BackingField : IntPtr [static]
+        NativeFieldInfoPtr__tasksCopies : IntPtr [static]
+        NativeFieldInfoPtr__waterEnvironment : IntPtr [static]
+        NativeFieldInfoPtr_boats : IntPtr [static]
+        NativeFieldInfoPtr_dock : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_Changed_1_FishingStation_0 : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0 : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0 : IntPtr [static]
+        NativeFieldInfoPtr_fishables : IntPtr [static]
+        NativeFieldInfoPtr_fishStorageSupply : IntPtr [static]
+        NativeFieldInfoPtr_lakeBiomeTag : IntPtr [static]
+        NativeFieldInfoPtr_maxFishingGroundRange : IntPtr [static]
+        NativeMethodInfoPtr__CreateTaskDataForItem_Private_ResourceStorageTaskData_ItemInfo_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__HandleBoatDocked_Private_Void_Pier_BoatStructure_0 : IntPtr [static]
+        NativeMethodInfoPtr__NotifyAgents_Private_Void_FishingStationEventType_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnFishingGroundMarkChanged_Private_Void_FishingGround_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr__OnTaskDataChanged_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__UpdateFishStatus_Private_Void_ItemInfo_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_AddTaskData_Public_Virtual_Void_WorkstationTaskData_0 : IntPtr [static]
+        NativeMethodInfoPtr_Awake_Protected_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CheckUndiscoveredTasks_Public_Virtual_Void_byref_Int32_byref_String_0 : IntPtr [static]
+        NativeMethodInfoPtr_ClearTaskDatas_Public_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CopyBackingFieldsToState_Public_Virtual_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_CopyStateToBackingFields_Public_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CreateTaskDispatcherData_Public_Virtual_Void_ITaskDispatcher_0 : IntPtr [static]
+        NativeMethodInfoPtr_DeserializeTaskData_Public_Virtual_Boolean_DataObject_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_OnLake_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetAllPiers_Public_List_1_Pier_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetBoat_Public_RowingInteraction_Vector3_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetBoatDockPosition_Public_Vector3_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetGatheredItemPriority_Public_Virtual_Int32_ItemInfo_Villager_StorageSupply_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetItemsNeededFromSettlement_Public_Virtual_List_1_ItemCategoryInfo_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetPier_Public_Pier_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDestroy_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDisable_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnEnable_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_ReleaseTaskAgent_Public_Virtual_Boolean_ITaskAgent_0 : IntPtr [static]
+        NativeMethodInfoPtr_RemoveTaskData_Public_Virtual_Void_WorkstationTaskData_0 : IntPtr [static]
+        NativeMethodInfoPtr_RemoveTaskDispatcherData_Public_Virtual_Void_ITaskDispatcher_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_OnLake_Private_set_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_SetTaskAgent_Public_Virtual_Boolean_ITaskAgent_0 : IntPtr [static]
+        NativeMethodInfoPtr_Start_Protected_Virtual_Void_0 : IntPtr [static]
+      -- properties --
+        _aiManager : AIManager
+        _foundVehicles : List`1
+        _OnLake_k__BackingField : Boolean
+        _tasksCopies : Dictionary`2
+        _waterEnvironment : IWaterEnvironment
+        boats : List`1
+        dock : DockStructure
+        field_CompilerControlled_Static_Changed_1_FishingStation_0 : Changed`1
+        field_CompilerControlled_Static_ChangedDelegate_1_FishingStation_0 : ChangedDelegate`1
+        field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FishingStation_0 : NetworkBehaviourCallbacks`1
+        fishables : FishableItemsConfig
+        fishStorageSupply : StorageSupply
+        lakeBiomeTag : TagId
+        maxFishingGroundRange : Single
+        OnLake : Boolean
+      -- methods --
+        _CreateTaskDataForItem(ItemInfo iteminfo) : ResourceStorageTaskData
+        _HandleBoatDocked(Pier pier, BoatStructure boat) : Void
+        _NotifyAgents(FishingStationEventType type) : Void
+        _OnFishingGroundMarkChanged(FishingGround fishingGround, Int32 count) : Void
+        _OnTaskDataChanged() : Void
+        _UpdateFishStatus(ItemInfo fish, Int32 count) : Void
+        AddTaskData(WorkstationTaskData data) : Void
+        Awake() : Void
+        CheckUndiscoveredTasks(Int32& undiscoveredTasksFound, String& discoveryTip) : Void
+        ClearTaskDatas() : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+        CreateTaskDispatcherData(ITaskDispatcher td) : Void
+        DeserializeTaskData(DataObject source) : Boolean
+        GetAllPiers() : List`1
+        GetBoat(Vector3 position, Single recoveryRange) : RowingInteraction
+        GetBoatDockPosition(Boolean mustBeFree) : Vector3
+        GetGatheredItemPriority(ItemInfo itemInfo, Villager villager, StorageSupply storageSupply) : Int32
+        GetItemsNeededFromSettlement() : List`1
+        GetPier(Boolean mustBeEmpty) : Pier
+        OnDestroy() : Void
+        OnDisable() : Void
+        OnEnable() : Void
+        ReleaseTaskAgent(ITaskAgent agent) : Boolean
+        RemoveTaskData(WorkstationTaskData data) : Void
+        RemoveTaskDispatcherData(ITaskDispatcher td) : Void
+        SetTaskAgent(ITaskAgent agent) : Boolean
+        Start() : Void
+
+  ### SSSGame.FishingStation/__c__DisplayClass28_0   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_fish : IntPtr [static]
+        NativeMethodInfoPtr___UpdateFishStatus_b__0_Internal_Boolean_WorkstationTaskData_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+      -- properties --
+        fish : ItemInfo
+      -- methods --
+        __UpdateFishStatus_b__0(WorkstationTaskData x) : Boolean
+
+  ### SSSGame.FishingStation/__c__DisplayClass41_0   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_itemInfo : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__DeserializeTaskData_b__0_Internal_Boolean_WorkstationTaskData_0 : IntPtr [static]
+      -- properties --
+        itemInfo : ItemInfo
+      -- methods --
+        _DeserializeTaskData_b__0(WorkstationTaskData x) : Boolean
+
+  ### SSSGame.FishingStation/__c__DisplayClass41_1   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_villIdData : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__DeserializeTaskData_b__1_Internal_Boolean_ITaskAgent_0 : IntPtr [static]
+      -- properties --
+        villIdData : DataElementInt
+      -- methods --
+        _DeserializeTaskData_b__1(ITaskAgent ta) : Boolean
+
+  ### SSSGame.FishingStation/FishingStationEvent   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_type : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_FishingStationEventType_0 : IntPtr [static]
+      -- properties --
+        type : FishingStationEventType
+      -- methods --
+
+  ### SSSGame.FishingStation/FishingStationEventType   base=System.Enum
+      -- fields --
+        BOAT_DOCKED : FishingStationEventType [static]
+        NONE : FishingStationEventType [static]
+        TASK_DATAS_CHANGED : FishingStationEventType [static]
+        value__ : Int32
+      -- properties --
+      -- methods --
+
+  ### SSSGame.Network.NetworkFishingStation   base=SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkFishingStation/NetworkTask>
+      -- fields --
+        NativeFieldInfoPtr___NetworkTasks : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0 : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0 : IntPtr [static]
+        NativeFieldInfoPtr_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0 : IntPtr [static]
+        NativeMethodInfoPtr__CreateTaskFromNetworkTask_Protected_Virtual_WorkstationTaskData_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__HostUpdateTask_Protected_Virtual_Void_Int32_Int32_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr__TryGetNetworkTaskFromTask_Protected_Virtual_Boolean_WorkstationTaskData_byref_NetworkTask_0 : IntPtr [static]
+        NativeMethodInfoPtr__UpdateTaskFromNetworkTask_Protected_Virtual_Void_WorkstationTaskData_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_CopyBackingFieldsToState_Public_Virtual_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_CopyStateToBackingFields_Public_Virtual_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_get__NetworkTasks_Protected_Virtual_get_NetworkArray_1_NetworkTask_0 : IntPtr [static]
+      -- properties --
+        __NetworkTasks : Il2CppStructArray`1
+        _NetworkTasks : NetworkArray`1
+        field_CompilerControlled_Static_Changed_1_NetworkFishingStation_0 : Changed`1
+        field_CompilerControlled_Static_ChangedDelegate_1_NetworkFishingStation_0 : ChangedDelegate`1
+        field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkFishingStation_0 : NetworkBehaviourCallbacks`1
+      -- methods --
+        _CreateTaskFromNetworkTask(Int32 networkTaskIndex) : WorkstationTaskData
+        _HostUpdateTask(Int32 taskIndex, Int32 networkTaskIndex, Int32 villagersInChargeMask) : Void
+        _TryGetNetworkTaskFromTask(WorkstationTaskData task, NetworkTask& networkTask) : Boolean
+        _UpdateTaskFromNetworkTask(WorkstationTaskData task, Int32 networkTaskIndex) : Void
+        CopyBackingFieldsToState(Boolean ) : Void
+        CopyStateToBackingFields() : Void
+
+  ### SSSGame.Network.NetworkFishingStation/NetworkTask   base=System.ValueType
+      -- fields --
+        itemID : UInt16
+        NativeFieldInfoPtr_itemID : IntPtr [static]
+        NativeFieldInfoPtr_priority : IntPtr [static]
+        NativeFieldInfoPtr_villagersInCharge : IntPtr [static]
+        NativeMethodInfoPtr_Equals_Public_Virtual_Final_New_Boolean_NetworkTask_0 : IntPtr [static]
+        priority : Byte
+        villagersInCharge : Byte
+      -- properties --
+      -- methods --
+        BoxIl2CppObject() : Object
+        Equals(NetworkTask other) : Boolean
+
+  ### SSSGame.Water.FishingLineSinker   base=UnityEngine.MonoBehaviour
+      -- fields --
+        NativeFieldInfoPtr__buoyancerActive : IntPtr [static]
+        NativeFieldInfoPtr__firstWaterHit : IntPtr [static]
+        NativeFieldInfoPtr__IsInWater_k__BackingField : IntPtr [static]
+        NativeFieldInfoPtr__lastRewindPos : IntPtr [static]
+        NativeFieldInfoPtr__previousTrackingPos : IntPtr [static]
+        NativeFieldInfoPtr__rb : IntPtr [static]
+        NativeFieldInfoPtr__rewinding : IntPtr [static]
+        NativeFieldInfoPtr__rewindT : IntPtr [static]
+        NativeFieldInfoPtr__rewindVel : IntPtr [static]
+        NativeFieldInfoPtr__throwVel : IntPtr [static]
+        NativeFieldInfoPtr__transform : IntPtr [static]
+        NativeFieldInfoPtr__waterEnvironment : IntPtr [static]
+        NativeFieldInfoPtr__waterSurfaceManager : IntPtr [static]
+        NativeFieldInfoPtr_arcHeight : IntPtr [static]
+        NativeFieldInfoPtr_buoyancer : IntPtr [static]
+        NativeFieldInfoPtr_c_sampleDistanceSqr : IntPtr [static]
+        NativeFieldInfoPtr_colliders : IntPtr [static]
+        NativeFieldInfoPtr_events : IntPtr [static]
+        NativeFieldInfoPtr_geometry : IntPtr [static]
+        NativeFieldInfoPtr_gravity : IntPtr [static]
+        NativeFieldInfoPtr_groundLayers : IntPtr [static]
+        NativeFieldInfoPtr_homePos : IntPtr [static]
+        NativeFieldInfoPtr_linePosSinker : IntPtr [static]
+        NativeFieldInfoPtr_minFishingDepth : IntPtr [static]
+        NativeFieldInfoPtr_rotLerp : IntPtr [static]
+        NativeFieldInfoPtr_sinkDepth : IntPtr [static]
+        NativeFieldInfoPtr_speed : IntPtr [static]
+        NativeFieldInfoPtr_throwRange : IntPtr [static]
+        NativeFieldInfoPtr_throwVelocity : IntPtr [static]
+        NativeFieldInfoPtr_underwaterThreshold : IntPtr [static]
+        NativeFieldInfoPtr_windUpDistance : IntPtr [static]
+        NativeFieldInfoPtr_windUpTime : IntPtr [static]
+        NativeMethodInfoPtr__ActivateBuoyancer_Private_Void_byref_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr__UpdateBuoyancerEnvironment_Private_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_Awake_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Buoyancer_OnWaterUpdate_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_CalculateInitialVelocity_Private_Vector3_Vector3_Vector3_0 : IntPtr [static]
+        NativeMethodInfoPtr_CalculatePosition_Private_Vector3_Vector3_Vector3_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_IsInWater_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_get_IsRewinding_Public_get_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_GetRigidbody_Public_Rigidbody_0 : IntPtr [static]
+        NativeMethodInfoPtr_Launch_Public_Void_Vector3_Nullable_1_Vector3_0 : IntPtr [static]
+        NativeMethodInfoPtr_MoveToTarget_Private_IEnumerator_Vector3_Vector3_0 : IntPtr [static]
+        NativeMethodInfoPtr_OnDisable_Private_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_ReturnHome_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_Rewind_Public_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_set_IsInWater_Public_set_Void_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_SimulationUpdate_Public_Void_byref_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_Sink_Public_Void_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_SinkCatch_Public_Void_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_SinkHitWater_Public_Void_Single_0 : IntPtr [static]
+        NativeMethodInfoPtr_SnapToPos_Public_Void_byref_Vector3_byref_Quaternion_0 : IntPtr [static]
+        NativeMethodInfoPtr_StartArc_Public_Void_Vector3_Vector3_0 : IntPtr [static]
+      -- properties --
+        _buoyancerActive : Boolean
+        _firstWaterHit : Boolean
+        _IsInWater_k__BackingField : Boolean
+        _lastRewindPos : Vector3
+        _previousTrackingPos : Vector3
+        _rb : Rigidbody
+        _rewinding : Boolean
+        _rewindT : Single
+        _rewindVel : Vector3
+        _throwVel : Vector3
+        _transform : Transform
+        _waterEnvironment : IWaterEnvironment
+        _waterSurfaceManager : WaterSurfaceManager
+        arcHeight : Single
+        buoyancer : Buoyancer
+        c_sampleDistanceSqr : Single
+        colliders : GameObject
+        events : FishingEvents
+        geometry : GameObject
+        gravity : Single
+        groundLayers : LayerMask
+        homePos : Transform
+        IsInWater : Boolean
+        IsRewinding : Boolean
+        linePosSinker : Transform
+        minFishingDepth : Single
+        rotLerp : Single
+        sinkDepth : Single
+        speed : Single
+        throwRange : Single
+        throwVelocity : Single
+        underwaterThreshold : Single
+        windUpDistance : Single
+        windUpTime : Single
+      -- methods --
+        _ActivateBuoyancer(Boolean& active) : Void
+        _UpdateBuoyancerEnvironment(Boolean force) : Void
+        Awake() : Void
+        Buoyancer_OnWaterUpdate() : Void
+        CalculateInitialVelocity(Vector3 targetPosition, Vector3 startPosition) : Vector3
+        CalculatePosition(Vector3 initialVelocity, Vector3 startPosition, Single time) : Vector3
+        GetRigidbody() : Rigidbody
+        Launch(Vector3 direction, Nullable`1 targetPos) : Void
+        MoveToTarget(Vector3 targetPosition, Vector3 startPosition) : IEnumerator
+        OnDisable() : Void
+        ReturnHome() : Void
+        Rewind() : Void
+        SimulationUpdate(Single& deltaTime) : Void
+        Sink(Single multiplyer) : Void
+        SinkCatch(Single multiplyer) : Void
+        SinkHitWater(Single multiplyer) : Void
+        SnapToPos(Vector3& pos, Quaternion& rot) : Void
+        StartArc(Vector3 targetPosition, Vector3 startPosition) : Void
+
+  ### SSSGame.Water.FishingLineSinker/_MoveToTarget_d__43   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr___1__state : IntPtr [static]
+        NativeFieldInfoPtr___2__current : IntPtr [static]
+        NativeFieldInfoPtr___4__this : IntPtr [static]
+        NativeFieldInfoPtr__initialVelocity_5__2 : IntPtr [static]
+        NativeFieldInfoPtr__t_5__4 : IntPtr [static]
+        NativeFieldInfoPtr__timeOfFlight_5__3 : IntPtr [static]
+        NativeFieldInfoPtr_startPosition : IntPtr [static]
+        NativeFieldInfoPtr_targetPosition : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_Int32_0 : IntPtr [static]
+        NativeMethodInfoPtr_MoveNext_Private_Virtual_Final_New_Boolean_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_Generic_IEnumerator_System_Object__get_Current_Private_Virtual_Final_New_get_Object_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_IEnumerator_get_Current_Private_Virtual_Final_New_get_Object_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_Collections_IEnumerator_Reset_Private_Virtual_Final_New_Void_0 : IntPtr [static]
+        NativeMethodInfoPtr_System_IDisposable_Dispose_Private_Virtual_Final_New_Void_0 : IntPtr [static]
+      -- properties --
+        __1__state : Int32
+        __2__current : Object
+        __4__this : FishingLineSinker
+        _initialVelocity_5__2 : Vector3
+        _t_5__4 : Single
+        _timeOfFlight_5__3 : Single
+        startPosition : Vector3
+        System.Collections.Generic.IEnumerator<System.Object>.Current : Object
+        System.Collections.IEnumerator.Current : Object
+        targetPosition : Vector3
+      -- methods --
+        MoveNext() : Boolean
+        System_Collections_Generic_IEnumerator_System_Object__get_Current() : Object
+        System_Collections_IEnumerator_get_Current() : Object
+        System_Collections_IEnumerator_Reset() : Void
+        System_IDisposable_Dispose() : Void
+
+  ### SSSGame.Water.FishingLineSinker/FishingEvents   base=Il2CppSystem.Object
+      -- fields --
+        NativeFieldInfoPtr_onCatch : IntPtr [static]
+        NativeFieldInfoPtr_onHitWater : IntPtr [static]
+        NativeFieldInfoPtr_onPull : IntPtr [static]
+        NativeFieldInfoPtr_onSink : IntPtr [static]
+        NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr [static]
+      -- properties --
+        onCatch : UnityEvent
+        onHitWater : UnityEvent
+        onPull : UnityEvent
+        onSink : UnityEvent
+      -- methods --
+
+=========== 4. PopulationManager surface (holds the registry; den work used it too) ===========
+
+  ### SSSGame.PopulationManager
+        F NativeFieldInfoPtr__biomePopulations : IntPtr
+        F NativeFieldInfoPtr__biomePopulationSerializeHelper : IntPtr
+        F NativeFieldInfoPtr__cavePopulations : IntPtr
+        F NativeFieldInfoPtr__creatureGroups : IntPtr
+        F NativeFieldInfoPtr__creatureKillTable : IntPtr
+        F NativeFieldInfoPtr__currentPopulationSpawnerUpdateIndex : IntPtr
+        F NativeFieldInfoPtr__densAvailabilityCountMap : IntPtr
+        F NativeFieldInfoPtr__densMap : IntPtr
+        F NativeFieldInfoPtr__dirtyFishes : IntPtr
+        F NativeFieldInfoPtr__fishingGrounds : IntPtr
+        F NativeFieldInfoPtr__fishingGroundsMap : IntPtr
+        F NativeFieldInfoPtr__fishingGroundsWeatherUpdateIndex : IntPtr
+        F NativeFieldInfoPtr__freePopulations : IntPtr
+        F NativeFieldInfoPtr__guardTargets : IntPtr
+        F NativeFieldInfoPtr__hearthstoneCore : IntPtr
+        F NativeFieldInfoPtr__IsLoading_k__BackingField : IntPtr
+        F NativeFieldInfoPtr__lastActivationCycleValue : IntPtr
+        F NativeFieldInfoPtr__lostVillagers : IntPtr
+        F NativeFieldInfoPtr__lostVillagersMaxCount : IntPtr
+        F NativeFieldInfoPtr__markedFishingGroundsMap : IntPtr
+        F NativeFieldInfoPtr__nextPersistentVillagerID : IntPtr
+        F NativeFieldInfoPtr__nextPetId : IntPtr
+        F NativeFieldInfoPtr__nextRecyclableVillagerID : IntPtr
+        F NativeFieldInfoPtr__pack : IntPtr
+        F NativeFieldInfoPtr__pets : IntPtr
+        F NativeFieldInfoPtr__PopulationRandomGenerator_k__BackingField : IntPtr
+        F NativeFieldInfoPtr__populationSpawners : IntPtr
+        F NativeFieldInfoPtr__populationWeatherUpdateIndex : IntPtr
+        F NativeFieldInfoPtr__serializeFactory : IntPtr
+        F NativeFieldInfoPtr__shuffledPetNameIndexes : IntPtr
+        F NativeFieldInfoPtr__spawnerInstigators : IntPtr
+        F NativeFieldInfoPtr__upcomingVillagerData : IntPtr
+        F NativeFieldInfoPtr__villagerDefinitionsShuffled : IntPtr
+        F NativeFieldInfoPtr__villagerIDsToRecycle : IntPtr
+        F NativeFieldInfoPtr__villagerMenuParametersCache : IntPtr
+        F NativeFieldInfoPtr__villagerOutlets : IntPtr
+        F NativeFieldInfoPtr__villagers : IntPtr
+        F NativeFieldInfoPtr__villagersOrderedContextOutpostIDFilter : IntPtr
+        F NativeFieldInfoPtr_activationCycleCondition : IntPtr
+        F NativeFieldInfoPtr_c_creatureId : IntPtr
+        F NativeFieldInfoPtr_c_creatureKillCount : IntPtr
+        F NativeFieldInfoPtr_c_CreatureKillTableId : IntPtr
+        F NativeFieldInfoPtr_c_DefinitionIndexesKey : IntPtr
+        F NativeFieldInfoPtr_c_FishingGrounds : IntPtr
+        F NativeFieldInfoPtr_c_HearthStone : IntPtr
+        F NativeFieldInfoPtr_c_LostVillagersKey : IntPtr
+        F NativeFieldInfoPtr_c_NextPetId : IntPtr
+        F NativeFieldInfoPtr_c_NextVillagerId : IntPtr
+        F NativeFieldInfoPtr_c_PackName : IntPtr
+        F NativeFieldInfoPtr_c_PetData : IntPtr
+        F NativeFieldInfoPtr_c_PetItemId : IntPtr
+        F NativeFieldInfoPtr_c_PetPos : IntPtr
+        F NativeFieldInfoPtr_c_Pets : IntPtr
+        F NativeFieldInfoPtr_c_PopulationStoragePriority : IntPtr
+        F NativeFieldInfoPtr_c_VillagersKey : IntPtr
+        F NativeFieldInfoPtr_CoreTemplate : IntPtr
+        F NativeFieldInfoPtr_densConfig : IntPtr
+        F NativeFieldInfoPtr_friendlyGolemDefinitions : IntPtr
+        F NativeFieldInfoPtr_hostileCreatures : IntPtr
+        F NativeFieldInfoPtr_monsterDensityDifficultySelector : IntPtr
+        F NativeFieldInfoPtr_OnFishingGroundsMarkedCountChanged : IntPtr
+        F NativeFieldInfoPtr_OnKill : IntPtr
+        F NativeFieldInfoPtr_OnPetAdded : IntPtr
+        F NativeFieldInfoPtr_OnPetRemoved : IntPtr
+        F NativeFieldInfoPtr_OnVillagerAdded : IntPtr
+        F NativeFieldInfoPtr_OnVillagerLost : IntPtr
+        F NativeFieldInfoPtr_OnVillagerRemoved : IntPtr
+        F NativeFieldInfoPtr_villagerDefinitions : IntPtr
+        F NativeMethodInfoPtr__ctor_Public_Void_0 : IntPtr
+        F NativeMethodInfoPtr__HandleActivationCycle_Private_Void_WeatherEventData_0 : IntPtr
+        F NativeMethodInfoPtr__OnFishingGroundStateChanged_Private_Void_FishingGround_0 : IntPtr
+        F NativeMethodInfoPtr__OnWeatherUpdate_Private_Void_WeatherEventData_0 : IntPtr
+        F NativeMethodInfoPtr__ShuffleVillagerCharacterDefinitions_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr__UpdateDirtyMarkedFishingGroundsCount_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_add_OnFishingGroundsMarkedCountChanged_Public_add_Void_Action_2_FishingGround_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_add_OnVillagerLost_Public_add_Void_Action_0 : IntPtr
+        F NativeMethodInfoPtr_AddCreatureKill_Public_Void_PopulationInfo_0 : IntPtr
+        F NativeMethodInfoPtr_AddDenAvailabilityCount_Public_Boolean_CreatureDataSheet_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_Awake_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_CanActivateDen_Public_Boolean_Den_0 : IntPtr
+        F NativeMethodInfoPtr_ContainsLostVillager_Public_Boolean_byref_LostVillager_0 : IntPtr
+        F NativeMethodInfoPtr_CreateVillager_Public_Villager_Vector3_Quaternion_Int32_Boolean_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_CreateVillager_Public_Villager_Vector3_Quaternion_Single_DescriptionData_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_Deserialize_Public_Virtual_Final_New_SerializationReturnCode_DataElement_0 : IntPtr
+        F NativeMethodInfoPtr_FindPet_Public_Pet_Predicate_1_Pet_0 : IntPtr
+        F NativeMethodInfoPtr_FindPopulationSpawner_Public_PopulationSpawner_Predicate_1_PopulationSpawner_0 : IntPtr
+        F NativeMethodInfoPtr_FindVillager_Public_Villager_Predicate_1_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_GenerateNewPersistentVillagerID_Public_Void_byref_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_GenerateNewPetId_Public_Boolean_byref_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_GenerateNewRecyclableVillagerID_Public_Void_byref_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_get_IsLoading_Public_get_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_get_IsLocalStorageClient_Public_Virtual_Final_New_get_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_get_PopulationRandomGenerator_Public_get_RandomGenerator_0 : IntPtr
+        F NativeMethodInfoPtr_GetAllVillagers_Public_List_1_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_GetCreatureKillCount_Public_Int32_PopulationInfo_0 : IntPtr
+        F NativeMethodInfoPtr_GetDefinitionId_Public_Int32_VillagerCharacterDefinition_0 : IntPtr
+        F NativeMethodInfoPtr_GetExistingFishes_Public_ItemInfo_Vector3_0 : IntPtr
+        F NativeMethodInfoPtr_GetHearthstoneCore_Public_Structure_0 : IntPtr
+        F NativeMethodInfoPtr_GetMarkedFishesCount_Public_IEnumerator_1_KeyValuePair_2_ItemInfo_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_GetMarkedFishingGroundsCountForItem_Public_Int32_ItemInfo_0 : IntPtr
+        F NativeMethodInfoPtr_GetPack_Public_Virtual_Final_New_StoragePack_0 : IntPtr
+        F NativeMethodInfoPtr_GetPackDescriptor_Public_Virtual_Final_New_StorageClientPackDescriptor_0 : IntPtr
+        F NativeMethodInfoPtr_GetPetsCount_Public_Int32_Predicate_1_Pet_0 : IntPtr
+        F NativeMethodInfoPtr_GetPopulation_Public_List_1_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_GetRandomLostVillager_Public_LostVillager_0 : IntPtr
+        F NativeMethodInfoPtr_GetShuffledPetNameIndex_Public_Int32_PetDataSheet_byref_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_GetSortedPopulationSpawners_Public_List_1_PopulationSpawner_Vector3_0 : IntPtr
+        F NativeMethodInfoPtr_GetSortedPopulationSpawners_Public_Void_Vector3_List_1_PopulationSpawner_0 : IntPtr
+        F NativeMethodInfoPtr_GetSpawnerInstigators_Public_IReadOnlyList_1_Transform_0 : IntPtr
+        F NativeMethodInfoPtr_GetStage_Public_Virtual_Final_New_StorageSessionStage_0 : IntPtr
+        F NativeMethodInfoPtr_GetUpcomingVillagerData_Public_UpcomingVillagerData_0 : IntPtr
+        F NativeMethodInfoPtr_GetVersion_Public_Virtual_Final_New_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_GetVillagerOutlet_Public_VillagerOutlet_Predicate_1_VillagerOutlet_0 : IntPtr
+        F NativeMethodInfoPtr_GetVillagersCount_Public_Int32_Predicate_1_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_HookToWeatherEvents_Public_Void_0 : IntPtr
+        F NativeMethodInfoPtr_IsTeamHostile_Public_Boolean_IntParameterNode_0 : IntPtr
+        F NativeMethodInfoPtr_LateUpdate_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_OnDestroy_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_OnVillagerSpawned_Public_Void_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_CreatureGroup_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_Den_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_FishingGround_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_FreePopulation_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_IGuidObject_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_Pet_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_PopulationHandler_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_PopulationSpawner_0 : IntPtr
+        F NativeMethodInfoPtr_Register_Public_Void_VillagerOutlet_0 : IntPtr
+        F NativeMethodInfoPtr_RegisterSpawnerInstigator_Public_Void_Transform_0 : IntPtr
+        F NativeMethodInfoPtr_remove_OnFishingGroundsMarkedCountChanged_Public_rem_Void_Action_2_FishingGround_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_remove_OnVillagerLost_Public_rem_Void_Action_0 : IntPtr
+        F NativeMethodInfoPtr_RemoveLostVillager_Public_Void_byref_LostVillager_0 : IntPtr
+        F NativeMethodInfoPtr_RemoveVillager_Public_Void_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_Serialize_Public_Virtual_Final_New_DataElement_0 : IntPtr
+        F NativeMethodInfoPtr_set_IsLoading_Private_set_Void_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_set_PopulationRandomGenerator_Public_set_Void_RandomGenerator_0 : IntPtr
+        F NativeMethodInfoPtr_SetPack_Public_Virtual_Final_New_Void_StoragePack_0 : IntPtr
+        F NativeMethodInfoPtr_SetVillagersOrderedContextOutpostFilter_Public_Void_Int32_0 : IntPtr
+        F NativeMethodInfoPtr_Start_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_TryAddVillager_Public_Villager_Vector3_Single_DescriptionData_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_TryAddVillager_Public_Void_Vector3_Single_Int32_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetFishingGroundAtPosition_Public_Boolean_Vector3_byref_FishingGround_ItemInfo_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetFishingGroundsForItem_Public_Boolean_ItemInfo_byref_IEnumerator_1_FishingGround_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetNextVillager_Public_Virtual_Final_New_Boolean_Villager_byref_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetPreviousVillager_Public_Virtual_Final_New_Boolean_Villager_byref_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetVillagerByPersistentUniqueID_Public_Boolean_byref_Int32_byref_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_TryGetVillagerByRecyclableUniqueID_Public_Boolean_byref_Int32_byref_Villager_0 : IntPtr
+        F NativeMethodInfoPtr_TryShuffleVillagerDefinitions_Public_Boolean_0 : IntPtr
+        F NativeMethodInfoPtr_TurnOffCharacters_Public_Void_0 : IntPtr
+        F NativeMethodInfoPtr_UnRegister_Public_Void_CreatureGroup_0 : IntPtr
+        F NativeMethodInfoPtr_Unregister_Public_Void_Pet_0 : IntPtr
+        F NativeMethodInfoPtr_Unregister_Public_Void_PopulationSpawner_0 : IntPtr
+        F NativeMethodInfoPtr_Unregister_Public_Void_VillagerOutlet_0 : IntPtr
+        F NativeMethodInfoPtr_UnregisterSpawnerInstigator_Public_Void_Transform_0 : IntPtr
+        F NativeMethodInfoPtr_Update_Private_Void_0 : IntPtr
+        F NativeMethodInfoPtr_UpdateFishingGrounds_Private_Void_WeatherEventData_0 : IntPtr
+        F NativeMethodInfoPtr_UpdatePopulations_Private_Void_WeatherEventData_0 : IntPtr
+         M _HandleActivationCycle(WeatherEventData obj) : Void
+         M _OnFishingGroundStateChanged(FishingGround fishingGround) : Void
+         M _OnWeatherUpdate(WeatherEventData obj) : Void
+         M _ShuffleVillagerCharacterDefinitions() : Void
+         M _UpdateDirtyMarkedFishingGroundsCount() : Void
+         M add_OnFishingGroundsMarkedCountChanged(Action`2 value) : Void
+         M add_OnVillagerLost(Action value) : Void
+         M AddCreatureKill(PopulationInfo kill) : Void
+         M AddDenAvailabilityCount(CreatureDataSheet denSheet, Int32 amount) : Boolean
+         M Awake() : Void
+         M CanActivateDen(Den den) : Boolean
+         M ContainsLostVillager(LostVillager& villager) : Boolean
+         M CreateVillager(Vector3 position, Quaternion rotation, Int32 definitionIndex, Boolean showNotification, Boolean deserialization) : Villager
+         M CreateVillager(Vector3 position, Quaternion rotation, Single radius, DescriptionData descriptionData, Boolean showNotification) : Villager
+         M Deserialize(DataElement data) : SerializationReturnCode
+         M FindPet(Predicate`1 predicate) : Pet
+         M FindPopulationSpawner(Predicate`1 predicate) : PopulationSpawner
+         M FindVillager(Predicate`1 predicate) : Villager
+         M GenerateNewPersistentVillagerID(Int32& id) : Void
+         M GenerateNewPetId(Int32& id) : Boolean
+         M GenerateNewRecyclableVillagerID(Int32& id) : Void
+         M GetAllVillagers() : List`1
+         M GetCreatureKillCount(PopulationInfo kill) : Int32
+         M GetDefinitionId(VillagerCharacterDefinition definition) : Int32
+         M GetExistingFishes(Vector3 extractPosition) : ItemInfo
+         M GetHearthstoneCore() : Structure
+         M GetMarkedFishesCount() : IEnumerator`1
+         M GetMarkedFishingGroundsCountForItem(ItemInfo targetFish) : Int32
+         M GetPack() : StoragePack
+         M GetPackDescriptor() : StorageClientPackDescriptor
+         M GetPetsCount(Predicate`1 predicate) : Int32
+         M GetPopulation() : List`1
+         M GetRandomLostVillager() : LostVillager
+         M GetShuffledPetNameIndex(PetDataSheet petData, Int32& petId) : Int32
+         M GetSortedPopulationSpawners(Vector3 refPoint, List`1 result) : Void
+         M GetSortedPopulationSpawners(Vector3 refPoint) : List`1
+         M GetSpawnerInstigators() : IReadOnlyList`1
+         M GetStage() : StorageSessionStage
+         M GetUpcomingVillagerData() : UpcomingVillagerData
+         M GetVersion() : Int32
+         M GetVillagerOutlet(Predicate`1 predicate) : VillagerOutlet
+         M GetVillagersCount(Predicate`1 predicate) : Int32
+         M HookToWeatherEvents() : Void
+         M IsTeamHostile(IntParameterNode team) : Boolean
+         M LateUpdate() : Void
+         M OnDestroy() : Void
+         M OnVillagerSpawned(Villager villager) : Void
+         M Register(PopulationSpawner populationSpawner) : Void
+         M Register(FreePopulation toRegister) : Void
+         M Register(FishingGround fishingGround) : Void
+         M Register(IGuidObject guidObject) : Void
+         M Register(CreatureGroup creatureGroup) : Void
+         M Register(PopulationHandler toRegister) : Void
+         M Register(VillagerOutlet vo) : Void
+         M Register(Den den) : Void
+         M Register(Pet pet) : Void
+         M RegisterSpawnerInstigator(Transform toRegister) : Void
+         M remove_OnFishingGroundsMarkedCountChanged(Action`2 value) : Void
+         M remove_OnVillagerLost(Action value) : Void
+         M RemoveLostVillager(LostVillager& villager) : Void
+         M RemoveVillager(Villager _v) : Void
+         M Serialize() : DataElement
+         M SetPack(StoragePack packHandle) : Void
+         M SetVillagersOrderedContextOutpostFilter(Int32 outpostID) : Void
+         M Start() : Void
+         M TryAddVillager(Vector3 spawnLocation, Single radius, Int32 definitionIndex, Boolean showNotification) : Void
+         M TryAddVillager(Vector3 spawnLocation, Single radius, DescriptionData descriptionData, Boolean showNotification) : Villager
+         M TryGetFishingGroundAtPosition(Vector3 extractPosition, FishingGround& fishingGround, ItemInfo requestedFishInfo) : Boolean
+         M TryGetFishingGroundsForItem(ItemInfo targetFish, IEnumerator`1& fishinGroundsEnum) : Boolean
+         M TryGetNextVillager(Villager current, Villager& nextVillager) : Boolean
+         M TryGetPreviousVillager(Villager current, Villager& previousVillager) : Boolean
+         M TryGetVillagerByPersistentUniqueID(Int32& persistentUniqueID, Villager& villager) : Boolean
+         M TryGetVillagerByRecyclableUniqueID(Int32& recyclableUniqueID, Villager& villager) : Boolean
+         M TryShuffleVillagerDefinitions() : Boolean
+         M TurnOffCharacters() : Void
+         M Unregister(Pet pet) : Void
+         M Unregister(VillagerOutlet vo) : Void
+         M Unregister(PopulationSpawner popSpawner) : Void
+         M UnRegister(CreatureGroup creatureGroup) : Void
+         M UnregisterSpawnerInstigator(Transform toUnregister) : Void
+         M Update() : Void
+         M UpdateFishingGrounds(WeatherEventData obj) : Void
+         M UpdatePopulations(WeatherEventData obj) : Void
+  NO TYPE SSSGame.Network.NetworkPopulationManager

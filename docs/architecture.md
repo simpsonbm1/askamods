@@ -2577,6 +2577,19 @@ Bypassing discovery to show tasks in workstations requires different strategies 
   villager dispatch (`FSM_Fishing`, `PopulationManager.TryGetFishingGroundsForItem`) needs a real marked
   ground to row to, and count-driven `_UpdateFishStatus` would remove tasks whose marked-count is 0.
   **FishingGround marks persist in the save (confirmed in-game 2026-07-14).**
+  - **Depletion and replenish are BOTH vanilla mechanisms** (Cecil 2026-07-25, for the fishing-ground
+    respawn idea — script `_explore/cecil_fishing_ground_state.ps1`). `SSSGame.FishingGround`
+    (base `SSSGame.AI.FishingOutlet`) exposes a read-only **`IsDepleted`** property, so exhaustion is
+    DERIVED, not a flag to clear. The stock state it derives from is settable: `CurrentCount` (int),
+    `CurrentSize` (float), plus fields `_currentMultiplier`, `cappacity` (the game's typo), `maxSize`,
+    `minSize`, and the state-band markers `fewStateStart` / `averageStateStart` / `plentifulStateStart`.
+    Critically the game **already has a refill path**: a private `_Replenish()` driven by a PUBLIC
+    **`CheckReplenish(WeatherEventData)`**, with a `replenishPercentage` field governing how much comes
+    back, plus `UpdateState()`. ⚠️ Pending: whether grounds stay dead because that weather trigger
+    rarely fires or because `replenishPercentage` is small — unmeasured. Per the prefer-the-game's-own-
+    machinery rule, a respawn mod should drive `CheckReplenish` rather than write `CurrentCount`
+    directly. Other settable state: `Disabled`, `Discovered`, `IsMarked`; also `GetFish(bool)`,
+    `GetKey()`, `Mark(bool)`, `UnlockMarking()`.
   - **Dead end**: NetworkBlueprintConditionsDatabase / DebugAllBlueprintsUnlocked — FishingStation ignores them (wrong system).
   - **Dead end**: StorageSupply.hideTasksForUndiscoveredItems = false has no effect (UI-level; the tasks were never created).
   - **Dead end**: Patching WorkstationTaskData.ShouldBeHidden throws System.NullReferenceException inside the IL2CPP
