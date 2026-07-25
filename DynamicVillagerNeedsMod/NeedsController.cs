@@ -45,7 +45,8 @@ namespace DynamicVillagerNeedsMod;
 // rest-boosted), leftover off-hours filled with leisure (never over-manning the post). While a
 // villager holds the Manual baseline the mod writes nothing — the game natively executes painted
 // schedules (confirmed in-game 2026-07-09) and the schedule UI keeps showing the player's real hours.
-// Solo-station villagers and degenerate all-Work paints keep pure needs-based behavior.
+// Solo-station villagers keep pure needs-based behavior unless ManualScheduleIncludeSoloStations
+// (v1.10.0) is on; degenerate all-Work paints always keep pure needs-based behavior.
 public class NeedsController : MonoBehaviour
 {
     // Manual = RespectManualSchedule baseline: follow the villager's own painted schedule
@@ -407,7 +408,8 @@ public class NeedsController : MonoBehaviour
                 }
                 bool happyAllowed = ht.cooldown <= 0f;
 
-                // Manual-schedule gating applies only to members of a 2+ same-station cohort whose
+                // Manual-schedule gating applies only to members of an eligible same-station cohort (2+ workers,
+                // or any assigned worker when ManualScheduleIncludeSoloStations is on) whose
                 // painted schedule is a REAL mixed paint: at least one Work hour AND one off-hour.
                 // All-Work paints would forbid discretionary sleep forever; uniform all-Sleep/all-
                 // Leisure schedules are legacy junk from old collapse writes baked into saves, not
@@ -1605,9 +1607,19 @@ public class NeedsController : MonoBehaviour
             // ManualScheduleDiagnostics — this is player-facing observability, not a debug diagnostic.
             WriteStationsFileIfChanged(allNames, allDefaultNames, allCounts, allIsBuild, stationRules);
 
+            // v1.10.0: cohort-size floor. Manual mode originally existed to preserve player-staggered
+            // coverage of SHARED posts, so it required 2+ workers at a station. Nexus request
+            // (2026-07-25): honor painted schedules at one-man stations too — a part-time barbecue cook,
+            // a shaman manning the runestone on cue, night-perk workers painted onto night hours.
+            // ManualScheduleIncludeSoloStations drops the floor to 1. Every OTHER guard is unchanged:
+            // Buildstation-family stations are still excluded in the loop above, the ManualScheduleStations
+            // whitelist still applies below, and the per-villager mixed-paint requirement still applies in
+            // Update(). Read fresh each pass so the 30 s live cfg reload picks it up.
+            int minCohortMembers = Plugin.ManualScheduleIncludeSoloStations.Value ? 1 : 2;
+
             foreach (var kv in groups)
             {
-                if (kv.Value.Count < 2) continue;
+                if (kv.Value.Count < minCohortMembers) continue;
 
                 string name = names.TryGetValue(kv.Key, out var n) ? n : "?";
                 string defName = defaultNames.TryGetValue(kv.Key, out var dn2) ? dn2 : "?";
@@ -1631,7 +1643,7 @@ public class NeedsController : MonoBehaviour
                 if (stationRules.Length > 0 && !nameUnresolved && !whitelisted && _unmatchedStationWarned.Add(name))
                 {
                     Plugin.Logger.LogInfo(
-                        $"[DynamicNeeds] station '{displayName}' has a 2+ worker cohort but no ManualScheduleStations " +
+                        $"[DynamicNeeds] station '{displayName}' has an eligible worker cohort but no ManualScheduleStations " +
                         $"entry matches it — it will use needs-based behavior. Exact station names are listed in {StationsFileName}.");
                 }
 
@@ -1776,6 +1788,8 @@ public class NeedsController : MonoBehaviour
                 string verdict;
                 if (isBuild)
                     verdict = "builder pool — always excluded from manual mode";
+                else if (count < 2 && !Plugin.ManualScheduleIncludeSoloStations.Value)
+                    verdict = "only 1 assigned villager — excluded (set ManualScheduleIncludeSoloStations = true to include solo stations)";
                 else if (rules.Length == 0)
                     verdict = $"whitelist empty — all stations eligible (fill={Plugin.OffWindowFill.Value})";
                 else if (TryMatchStationRule(name, defName, rules, out var matched, out bool viaDefault))

@@ -1,4 +1,4 @@
-# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.9.7)
+# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.10.0)
 
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours)
 with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real
@@ -8,7 +8,7 @@ reducing happiness.** Villager-only; the player is never touched.
 **Game subsystem:** [Villager Schedule / Needs / Happiness System](../architecture.md#villager-schedule--needs--happiness-system)
 — survival/happiness/schedule APIs, the eating FSM, the game-mechanic facts (night-sleep race, sleep
 being a rate problem, warmth left to the game), and the subsystem dead-ends all live there. Read it
-first. This file describes the mod as it exists at v1.9.7; the version history is compressed into
+first. This file describes the mod as it exists at v1.10.0; the version history is compressed into
 the appendix at the bottom.
 
 ## Architecture
@@ -74,10 +74,17 @@ fall (observe-the-delta-and-amplify, drops only, so eating is never scaled; both
 
 ## Manual-schedule mode (opt-in) — `RespectManualSchedule` + `DecideManual`
 
-Scope: villagers in a **2+ same-workstation cohort** (grouped by `GetNonVikingWorkstation()` native
-pointer every 10 s) whose captured painted schedule is a **real mixed paint** (≥1 Work hour AND ≥1
-off-hour — uniform all-S/all-L saved schedules are legacy junk from old collapse writes and fall
-back to pure needs mode). The **Buildstation family is excluded** from cohorts/qualification/lending
+Scope: villagers in an ELIGIBLE **same-workstation cohort** (grouped by `GetNonVikingWorkstation()`
+native pointer every 10 s) whose captured painted schedule is a **real mixed paint** (≥1 Work hour
+AND ≥1 off-hour — uniform all-S/all-L saved schedules are legacy junk from old collapse writes and
+fall back to pure needs mode). **Eligible = 2+ assignees**, or **any assignee** when
+`ManualScheduleIncludeSoloStations` is on. The 2+ floor serves the mode's original purpose,
+preserving player-staggered coverage of a SHARED post; honoring a solo worker's paint (a part-time
+one-man cook, a shaman posted at the runestone, night-perk workers on night hours) is a separate
+want, so it sits behind its own opt-in flag. ⚠️ Reach: with that flag on and
+`ManualScheduleStations` empty, EVERY assigned villager is manual-scheduled, including ones whose
+paint is only the game's default (which qualifies as a real mixed paint). The
+**Buildstation family is excluded** from cohorts/qualification/lending
 (native class-name check — managed `is` lies): unassigned and newly-summoned villagers are
 auto-parked there and their mixed DEFAULT schedules would wrongly qualify.
 
@@ -127,7 +134,8 @@ natively executes painted schedules). `DecideManual`, in order:
 **Station-name discovery + feedback:** generated file `com.askamods.dynamicneeds.stations.txt`
 (BepInEx config dir; rewritten only on content change; requires `RespectManualSchedule=true` or
 `ManualScheduleDiagnostics=true`): every station with ≥1 assigned villager — name (rendered
-`Display (Default)` when renamed), assigned count, whitelist verdict + fill. Two
+`Display (Default)` when renamed), assigned count, whitelist verdict + fill. A one-assignee station
+reports an "excluded" verdict naming `ManualScheduleIncludeSoloStations` while that flag is off. Two
 NON-diagnostics-gated one-time lines: (a) INFO when a 2+ cohort matches no entry while the list is
 non-empty, (b) WARNING when an entry matches no station ~60 s after first tracked villager.
 Motivation: real user failure — entry "Watchtower" vs actual building "Guard Tower"; names vary per
@@ -174,8 +182,8 @@ Eating/drain: `FoodRecheckIntervalSeconds` (15.0, 0=off); `FoodRecheckWhenNeedBe
 `HungerRateMultiplier` (1.0); `ThirstRateMultiplier` (1.0).
 
 Manual mode: `RespectManualSchedule` (false); `CriticalNeedOffPostBelow` (0.05); `OffWindowFill`
-(Leisure); `ManualScheduleStations` (""); `PreserveScheduleInSaves` (true);
-`ShowIntendedScheduleInUI` (true).
+(Leisure); `ManualScheduleStations` (""); `ManualScheduleIncludeSoloStations` (false);
+`PreserveScheduleInSaves` (true); `ShowIntendedScheduleInUI` (true).
 
 Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); `BuilderTestKey`
 (F9, typing-guarded, parsed once at startup); `BuilderReturnLeadHours` (1.0).
@@ -217,6 +225,11 @@ Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); 
   mid-collapse repaint adopts within 5 s.
 - v1.9.x QoL round (per-station fill, three-brush, discovery file, live reload, rename-proof)
   confirmed in-game 2026-07-10 in one session.
+- v1.10.0 `ManualScheduleIncludeSoloStations` confirmed in-game (2026-07-24): a solo-station
+  villager painted mid-session followed the new paint immediately (in needs mode the mod would have
+  overwritten it), and the MSdiag cohort report listed ~200 single-member stations at
+  `whitelisted=True`, no exceptions. Unexercised for solo stations specifically: back-loaded top-up
+  sleep placement and off-window fill — both are the same code paths already verified for 2+ cohorts.
 - Unexercised: the happiness safety valve during Work fill (mood never dipped ≤ 0.6 in the test
   session; same logic as base `Decide`, low-risk); the log-only sleep-overlap warning.
 
@@ -236,3 +249,4 @@ Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); 
 | v1.9.0–v1.9.4 | 2026-07-10 | Per-station `Name:Fill`; three-brush semantic; stations.txt discovery + mismatch feedback; live cfg reload; rename-proof matching; diag defaults → false. |
 | v1.9.5 | 2026-07-10 | Typing guard on the F9 hotkey. |
 | v1.9.6–v1.9.7 | 2026-07-12 | `[Perf]` sub-phase stopwatches; cfg reload 5 s→30 s. No behavior change. |
+| v1.10.0 | 2026-07-24 | `ManualScheduleIncludeSoloStations` drops the cohort floor to 1 so one-worker stations get manual schedules (Nexus request); stations-file verdict now reports solo exclusion. |

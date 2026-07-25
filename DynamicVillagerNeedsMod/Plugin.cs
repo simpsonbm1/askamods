@@ -81,6 +81,8 @@ public class Plugin : BasePlugin
     // v1.7.2: whitelist restricting which cohorts manual mode applies to (Buildstation-family stations
     // are ALWAYS excluded regardless of this list — see NeedsController.IsBuildstation).
     internal static ConfigEntry<string> ManualScheduleStations = null!;
+    // v1.10.0: drops the manual-mode cohort-size floor from 2 to 1 (see NeedsController.RefreshCohorts).
+    internal static ConfigEntry<bool> ManualScheduleIncludeSoloStations = null!;
     internal static ConfigEntry<OffWindowFillMode> OffWindowFill = null!;
     // OffWindowFill=Builder (v1.7.0): while loaned, leave the loan once this close to the on-window so
     // there's time to walk back to the post. Fallback only — the back-loaded top-up sleep normally
@@ -201,18 +203,20 @@ public class Plugin : BasePlugin
             "are also followed as painted — the villager relaxes then, regardless of OffWindowFill. Painted Sleep " +
             "blocks are flexible rest time the mod optimizes: one shorter, well-timed sleep (back-loaded to end at " +
             "shift start; the rest boost shortens it further), with the hours freed up by that optimization filled " +
-            "per OffWindowFill. Villagers on solo stations, and cohort members whose painted schedule has no " +
-            "off-hours, keep pure needs-based behavior. Preserves player-staggered 24/7 coverage of shared posts " +
-            "(towers, kitchens).");
+            "per OffWindowFill. Villagers on solo (one-worker) stations keep pure needs-based behavior unless " +
+            "ManualScheduleIncludeSoloStations is enabled; villagers whose painted schedule has no off-hours (or " +
+            "no Work hours) always keep pure needs-based behavior. Preserves player-staggered 24/7 coverage of " +
+            "shared posts (towers, kitchens).");
         CriticalNeedOffPostBelow = Config.Bind("DynamicNeeds", "CriticalNeedOffPostBelow", 0.05f,
             "Manual-schedule mode: normalized food/water level below which an on-shift villager takes an emergency " +
             "off-post trip (the game's starving/dehydrated flags also trigger it). Keep near-death-low — off-hours " +
             "top-ups should normally prevent it ever firing.");
 
         ManualScheduleStations = Config.Bind("DynamicNeeds", "ManualScheduleStations", "",
-            "Manual-schedule mode: comma-separated, case-insensitive substrings matched against each 2+ cohort's " +
-            "station display name. Empty (default) = current behavior: any non-Buildstation 2+ same-station cohort " +
-            "with a mixed (Work + off-hour) painted schedule qualifies for manual mode, using the global " +
+            "Manual-schedule mode: comma-separated, case-insensitive substrings matched against each eligible " +
+            "cohort's station display name. Empty (default) = current behavior: any non-Buildstation eligible " +
+            "same-station cohort (2+ workers, or any assigned worker when ManualScheduleIncludeSoloStations is " +
+            "on) with a mixed (Work + off-hour) painted schedule qualifies for manual mode, using the global " +
             "OffWindowFill. Non-empty = manual mode applies ONLY to cohorts whose station name contains at least " +
             "one of these substrings; every other villager (e.g. newly summoned/unassigned workers at other " +
             "stations) falls back to pure needs-based behavior instead of being treated as manual-scheduled. Each " +
@@ -234,6 +238,20 @@ public class Plugin : BasePlugin
             "(global or per-station) only governs flexible off-hours (the hours freed by the optimized painted-" +
             "Sleep block) — hours the player painted as Leisure are always spent as Leisure regardless of the " +
             "resolved fill (see RespectManualSchedule).");
+
+        ManualScheduleIncludeSoloStations = Config.Bind("DynamicNeeds", "ManualScheduleIncludeSoloStations", false,
+            "Manual-schedule mode: also apply manual schedules to stations that have only ONE assigned villager. " +
+            "False (default) = manual mode covers only stations with 2+ assigned villagers, its original purpose " +
+            "being to preserve player-staggered coverage of shared posts. True = every station with at least one " +
+            "assigned villager qualifies, so a solo worker's painted schedule is honored too — e.g. a one-man " +
+            "barbecue cook who works a few painted hours and spends the rest of the day on OffWindowFill=Builder, " +
+            "a shaman painted to man the runestone at a set time, or night-perk workers painted onto night hours. " +
+            "Buildstation-family stations are still ALWAYS excluded, and a villager whose painted schedule is not " +
+            "a real mix (it needs at least one Work hour AND at least one off-hour) still falls back to pure " +
+            "needs-based behavior. Note the reach: with this on and ManualScheduleStations empty, EVERY assigned " +
+            "villager becomes manual-scheduled, including ones whose schedule you never deliberately painted (the " +
+            "game's default paint counts as a real mix). Use ManualScheduleStations to limit it to the buildings " +
+            "you actually painted.");
 
         OffWindowFill = Config.Bind("DynamicNeeds", "OffWindowFill", OffWindowFillMode.Leisure,
             "Manual-schedule mode only: the GLOBAL DEFAULT for what an off-shift cohort villager does with " +
@@ -338,6 +356,7 @@ public class Plugin : BasePlugin
                        $"ManualScheduleDiagnostics={ManualScheduleDiagnostics.Value}, RespectManualSchedule={RespectManualSchedule.Value}, " +
                        $"ManualScheduleStations='{ManualScheduleStations.Value}'" +
                        (stationFillSummary.Length > 0 ? $" fills=[{stationFillSummary}]" : "") + ", " +
+                       $"ManualScheduleIncludeSoloStations={ManualScheduleIncludeSoloStations.Value}, " +
                        $"OffWindowFill={OffWindowFill.Value} builderReturnLead={BuilderReturnLeadHours.Value}h, " +
                        $"PreserveScheduleInSaves={PreserveScheduleInSaves.Value}, " +
                        $"ShowIntendedScheduleInUI={ShowIntendedScheduleInUI.Value}, " +
