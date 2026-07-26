@@ -728,9 +728,6 @@ Nexus ship — users shouldn't silently lose loot) + `ExcludeCorpseNames`
 **Status:** built as GroundItemVacuumMod v1.2.1, ⚠️ pending in-game
 confirmation (2026-07-18). Open ⚠️ items: does `DespawnImmediatelyIfStateAuthority()`
 visually remove the body cleanly; are deer/boar `Monster` too.
-⚠️ The mod doc `docs/mods/ground-item-vacuum.md` is stale at v1.1.3 and carries NONE of this —
-so this section is the only written record. Do not collapse it to a pointer until the mod doc
-absorbs it.
 
 ---
 
