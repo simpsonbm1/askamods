@@ -1,0 +1,129 @@
+loaded 37699 types
+
+=========== 1. EVERY concrete declarer of GetItemManifest ===========
+   (these are the Harmony-patchable targets; an interface slot is NOT patchable)
+  [class] SSSGame.AnimalPen   base=Kennel
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.AnimalPen/PenStorageWrapper   base=Object
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.Bloomstation   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.CharcoalStation   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.CookingStation   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.CookingStation/CookingHouseStorageWrapper   base=Object
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.CraftingStation   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.CraftingStation/OutputStorageWrapper   base=Object
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.DiningStation/DiningStationOutputWrapper   base=Object
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.DismantlePile   base=MonoBehaviour
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.FarmingStation   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.IResourceStorageSite   base=Il2CppObjectBase
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.Kennel   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.Marketplace   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  [class] SSSGame.ResourceStorage   base=Workstation
+        GetItemManifest() : ItemManifest   [virtual public]
+  15 declarer(s)
+
+=========== 2. How interface implementation is modelled at all ===========
+   (sanity check: does ANY type list IResourceStorageSite / IWhitelistingSite?)
+  IResourceStorageSite: 0 type(s) declare it in .Interfaces
+  IWhitelistingSite: 0 type(s) declare it in .Interfaces
+  IItemFilter: 0 type(s) declare it in .Interfaces
+
+=========== 3. IItemFilter surface (can we tell WHAT a query asked for?) ===========
+   (needed to keep Compost visible while hiding everything else)
+  ### SandSailorStudio.Inventory.IItemFilter
+        .cctor() : Void   [static nonpublic]
+        .ctor(System.IntPtr pointer) : Void   [public]
+        Check(SandSailorStudio.Inventory.ItemInfo itemInfo) : Boolean   [virtual public]
+        get_HasIdempotence() : Boolean   [virtual public]
+  --- concrete IItemFilter-shaped types (name match) ---
+    Il2CppSystem.ComponentModel.ToolboxItemFilterAttribute   base=Attribute
+    Il2CppSystem.ComponentModel.ToolboxItemFilterType   base=Enum
+    Invector.vItemManager.vItemFilter   base=Object
+    SandSailorStudio.Inventory.IItemFilter   base=Il2CppObjectBase
+    SandSailorStudio.Inventory.ItemManifest   base=Object
+    SandSailorStudio.Inventory.ItemManifestConfig   base=BaseItemsConfig
+    SandSailorStudio.Inventory.ItemManifestContainer   base=ItemContainer
+    SandSailorStudio.Inventory.SelfItemFilter   base=ValueType
+    SandSailorStudio.Inventory.Utils.MultiCategoryItemFilter   base=Object
+    SandSailorStudio.Inventory.WearableItemInfo/WearableItemFilter   base=ValueType
+    SSSGame.AI.ConsumableItemFilter   base=Object
+    SSSGame.AI.FSM.AccessibleItemFilter   base=Object
+    SSSGame.AI.FSM.FSM_CleanupInventory/StorageSpaceItemFilter   base=Object
+    SSSGame.AI.FSM.FSM_FetchBuildingSupplies/RemainingSuppliesItemFilter   base=Object
+    SSSGame.AI.FSM.FSM_FetchRepairSupplies/RemainingSuppliesItemFilter   base=Object
+    SSSGame.AI.FSM.FSM_FetchSupplies/RemainingSuppliesItemFilter   base=Object
+    SSSGame.AI.FSM.HashSetItemFilter   base=Object
+    SSSGame.AI.FSM.InverseItemFilter   base=ValueType
+    SSSGame.AI.FSM.PriorityItemFilter   base=Object
+    SSSGame.AI.FSM.UndergroundItemFilter   base=Object
+    SSSGame.AI.ItemManifestComplaint   base=Complaint
+    SSSGame.ItemManifestSpawner   base=MonoBehaviour
+    SSSGame.UI.ItemManifestDisplayer   base=MonoBehaviour
+
+=========== 4. ItemManifest surface (can we build/filter one safely?) ===========
+        .cctor() : Void   [static nonpublic]
+        .ctor(System.IntPtr pointer) : Void   [public]
+        .ctor() : Void   [public]
+        AddInfoList(SandSailorStudio.Inventory.ItemInfoList infoList, System.Int32 count) : Void   [public]
+        AddItem(SandSailorStudio.Inventory.ItemInfo item, System.Int32 quantity) : Void   [public]
+        AddParts(SandSailorStudio.Inventory.BlueprintInfo bpInfo) : Void   [public]
+        Check(SandSailorStudio.Inventory.ItemInfo itemInfo) : Boolean   [virtual public]
+        Clear() : Void   [public]
+        Contains(SandSailorStudio.Inventory.ItemManifest itemManifest) : Int32   [public]
+        ContainsKeys(SandSailorStudio.Inventory.ItemManifest itemManifest, SandSailorStudio.Inventory.IItemFilter itemFilter) : Boolean   [public]
+        CreateFromBlueprint(SandSailorStudio.Inventory.BlueprintInfo bpInfo) : ItemManifest   [static public]
+        CreateFromComponents(SandSailorStudio.Inventory.ItemInfo info, System.Boolean includeChanceComponent) : ItemManifest   [static public]
+        CreateFromContainer(SandSailorStudio.Inventory.ItemContainer container) : ItemManifest   [static public]
+        CreateFromFilter(SandSailorStudio.Inventory.ItemCollection collection, SandSailorStudio.Inventory.IItemFilter filter) : ItemManifest   [static public]
+        CreateFromItemObject(SandSailorStudio.Inventory.ItemInfo info) : ItemManifest   [static public]
+        Deserialize(SandSailorStudio.Storage.DataObject source) : Boolean   [virtual public]
+        Fill(SandSailorStudio.Inventory.ItemSelection selection, SandSailorStudio.Inventory.ItemCollection collection) : Void   [public]
+        Fill(SandSailorStudio.Inventory.ItemManifest other, System.Int32 multiplier, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        Fill(SandSailorStudio.Inventory.ItemManifest other, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        FillExcluded(SandSailorStudio.Inventory.ItemManifest other, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        FillItem(SandSailorStudio.Inventory.ItemInfo item, SandSailorStudio.Inventory.ItemCollection inventory) : Void   [public]
+        FillMax(SandSailorStudio.Inventory.ItemManifest other, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        FillRemainingCapacity(SandSailorStudio.Inventory.ItemManifest other, Il2CppSystem.Func`2<SandSailorStudio.Inventory.ItemInfo,System.Int32> remainingCapacityFunc) : Void   [public]
+        FillUpToMax(SandSailorStudio.Inventory.ItemManifest other, SandSailorStudio.Inventory.ItemManifest max, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        FillUpToMax(SandSailorStudio.Inventory.ItemManifest other, SandSailorStudio.Inventory.ItemManifest max1, SandSailorStudio.Inventory.ItemManifest max2, SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        get__items() : Dictionary`2   [public]
+        get__totalItemQuantity() : Int32   [public]
+        get_c_itemsKey() : String   [static public]
+        get_s_infoList() : List`1   [static public]
+        GetItemInfoCount() : Int32   [public]
+        GetItems(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfoQuantity> itemInfoQuantities) : Void   [public]
+        GetItems() : List`1   [public]
+        GetItemsList() : List`1   [public]
+        GetItemsQuantity(SandSailorStudio.Inventory.IItemFilter filter) : Int32   [public]
+        GetQuantity(SandSailorStudio.Inventory.ItemInfo item) : Int32   [public]
+        GetTopQuantity(SandSailorStudio.Inventory.ItemInfo& topItem, SandSailorStudio.Inventory.IItemFilter itemFilter) : Int32   [public]
+        GetTotalQuantity() : Int32   [public]
+        HasItem(SandSailorStudio.Inventory.IItemFilter itemFilter) : Boolean   [public]
+        Multiply(System.Int32 amount) : Void   [public]
+        Multiply(System.Single ammount) : Void   [public]
+        Overlaps(SandSailorStudio.Inventory.ItemManifest itemManifest) : Boolean   [public]
+        PopulateItemsList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> list) : Void   [public]
+        ReadSnapshot(Il2CppSystem.IO.BinaryReader reader) : Void   [virtual public]
+        RemoveAll(SandSailorStudio.Inventory.IItemFilter itemFilter) : Void   [public]
+        RemoveAll(SandSailorStudio.Inventory.ItemInfo item) : Void   [public]
+        RemoveFromManifest(SandSailorStudio.Inventory.ItemManifest otherManifest) : Void   [public]
+        RemoveItem(SandSailorStudio.Inventory.ItemInfo item, System.Int32 quantity) : Void   [public]
+        Serialize(SandSailorStudio.Storage.DataObject destination) : DataObject   [virtual public]
+        SpawnItemsInArea(UnityEngine.Bounds bounds, System.Boolean snapToTerrain, System.Single spawnChance) : Void   [public]
+        Transfer(SandSailorStudio.Inventory.ItemContainer from, SandSailorStudio.Inventory.ItemCollection to) : Void   [public]
+        Transfer(SandSailorStudio.Inventory.ItemCollection from, SandSailorStudio.Inventory.ItemContainer to) : Void   [public]
+        Transfer(SandSailorStudio.Inventory.ItemCollection source, SandSailorStudio.Inventory.ItemCollection destination, System.Boolean copy) : Void   [public]
+        WriteSnapshot(Il2CppSystem.IO.BinaryWriter writer, System.Int32 maxItemInfoCount) : Void   [public]
+        WriteSnapshot(Il2CppSystem.IO.BinaryWriter writer) : Void   [virtual public]

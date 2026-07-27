@@ -1,9 +1,11 @@
-# Mod 25: OuthouseComposterMod — COMPLETE (v1.3.1, on Nexus as "Outhouse Composter")
+# Mod 25: OuthouseComposterMod — COMPLETE (v1.4.0, on Nexus as "Outhouse Composter")
 
 **Goal:** food and seeds thrown into the Outhouse structure's storage convert into Compost over
-in-game time, protected from villager raiding (warehouse haul gate + villager eat gate). Origin:
+in-game time, protected from villager raiding through three gates: warehouse haul (prevents haul
+tasks), villager eat (blocks consume quests), query-hide (stops villager food/seed removal). Origin:
 `NEW_MOD_IDEAS_PLAN.md` idea 13, Phase 1. Phases 2–3 (bigger grid, native-decay conversion) remain
-unbuilt. v1.0.0 core confirmed in-game 2026-07-12; both raid gates confirmed in-game 2026-07-19.
+unbuilt. v1.0.0 core confirmed in-game 2026-07-12; warehouse + eat gates confirmed 2026-07-19;
+query-hide gate confirmed in-game 2026-07-26.
 
 ## Game subsystem: Storage acceptance — the Outhouse container
 
@@ -135,6 +137,27 @@ outhouse; converter kept producing Compost throughout; zero errors. NEVER patch 
 `_FindBestItemToConsume(Item)` / `_OnItemAdded` / `_OnItemRemoved` (inventory-family crash
 signatures). See architecture.md → "Where the consume quest picks its store".
 
+### Query-hide gate (shipped v1.4.0, confirmed in-game 2026-07-26 —
+Patches/QueryHidePatches.cs)
+Third raid vector: storage-query methods (`GetItemCount`, `HasItem`) report all outhouse contents to
+villagers, enabling theft even through the accept/eat gates. Fix: two Harmony postfix patches on
+`SandSailorStudio.Inventory.ItemContainer`, scoped to the outhouse container only via the
+pointer-keyed identity cache (OuthouseGate, same pattern as AcceptancePatches). Parameters
+disambiguated by explicit type array (multiple overloads exist): `GetItemCount(ItemInfo)` forced
+to zero for any item except the configured compost item; `HasItem(IItemFilter)` set to whether
+the container holds compost AND the filter accepts compost (tested via `filter.Check(compostInfo)`),
+preventing broad filters from revealing hidden food. Both patches fail open (leave result untouched)
+on exception or while compost ItemInfo has not yet resolved, so nothing is ever hidden before
+compost identification. Static bypass flag `QueryHideBypass` suppresses both patches while the
+converter reads its container, with fifteen guard sites wrapping the bodies of `DoConvert` and
+`DoConvertSimultaneous` (native code inside `HasSpace`, `AddItems`, `RemoveItem` re-enters patched
+methods invisibly). Three new config keys in [Composter] section, all defaulting true:
+`HideNonCompostFromQueries` (master switch), `HideQueryGetItemCount`, `HideQueryHasItem`
+(per-method switches for problem narrowing). Confirmed in-game 2026-07-26 across an eleven-event
+tripwire run: zero food or seed removals outside the mod's own conversions; compost continued
+leaving the outhouse in four separate events; conversions fired eight times. Player's outhouse
+storage panel displayed correctly with hiding enabled.
+
 ## Config (`com.askamods.outhousecomposter.cfg`)
 
 **[Composter] section:**
@@ -169,7 +192,13 @@ existing cfg files; customized values must be re-set under the new keys.
 
 ## Open/unverified
 
-(none currently)
+- **Workshop House 4 compost consumption pattern:** not understood why villagers from Workshop House
+  4 running CrafterFetchQuestData consistently appear among the nearest askers when Compost is
+  removed from the outhouse. Across two measured sessions, farm villagers appeared at one of three
+  and then one of four compost-removal events, while Workshop House 4 crafters appeared at two of
+  three and then three of four. Compost is definitely leaving the outhouse, but who consumes it
+  and why is not established. Note that the recent-asker list is a ten-second correlation window,
+  not a call stack, so it narrows rather than proves.
 
 ## Dead-ends
 
@@ -184,6 +213,21 @@ code path attempting it. Do not retry variants.
 **Also recorded as a universal IL2CPP gotcha in CLAUDE.md and architecture.md.** Same trampoline
 family as `FindObjectsByType<T>()` (plural generic) and `GetComponentsInChildren<T>(bool)` (plural
 generic).
+
+### Villager eat gate never fires in this settlement (confirmed 2026-07-26)
+
+The `SatisfyObjectiveQuestData` patches (EatGatePatches.cs) never see their alive markers logged
+across three separate sessions. The consume-quest FSM simply does NOT run this container against
+the outhouse — not broken, unexercised. This finding does not affect gate functionality; the gate
+remains in place as a safety lever if a future game change makes the path fire.
+
+### ResourceStorage.onlyGatherNativeItems flag + _PrepareNativeItemsFilter — DEAD-END (confirmed
+2026-07-26)
+
+Attempted: setting the game's ResourceStorage.onlyGatherNativeItems to true on the outhouse and
+calling _PrepareNativeItemsFilter to rebuild the filter. The flag set successfully and visibly
+changed nothing — theft continued unchanged in confirmed real-time testing. This flag does not
+govern the path villagers use to take items from the outhouse. Do not retry.
 
 ### Real-time (DateTime.UtcNow) conversion timers — SUPERSEDED by in-game clock (v0.3.0)
 
@@ -213,3 +257,9 @@ by in-game-clock timers. Do not resurrect.
   structure identification — enables locale-safe operation in every language.
 - **v1.3.1 (2026-07-21):** confirmed in-game in German — food + seeds convert to compost end to
   end; haul gate blocks warehouse theft; eat gate blocks villager theft.
+- **v1.4.0 (2026-07-26):** adds the query-hide gate, which stops villagers removing food and seeds
+  from the Outhouse. Confirmed in-game 2026-07-26 across an eleven-event tripwire run: zero food
+  or seed removals that were not the mod's own conversion; compost continued leaving the outhouse
+  in four separate events; conversions continued to fire eight times. Also in this version: the
+  probe scaffolding's crashing patch groups removed, dead native-gather-lock code removed,
+  diagnostics returned to shipped defaults.

@@ -1,0 +1,120 @@
+loaded 37699 types
+
+=========== 1. QuestData / WorkstationQuestData - route to runner/villager/station ===========
+  ### SSSGame.AI.QuestData   base=Il2CppSystem.Object
+     -- fields --
+     -- methods/props returning an actor-ish type --
+        get__QuestRunner_k__BackingField() : QuestRunner
+        get_QuestRunner() : QuestRunner
+  NO TYPE SSSGame.AI.WorkstationQuestData
+  ### SSSGame.AI.QuestRunner   base=Fusion.SimulationBehaviour
+     -- fields --
+     -- methods/props returning an actor-ish type --
+
+=========== 2. Villager - name / job / workstation accessors ===========
+  ### SSSGame.Villager   base=SSSGame.Character
+        _AssignToWorkstationInternal(SSSGame.AI.IWorkstation workstation) : Boolean
+        _GetDefaultBuildstationToAssign() : Buildstation
+        _HandleWorkstationChangeNotification(Fusion.NetworkId oldWorkId, Fusion.NetworkId newWorkId) : Void
+        _NetworkScheduleToSchedule(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Int32>& schedule, System.Int64 networkSchedule) : Void
+        _OnCustomNameChanged(Fusion.Changed`1<SSSGame.Villager> changed) : Void
+        _OnNetworkedFlagsChanged(Fusion.Changed`1<SSSGame.Villager> changed) : Void
+        _OnVikingWorkstationIDChanged(Fusion.Changed`1<SSSGame.Villager> changed) : Void
+        _OnWorkstationChanged(SSSGame.AI.IWorkstation workstation, System.Boolean isAssignOperation) : Void
+        _OnWorkstationIDChanged(Fusion.Changed`1<SSSGame.Villager> changed) : Void
+        _ReleaseFromWorkstationInternal(SSSGame.AI.IWorkstation workstation) : Boolean
+        _ScheduleToNetworkSchedule(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Int32> schedule) : Int64
+        AssignToWorkstation(SSSGame.AI.IWorkstation workstation) : Boolean
+        FillAllowedWorkstations(Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> structureTemplates) : Void
+        get___NetworkedCustomName() : NetworkString`1
+        get___NetworkedPersistentUniqueId() : Int32
+        get___NetworkedRecyclableUniqueId() : Int32
+        get___NetworkedSchedule() : Int64
+        get___VikingWorkstationID() : NetworkId
+        get___WorkstationID() : NetworkId
+        get__customName() : String
+        get__hideWorkstationMarker() : Boolean
+        get__IsChangingWorkstation_k__BackingField() : Boolean
+        get__isEssentialWorker() : Boolean
+        get__joblessComplaint() : GenericMessageComplaint
+        get__nameID() : Int32
+        get__NetworkedCustomName() : NetworkString`1
+        get__NetworkedPersistentUniqueId() : Int32
+        get__NetworkedRecyclableUniqueId() : Int32
+        get__NetworkedSchedule() : Int64
+        get__oldWorkstation() : Workstation
+        get__vikingWorkstation() : Workstation
+        get__VikingWorkstationID() : NetworkId
+        get__workstation() : Workstation
+        get__WorkstationID() : NetworkId
+        get_c_CustomNameKey() : String
+        get_c_MaterialColorName() : String
+        get_c_NameIdKey() : String
+        get_c_VikingWorkstationKey() : String
+        get_c_WorkstationKey() : String
+        get_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Villager_0() : NetworkBehaviourCallbacks`1
+        get_HideWorkstationIcon() : Boolean
+        get_IsChangingWorkstation() : Boolean
+        get_IsEssentialWorker() : Boolean
+        get_NetworkedDescriptionIDs() : DescriptionIDs
+        get_NetworkedFlags() : NetworkFlags
+        get_OldWorkstation() : Workstation
+        get_OnEssentialWorkerChanged() : Action
+        get_OnNameChanged() : Action`1
+        get_OnWorkstationChanged() : Action`1
+        get_workstationMarker() : GameObject
+        get_workstationMarkerBorder() : SpriteRenderer
+        get_workstationMarkerIcon() : SpriteRenderer
+        GetName() : String
+        GetNonVikingWorkstation() : Workstation
+        GetTargetName() : String
+        GetVikingOnlyWorkstation() : Workstation
+        GetWorkOutpostColor() : Color
+        GetWorkOutpostId() : Int32
+        GetWorkstation() : Workstation
+        GetWorkstationRewardCapAttribute() : Attribute
+        HasWorkstation(System.Boolean canBeBuildstation) : Boolean
+        IsAvailableForWork() : Boolean
+        IsCompatibleWithWorkstation(SSSGame.StructureTemplate structureInfo) : Boolean
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_10(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_11(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_12(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_13(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_4(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_5(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_6(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_7(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_8(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_9(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) : Void
+        ReleaseFromWorkstation(SSSGame.AI.IWorkstation workstation, System.Int32 fallbackLocalOutpostID) : Boolean
+        ReleaseFromWorkstationWithDialogue(SSSGame.AI.IWorkstation ws, System.String additionalMessage) : Void
+        Rpc_ChangeVikingWorkstation(Fusion.NetworkId workstationID) : Void
+        Rpc_ChangeWorkstation(Fusion.NetworkId workstationID) : Void
+        Rpc_SetCustomName(System.String newName) : Void
+        SetCustomName(System.String newName) : Void
+
+=========== 3. Workstation - display name for reporting ===========
+        _OnStructureDeath(SSSGame.Structure structure) : Void
+        _OnStructureDismantle(SSSGame.Structure structure) : Void
+        get__structure() : Structure
+        GetName() : String
+        GetStructure() : Structure
+
+=========== 4. Which quest-data types expose a Workstation directly ===========
+  SSSGame.AI.CleanupInventoryQuest/CleanupInventoryQuestData  base=WorkstationQuestData   (nothing direct - inherit from base)
+  SSSGame.AI.DressUpQuest/DressUpQuestData  base=QuestData
+        method GetVillager->Villager
+  SSSGame.AI.FSM.FSM_Fetch/GatherData  base=Object   (nothing direct - inherit from base)
+  SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData  base=WorkstationQuestData   (nothing direct - inherit from base)
+  SSSGame.AI.HomeStockpileQuest/HomeStockpileQuestData  base=HomesteadQuestData   (nothing direct - inherit from base)
+  SSSGame.AI.WorkstationQuest/WorkstationQuestData  base=QuestData
+        method GetVillager->Villager
+        method get__villager->Villager
+        method get__wsQuest->WorkstationQuest
+  SSSGame.CookingQuest/CookingQuestData  base=CookingPlaceQuestData   (nothing direct - inherit from base)
+  SSSGame.CookingStockpileQuest/CookingStockpileQuestData  base=WorkstationQuestData   (nothing direct - inherit from base)
+  SSSGame.CrafterFetchQuest/CrafterFetchQuestData  base=WorkstationQuestData   (nothing direct - inherit from base)

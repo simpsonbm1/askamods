@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
@@ -80,10 +81,23 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<int> SeedStackSize = null!;
     internal static ConfigEntry<bool> SimultaneousConversion = null!;
     internal static ConfigEntry<bool> ProtectOuthouseContents = null!;
+    internal static ConfigEntry<bool> HideNonCompostFromQueries = null!;
+    internal static ConfigEntry<bool> HideQueryGetItemCount = null!;
+    internal static ConfigEntry<bool> HideQueryHasItem = null!;
 
     // ── [Diagnostics] — v1.1.0/v1.2.0 additions ──────────────────────────────────────────────────
     internal static ConfigEntry<bool> LogHaulGate = null!;
     internal static ConfigEntry<bool> LogEatGate = null!;
+
+    // Gates log output for Patches/ProbePatches.cs's read-only 'gates' postfix group plus
+    // ComposterDiag's Probe C (component census) and Probe D (removal tripwire). Default false —
+    // flip to true when diagnosing which villager quests are querying the outhouse.
+    internal static ConfigEntry<bool> ProbeDiagnostics = null!;
+
+    // Independent of ProbeDiagnostics (which only gates probe LOG OUTPUT) — this gates whether
+    // Patches/ProbePatches.cs's manual Harmony postfixes are attached to the game AT ALL. Default
+    // "none" attaches nothing.
+    internal static ConfigEntry<string> ProbeGroups = null!;
 
     // Captured by Patches/LifecyclePatches.cs (PlayerCharacter.Spawned/Despawned postfixes, gated on
     // HasAuthority). Despawned clearing this also doubles as world-leave state clear. Also the
@@ -184,6 +198,24 @@ public class Plugin : BasePlugin
             defaultValue: true,
             description: "Hide the outhouse's contents (except the compost item) from BOTH warehouse haul-task creation AND villager eating (the survival consume-quest's storage whitelist checks), so neither warehouse workers nor villagers pull/eat compost-in-progress food/seeds before conversion. Farmers retrieving Compost are unaffected. Uses StructureNameMatch to identify outhouse-owned supplies/outlets/sites.");
 
+        HideNonCompostFromQueries = Config.Bind(
+            section: "Composter",
+            key: "HideNonCompostFromQueries",
+            defaultValue: true,
+            description: "Master switch (v1.3.104) for Patches/QueryHidePatches.cs: makes the outhouse container UNDER-REPORT its contents to ItemContainer.GetItemCount/HasItem queries — non-compost (forced-in food/seeds awaiting conversion) reads as absent, while Compost itself always answers truthfully, so neither warehouse workers nor villagers can find/take compost-in-progress inputs via these two query paths. The haul/eat gates apply their own separate, narrower suppressions; this one is broader (any caller of these two methods, not just the known haul/eat/gather paths) and is the fix for theft confirmed in-game 2026-07-26 that survived all three earlier mitigations. KNOWN RISK: the player's own storage UI may show the outhouse holding less than it actually does (e.g. an inventory search/count widget built on these same methods) — if that happens, turn this switch off.");
+
+        HideQueryGetItemCount = Config.Bind(
+            section: "Composter",
+            key: "HideQueryGetItemCount",
+            defaultValue: true,
+            description: "Per-method switch under HideNonCompostFromQueries: whether ItemContainer.GetItemCount(ItemInfo) is hidden for the outhouse. Lets a problem traced to this specific method be narrowed by config edit without a rebuild.");
+
+        HideQueryHasItem = Config.Bind(
+            section: "Composter",
+            key: "HideQueryHasItem",
+            defaultValue: true,
+            description: "Per-method switch under HideNonCompostFromQueries: whether ItemContainer.HasItem(IItemFilter) is hidden for the outhouse. Lets a problem traced to this specific method be narrowed by config edit without a rebuild.");
+
         LogHaulGate = Config.Bind(
             section: "Diagnostics",
             key: "LogHaulGate",
@@ -196,6 +228,18 @@ public class Plugin : BasePlugin
             defaultValue: false,
             description: "Log each denied outhouse consume-whitelist check (once per method + structure). Shipped default false — flip to true when troubleshooting villagers eating from the outhouse.");
 
+        ProbeDiagnostics = Config.Bind(
+            section: "Diagnostics",
+            key: "ProbeDiagnostics",
+            defaultValue: false,
+            description: "Gates Patches/ProbePatches.cs's read-only whitelist-gate observation logging (which villager quests are querying the outhouse) plus ComposterDiag's component census and removal-tripwire logging. Shipped default false — flip to true when troubleshooting.");
+
+        ProbeGroups = Config.Bind(
+            section: "Diagnostics",
+            key: "ProbeGroups",
+            defaultValue: "none",
+            description: "Which read-only diagnostic postfix group in Patches/ProbePatches.cs is attached to the game at load. Valid values: none, gates. 'gates' attaches read-only postfixes that log which villager quests query the outhouse — they never alter game behavior. 'none' (the default) attaches nothing. Case-insensitive; an unrecognised value is treated as 'none'.");
+
         // Register our custom Mono class into IL2CPP
         ClassInjector.RegisterTypeInIl2Cpp<ComposterDiag>();
 
@@ -207,6 +251,12 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value} ProtectOuthouseContents={ProtectOuthouseContents.Value} LogHaulGate={LogHaulGate.Value} LogEatGate={LogEatGate.Value}.");
+        // Attaches Patches/ProbePatches.cs's read-only IsWhitelistedByStorage gate-probe postfixes
+        // (gated on ProbeGroups above). Never abort-on-failure: each target is resolved and patched
+        // independently, a miss just logs and continues.
+        try { Patches.ProbePatches.Apply(harmony); }
+        catch (Exception ex) { Logger.LogError($"[OuthouseComposter][probe] ProbePatches.Apply error: {ex}"); }
+
+        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} HideNonCompostFromQueries={HideNonCompostFromQueries.Value} (GetItemCount={HideQueryGetItemCount.Value} HasItem={HideQueryHasItem.Value}) DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value} ProtectOuthouseContents={ProtectOuthouseContents.Value} LogHaulGate={LogHaulGate.Value} LogEatGate={LogEatGate.Value} ProbeDiagnostics={ProbeDiagnostics.Value} ProbeGroups='{ProbeGroups.Value}'.");
     }
 }

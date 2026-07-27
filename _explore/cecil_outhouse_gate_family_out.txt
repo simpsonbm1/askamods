@@ -1,0 +1,216 @@
+loaded 37699 types
+
+=========== 1. EVERY type declaring an IsWhitelisted* method ===========
+   (this is the gate family we must cover; ours are SatisfyObjectiveQuestData only)
+  ### SSSGame.AI.CleanupInventoryQuest/CleanupInventoryQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.AI.DressUpQuest/DressUpQuestData   base=QuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.AI.FSM.FSM_Fetch/GatherData   base=Object
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+  ### SSSGame.AI.FSM.FSM_FetchExpeditionSupplies/ActionData   base=Object
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+  ### SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.AI.HomeStockpileQuest/HomeStockpileQuestData   base=HomesteadQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.AI.PaintEquipmentQuest/PaintEquipmentQuestData   base=QuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+  ### SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData   base=QuestData
+        IsWhitelistedByAny(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        IsWhitelistedByStorage(SSSGame.ResourceOutlet resourceOutlet) : Boolean   [public]
+  ### SSSGame.AI.WorkstationQuest/WorkstationQuestData   base=QuestData
+        IsWhitelistedByStorage(SSSGame.ResourceOutlet resourceOutlet) : Boolean   [public]
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.AnimalPen   base=Kennel
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.AnimalPen/PenStorageWrapper   base=Object
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.Bloomstation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.CharcoalStation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.CookingQuest/CookingQuestData   base=CookingPlaceQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.CookingStation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.CookingStation/CookingHouseStorageWrapper   base=Object
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.CookingStockpileQuest/CookingStockpileQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.CrafterFetchQuest/CrafterFetchQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.CraftingStation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.CraftingStation/OutputStorageWrapper   base=Object
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.DiningStation/DiningStationOutputWrapper   base=Object
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.DyeingQuest/DyeingQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.FarmingStation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.HarboringStation   base=BoatBuildingStation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.ICookingFetchQuestData   base=Il2CppObjectBase
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.IWhitelistingSite   base=Il2CppObjectBase
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.KennelFetchQuest/KennelFetchQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.Praystation   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.ResourceStorage   base=Workstation
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.TroughWaterSupplyQuest/TroughWaterSupplyQuestData   base=WorkstationQuestData
+        IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  ### SSSGame.VehicleResourceStorage   base=ResourceStorage
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+  ### SSSGame.Water.Pier   base=NetworkBehaviour
+        IsWhitelisted(SSSGame.StructureTemplate boatTemplate) : Boolean   [public]
+
+=========== 2. IWhitelistingSite interface + all implementors ===========
+  ### INTERFACE SSSGame.IWhitelistingSite
+        .cctor() : Void   [static nonpublic]
+        .ctor(System.IntPtr pointer) : Void   [public]
+        add_OnWhitelistDataReceived(Il2CppSystem.Action value) : Void   [virtual public]
+        get_ShowWhitelistedVillagers() : Boolean   [virtual public]
+        get_WhitelistDataReceived() : Boolean   [virtual public]
+        get_WhitelistedAllVillagers() : Boolean   [virtual public]
+        get_WhitelistNewVillagers() : Boolean   [virtual public]
+        IsShownAsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        remove_OnWhitelistDataReceived(Il2CppSystem.Action value) : Void   [virtual public]
+        RequestWhitelistData() : Void   [virtual public]
+        set_WhitelistedAllVillagers(System.Boolean value) : Void   [virtual public]
+        set_WhitelistNewVillagers(System.Boolean value) : Void   [virtual public]
+        SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) : Void   [virtual public]
+
+=========== 3. Full method surface: the fetch/stockpile quest families ===========
+  NO TYPE SSSGame.AI.CrafterFetchQuest
+  NO TYPE SSSGame.AI.CrafterSpecificFetchQuest
+  NO TYPE SSSGame.AI.CookingStockpileQuest
+  ### SSSGame.AI.DiningStationSupplyQuest   base=SSSGame.AI.GatherAndHarvestQuest
+        CreateQuestData() : QuestData   [virtual public]
+        GetPriority(SSSGame.AI.QuestData questData) : Single   [virtual public]
+     --- nested SSSGame.AI.DiningStationSupplyQuest/DiningStationSupplyQuestData
+        _OnStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) : Void   [public]
+        Dispose() : Void   [virtual public]
+        GetSoftPriority() : Single   [public]
+        Init(SSSGame.AI.QuestRunner questRunner) : Void   [virtual public]
+  ### SSSGame.AI.BuildAndSupplyQuest   base=SSSGame.AI.BuildstationQuest
+        _GetHighPriorityValue() : Single   [public]
+        CreateQuestData() : QuestData   [virtual public]
+        GetPriority(SSSGame.AI.QuestData questData) : Single   [virtual public]
+        IsWorkingOutsideOutpost() : Boolean   [virtual public]
+     --- nested SSSGame.AI.BuildAndSupplyQuest/BuildAndSupplyQuestData
+        _OnBuildStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) : Void   [virtual public]
+        _OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) : Void   [public]   <-- INVENTORY-FAMILY PARAM: DO NOT PATCH
+        _OnOutpostDataChangedEvent(SSSGame.IOutpostDataHolder holder) : Void   [public]
+        _OnPartSupplied() : Void   [public]
+        _OnVillagerBehaviorChanged(SSSGame.UI.ScheduleType obj) : Void   [virtual public]
+        ActivateSuppliesComplaint(SandSailorStudio.Inventory.ItemManifest itemManifest) : Void   [public]
+        ActivateToolComplaint(SandSailorStudio.Inventory.ItemCategoryInfo toolsCategory) : Void   [public]
+        ComplainNoCarryCapacity(SandSailorStudio.Inventory.ItemManifest itemManifest) : Void   [public]
+        DeactivateSuppliesComplaint() : Void   [public]
+        DeactivateToolComplaint() : Void   [public]
+        Dispose() : Void   [virtual public]
+        GetAssociatedTaskData() : WorkstationTaskData   [virtual public]
+        Init(SSSGame.AI.QuestRunner questRunner) : Void   [virtual public]
+        Start() : Void   [virtual public]
+        Stop() : Void   [virtual public]
+  ### SSSGame.AI.SupplyPatrolQuest   base=SSSGame.AI.FindHarvestingToolsQuest
+        CreateQuestData() : QuestData   [virtual public]
+        GetPriority(SSSGame.AI.QuestData questData) : Single   [virtual public]
+     --- nested SSSGame.AI.SupplyPatrolQuest/SupplyPatrolQuestData
+        _OnWorkstationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) : Void   [virtual public]
+        ResetQuestErrors() : Void   [virtual public]
+        Stop() : Void   [virtual public]
+
+=========== 4. ResourceStorage whitelist + storage-task surface ===========
+        _Rpc_ReceiveWhitelistData_b__79_0(Il2CppSystem.IO.BinaryReader reader) : Void   [public]
+        _Rpc_RequestWhitelistData_b__78_0(Il2CppSystem.IO.BinaryWriter writer) : Void   [public]
+        add_OnWhitelistDataReceived(Il2CppSystem.Action value) : Void   [virtual public]
+        CanCreateStorageTaskForItemInfo(SSSGame.StorageSupply storageSupply, SandSailorStudio.Inventory.ItemInfo info) : Boolean   [virtual public]
+        FillResourceStorageTaskDatas(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.ResourceStorageTaskData> taskDatas) : Void   [public]
+        get__gatherAndHarvestQuest() : GatherAndHarvestQuest   [public]
+        get__villagersWhitelist() : HashSet`1   [public]
+        get__whitelistAllVillagers() : Boolean   [public]
+        get__whitelistDataReceived() : Boolean   [public]
+        get__WhitelistNewVillagers_k__BackingField() : Boolean   [public]
+        get_c_whitelistAll() : String   [static public]
+        get_c_whitelistedVillagers() : String   [static public]
+        get_onlyGatherNativeItems() : Boolean   [public]
+        get_OnWhitelistDataReceived() : Action   [public]
+        get_ShowWhitelistedVillagers() : Boolean   [virtual public]
+        get_WhitelistDataReceived() : Boolean   [virtual public]
+        get_WhitelistedAllVillagers() : Boolean   [virtual public]
+        get_WhitelistNewVillagers() : Boolean   [virtual public]
+        GetGatheredItemPriority(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager, SSSGame.StorageSupply storageSupply) : Int32   [virtual public]
+        GetGatheredItemQuantity(SSSGame.StorageSupply ss, SandSailorStudio.Inventory.ItemInfo itemInfo) : Int32   [public]
+        GetResourceStorageTaskData(System.Int32 itemInfoID, SSSGame.Structure taskDispatcherOwner) : ResourceStorageTaskData   [public]
+        GetResourceStorageTaskData(System.Int32 itemInfoID, SSSGame.StorageSupply storageSupply) : ResourceStorageTaskData   [public]
+        IsShownAsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        remove_OnWhitelistDataReceived(Il2CppSystem.Action value) : Void   [virtual public]
+        RequestWhitelistData() : Void   [virtual public]
+        Rpc_ChangeWhitelistAllState(System.Boolean whitelistAll) : Void   [public]
+        Rpc_ChangeWhitelistedVillager(System.Int32 id, System.Boolean state) : Void   [public]
+        Rpc_ReceiveWhitelistData(Fusion.PlayerRef target, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte> bytes) : Void   [public]
+        Rpc_RequestWhitelistData(Fusion.PlayerRef player) : Void   [public]
+        set__gatherAndHarvestQuest(SSSGame.AI.GatherAndHarvestQuest ) : Void   [public]
+        set__villagersWhitelist(Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> ) : Void   [public]
+        set__whitelistAllVillagers(System.Boolean ) : Void   [public]
+        set__whitelistDataReceived(System.Boolean ) : Void   [public]
+        set__WhitelistNewVillagers_k__BackingField(System.Boolean ) : Void   [public]
+        set_c_whitelistAll(System.String ) : Void   [static public]
+        set_c_whitelistedVillagers(System.String ) : Void   [static public]
+        set_onlyGatherNativeItems(System.Boolean ) : Void   [public]
+        set_OnWhitelistDataReceived(Il2CppSystem.Action ) : Void   [public]
+        set_WhitelistedAllVillagers(System.Boolean value) : Void   [virtual public]
+        set_WhitelistNewVillagers(System.Boolean value) : Void   [virtual public]
+        SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) : Void   [public]   <-- BYREF-PRIMITIVE: DO NOT PATCH
+        SSSGame_IWhitelistingSite_SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) : Void   [virtual public]   <-- BYREF-PRIMITIVE: DO NOT PATCH
+
+=========== 5. Derived overrides of the gate methods we patch/plan to patch ===========
+  --- CanCreateStorageTaskForItemInfo declared on:
+        SSSGame.ResourceStorage.CanCreateStorageTaskForItemInfo(SSSGame.StorageSupply storageSupply, SandSailorStudio.Inventory.ItemInfo info) : Boolean   [virtual public]
+  --- IsWhitelistedByStorage declared on:
+        SSSGame.AI.CleanupInventoryQuest/CleanupInventoryQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.AI.DressUpQuest/DressUpQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.AI.FSM.FSM_Fetch/GatherData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        SSSGame.AI.FSM.FSM_FetchExpeditionSupplies/ActionData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        SSSGame.AI.GatherAndHarvestQuest/GatherAndHarvestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.AI.HomeStockpileQuest/HomeStockpileQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.AI.PaintEquipmentQuest/PaintEquipmentQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData.IsWhitelistedByStorage(SSSGame.ResourceOutlet resourceOutlet) : Boolean   [public]
+        SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+        SSSGame.AI.WorkstationQuest/WorkstationQuestData.IsWhitelistedByStorage(SSSGame.ResourceOutlet resourceOutlet) : Boolean   [public]
+        SSSGame.AI.WorkstationQuest/WorkstationQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.CookingQuest/CookingQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.CookingStockpileQuest/CookingStockpileQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.CrafterFetchQuest/CrafterFetchQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.DyeingQuest/DyeingQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.ICookingFetchQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.KennelFetchQuest/KennelFetchQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+        SSSGame.TroughWaterSupplyQuest/TroughWaterSupplyQuestData.IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) : Boolean   [virtual public]
+  --- IsWhitelistedByAny declared on:
+        SSSGame.AI.SurvivalObjectiveQuest/SatisfyObjectiveQuestData.IsWhitelistedByAny(SSSGame.IResourceStorageSite rss) : Boolean   [public]
+  --- IsWhitelisted declared on:
+        SSSGame.AnimalPen.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.AnimalPen/PenStorageWrapper.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.Bloomstation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.CharcoalStation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.CookingStation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.CookingStation/CookingHouseStorageWrapper.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.CraftingStation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.CraftingStation/OutputStorageWrapper.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.DiningStation/DiningStationOutputWrapper.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.FarmingStation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.HarboringStation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.IWhitelistingSite.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.Praystation.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.ResourceStorage.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.VehicleResourceStorage.IsWhitelisted(SSSGame.Villager villager) : Boolean   [virtual public]
+        SSSGame.Water.Pier.IsWhitelisted(SSSGame.StructureTemplate boatTemplate) : Boolean   [public]

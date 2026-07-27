@@ -61,8 +61,29 @@ public class ComposterDiag : MonoBehaviour
     private bool _loggedCompostUnresolved;
     private bool _loggedWeatherUnavailable;
 
+    // v1.3.104 — singleton self-reference so Patches/QueryHidePatches.cs's HasItem postfix can reach
+    // the already-resolved Compost ItemInfo without re-resolving it. Safe: exactly one ComposterDiag
+    // is ever created (Plugin.Load's single AddComponent call), and it's DontDestroyOnLoad, so it
+    // outlives every world session — only _compostInfo itself is cleared per-world (NoteWorldLeft).
+    private static ComposterDiag? _instance;
+    internal static ItemInfo? CompostInfo => _instance?._compostInfo;
+
+    // ── Probe state (v1.3.99, PROBE BUILD ONLY — never shipped to Nexus) ───────────────────────────
+    // Probe C/D are gated on Plugin.ProbeDiagnostics, independent of Plugin.EnableDiagnostics.
+    // _outhouseNames mirrors _outhouseContainers (same posKey), populated alongside it in
+    // ResolveOuthouseContainersIfDue — gives the tripwire a human-readable name without re-walking
+    // the settlement every 2s. _probeSnapshots is keyed by the container's native pointer (project-
+    // wide gotcha: never survives a world session, cleared in NoteWorldLeft same as every other
+    // pointer-keyed cache here). _probeConversionsThisInterval is keyed by posKey (stable across a
+    // session, unlike a container's native pointer after a resolve re-walk).
+    private readonly Dictionary<string, string> _outhouseNames = new();
+    private readonly Dictionary<IntPtr, Dictionary<string, int>> _probeSnapshots = new();
+    private readonly Dictionary<string, int> _probeConversionsThisInterval = new();
+    private float _nextProbeRollupAt;
+
     private void Start()
     {
+        _instance = this;
         _dumpKey = ParseKey(Plugin.DumpKey.Value, KeyCode.F10);
     }
 
@@ -106,6 +127,14 @@ public class ComposterDiag : MonoBehaviour
             _nextConverterPollAt = Time.time + ConverterIntervalSeconds;
             try { ConverterTick(); }
             catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] ConverterTick error: {ex}"); }
+        }
+
+        // v1.3.99 PROBE BUILD ONLY — Probe A/B call-count rollup, at most once every 30s.
+        if (Plugin.ProbeDiagnostics.Value && Time.time >= _nextProbeRollupAt)
+        {
+            _nextProbeRollupAt = Time.time + 30f;
+            try { Patches.ProbePatches.LogRollup(); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] LogRollup error: {ex}"); }
         }
     }
 
@@ -172,6 +201,23 @@ public class ComposterDiag : MonoBehaviour
         _loggedWeatherUnavailable = false;
         _lastContainerResolveAt = DateTime.MinValue;
         OuthouseGate.ClearCache();
+
+        // v1.3.99 PROBE BUILD ONLY — _probeSnapshots is keyed by native container pointer, must
+        // never survive a world session (same project-wide gotcha as every other pointer-keyed
+        // cache in this mod).
+        _outhouseNames.Clear();
+        _probeSnapshots.Clear();
+        _probeConversionsThisInterval.Clear();
+
+        // v1.3.102 — the villager-attribution actor cache is keyed by native pointer (same
+        // project-wide gotcha as every other pointer-keyed cache here).
+        Patches.ProbePatches.ClearProbeState();
+
+        // v1.3.104 — query-hide gate's "logged once" markers (Patches/QueryHidePatches.cs). Not
+        // pointer-keyed, but cleared here too so a fresh world session re-logs the first hide/answer
+        // instead of staying silent from a previous session's HashSet/bool state.
+        Patches.GetItemCountQueryHidePatch.ClearLoggedItems();
+        Patches.HasItemQueryHidePatch.ClearLoggedItems();
     }
 
     // ── Converter (v0.2.0, Phase 1 — the actual feature; v0.3.0 — in-game-clock timers) ────────────
@@ -212,6 +258,15 @@ public class ComposterDiag : MonoBehaviour
 
             try { TickTimer(posKey, container, isFood: false, ws); }
             catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] TickTimer(seed) error: {ex}"); }
+
+            // v1.3.99 PROBE BUILD ONLY — Probe D removal tripwire, runs every converter fire
+            // (ConverterIntervalSeconds = 2s) after this container's own timers/conversions for
+            // this fire are accounted for.
+            if (Plugin.ProbeDiagnostics.Value)
+            {
+                try { ProbeTripwireTick(posKey, container); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] ProbeTripwireTick error: {ex}"); }
+            }
         }
     }
 
@@ -243,6 +298,7 @@ public class ComposterDiag : MonoBehaviour
             string filter = Plugin.StructureNameMatch.Value ?? "Outhouse";
 
             var newMap = new Dictionary<string, ItemContainer>();
+            var newNames = new Dictionary<string, string>();
             foreach (var s in structures)
             {
                 if (!StructureMatches(s, filter)) continue;
@@ -259,7 +315,11 @@ public class ComposterDiag : MonoBehaviour
 
                 ItemContainer? container = null;
                 try { container = containers[0].container; } catch { }
-                if (container != null) newMap[posKey] = container;
+                if (container != null)
+                {
+                    newMap[posKey] = container;
+                    newNames[posKey] = SafeName(s); // v1.3.99 probe: display name for tripwire logging
+                }
             }
 
             var stale = new List<string>();
@@ -267,8 +327,17 @@ public class ComposterDiag : MonoBehaviour
             foreach (var key in _seedAnchor.Keys) if (!newMap.ContainsKey(key) && !stale.Contains(key)) stale.Add(key);
             foreach (var key in stale) { _foodAnchor.Remove(key); _seedAnchor.Remove(key); }
 
+            // v1.3.99 probe: drop tripwire per-outhouse interval counters for outhouses that
+            // disappeared, same rationale as the food/seed anchor cleanup above.
+            var staleNames = new List<string>();
+            foreach (var key in _probeConversionsThisInterval.Keys) if (!newMap.ContainsKey(key)) staleNames.Add(key);
+            foreach (var key in staleNames) _probeConversionsThisInterval.Remove(key);
+
             _outhouseContainers.Clear();
             foreach (var kv in newMap) _outhouseContainers[kv.Key] = kv.Value;
+
+            _outhouseNames.Clear();
+            foreach (var kv in newNames) _outhouseNames[kv.Key] = kv.Value;
 
             if (Plugin.EnableDiagnostics.Value)
                 Plugin.Logger.LogInfo($"[OuthouseComposter][convert] Resolved {_outhouseContainers.Count} outhouse container(s).");
@@ -337,8 +406,15 @@ public class ComposterDiag : MonoBehaviour
         }
     }
 
+    // v1.3.104 — a read site of the converter (feeds ResolveCompostInfoIfNeeded's fallback compost
+    // discovery), wrapped in the query-hide bypass flag so this walk always sees the container's REAL
+    // contents regardless of Patches/QueryHidePatches.cs — it doesn't call GetItemCount/HasItem
+    // directly, but the bypass is set defensively around the whole read in case any container method
+    // called here ever gains an internal dependency on either patched method.
     private static ItemInfo? FindItemInfoByNameInContainer(ItemContainer container, string name)
     {
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
         try
         {
             var items = container.GetItems();
@@ -357,6 +433,7 @@ public class ComposterDiag : MonoBehaviour
             }
         }
         catch { }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
         return null;
     }
 
@@ -405,9 +482,9 @@ public class ComposterDiag : MonoBehaviour
         if (pool >= ratio)
         {
             if (Plugin.SimultaneousConversion.Value)
-                DoConvertSimultaneous(container, isFood, ratio, pool);
+                DoConvertSimultaneous(posKey, container, isFood, ratio, pool);
             else
-                DoConvert(container, isFood, ratio, pool);
+                DoConvert(posKey, container, isFood, ratio, pool);
         }
         else if (Plugin.EnableDiagnostics.Value)
         {
@@ -418,9 +495,15 @@ public class ComposterDiag : MonoBehaviour
         try { dict[posKey] = ws.NetworkedCurrentGameTime; } catch { } // re-arm regardless
     }
 
+    // v1.3.104 — the converter's own pool-counting read, wrapped in the query-hide bypass flag for
+    // the same reason as FindItemInfoByNameInContainer above (see that method's comment). This is the
+    // count TickTimer arms/fires against — if it ever read through the hidden view, food/seed pools
+    // would silently look permanently empty and composting would stop.
     private static int CountPool(ItemContainer container, bool isFood)
     {
         int total = 0;
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
         try
         {
             var items = container.GetItems();
@@ -443,6 +526,7 @@ public class ComposterDiag : MonoBehaviour
             }
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] CountPool error: {ex}"); }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
         return total;
     }
 
@@ -458,123 +542,22 @@ public class ComposterDiag : MonoBehaviour
     // removing anything (compost is natively accepted by the outhouse — this is the real game
     // answer, not our override). Snapshots matching items before removing (RemoveItem may
     // reindex/compact the container mid-walk).
-    private void DoConvert(ItemContainer container, bool isFood, int ratio, int poolBefore)
+    // v1.3.104 — wraps the ENTIRE container-touching body (HasSpace, the GetItems() matching walk,
+    // RemoveItem, AddItems) in the query-hide bypass flag, not just the literal GetItems() walk. This
+    // is deliberately conservative: Patches/QueryHidePatches.cs only patches GetItemCount(ItemInfo)
+    // and HasItem(IItemFilter) directly, but if HasSpace/RemoveItem/AddItems ever call either of
+    // those internally at the native level (unknowable from the interop layer), an unwrapped call here
+    // would make the compost-conversion writer read/act on its own hidden view of the outhouse — the
+    // single most important correctness detail in this fix (see QueryHidePatches.cs's file comment).
+    private void DoConvert(string posKey, ItemContainer container, bool isFood, int ratio, int poolBefore)
     {
         if (_compostInfo == null) return;
         string kind = isFood ? "food" : "seeds";
 
-        bool hasSpace = false;
-        try { hasSpace = container.HasSpace(_compostInfo, 1); }
-        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] HasSpace(compost) error: {ex}"); }
-
-        if (!hasSpace)
-        {
-            if (Plugin.EnableDiagnostics.Value)
-                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: skipped — container has no space for Compost (pool={poolBefore}).");
-            return;
-        }
-
-        int remaining = ratio;
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
         try
         {
-            var items = container.GetItems();
-            int capacity = -1;
-            try { capacity = container.capacity; } catch { }
-            int bound = capacity > 0 ? capacity : 64;
-
-            var matching = new List<Item>();
-            for (int i = 0; i < bound; i++)
-            {
-                Item? item = null;
-                try { item = items != null ? items[i] : null; } catch { break; }
-                if (item == null) continue;
-                ItemInfo? info = null;
-                try { info = item.info; } catch { }
-                if (info == null) continue;
-                bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
-                if (matches) matching.Add(item);
-            }
-
-            foreach (var item in matching)
-            {
-                if (remaining <= 0) break;
-                int itemCount = 0;
-                try { itemCount = item.count; } catch { }
-                if (itemCount <= 0) continue;
-                int take = Math.Min(remaining, itemCount);
-
-                bool removed = false;
-                try { removed = container.RemoveItem(item, take, ItemEventContext.Default); }
-                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] RemoveItem error: {ex}"); }
-                if (removed) remaining -= take;
-            }
-        }
-        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvert removal walk error: {ex}"); }
-
-        int taken = ratio - remaining;
-        if (taken < ratio)
-        {
-            Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: only removed {taken}/{ratio} unit(s) (pool was {poolBefore}) — partial removal; adding Compost anyway.");
-        }
-
-        int added = 0;
-        try { added = container.AddItems(_compostInfo, 1); }
-        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] AddItems(compost) error: {ex}"); }
-
-        if (added == 0)
-        {
-            Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: AddItems(Compost) returned 0 after removing {taken} unit(s) (pool was {poolBefore}) — Compost NOT added despite HasSpace=true. Known v0.2.0 limitation, accepted for now.");
-        }
-        else if (Plugin.EnableDiagnostics.Value)
-        {
-            int capacityNow = -1;
-            try { capacityNow = container.capacity; } catch { }
-            int emptySlots = -1;
-            try { emptySlots = container.GetEmptySlots(); } catch { }
-            int used = (capacityNow >= 0 && emptySlots >= 0) ? capacityNow - emptySlots : -1;
-            Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: -{taken} (pool was {poolBefore}) → +1 Compost (container now {used}/{capacityNow} slots).");
-        }
-    }
-
-    // v0.4.0: "simultaneous" mode — every occupied matching slot is evaluated independently. A slot
-    // converts on its own only if it individually holds >= a full ratio (no cross-slot pooling: two
-    // below-ratio stacks never combine here, unlike DoConvert's sequential pooling). Snapshots
-    // matching items before removing anything, same reason as DoConvert (RemoveItem may
-    // reindex/compact the container mid-walk).
-    private void DoConvertSimultaneous(ItemContainer container, bool isFood, int ratio, int poolBefore)
-    {
-        if (_compostInfo == null) return;
-        string kind = isFood ? "food" : "seeds";
-
-        var matching = new List<Item>();
-        try
-        {
-            var items = container.GetItems();
-            int capacity = -1;
-            try { capacity = container.capacity; } catch { }
-            int bound = capacity > 0 ? capacity : 64;
-
-            for (int i = 0; i < bound; i++)
-            {
-                Item? item = null;
-                try { item = items != null ? items[i] : null; } catch { break; }
-                if (item == null) continue;
-                ItemInfo? info = null;
-                try { info = item.info; } catch { }
-                if (info == null) continue;
-                bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
-                if (matches) matching.Add(item);
-            }
-        }
-        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertSimultaneous snapshot walk error: {ex}"); }
-
-        int conversions = 0;
-        foreach (var item in matching)
-        {
-            int count = 0;
-            try { count = item.count; } catch { }
-            if (count < ratio) continue;
-
             bool hasSpace = false;
             try { hasSpace = container.HasSpace(_compostInfo, 1); }
             catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] HasSpace(compost) error: {ex}"); }
@@ -582,14 +565,52 @@ public class ComposterDiag : MonoBehaviour
             if (!hasSpace)
             {
                 if (Plugin.EnableDiagnostics.Value)
-                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: container full — stopped after {conversions} simultaneous conversion(s).");
-                break;
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: skipped — container has no space for Compost (pool={poolBefore}).");
+                return;
             }
 
-            bool removed = false;
-            try { removed = container.RemoveItem(item, ratio, ItemEventContext.Default); }
-            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] RemoveItem error: {ex}"); }
-            if (!removed) continue;
+            int remaining = ratio;
+            try
+            {
+                var items = container.GetItems();
+                int capacity = -1;
+                try { capacity = container.capacity; } catch { }
+                int bound = capacity > 0 ? capacity : 64;
+
+                var matching = new List<Item>();
+                for (int i = 0; i < bound; i++)
+                {
+                    Item? item = null;
+                    try { item = items != null ? items[i] : null; } catch { break; }
+                    if (item == null) continue;
+                    ItemInfo? info = null;
+                    try { info = item.info; } catch { }
+                    if (info == null) continue;
+                    bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
+                    if (matches) matching.Add(item);
+                }
+
+                foreach (var item in matching)
+                {
+                    if (remaining <= 0) break;
+                    int itemCount = 0;
+                    try { itemCount = item.count; } catch { }
+                    if (itemCount <= 0) continue;
+                    int take = Math.Min(remaining, itemCount);
+
+                    bool removed = false;
+                    try { removed = container.RemoveItem(item, take, ItemEventContext.Default); }
+                    catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] RemoveItem error: {ex}"); }
+                    if (removed) remaining -= take;
+                }
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvert removal walk error: {ex}"); }
+
+            int taken = ratio - remaining;
+            if (taken < ratio)
+            {
+                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: only removed {taken}/{ratio} unit(s) (pool was {poolBefore}) — partial removal; adding Compost anyway.");
+            }
 
             int added = 0;
             try { added = container.AddItems(_compostInfo, 1); }
@@ -597,19 +618,111 @@ public class ComposterDiag : MonoBehaviour
 
             if (added == 0)
             {
-                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: AddItems(Compost) returned 0 after removing {ratio} unit(s) (pool was {poolBefore}) — Compost NOT added despite HasSpace=true. Known v0.2.0 limitation, accepted for now.");
+                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: AddItems(Compost) returned 0 after removing {taken} unit(s) (pool was {poolBefore}) — Compost NOT added despite HasSpace=true. Known v0.2.0 limitation, accepted for now.");
+            }
+            else
+            {
+                NoteProbeConversion(posKey); // v1.3.99 probe: feeds the removal-tripwire's conversion count
+                if (Plugin.EnableDiagnostics.Value)
+                {
+                    int capacityNow = -1;
+                    try { capacityNow = container.capacity; } catch { }
+                    int emptySlots = -1;
+                    try { emptySlots = container.GetEmptySlots(); } catch { }
+                    int used = (capacityNow >= 0 && emptySlots >= 0) ? capacityNow - emptySlots : -1;
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: -{taken} (pool was {poolBefore}) → +1 Compost (container now {used}/{capacityNow} slots).");
+                }
+            }
+        }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
+    }
+
+    // v0.4.0: "simultaneous" mode — every occupied matching slot is evaluated independently. A slot
+    // converts on its own only if it individually holds >= a full ratio (no cross-slot pooling: two
+    // below-ratio stacks never combine here, unlike DoConvert's sequential pooling). Snapshots
+    // matching items before removing anything, same reason as DoConvert (RemoveItem may
+    // reindex/compact the container mid-walk).
+    // v1.3.104 — same conservative whole-body bypass wrap as DoConvert above (snapshot walk +
+    // per-slot HasSpace/RemoveItem/AddItems), same rationale.
+    private void DoConvertSimultaneous(string posKey, ItemContainer container, bool isFood, int ratio, int poolBefore)
+    {
+        if (_compostInfo == null) return;
+        string kind = isFood ? "food" : "seeds";
+
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
+        try
+        {
+            var matching = new List<Item>();
+            try
+            {
+                var items = container.GetItems();
+                int capacity = -1;
+                try { capacity = container.capacity; } catch { }
+                int bound = capacity > 0 ? capacity : 64;
+
+                for (int i = 0; i < bound; i++)
+                {
+                    Item? item = null;
+                    try { item = items != null ? items[i] : null; } catch { break; }
+                    if (item == null) continue;
+                    ItemInfo? info = null;
+                    try { info = item.info; } catch { }
+                    if (info == null) continue;
+                    bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
+                    if (matches) matching.Add(item);
+                }
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertSimultaneous snapshot walk error: {ex}"); }
+
+            int conversions = 0;
+            foreach (var item in matching)
+            {
+                int count = 0;
+                try { count = item.count; } catch { }
+                if (count < ratio) continue;
+
+                bool hasSpace = false;
+                try { hasSpace = container.HasSpace(_compostInfo, 1); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] HasSpace(compost) error: {ex}"); }
+
+                if (!hasSpace)
+                {
+                    if (Plugin.EnableDiagnostics.Value)
+                        Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: container full — stopped after {conversions} simultaneous conversion(s).");
+                    break;
+                }
+
+                bool removed = false;
+                try { removed = container.RemoveItem(item, ratio, ItemEventContext.Default); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] RemoveItem error: {ex}"); }
+                if (!removed) continue;
+
+                int added = 0;
+                try { added = container.AddItems(_compostInfo, 1); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] AddItems(compost) error: {ex}"); }
+
+                if (added == 0)
+                {
+                    Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: AddItems(Compost) returned 0 after removing {ratio} unit(s) (pool was {poolBefore}) — Compost NOT added despite HasSpace=true. Known v0.2.0 limitation, accepted for now.");
+                }
+                else
+                {
+                    NoteProbeConversion(posKey); // v1.3.99 probe: feeds the removal-tripwire's conversion count
+                }
+
+                conversions++;
             }
 
-            conversions++;
+            if (Plugin.EnableDiagnostics.Value)
+            {
+                if (conversions > 0)
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — {conversions} slot(s) converted, +{conversions} Compost (pool was {poolBefore}).");
+                else
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — no single slot held >= {ratio}, nothing converted (pool was {poolBefore}).");
+            }
         }
-
-        if (Plugin.EnableDiagnostics.Value)
-        {
-            if (conversions > 0)
-                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — {conversions} slot(s) converted, +{conversions} Compost (pool was {poolBefore}).");
-            else
-                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: simultaneous fire — no single slot held >= {ratio}, nothing converted (pool was {poolBefore}).");
-        }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
     }
 
     // Typing guard: copied from TimeWarpMod's IsTextInputFocused — ignore hotkeys while the
@@ -773,6 +886,163 @@ public class ComposterDiag : MonoBehaviour
                 storageInteractions.Count > 0 ? storageInteractions[0] : null);
         }
         catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DumpAcceptanceProbe error: {ex}"); }
+
+        // v1.3.99 PROBE BUILD ONLY — Probe C component census.
+        if (Plugin.ProbeDiagnostics.Value)
+        {
+            try { DumpProbeCensus(s); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] DumpProbeCensus error: {ex}"); }
+        }
+    }
+
+    // ── Probe C: outhouse component census (v1.3.99, PROBE BUILD ONLY) ─────────────────────────
+    // For each matched outhouse structure, probes its GameObject AND every child for each of ten
+    // candidate component types, using ONLY the singular generic GetComponent<T>() — the plural
+    // generic GetComponents<T>()/GetComponentsInChildren<T>(bool) and the non-generic
+    // GetComponents(System.Type) all throw MissingMethodException through the interop trampoline
+    // (confirmed project-wide dead end, see WalkNode's own comment above and CLAUDE.md). Mirrors
+    // WalkNode's per-node try/catch style so one failing probe can never abort the walk.
+    private void DumpProbeCensus(Structure s)
+    {
+        Transform root;
+        try { root = s.transform; }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] census structure.transform error: {ex}"); return; }
+
+        var found = new HashSet<string>();
+        try { CensusNode(root, found); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] census walk error: {ex}"); }
+
+        LogCensusResult(found, "ResourceStorage");
+        LogCensusResult(found, "Workstation");
+        LogCensusResult(found, "CookingStation");
+        LogCensusResult(found, "CraftingStation");
+        LogCensusResult(found, "FarmingStation");
+        LogCensusResult(found, "Kennel");
+        LogCensusResult(found, "AnimalPen");
+        LogCensusResult(found, "Marketplace");
+        LogCensusResult(found, "DismantlePile");
+        LogCensusResult(found, "ResourceOutlet");
+    }
+
+    private static void LogCensusResult(HashSet<string> found, string typeName)
+    {
+        Plugin.Logger.LogInfo($"[OuthouseComposter][probe][census] {typeName}={(found.Contains(typeName) ? "present" : "absent")}");
+    }
+
+    private void CensusNode(Transform node, HashSet<string> found)
+    {
+        if (node == null) return;
+
+        try { if (node.GetComponent<ResourceStorage>() != null) found.Add("ResourceStorage"); } catch { }
+        try { if (node.GetComponent<Workstation>() != null) found.Add("Workstation"); } catch { }
+        try { if (node.GetComponent<CookingStation>() != null) found.Add("CookingStation"); } catch { }
+        try { if (node.GetComponent<CraftingStation>() != null) found.Add("CraftingStation"); } catch { }
+        try { if (node.GetComponent<FarmingStation>() != null) found.Add("FarmingStation"); } catch { }
+        try { if (node.GetComponent<Kennel>() != null) found.Add("Kennel"); } catch { }
+        try { if (node.GetComponent<AnimalPen>() != null) found.Add("AnimalPen"); } catch { }
+        try { if (node.GetComponent<Marketplace>() != null) found.Add("Marketplace"); } catch { }
+        try { if (node.GetComponent<DismantlePile>() != null) found.Add("DismantlePile"); } catch { }
+        try { if (node.GetComponent<ResourceOutlet>() != null) found.Add("ResourceOutlet"); } catch { }
+
+        int childCount;
+        try { childCount = node.childCount; } catch { return; }
+        for (int i = 0; i < childCount; i++)
+        {
+            Transform? child = null;
+            try { child = node.GetChild(i); } catch { }
+            if (child != null) CensusNode(child, found);
+        }
+    }
+
+    // ── Probe D: removal tripwire (v1.3.99, PROBE BUILD ONLY) ───────────────────────────────────
+    // Snapshots per-ItemInfo totals for one outhouse container, keyed by the container's native
+    // pointer (cleared on world-leave, NoteWorldLeft() above — project-wide gotcha: never cache
+    // per-world native wrappers across sessions). Compares against the previous poll's snapshot and
+    // logs any decrease the mod's own conversions this interval don't explain, alongside any
+    // same-interval increases, so decay/conversion/genuine-removal are distinguishable at a glance.
+    private void NoteProbeConversion(string posKey)
+    {
+        _probeConversionsThisInterval[posKey] = _probeConversionsThisInterval.TryGetValue(posKey, out var n) ? n + 1 : 1;
+    }
+
+    private void ProbeTripwireTick(string posKey, ItemContainer container)
+    {
+        IntPtr ptr = IntPtr.Zero;
+        try { if ((object)container is Il2CppObjectBase b) ptr = b.Pointer; } catch { }
+        if (ptr == IntPtr.Zero) return;
+
+        var current = SnapshotContainer(container);
+        int conversions = _probeConversionsThisInterval.TryGetValue(posKey, out var c) ? c : 0;
+
+        if (_probeSnapshots.TryGetValue(ptr, out var previous))
+        {
+            var decreases = new List<string>();
+            var increases = new List<string>();
+
+            foreach (var kv in previous)
+            {
+                int now = current.TryGetValue(kv.Key, out var n) ? n : 0;
+                if (now < kv.Value) decreases.Add($"{kv.Value - now}x '{kv.Key}'");
+            }
+            foreach (var kv in current)
+            {
+                int before = previous.TryGetValue(kv.Key, out var p) ? p : 0;
+                if (kv.Value > before) increases.Add($"{kv.Value - before}x '{kv.Key}'");
+            }
+
+            if (decreases.Count > 0)
+            {
+                string name = _outhouseNames.TryGetValue(posKey, out var n2) ? n2 : posKey;
+                string lost = string.Join(", ", decreases);
+                string gained = increases.Count > 0 ? string.Join(", ", increases) : "nothing";
+
+                // v1.3.102 — correlates this LOST line against the gate-probe ring buffer of
+                // recent outhouse asks so the log can name a likely culprit. The tripwire itself
+                // is a pure polling diff and can never know the actor on its own.
+                string recentAskers = "unresolved";
+                try { recentAskers = Patches.ProbePatches.DescribeRecentAskers(); }
+                catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter][probe] DescribeRecentAskers error: {ex}"); }
+
+                Plugin.Logger.LogInfo($"[OuthouseComposter][probe][tripwire] outhouse='{name}' LOST {lost}; GAINED {gained}; conversionsThisInterval={conversions}; recentAskers=[{recentAskers}]");
+            }
+        }
+
+        _probeSnapshots[ptr] = current;
+        _probeConversionsThisInterval[posKey] = 0;
+    }
+
+    // v1.3.104 — the Probe D removal tripwire's own read, wrapped in the query-hide bypass flag: the
+    // whole point of Probe D is to catch theft that slips past the mod's own gates, so it must always
+    // see the container's REAL contents, never this mod's own hidden view (which would make it
+    // silently stop detecting anything).
+    private static Dictionary<string, int> SnapshotContainer(ItemContainer container)
+    {
+        var result = new Dictionary<string, int>();
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
+        try
+        {
+            var items = container.GetItems();
+            int capacity = -1;
+            try { capacity = container.capacity; } catch { }
+            int bound = capacity > 0 ? capacity : 64;
+            for (int i = 0; i < bound; i++)
+            {
+                Item? item = null;
+                try { item = items != null ? items[i] : null; } catch { break; }
+                if (item == null) continue;
+                ItemInfo? info = null;
+                try { info = item.info; } catch { }
+                if (info == null) continue;
+                string name = SafeItemName(info);
+                int count = 0;
+                try { count = item.count; } catch { }
+                result[name] = result.TryGetValue(name, out var existing) ? existing + count : count;
+            }
+        }
+        catch { }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
+        return result;
     }
 
     // Manual hierarchy walk — the plural generic GetComponentsInChildren<T> is missing through the

@@ -132,6 +132,22 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix,
   PARAMETERLESS binding) + polling, never detour a method with inventory-family parameters. Full
   evidence and recipe in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → Dead-end section.
+- **Interface implementation is NOT statically decidable from the interop assemblies** (confirmed
+  2026-07-26, controlled sweep of 37,037 types). Only 6 types declare any interface at all in the
+  interop metadata, and the only recurring one is the compiler-generated `INotifyCompletion`. Cecil
+  cannot answer "which concrete class implements interface X" — questions of that shape must be
+  answered at runtime instead via `patching every concrete declarer and observing which one fires`
+  or `native class name checks`. This is the same underlying fact as the Fusion RPC attributes
+  dead-end (below): the interop layer is a lossy projection of the game, and absence there is not
+  absence in the game.
+- **Harmony patches on `SSSGame.IResourceStorageSite` implementors' `GetItemManifest()` method
+  crash the game natively** (confirmed 2026-07-26, OuthouseComposterMod v1.3.1 spike). `GetItemManifest`
+  takes no parameters and returns `SandSailorStudio.Inventory.ItemManifest`. Patching all fourteen
+  concrete declarers crashes during plugin loading; patching only two of them lets the game load
+  and complete chainloader startup, then crashes the instant the postfix body executes and touches
+  the patched instance. **Record: `GetItemManifest` must not be patched.** Note that the
+  inventory-family dead-end (above) covers **parameter** types; this finding concerns a method
+  whose only inventory-family type is its **return type**.
 
 ---
 
@@ -2065,6 +2081,22 @@ SSSGame.AI.FSM.FSM_SurvivalConsume       ← the FSM state that walks to the sto
   inventory-family). NOTE: `SatisfyObjectiveQuestData` also has `_FindBestItemToConsume(Item)` and
   `_OnItemAdded/_OnItemRemoved(ItemCollection, Item, …)` — inventory-family signatures, NEVER
   patch those (VillagerAmmo native-crash family).
+- **The confirmed mechanism by which villagers take items from settlement containers (verified
+  in-game 2026-07-26, OuthouseComposterMod v1.3.1 multipurpose spike):** the decision method
+  `IsWhitelistedByStorage(IResourceStorageSite)` declared by sixteen separate types receives only
+  the storage site, never the item. Seven concrete declarers were observed in-game asking about the
+  outhouse: `WorkstationQuestData`, `DressUpQuestData`, `CleanupInventoryQuestData`, `GatherData`
+  (from `FSM_Fetch`), `CrafterFetchQuestData`, `CookingQuestData`, `CookingStockpileQuestData`.
+  Each received `true` from vanilla on the outhouse every time asked. Because these gates cannot
+  distinguish which item is being fetched (they see only the storage site), they are unusable for
+  any protection that must allow one item through while blocking others — `CrafterFetchQuestData`
+  was observed on both food thefts and compost pickups in the same session. The estate of usable
+  gates: storage **container** identity (differentiate which physical bin) + per-item storage-class
+  membership (differentiate which items a container accepts) — neither of which flows through a
+  storage-*site* gate. Attribution routes reusable across mods: quest-data → `GetVillager()` or
+  `QuestRunner` → singular generic `GetComponent<Villager>()` → `GetName()` (display name) +
+  `GetWorkstation()` → `GetName()` (building name); `GatherData` from `FSM_Fetch` has base `Object`
+  with no quest-data route and can never be attributed.
 
 ### Game-mechanic facts worth knowing before re-modeling villager behavior
 - **The night-sleep race:** the game forces villagers to bed at **nightfall** regardless of their
