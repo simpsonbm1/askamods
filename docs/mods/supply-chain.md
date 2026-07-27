@@ -1,12 +1,14 @@
 # SupplyChainMod — Mod 26
 
-**Status:** WIP v0.16.0 — food-demand riders in-game-verified 2026-07-16 (pre-arm blocker 2:
-barbecue/curing raw→cooked edges via the BlueprintInfo `parts` fallback, protection-only any-of
-semantics for cooking Table requirements, farm tasks = seed demand) on top of the v0.15.1 case
-layer (CaseTracker: per-poll findings → persistent CANDIDATE→OPEN→RESOLVED cases with chain/merge
-tags + observation summaries; in-game-verified 2026-07-16, tuning: MinSurplusSlots default 4→10,
-CaseClosePolls kept 4). Still 100% dry-run/read-only. Next: arming implementation (tier first)
-per DEMAND_MODEL_PLAN.md → "Arming design". Dev tool NOT for Nexus
+**Status:** WIP v0.17.3 — TIER lever ARMED (TierCaseController, shared F11):
+armed run 1 in-game-verified 2026-07-16, full bump→response→resolve cycles
+30–90 s; dilution ground truth 113–116 High rows banked. v0.17.3 = run-1
+root-cause fix (BuildRows includeBoosted) + streaming/demand diagnostics
+(⚠️ pending in-game). Food-demand riders from v0.16.0 on v0.15.1 case layer
+(CaseTracker, MinSurplusSlots default 4→10, CaseClosePolls kept 4). Diagnostics:
+see architecture.md (~line 2326) for armed context; WarehouseTasks.BuildRows
+self-exclusion bug fixed v0.17.2. Still dry-run except TIER write for armed.
+Next: complaint-demand plane (v0.18, design approved). Dev tool NOT for Nexus
 
 **Goal:** Phase 0 read-only diagnostics + Phase 1 demand-driven priority actuation + Phase 2a
 warehouse diagnostics + Phase 2b quota-raise actuation. Phase 0 observes game state (villager
@@ -762,3 +764,10 @@ See architecture.md for full API surface.
   Garlic 8, Flax 4), 7 tables → anyOfProtected=19 (Raw Food table = 14 items), TOTAL unmatched
   8, zero errors. Known gap (accepted): animal-pen feed (smolkrs eat seeds) has no structural
   term — flow-protection covers it; probe pen feed configs when later pens are reached.
+- **v0.17.0–v0.17.3** (2026-07-16, TIER controller) — TierCaseController armed lever (F11
+  toggle), armed run 1 in-game-verified 2026-07-16: full bump→response→resolve cycles 30–90 s;
+  dilution ground truth 113–116 High rows banked (WarehouseWatch scope). v0.17.2: WarehouseTasks
+  .BuildRows self-exclusion fix (includeBoosted). v0.17.3: streaming/demand diagnostics (⚠️
+  pending in-game). Tier write path = direct SetPriority + HostUpdateTasks (recipe confirmed
+  v0.7.0, inert RPC noted). Diagnostics and armed-run context recorded in architecture.md
+  (~line 2326).

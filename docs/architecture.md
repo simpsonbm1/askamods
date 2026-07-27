@@ -879,7 +879,7 @@ SSSGame.ResourceStorage (the warehouse/storage building; a Workstation)
   `ss.OwnerStructure`: skip (`__result=false`) when the owner is a `CraftingStation` (protect its
   inputs) and/or its `StructureName`/`DefaultName` matches a user ignore-list. This only suppresses
   the warehouse's *outbound* haul tasks — the crafter's own fetch is untouched, so the loop simply
-  stops. (See `DYNAMIC_HAULING_HANDOFF.md` for the Mod 6 plan.)
+  stops. (Mod 6's shelved plan: `archive/DYNAMIC_HAULING_HANDOFF.md`.)
 - **Vanilla storage-access whitelists EXIST (user-confirmed from gameplay 2026-07-19; API surface
   Cecil-confirmed same day):** every building that contains storage has its own whitelist
   governing which villagers may access that storage — the vanilla control players already use to
@@ -2335,6 +2335,15 @@ Used by Mod 9 (SeedScoutMod) — full recipe in
   Caves (mines) are fully known at load (`BiomesManager._worldGenerator.GetDataMap()._areaInstances`, filter
   `AreaInstance.TryCast<CaveAreaInstance>()`); ~3 per world. **Lakes, dens (hostiles), etc. spawn per-tile as
   the world streams** near the tracked actor — that's why they only "fill in" as you walk.
+- **In-memory seed-scan dead-end (SeedHarvester, Mod 14, parked 2026-06-28):** "fully known at load"
+  requires the FULL world load. Driving `WorldGenerator.GenerateWorldMapAsync` +
+  `BiomesManager`/`CavesManager.UpdateDataAsync` in memory generates ~200 seeds in seconds, but
+  `GetDataMap()._areaInstances` stays empty — `UpdateDataAsync` never instantiates the
+  `CaveAreaInstance` GameObjects, and a 1-frame yield does not force it (confirmed 2026-06-28) — so
+  cave positions cannot be queried via that path. The unattempted alternative is parsing the raw data
+  buffers (`CavesManager._dataMap` / `AreaDataBuffer`), likely via a GameAssembly.dll dump
+  (Ghidra/Cpp2IL) — not yet root-caused, not impossible. Full evidence:
+  `archive/SEED_HARVESTER_HANDOFF.md`.
 - **`AreaInstance.position` (Vector2Int) = WORLD METERS (x, z)**, not tile coords (verified twice, ~10 m).
 - **`SandSailorStudio.Streaming.WorldStreamingManager`** is the streamer (capture via its `Awake`). It follows
   one `IStreamingActor TrackedActor` — which is the player's **`PlayerDrive`** (it implements `Teleport(Vector3)`

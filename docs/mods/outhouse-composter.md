@@ -249,6 +249,14 @@ calling _PrepareNativeItemsFilter to rebuild the filter. The flag set successful
 changed nothing — theft continued unchanged in confirmed real-time testing. This flag does not
 govern the path villagers use to take items from the outhouse. Do not retry.
 
+### GetItemManifest() is unpatchable — DEAD-END (confirmed 2026-07-26)
+
+Attempted: Harmony-patching `GetItemManifest()` to observe container contents. With all 14
+declarers patched → native crash during plugin load. Narrowed to 2 declarers → loads fine, then
+crashes natively the instant the postfix touches `__instance`. Same inventory-family class-init
+crash family as the VillagerAmmo trap (see CLAUDE.md's IL2CPP gotchas). Do not retry; the
+v1.3.104+ query-hide mechanism does not need it.
+
 ### Real-time (DateTime.UtcNow) conversion timers — SUPERSEDED by in-game clock (v0.3.0)
 
 Real-time made TimeWarp testing impossible and never got in-game confirmation before being supplanted

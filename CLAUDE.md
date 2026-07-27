@@ -127,15 +127,10 @@ changes/new gotchas that never landed here. The hook re-verifies mechanically at
 so trust it rather than re-running checks before committing.
 
 ## Session Handoff Doc (standing instruction — see global convention)
-This project follows the global session-handoff practice (`~/.claude/CLAUDE.md`): maintain a
-`SESSION_HANDOFF.md` at repo root, kept continuously current during a session — updated right after
-each meaningful step, not saved up for one big write at the end — as a safety net against Claude
-Code's usage-limit hard-stops (which can cut a session off mid-action with no warning). Scoped to
-askamods only; never mix in another project's content. Gitignored, not auto-committed — normal
-commit policy still applies. If it exists at the start of a session, read it first, fold any durable
-learnings into this project's own docs (`docs/architecture.md`, `docs/mods/*.md`, or the relevant
-`*_HANDOFF.md`) per this project's own doc rules, then clear it once absorbed or the task is done.
-Don't create it speculatively — only once there's real in-progress work worth protecting.
+This project follows the global session-handoff practice (`~/.claude/CLAUDE.md`):
+`SESSION_HANDOFF.md` at repo root, gitignored, kept continuously current during a session, scoped
+to askamods only. Read it first when it exists; fold durable learnings into this project's own
+docs per the doc rules above, then clear it once absorbed. Don't create it speculatively.
 
 **The handoff MUST open with a `## GOAL GROUNDING` section** (exact heading) naming the active mod
 and quoting its **GOAL** verbatim from that mod's `docs/mods/*.md`, followed by the instruction to
@@ -262,73 +257,46 @@ askamods/
   TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.7.1, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: player + villager out-of-combat HP regen, per-villager rates [COMPLETE v1.3.1 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled [COMPLETE v1.2.5 — docs/mods/torch-fuel.md]
-  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.10.0 —
-                                v1.10.0 `ManualScheduleIncludeSoloStations` (manual schedules at one-worker
-                                stations too) confirmed in-game 2026-07-24 — docs/mods/dynamic-villager-needs.md]
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.10.0 — docs/mods/dynamic-villager-needs.md]
   VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.31 — docs/mods/villager-fight-back.md]
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
   SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.1 — docs/mods/seed-scout.md]
   WarpTourMod/               ← Mod 10: teleport-tour for native map pins [v1.0.0 — SUPERSEDED by SeedScout; keep for the PlayerDrive.Teleport primitive — docs/archive/WARP_TOUR_HANDOFF.md]
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh [COMPLETE v1.3.4 — docs/mods/mine-refresh.md]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
-  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — SEED_HARVESTER_HANDOFF.md]
+  SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — docs/archive/SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
-  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + per-category
-                                item-journal task discovery (tavern/harbor/etc.) [COMPLETE v1.4.1 —
-                                docs/mods/task-unlocker.md]
+  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.1 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1 — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, locale-safe — docs/mods/fish-fillet.md]
-  DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated monster dens, PLUS bear-den
-                                & wight-spire PopulationSpawner force-respawn via map-pin + timer
-                                [COMPLETE v1.4.4 — spawner feature confirmed in-game 2026-07-21
-                                (instant SpawnPopulationFree, bypasses the instigator gate); v1.3.0
-                                locale den-key + German auto-revive test ⚠️ pending —
-                                docs/mods/den-respawn.md]
+  DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated dens + PopulationSpawner force-respawn [COMPLETE v1.4.4 — v1.3.0 locale den-key + German auto-revive test ⚠️ pending — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
   VillagerAmmoMod/           ← Mod 24: villagers never run out of arrows (polling refund + stuck-arrow cull) [COMPLETE v1.0.0 — docs/mods/villager-ammo.md]
-  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage,
-                                raid-proofed (warehouse haul gate, villager eat gate, query-hide
-                                stops villager food theft — confirmed 2026-07-26) [COMPLETE
-                                v1.4.0 — docs/mods/outhouse-composter.md]
+  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage, raid-proofed [COMPLETE v1.4.0 — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.17.3 — TIER lever
-                                ARMED (TierCaseController, shared F11): armed run 1
-                                in-game-verified 2026-07-16 (full bump→response→resolve cycles
-                                30–90 s; dilution ground truth 113–116 High rows banked);
-                                v0.17.3 = run-1 root-cause fix (BuildRows includeBoosted) +
-                                streaming/demand diagnostics ⚠️ pending in-game; next:
-                                complaint-demand plane (v0.18, design approved —
-                                DEMAND_MODEL_PLAN.md → "v0.18 direction"); dev tool NOT for
-                                Nexus — docs/mods/supply-chain.md]
+                                armed, run 1 in-game-verified 2026-07-16; streaming/demand
+                                diagnostics ⚠️ pending in-game; next: v0.18 complaint-demand plane
+                                (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
+                                docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
   CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.8.0 — Phase 1
-                                (PLAYER half) feature-complete, confirmed in-game 2026-07-20:
-                                remote-storage pull + fail-closed verify + sweep-back, zero-pull
-                                abort with on-screen message, and settlement-wide requirement
-                                counts via a 0.2 s UI poller. Host/solo only (IsHostOrSolo gates);
-                                MULTIPLAYER-CLIENT support requested. Phase 2 (VILLAGER half) IN
-                                PROGRESS — goal is deleting the supply WALK, not widening reach.
-                                v0.6.0 read-only fetch spike (the DIRECT/TOURED success metric);
-                                v0.7.0/v0.7.1 villager branch on all four Phase 1 points —
-                                confirmed in-game 2026-07-21 to be INSUFFICIENT alone (the craft
-                                gate does not schedule the fetch quest); v0.8.0 suppresses the
-                                fetch quest itself, ⚠️ not yet run in-game. Diagnostics still
-                                default true —
-                                docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
-  LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe [DEV TOOL v0.4.0, NOT for Nexus
-                                — dumps the locale-INVARIANT identity (asset name / id / faction
-                                enum / template id) beside the TRANSLATED display string for every
-                                item, category, structure template and encountered creature. Exists
-                                to retarget the five mods whose gates match localized names and so
-                                only work in English. F5 in-world; diagnostics default true —
+                                (player half) complete, confirmed in-game 2026-07-20, host/solo
+                                only; Phase 2 (villager half) in progress: v0.8.0 suppresses the
+                                fetch quest ⚠️ not yet run in-game; diagnostics still default true
+                                — docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
+  LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
+                                identity beside translated display strings, to retarget the
+                                locale-gated mods; F5 in-world [DEV TOOL v0.4.0, NOT for Nexus —
                                 docs/mods/locale-audit.md]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed
 > `.dll.off` 2026-06-28): cave positions can't be read because `UpdateDataAsync` never instantiates
-> cave `AreaInstance` GameObjects — full dead-end evidence in `SEED_HARVESTER_HANDOFF.md`.
+> cave `AreaInstance` GameObjects — recorded in `docs/architecture.md` (worldgen section); full
+> evidence in `docs/archive/SEED_HARVESTER_HANDOFF.md`.
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
 The build target `CopyToPlugins` handles this automatically on build.
@@ -369,11 +337,9 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`SupplyChainMod/DEMAND_MODEL_PLAN.md`](SupplyChainMod/DEMAND_MODEL_PLAN.md) | Mod 26 — approved demand-model & Phase 2d redesign plan (demand loop incl. future task creation, container ground truth + slot math, lever map, gated build sequence; user decisions 2026-07-15) |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned (don't re-attempt) |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — the lever-by-lever combat investigation log (deep evidence behind architecture.md's fight-vs-flee section) |
-| [`SEED_HARVESTER_HANDOFF.md`](SEED_HARVESTER_HANDOFF.md) | Mod 14 — why the fast seed-scan spike is blocked (cave `AreaInstance`s never instantiate from `UpdateDataAsync`) |
 | [`ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md`](ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md) | Mod 16 — map marker radius debugging handoff (WIP) |
-| [`DYNAMIC_HAULING_HANDOFF.md`](DYNAMIC_HAULING_HANDOFF.md) | Mod 6 (planned) — settlement hauling plan |
 | [`WAREHOUSE_CAPACITY_HANDOFF.md`](WAREHOUSE_CAPACITY_HANDOFF.md) | Mod 12 (planned) — warehouse capacity |
-| `docs/archive/` | History only — superseded handoffs whose live conclusions were absorbed into the docs above: TREERESPAWN_HANDOFF.md (Issues A–F evidence log), SEED_SCOUT_HANDOFF.md (scorer-era worldgen findings + den-tier table), WARP_TOUR_HANDOFF.md (PlayerDrive.Teleport recipe — also in architecture.md), TERRAIN_LEVELER_HANDOFF.md, TERRAIN_DRAG_HANDOFF.md, DYNAMIC_NEEDS_HANDOFF.md. Read only when chasing how a conclusion was reached |
+| `docs/archive/` | History only — superseded handoffs whose live conclusions were absorbed into the docs above: TREERESPAWN_HANDOFF.md (Issues A–F evidence log), SEED_SCOUT_HANDOFF.md (scorer-era worldgen findings + den-tier table), WARP_TOUR_HANDOFF.md (PlayerDrive.Teleport recipe — also in architecture.md), TERRAIN_LEVELER_HANDOFF.md, TERRAIN_DRAG_HANDOFF.md, DYNAMIC_NEEDS_HANDOFF.md, SEED_HARVESTER_HANDOFF.md (Mod 14 seed-scan dead-end — also in architecture.md's worldgen section), DYNAMIC_HAULING_HANDOFF.md (Mod 6 shelved hauling plan — vanilla whitelists cover the core case, see architecture.md's hauling section). Read only when chasing how a conclusion was reached |
 
 ## Reference Paths
 | Purpose | Path |
