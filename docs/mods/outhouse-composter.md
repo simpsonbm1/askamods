@@ -26,6 +26,25 @@ All findings confirmed in-game 2026-07-11 (OuthouseComposterMod diagnostics + ma
   generic `GetComponents(System.Type)` confirmed MISSING through the interop trampoline
   2026-07-11 — do not retry).
 
+### Workshop category-scoped queries — why crafters poll the Outhouse
+Workshop crafters running CrafterFetchQuestData query settlement storage by item category. The
+outhouse's native accepted items include Crawler Slime (used as fertilizer), which shares the
+"material" category with Crawler Sacks (a genuine workshop crafting input). The game provides
+category-scoped item filters (SandSailorStudio.Inventory.Utils.MultiCategoryItemFilter in the
+interop layer). Because the outhouse is registered as a storage site holding items in the
+"material" category, workshop crafters continuously poll it when they are fetching materials for
+a crafting quest. The outhouse never holds Crawler Sacks — they are not among its three native
+accepted items — so the poll cannot find what the crafter is actually after. This is normal vanilla
+behavior, not theft or a defect. ⚠️ Untested: whether a workshop crafter would remove Crawler Slime
+itself, which IS in its category. Moot since v1.4.0 (the query-hide gate hides Slime), but it means
+no session established that these polls were harmless before v1.4.0. **Practical consequence for diagnostics:**
+because workshop polling is constant, workshop villagers dominate the recentAskers correlation
+window at almost any outhouse event, making that window poor evidence for who actually removed an
+item. Across two measured sessions (2026-07-26), farm villagers appeared at one of three and then
+one of four compost-removal events while Workshop House 4 crafters appeared at two of three and
+then three of four — farm villagers were confirmed visually by the user as the ones actually
+collecting Compost.
+
 ### Acceptance gate
 - **Every SmallItem raw food/seed shares identical storageClass pointer with the outhouse
   containerType and with Compost.** The native game's acceptance gate does NOT base decision purely
@@ -142,21 +161,28 @@ Patches/QueryHidePatches.cs)
 Third raid vector: storage-query methods (`GetItemCount`, `HasItem`) report all outhouse contents to
 villagers, enabling theft even through the accept/eat gates. Fix: two Harmony postfix patches on
 `SandSailorStudio.Inventory.ItemContainer`, scoped to the outhouse container only via the
-pointer-keyed identity cache (OuthouseGate, same pattern as AcceptancePatches). Parameters
-disambiguated by explicit type array (multiple overloads exist): `GetItemCount(ItemInfo)` forced
-to zero for any item except the configured compost item; `HasItem(IItemFilter)` set to whether
-the container holds compost AND the filter accepts compost (tested via `filter.Check(compostInfo)`),
-preventing broad filters from revealing hidden food. Both patches fail open (leave result untouched)
-on exception or while compost ItemInfo has not yet resolved, so nothing is ever hidden before
-compost identification. Static bypass flag `QueryHideBypass` suppresses both patches while the
-converter reads its container, with fifteen guard sites wrapping the bodies of `DoConvert` and
-`DoConvertSimultaneous` (native code inside `HasSpace`, `AddItems`, `RemoveItem` re-enters patched
-methods invisibly). Three new config keys in [Composter] section, all defaulting true:
-`HideNonCompostFromQueries` (master switch), `HideQueryGetItemCount`, `HideQueryHasItem`
-(per-method switches for problem narrowing). Confirmed in-game 2026-07-26 across an eleven-event
-tripwire run: zero food or seed removals outside the mod's own conversions; compost continued
-leaving the outhouse in four separate events; conversions fired eight times. Player's outhouse
-storage panel displayed correctly with hiding enabled.
+pointer-keyed identity cache (OuthouseGate, same pattern as AcceptancePatches). The gate admits
+only items matching `CompostItemName` (default "Compost") — this means Crawler Slime and Spoiled
+Food, the outhouse's two other native accepted items, are also hidden from villager storage
+queries and will not be collected. This behavior is largely continuous with existing gates rather
+than new: the warehouse haul gate has suppressed haul tasks for Crawler Slime and Spoiled Food
+since v1.1.0; v1.4.0 extends that suppression to the fetch and consume paths. This is intended
+behavior matching the mod's stated purpose that only Compost leaves the outhouse. Note that
+`CompostItemName` is a single string and cannot express an allow-list covering all three native
+items. Parameters disambiguated by explicit type array (multiple overloads exist):
+`GetItemCount(ItemInfo)` forced to zero for any item except the configured compost item;
+`HasItem(IItemFilter)` set to whether the container holds compost AND the filter accepts compost
+(tested via `filter.Check(compostInfo)`), preventing broad filters from revealing hidden food.
+Both patches fail open (leave result untouched) on exception or while compost ItemInfo has not yet
+resolved, so nothing is ever hidden before compost identification. Static bypass flag
+`QueryHideBypass` suppresses both patches while the converter reads its container, with fifteen
+guard sites wrapping the bodies of `DoConvert` and `DoConvertSimultaneous` (native code inside
+`HasSpace`, `AddItems`, `RemoveItem` re-enters patched methods invisibly). Three new config keys in
+[Composter] section, all defaulting true: `HideNonCompostFromQueries` (master switch),
+`HideQueryGetItemCount`, `HideQueryHasItem` (per-method switches for problem narrowing). Confirmed
+in-game 2026-07-26 across an eleven-event tripwire run: zero food or seed removals outside the
+mod's own conversions; compost continued leaving the outhouse in four separate events; conversions
+fired eight times. Player's outhouse storage panel displayed correctly with hiding enabled.
 
 ## Config (`com.askamods.outhousecomposter.cfg`)
 
@@ -192,13 +218,7 @@ existing cfg files; customized values must be re-set under the new keys.
 
 ## Open/unverified
 
-- **Workshop House 4 compost consumption pattern:** not understood why villagers from Workshop House
-  4 running CrafterFetchQuestData consistently appear among the nearest askers when Compost is
-  removed from the outhouse. Across two measured sessions, farm villagers appeared at one of three
-  and then one of four compost-removal events, while Workshop House 4 crafters appeared at two of
-  three and then three of four. Compost is definitely leaving the outhouse, but who consumes it
-  and why is not established. Note that the recent-asker list is a ten-second correlation window,
-  not a call stack, so it narrows rather than proves.
+(none currently)
 
 ## Dead-ends
 
