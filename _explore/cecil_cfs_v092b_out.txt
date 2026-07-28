@@ -1,0 +1,819 @@
+==================================================================
+A: EVERY type deriving (transitively) from SSSGame.CraftingStation
+==================================================================
+  NO HITS
+
+==================================================================
+B: EVERY type deriving (transitively) from SSSGame.Workstation
+==================================================================
+  SSSGame.Buildstation   base=SSSGame.Workstation
+  SSSGame.DefensiveStation   base=SSSGame.Workstation
+  SSSGame.PatrolStation   base=SSSGame.Workstation
+  SSSGame.Bloomstation   base=SSSGame.Workstation
+  SSSGame.BoatBuildingStation   base=SSSGame.Buildstation
+  SSSGame.BrewingStation   base=SSSGame.CookingStation
+  SSSGame.CampBuildingStation   base=SSSGame.BoatBuildingStation
+  SSSGame.CharcoalStation   base=SSSGame.Workstation
+  SSSGame.CookingStation   base=SSSGame.Workstation
+  SSSGame.CraftingStation   base=SSSGame.Workstation
+  SSSGame.ForestryStation   base=SSSGame.FarmingStation
+  SSSGame.HarboringStation   base=SSSGame.BoatBuildingStation
+  SSSGame.HealingStation   base=SSSGame.Workstation
+  SSSGame.Praystation   base=SSSGame.Workstation
+  SSSGame.FarmingStation   base=SSSGame.Workstation
+  SSSGame.FishingStation   base=SSSGame.ResourceStorage
+  SSSGame.AnimalPen   base=SSSGame.Kennel
+  SSSGame.Kennel   base=SSSGame.Workstation
+  SSSGame.CaveResourceStorage   base=SSSGame.ResourceStorage
+  SSSGame.DiningStation   base=SSSGame.ResourceStorage
+  SSSGame.HuntingStation   base=SSSGame.ResourceStorage
+  SSSGame.Marketplace   base=SSSGame.Workstation
+  SSSGame.ResourceStorage   base=SSSGame.Workstation
+  SSSGame.VehicleResourceStorage   base=SSSGame.ResourceStorage
+
+==================================================================
+TYPE: SSSGame.CraftingStationType
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: System.Enum
+  ---- FIELDS (enum values land here) ----
+  F: System.Int32 value__
+  F: SSSGame.CraftingStationType GROUP
+  F: SSSGame.CraftingStationType INDIVIDUAL
+  ---- PROPERTIES ----
+  ---- METHODS ----
+
+==================================================================
+TYPE: SSSGame.Bloomstation
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.Bloomstation/SubstitutedPart
+  ---- FIELDS (enum values land here) ----
+  ---- PROPERTIES ----
+  P: SSSGame.Structure _OwnerStructure_k__BackingField
+  P: Il2CppSystem.Action OnWhitelistDataReceived
+  P: System.Boolean _KilnIsSupplied_k__BackingField
+  P: System.Boolean _WhitelistNewVillagers_k__BackingField
+  P: SSSGame.AI.FSM.vFSMBehaviour idleBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour complainBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour supplyBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour kilnkeepBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour bellowsBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour anvilBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour findToolsBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour returnBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour cleanupBehaviour
+  P: SSSGame.KilnInteraction kiln
+  P: SSSGame.AnvilInteraction anvil
+  P: SSSGame.BellowsInteraction bellows
+  P: SSSGame.StorageInteraction coalStorage
+  P: SSSGame.StorageInteraction oreStorage
+  P: SSSGame.StorageInteraction bloomStorage
+  P: SandSailorStudio.Inventory.BlueprintInfo kilnBlueprint
+  P: SSSGame.StorageInteraction bloomBlockStorageInteraction
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Bloomstation/SubstitutedPart> substitutedParts
+  P: System.Boolean _registeredToTaskManager
+  P: SSSGame.BloomstationComplainQuest _complainQuest
+  P: SSSGame.BloomstationIdleQuest _idleQuest
+  P: SSSGame.AI.FindHarvestingToolsQuest _findToolsQuest
+  P: SSSGame.BloomstationSupplyQuest _supplyQuest
+  P: SSSGame.KilnkeeperQuest _kilnkeeperQuest
+  P: SSSGame.BloomstationBellowsQuest _bellowsQuest
+  P: SSSGame.BloomstationAnvilQuest _anvilQuest
+  P: SSSGame.ReturnBloomQuest _returnQuest
+  P: SSSGame.AI.CleanupInventoryQuest _cleanupInventoryQuest
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> _storageSuppies
+  P: SSSGame.AI.QuestEventData _qEvData
+  P: SandSailorStudio.Inventory.ItemManifest _kilnContainerManifest
+  P: SandSailorStudio.Inventory.ItemManifest _kilnRecipeManifest
+  P: Il2CppSystem.Collections.Generic.HashSet`1<SSSGame.Villager> _commitedWorkers
+  P: Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> _villagersWhitelist
+  P: System.Boolean _whitelistAllVillagers
+  P: System.Boolean _whitelistDataReceived
+  P: System.String c_taskDataArrayKey
+  P: System.String c_whitelistAll
+  P: System.String c_whitelistedVillagers
+  P: System.String c_commitedWorkers
+  P: Fusion.Changed`1<SSSGame.Bloomstation> field_CompilerControlled_Static_Changed_1_Bloomstation_0
+  P: Fusion.ChangedDelegate`1<SSSGame.Bloomstation> field_CompilerControlled_Static_ChangedDelegate_1_Bloomstation_0
+  P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Bloomstation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Bloomstation_0
+  P: SSSGame.Structure OwnerStructure
+  P: System.Boolean WhitelistedAllVillagers
+  P: System.Boolean WhitelistDataReceived
+  P: System.Boolean ShowWhitelistedVillagers
+  P: System.Boolean IsMobile
+  P: System.Boolean KilnIsSupplied
+  P: System.Boolean WhitelistNewVillagers
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SSSGame.Structure get_OwnerStructure() [virt,pub]
+  M: System.Void set_OwnerStructure(SSSGame.Structure value) [pub]
+  M: System.Void add_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Void remove_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Boolean get_WhitelistedAllVillagers() [virt,pub]
+  M: System.Void set_WhitelistedAllVillagers(System.Boolean value) [virt,pub]
+  M: System.Boolean get_WhitelistDataReceived() [virt,pub]
+  M: System.Boolean get_ShowWhitelistedVillagers() [virt,pub]
+  M: System.Boolean get_IsMobile() [virt,pub]
+  M: System.Boolean get_KilnIsSupplied() [pub]
+  M: System.Void set_KilnIsSupplied(System.Boolean value) [pub]
+  M: System.Boolean get_WhitelistNewVillagers() [virt,pub]
+  M: System.Void set_WhitelistNewVillagers(System.Boolean value) [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void Spawned() [virt,pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Void Despawned(Fusion.NetworkRunner runner, System.Boolean hasState) [virt,pub]
+  M: System.String GetName() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemCollection GetInventory() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetKilnRecipeManifest() [pub]
+  M: SSSGame.BloomstationAnvilQuest GetAnvilQuest() [pub]
+  M: System.Boolean IsWorkerCommited(SSSGame.Villager v) [pub]
+  M: System.Void CommitWorker(SSSGame.Villager v, System.Boolean& commit) [pub]
+  M: System.Boolean TryGetPartSubstitute(SandSailorStudio.Inventory.ItemInfo resource, SandSailorStudio.Inventory.ItemInfo& substitution) [pub]
+  M: System.Boolean TryGetSubstitutingPart(SandSailorStudio.Inventory.ItemInfo substitute, SandSailorStudio.Inventory.ItemInfo& part) [pub]
+  M: SSSGame.StorageSupply FindStorageSupply(Il2CppSystem.Predicate`1<SSSGame.StorageSupply> predicate) [pub]
+  M: System.Boolean IsFuelNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean IsItemNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean AddTaskDispatcher(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void RemoveTaskDispatcher(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Boolean SetTaskAgent(SSSGame.AI.ITaskAgent agent) [virt,pub]
+  M: System.Boolean ReleaseTaskAgent(SSSGame.AI.ITaskAgent agent) [virt,pub]
+  M: System.Void _OnTaskDataChanged() [pub]
+  M: System.Void _Kiln_OnItemChanged(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _RefreshKilnSuppliedState() [pub]
+  M: System.Boolean Deserialize(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject Serialize(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskData(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Boolean DeserializeTaskData(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskDataForRecreation(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Boolean DeserializeTaskDataForRecreation(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: System.Boolean HasDefaultRecipe() [pub]
+  M: System.Void RequestWhitelistData() [virt,pub]
+  M: System.Void SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) [pub]
+  M: System.Boolean IsShownAsWhitelisted(SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean IsWhitelisted(SSSGame.Villager villager) [virt,pub]
+  M: System.Void Rpc_ChangeWhitelistAllState(System.Boolean whitelistAll) [pub]
+  M: System.Void Rpc_ChangeWhitelistedVillager(System.Int32 id, System.Boolean state) [pub]
+  M: System.Void Rpc_RequestWhitelistData(Fusion.PlayerRef player) [pub]
+  M: System.Void Rpc_ReceiveWhitelistData(Fusion.PlayerRef target, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte> bytes) [pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _Structure_OnActivate(SSSGame.Structure obj) [pub]
+  M: System.Void _OnStructureDeath(SSSGame.Structure obj) [pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: UnityEngine.Transform GetTransform() [virt,pub]
+  M: SSSGame.StorageInteraction FindStorageInteraction(Il2CppSystem.Func`2<SSSGame.StorageInteraction,System.Boolean> predicate) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetItemManifest() [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void SSSGame_IWhitelistingSite_SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) [virt,pub]
+  M: System.Void _Rpc_RequestWhitelistData_b__100_0(Il2CppSystem.IO.BinaryWriter writer) [pub]
+  M: System.Void _Rpc_ReceiveWhitelistData_b__101_0(Il2CppSystem.IO.BinaryReader reader) [pub]
+  M: System.Void CopyBackingFieldsToState(System.Boolean ) [virt,pub]
+  M: System.Void CopyStateToBackingFields() [virt,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.Structure get__OwnerStructure_k__BackingField() [pub]
+  M: System.Void set__OwnerStructure_k__BackingField(SSSGame.Structure ) [pub]
+  M: Il2CppSystem.Action get_OnWhitelistDataReceived() [pub]
+  M: System.Void set_OnWhitelistDataReceived(Il2CppSystem.Action ) [pub]
+  M: System.Boolean get__KilnIsSupplied_k__BackingField() [pub]
+  M: System.Void set__KilnIsSupplied_k__BackingField(System.Boolean ) [pub]
+  M: System.Boolean get__WhitelistNewVillagers_k__BackingField() [pub]
+  M: System.Void set__WhitelistNewVillagers_k__BackingField(System.Boolean ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_idleBehaviour() [pub]
+  M: System.Void set_idleBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_complainBehaviour() [pub]
+  M: System.Void set_complainBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_supplyBehaviour() [pub]
+  M: System.Void set_supplyBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_kilnkeepBehaviour() [pub]
+  M: System.Void set_kilnkeepBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_bellowsBehaviour() [pub]
+  M: System.Void set_bellowsBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_anvilBehaviour() [pub]
+  M: System.Void set_anvilBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_findToolsBehaviour() [pub]
+  M: System.Void set_findToolsBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_returnBehaviour() [pub]
+  M: System.Void set_returnBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_cleanupBehaviour() [pub]
+  M: System.Void set_cleanupBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.KilnInteraction get_kiln() [pub]
+  M: System.Void set_kiln(SSSGame.KilnInteraction ) [pub]
+  M: SSSGame.AnvilInteraction get_anvil() [pub]
+  M: System.Void set_anvil(SSSGame.AnvilInteraction ) [pub]
+  M: SSSGame.BellowsInteraction get_bellows() [pub]
+  M: System.Void set_bellows(SSSGame.BellowsInteraction ) [pub]
+  M: SSSGame.StorageInteraction get_coalStorage() [pub]
+  M: System.Void set_coalStorage(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.StorageInteraction get_oreStorage() [pub]
+  M: System.Void set_oreStorage(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.StorageInteraction get_bloomStorage() [pub]
+  M: System.Void set_bloomStorage(SSSGame.StorageInteraction ) [pub]
+  M: SandSailorStudio.Inventory.BlueprintInfo get_kilnBlueprint() [pub]
+  M: System.Void set_kilnBlueprint(SandSailorStudio.Inventory.BlueprintInfo ) [pub]
+  M: SSSGame.StorageInteraction get_bloomBlockStorageInteraction() [pub]
+  M: System.Void set_bloomBlockStorageInteraction(SSSGame.StorageInteraction ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Bloomstation/SubstitutedPart> get_substitutedParts() [pub]
+  M: System.Void set_substitutedParts(Il2CppSystem.Collections.Generic.List`1<SSSGame.Bloomstation/SubstitutedPart> ) [pub]
+  M: System.Boolean get__registeredToTaskManager() [pub]
+  M: System.Void set__registeredToTaskManager(System.Boolean ) [pub]
+  M: SSSGame.BloomstationComplainQuest get__complainQuest() [pub]
+  M: System.Void set__complainQuest(SSSGame.BloomstationComplainQuest ) [pub]
+  M: SSSGame.BloomstationIdleQuest get__idleQuest() [pub]
+  M: System.Void set__idleQuest(SSSGame.BloomstationIdleQuest ) [pub]
+  M: SSSGame.AI.FindHarvestingToolsQuest get__findToolsQuest() [pub]
+  M: System.Void set__findToolsQuest(SSSGame.AI.FindHarvestingToolsQuest ) [pub]
+  M: SSSGame.BloomstationSupplyQuest get__supplyQuest() [pub]
+  M: System.Void set__supplyQuest(SSSGame.BloomstationSupplyQuest ) [pub]
+  M: SSSGame.KilnkeeperQuest get__kilnkeeperQuest() [pub]
+  M: System.Void set__kilnkeeperQuest(SSSGame.KilnkeeperQuest ) [pub]
+  M: SSSGame.BloomstationBellowsQuest get__bellowsQuest() [pub]
+  M: System.Void set__bellowsQuest(SSSGame.BloomstationBellowsQuest ) [pub]
+  M: SSSGame.BloomstationAnvilQuest get__anvilQuest() [pub]
+  M: System.Void set__anvilQuest(SSSGame.BloomstationAnvilQuest ) [pub]
+  M: SSSGame.ReturnBloomQuest get__returnQuest() [pub]
+  M: System.Void set__returnQuest(SSSGame.ReturnBloomQuest ) [pub]
+  M: SSSGame.AI.CleanupInventoryQuest get__cleanupInventoryQuest() [pub]
+  M: System.Void set__cleanupInventoryQuest(SSSGame.AI.CleanupInventoryQuest ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> get__storageSuppies() [pub]
+  M: System.Void set__storageSuppies(Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> ) [pub]
+  M: SSSGame.AI.QuestEventData get__qEvData() [pub]
+  M: System.Void set__qEvData(SSSGame.AI.QuestEventData ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__kilnContainerManifest() [pub]
+  M: System.Void set__kilnContainerManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__kilnRecipeManifest() [pub]
+  M: System.Void set__kilnRecipeManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+  M: Il2CppSystem.Collections.Generic.HashSet`1<SSSGame.Villager> get__commitedWorkers() [pub]
+  M: System.Void set__commitedWorkers(Il2CppSystem.Collections.Generic.HashSet`1<SSSGame.Villager> ) [pub]
+  M: Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> get__villagersWhitelist() [pub]
+  M: System.Void set__villagersWhitelist(Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> ) [pub]
+  M: System.Boolean get__whitelistAllVillagers() [pub]
+  M: System.Void set__whitelistAllVillagers(System.Boolean ) [pub]
+  M: System.Boolean get__whitelistDataReceived() [pub]
+  M: System.Void set__whitelistDataReceived(System.Boolean ) [pub]
+  M: System.String get_c_taskDataArrayKey() [static,pub]
+  M: System.Void set_c_taskDataArrayKey(System.String ) [static,pub]
+  M: System.String get_c_whitelistAll() [static,pub]
+  M: System.Void set_c_whitelistAll(System.String ) [static,pub]
+  M: System.String get_c_whitelistedVillagers() [static,pub]
+  M: System.Void set_c_whitelistedVillagers(System.String ) [static,pub]
+  M: System.String get_c_commitedWorkers() [static,pub]
+  M: System.Void set_c_commitedWorkers(System.String ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.CraftingQuest/CraftingQuestData
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- FIELDS (enum values land here) ----
+  ---- PROPERTIES ----
+  P: SSSGame.AI.FSM.FSMData craftData
+  P: System.Int32 promisedCraftQuantity
+  P: SSSGame.CraftingQuest _cQuest
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _qItmManEvData
+  P: SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> _qItmCatEvData_NoTool
+  P: SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> _qItmCatEvData_NoToolSilent
+  P: SSSGame.AI.QuestEventData _qEvData
+  P: System.Boolean _noStorageSpace
+  P: System.Boolean _noTool
+  P: System.Boolean _noToolSilent
+  P: System.Boolean _noCarryCapacity
+  P: System.Single _minSqDist
+  P: System.Int32 _minReqCount
+  P: SSSGame.CraftInteraction _ci
+  P: SandSailorStudio.Inventory.ItemManifest s_bpManifest
+  P: System.Boolean HasMissingTool
+  P: SSSGame.CraftBlueprint Blueprint
+  P: SSSGame.CraftingQuest Quest
+  P: System.Boolean IsWorking
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Boolean get_HasMissingTool() [pub]
+  M: SSSGame.CraftBlueprint get_Blueprint() [pub]
+  M: SSSGame.CraftingQuest get_Quest() [pub]
+  M: System.Boolean get_IsWorking() [virt,pub]
+  M: System.Void .ctor(SSSGame.AI.Quest quest) [pub]
+  M: System.Void Init(SSSGame.AI.QuestRunner questRunner) [virt,pub]
+  M: System.Boolean _HasImportantWork() [virt,pub]
+  M: System.Void _OnVillagerBehaviorChanged(SSSGame.UI.ScheduleType obj) [virt,pub]
+  M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  M: System.Void Dispose() [virt,pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Void _OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _CheckNewlyFoundItem(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Void ComplainNoTool(System.Boolean value, SandSailorStudio.Inventory.ItemCategoryInfo toolCategory, System.Boolean important) [pub]
+  M: System.Void ComplainNoCarryCapacity(System.Boolean value, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Void ComplainNoStorageSpace(System.Boolean value, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Void ComplainBetterToolSilent(System.Boolean value, SandSailorStudio.Inventory.ItemCategoryInfo itemCategoryInfo, System.Int32 tier) [pub]
+  M: System.Boolean UsableCraftingTablePredicate(SSSGame.CraftInteraction ci) [pub]
+  M: SSSGame.CraftInteraction FindFreeCraftInteraction() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.AI.FSM.FSMData get_craftData() [pub]
+  M: System.Void set_craftData(SSSGame.AI.FSM.FSMData ) [pub]
+  M: System.Int32 get_promisedCraftQuantity() [pub]
+  M: System.Void set_promisedCraftQuantity(System.Int32 ) [pub]
+  M: SSSGame.CraftingQuest get__cQuest() [pub]
+  M: System.Void set__cQuest(SSSGame.CraftingQuest ) [pub]
+  M: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> get__qItmManEvData() [pub]
+  M: System.Void set__qItmManEvData(SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> ) [pub]
+  M: SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> get__qItmCatEvData_NoTool() [pub]
+  M: System.Void set__qItmCatEvData_NoTool(SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> ) [pub]
+  M: SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> get__qItmCatEvData_NoToolSilent() [pub]
+  M: System.Void set__qItmCatEvData_NoToolSilent(SSSGame.AI.QuestEventData`1<SSSGame.AI.TieredCategoryFilter> ) [pub]
+  M: SSSGame.AI.QuestEventData get__qEvData() [pub]
+  M: System.Void set__qEvData(SSSGame.AI.QuestEventData ) [pub]
+  M: System.Boolean get__noStorageSpace() [pub]
+  M: System.Void set__noStorageSpace(System.Boolean ) [pub]
+  M: System.Boolean get__noTool() [pub]
+  M: System.Void set__noTool(System.Boolean ) [pub]
+  M: System.Boolean get__noToolSilent() [pub]
+  M: System.Void set__noToolSilent(System.Boolean ) [pub]
+  M: System.Boolean get__noCarryCapacity() [pub]
+  M: System.Void set__noCarryCapacity(System.Boolean ) [pub]
+  M: System.Single get__minSqDist() [pub]
+  M: System.Void set__minSqDist(System.Single ) [pub]
+  M: System.Int32 get__minReqCount() [pub]
+  M: System.Void set__minReqCount(System.Int32 ) [pub]
+  M: SSSGame.CraftInteraction get__ci() [pub]
+  M: System.Void set__ci(SSSGame.CraftInteraction ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get_s_bpManifest() [static,pub]
+  M: System.Void set_s_bpManifest(SandSailorStudio.Inventory.ItemManifest ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.CrafterFetchQuest/CrafterFetchQuestData
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- FIELDS (enum values land here) ----
+  ---- PROPERTIES ----
+  P: SSSGame.AI.FSM.FSMData fetchData
+  P: SSSGame.AI.FSM.FSMData returnData
+  P: SSSGame.CrafterFetchQuest _cfQuest
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _qItmManEvData
+  P: SSSGame.AI.QuestEventData _qEvData
+  P: System.Boolean _noStorageSpace
+  P: System.Boolean _noPartsFound
+  P: System.Boolean _noCarryCapacity
+  P: SSSGame.CrafterFetchQuest Quest
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SSSGame.CrafterFetchQuest get_Quest() [pub]
+  M: System.Void .ctor(SSSGame.AI.Quest quest) [pub]
+  M: System.Void Init(SSSGame.AI.QuestRunner questRunner) [virt,pub]
+  M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  M: System.Void Dispose() [virt,pub]
+  M: System.Void ComplainNoStorageSpace(System.Boolean value, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Void ComplainNoPartsFound(System.Boolean value, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Void ComplainNoCarryCapacity(System.Boolean noCarryCapacity, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Boolean IsWhitelistedByStorage(SSSGame.IResourceStorageSite rss) [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.AI.FSM.FSMData get_fetchData() [pub]
+  M: System.Void set_fetchData(SSSGame.AI.FSM.FSMData ) [pub]
+  M: SSSGame.AI.FSM.FSMData get_returnData() [pub]
+  M: System.Void set_returnData(SSSGame.AI.FSM.FSMData ) [pub]
+  M: SSSGame.CrafterFetchQuest get__cfQuest() [pub]
+  M: System.Void set__cfQuest(SSSGame.CrafterFetchQuest ) [pub]
+  M: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> get__qItmManEvData() [pub]
+  M: System.Void set__qItmManEvData(SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> ) [pub]
+  M: SSSGame.AI.QuestEventData get__qEvData() [pub]
+  M: System.Void set__qEvData(SSSGame.AI.QuestEventData ) [pub]
+  M: System.Boolean get__noStorageSpace() [pub]
+  M: System.Void set__noStorageSpace(System.Boolean ) [pub]
+  M: System.Boolean get__noPartsFound() [pub]
+  M: System.Void set__noPartsFound(System.Boolean ) [pub]
+  M: System.Boolean get__noCarryCapacity() [pub]
+  M: System.Void set__noCarryCapacity(System.Boolean ) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CraftInteraction/CraftingEvents, SSSGame.CraftInteraction/__c__DisplayClass25_0
+  ---- FIELDS (enum values land here) ----
+  ---- PROPERTIES ----
+  P: SSSGame.CraftInteraction/CraftingEvents craftingEvents
+  P: SSSGame.CraftingStation craftStationHost
+  P: SSSGame.CraftBlueprint blueprint
+  P: SandSailorStudio.Inventory.InventoryComponent inventory
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory
+  P: SandSailorStudio.Inventory.ItemInfoList localBlueprintsList
+  P: System.Boolean useAgentInventory
+  P: System.Int32 craftActionId
+  P: System.Boolean _destroyed
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> _localBlueprints
+  P: SSSGame.Structure _ownerStructure
+  P: System.Boolean _parentedHost
+  P: System.Boolean _parentedInv
+  P: SandSailorStudio.Inventory.ItemManifest s_bpManifest
+  P: SSSGame.Structure OwnerStructure
+  P: SandSailorStudio.Inventory.ItemCollection ItemInventory
+  P: SSSGame.CraftBlueprint ActiveBlueprint
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SSSGame.Structure get_OwnerStructure() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemCollection get_ItemInventory() [virt,pub]
+  M: SSSGame.CraftBlueprint get_ActiveBlueprint() [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void OnDisable() [virt,pub]
+  M: System.Void OnDestroy() [virt,pub]
+  M: System.Void DestroyGameObject(UnityEngine.GameObject gameObject) [pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Boolean CheckAgent(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean CheckOwnedRequirements(SandSailorStudio.Inventory.Blueprint bp, SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Boolean _CheckOwnedBlueprintManifest(SandSailorStudio.Inventory.ItemManifest itemManifest, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _OnCraftingSuccess(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint) [virt,pub]
+  M: System.Boolean ActivateBlueprint(SSSGame.CraftBlueprint bp) [virt,pub]
+  M: SSSGame.AI.IWorkstation GetWorkstation() [virt,pub]
+  M: System.String GetTaskDescription() [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _ReparentToStructure(SSSGame.Structure structure) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftInteraction/CraftingEvents get_craftingEvents() [pub]
+  M: System.Void set_craftingEvents(SSSGame.CraftInteraction/CraftingEvents ) [pub]
+  M: SSSGame.CraftingStation get_craftStationHost() [pub]
+  M: System.Void set_craftStationHost(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.CraftBlueprint get_blueprint() [pub]
+  M: System.Void set_blueprint(SSSGame.CraftBlueprint ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_inventory() [pub]
+  M: System.Void set_inventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_blueprintInventory() [pub]
+  M: System.Void set_blueprintInventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoList get_localBlueprintsList() [pub]
+  M: System.Void set_localBlueprintsList(SandSailorStudio.Inventory.ItemInfoList ) [pub]
+  M: System.Boolean get_useAgentInventory() [pub]
+  M: System.Void set_useAgentInventory(System.Boolean ) [pub]
+  M: System.Int32 get_craftActionId() [pub]
+  M: System.Void set_craftActionId(System.Int32 ) [pub]
+  M: System.Boolean get__destroyed() [pub]
+  M: System.Void set__destroyed(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> get__localBlueprints() [pub]
+  M: System.Void set__localBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> ) [pub]
+  M: SSSGame.Structure get__ownerStructure() [pub]
+  M: System.Void set__ownerStructure(SSSGame.Structure ) [pub]
+  M: System.Boolean get__parentedHost() [pub]
+  M: System.Void set__parentedHost(System.Boolean ) [pub]
+  M: System.Boolean get__parentedInv() [pub]
+  M: System.Void set__parentedInv(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get_s_bpManifest() [static,pub]
+  M: System.Void set_s_bpManifest(SandSailorStudio.Inventory.ItemManifest ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.AnvilInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.AnvilInteraction/AnvilEvents, SSSGame.AnvilInteraction/DieRotationAxis, SSSGame.AnvilInteraction/__c__DisplayClass118_0, SSSGame.AnvilInteraction/__DieRotationRoutine_d__137
+  ---- FIELDS (enum values land here) ----
+  ---- PROPERTIES ----
+  P: System.Int32 c_sendToQuenchingEventId
+  P: System.Int32 c_anvilHitEventId
+  P: System.Int32 c_successfulHitEventId
+  P: System.Int32 c_addWeatherInsulation
+  P: System.Int32 c_removeWeatherInsulation
+  P: System.Int32 c_addQualityRatio
+  P: System.Int32 c_sendToQuenchingSuccessResponse
+  P: System.Int32 c_sendToQuenchingBusyResponse
+  P: System.Int32 c_sendToQuenchingFullResponse
+  P: Il2CppSystem.Action OnAnvilHitSuccess
+  P: Il2CppSystem.Action OnHotItemCookedChanged
+  P: Il2CppSystem.Action OnHotItemIntegrityChanged
+  P: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> OnTakeDamage
+  P: System.Single proefficiencyMultiplier
+  P: Il2CppSystem.Action OnComponentHarvested
+  P: System.Boolean _IsConsolidated_k__BackingField
+  P: System.Int32 _ConsolidatedFacesCount_k__BackingField
+  P: System.Single _HotItemCookedRatio_k__BackingField
+  P: System.Boolean showCraftingWhenEmpty
+  P: SSSGame.StorageInteraction hiddenBloomStorageInteraction
+  P: SSSGame.AI.FSM.vFSMBehaviour anvilCleanupBehaviour
+  P: SSSGame.InteractionMoveset moveset
+  P: System.Int32 rotateAnimationId
+  P: UnityEngine.Transform matchTargetPos
+  P: UnityEngine.Transform matchTargetExitPos
+  P: System.Boolean finishSessionAfterEachSide
+  P: System.Boolean specialToolRequrement
+  P: System.Int32 minToolTier
+  P: System.Boolean importantTool
+  P: SandSailorStudio.Inventory.ItemContainerComponent bloomBlockContainer
+  P: SSSGame.Render.Pickable anvilPickable
+  P: SandSailorStudio.Inventory.ItemInfoList hotIronList
+  P: SSSGame.TroughInteraction troughInteraction
+  P: SandSailorStudio.Attributes.AttributeManager forgeAttributes
+  P: SSSGame.Network.NetworkHittable hittable
+  P: UnityEngine.Transform hitFxPos
+  P: SSSGame.Combat.FxSetup hitFx
+  P: SSSGame.Combat.FxSetup successFx
+  P: SSSGame.AnvilInteraction/AnvilEvents anvilEvents
+  P: SSSGame.Network.NetworkCubeState dieState
+  P: UnityEngine.Transform dieHandleTransform
+  P: System.Single dieJumpHeight
+  P: System.Single dieRotateTime
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext hotDisplayContext
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext coldDisplayContext
+  P: System.Boolean noDisplay
+  P: SSSGame.AnvilInteraction/DieRotationAxis allowedRotationAxis
+  P: System.Boolean alwaysRelativeRotation
+  P: System.Boolean takeIntegrityFromItemInfo
+  P: System.String widgetUseText
+  P: System.String widgetNoIronText
+  P: System.String widgetColdIronText
+  P: System.Boolean showHarvestHp
+  P: System.Boolean _isEmpty
+  P: System.Boolean _hasHotIron
+  P: SandSailorStudio.Inventory.Item _hotItem
+  P: SandSailorStudio.Attributes.Property _hotIronCooked
+  P: UnityEngine.GameObject _displayItem
+  P: SandSailorStudio.Attributes.AttributeModifier _activeForgingHeatLossModifier
+  P: System.Boolean _weatherInsulationAdded
+  P: UnityEngine.Coroutine _rotationRoutine
+  P: SSSGame.AnvilCleanupQuest _cleanupQuest
+  P: SSSGame.AI.TieredCategoryFilter _toolFilter
+  P: SSSGame.Network.NetworkSession _session
+  P: UnityEngine.Vector3 dieInitialPosition
+  P: UnityEngine.Quaternion dieInitialRotation
+  P: System.Int32 TeamId
+  P: SSSGame.Combat.IAttackTarget AttackTarget
+  P: System.Boolean FriendlyDamageFromPlayer
+  P: System.Single ProefficiencyGainMultiplier
+  P: System.Boolean IsEmpty
+  P: System.Boolean HasHotIron
+  P: System.Boolean IsConsolidated
+  P: System.Int32 ConsolidatedFacesCount
+  P: System.Single HotItemCookedRatio
+  P: Fusion.NetworkObject NetworkObject
+  P: UnityEngine.GameObject SSSGame.Combat.IDamageReceiver.gameObject
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void add_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Void remove_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Int32 get_TeamId() [virt,pub]
+  M: SSSGame.Combat.IAttackTarget get_AttackTarget() [virt,pub]
+  M: System.Boolean get_FriendlyDamageFromPlayer() [virt,pub]
+  M: System.Single get_ProefficiencyGainMultiplier() [virt,pub]
+  M: System.Boolean get_IsEmpty() [pub]
+  M: System.Void set_IsEmpty(System.Boolean value) [pub]
+  M: System.Boolean get_HasHotIron() [pub]
+  M: System.Void set_HasHotIron(System.Boolean value) [pub]
+  M: System.Boolean get_IsConsolidated() [pub]
+  M: System.Void set_IsConsolidated(System.Boolean value) [pub]
+  M: System.Int32 get_ConsolidatedFacesCount() [pub]
+  M: System.Void set_ConsolidatedFacesCount(System.Int32 value) [pub]
+  M: System.Single get_HotItemCookedRatio() [pub]
+  M: System.Void set_HotItemCookedRatio(System.Single value) [pub]
+  M: Fusion.NetworkObject get_NetworkObject() [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void _OnRemoteDieStartedMoving() [pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Void UseForgingBlueprint(SSSGame.IInteractionAgent agent, SSSGame.ForgingBlueprint fbp) [pub]
+  M: SandSailorStudio.Inventory.IItemFilter GetRequiredToolFilter() [pub]
+  M: System.Void InstantQuenchHere(SSSGame.IInteractionAgent agent) [pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range) [virt,pub]
+  M: System.Void SendToQuenching(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _BloomContainer_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _BloomContainer_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _OnHotIronCookedChanged() [pub]
+  M: System.Void _OnHotIronIntegrityChanged() [pub]
+  M: SSSGame.InteractionStartMode GetStartMode(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void RotateBillet(SSSGame.AnvilInteraction/DieRotationAxis& axis) [pub]
+  M: UnityEngine.Quaternion _GetNextRotation(UnityEngine.Quaternion& currentRotation, SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  M: System.Void _SendToQuenchingInternal(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughBusyMessage(SSSGame.IInteractionAgent agent, Fusion.NetworkId busyInteractor) [pub]
+  M: System.Void _ShowSuccessMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughFullMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _RemoveWeatherInsulationInternal() [pub]
+  M: System.Void _AddWeatherInsulationInternal() [pub]
+  M: System.Void _OnInteractorsChanged(SSSGame.Interaction interaction, System.Int32 interactorsCount, SSSGame.IInteractionAgent lastInteractor, SSSGame.Network.INetworkInteractable/Request/Type lastRequestType) [pub]
+  M: System.Void _OnHittableHit(SSSGame.Network.NetworkHittable/HitInfo obj) [pub]
+  M: System.Single GetHarvestHitPoints() [virt,pub]
+  M: System.Single GetMaxHarvestHitPoints() [virt,pub]
+  M: System.Void SimulateSuccessfulHit() [pub]
+  M: System.Void TakeDamage(SSSGame.Combat.DamageData damage) [virt,pub]
+  M: System.Void _DoQualityChangeInternal(System.Single& profRatio) [pub]
+  M: System.Int32 _GetSidesCount(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Void _SpawnSpoilsFromComponents(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Single& levelProgress, System.Single& multiplier) [pub]
+  M: SSSGame.StatusEffectManager GetStatusEffectManager() [virt,pub]
+  M: SandSailorStudio.Attributes.AttributeManager GetAttributeManager() [virt,pub]
+  M: System.Boolean KnowsAnvilProcessForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SandSailorStudio.Inventory.BlueprintInfo& bpInfo) [pub]
+  M: System.Void _PlayFx(SSSGame.Combat.FxSetup hitFx, UnityEngine.Vector3& position, UnityEngine.Quaternion& rotation, System.Single& scale) [pub]
+  M: Il2CppSystem.Collections.IEnumerator _DieRotationRoutine(UnityEngine.Quaternion targetRotation) [pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos, UnityEngine.Quaternion& localRot) [virt,pub]
+  M: System.Int32 _GetCurrentFaceParameterId(SSSGame.Combat.DamageData damageData, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: UnityEngine.GameObject SSSGame_Combat_IDamageReceiver_get_gameObject() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Int32 get_c_sendToQuenchingEventId() [static,pub]
+  M: System.Void set_c_sendToQuenchingEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_anvilHitEventId() [static,pub]
+  M: System.Void set_c_anvilHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_successfulHitEventId() [static,pub]
+  M: System.Void set_c_successfulHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addWeatherInsulation() [static,pub]
+  M: System.Void set_c_addWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_removeWeatherInsulation() [static,pub]
+  M: System.Void set_c_removeWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addQualityRatio() [static,pub]
+  M: System.Void set_c_addQualityRatio(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingSuccessResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingSuccessResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingBusyResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingBusyResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingFullResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingFullResponse(System.Int32 ) [static,pub]
+  M: Il2CppSystem.Action get_OnAnvilHitSuccess() [pub]
+  M: System.Void set_OnAnvilHitSuccess(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemCookedChanged() [pub]
+  M: System.Void set_OnHotItemCookedChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemIntegrityChanged() [pub]
+  M: System.Void set_OnHotItemIntegrityChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> get_OnTakeDamage() [pub]
+  M: System.Void set_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> ) [pub]
+  M: System.Single get_proefficiencyMultiplier() [pub]
+  M: System.Void set_proefficiencyMultiplier(System.Single ) [pub]
+  M: Il2CppSystem.Action get_OnComponentHarvested() [pub]
+  M: System.Void set_OnComponentHarvested(Il2CppSystem.Action ) [pub]
+  M: System.Boolean get__IsConsolidated_k__BackingField() [pub]
+  M: System.Void set__IsConsolidated_k__BackingField(System.Boolean ) [pub]
+  M: System.Int32 get__ConsolidatedFacesCount_k__BackingField() [pub]
+  M: System.Void set__ConsolidatedFacesCount_k__BackingField(System.Int32 ) [pub]
+  M: System.Single get__HotItemCookedRatio_k__BackingField() [pub]
+  M: System.Void set__HotItemCookedRatio_k__BackingField(System.Single ) [pub]
+  M: System.Boolean get_showCraftingWhenEmpty() [pub]
+  M: System.Void set_showCraftingWhenEmpty(System.Boolean ) [pub]
+  M: SSSGame.StorageInteraction get_hiddenBloomStorageInteraction() [pub]
+  M: System.Void set_hiddenBloomStorageInteraction(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_anvilCleanupBehaviour() [pub]
+  M: System.Void set_anvilCleanupBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.InteractionMoveset get_moveset() [pub]
+  M: System.Void set_moveset(SSSGame.InteractionMoveset ) [pub]
+  M: System.Int32 get_rotateAnimationId() [pub]
+  M: System.Void set_rotateAnimationId(System.Int32 ) [pub]
+  M: UnityEngine.Transform get_matchTargetPos() [pub]
+  M: System.Void set_matchTargetPos(UnityEngine.Transform ) [pub]
+  M: UnityEngine.Transform get_matchTargetExitPos() [pub]
+  M: System.Void set_matchTargetExitPos(UnityEngine.Transform ) [pub]
+  M: System.Boolean get_finishSessionAfterEachSide() [pub]
+  M: System.Void set_finishSessionAfterEachSide(System.Boolean ) [pub]
+  M: System.Boolean get_specialToolRequrement() [pub]
+  M: System.Void set_specialToolRequrement(System.Boolean ) [pub]
+  M: System.Int32 get_minToolTier() [pub]
+  M: System.Void set_minToolTier(System.Int32 ) [pub]
+  M: System.Boolean get_importantTool() [pub]
+  M: System.Void set_importantTool(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.ItemContainerComponent get_bloomBlockContainer() [pub]
+  M: System.Void set_bloomBlockContainer(SandSailorStudio.Inventory.ItemContainerComponent ) [pub]
+  M: SSSGame.Render.Pickable get_anvilPickable() [pub]
+  M: System.Void set_anvilPickable(SSSGame.Render.Pickable ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoList get_hotIronList() [pub]
+  M: System.Void set_hotIronList(SandSailorStudio.Inventory.ItemInfoList ) [pub]
+  M: SSSGame.TroughInteraction get_troughInteraction() [pub]
+  M: System.Void set_troughInteraction(SSSGame.TroughInteraction ) [pub]
+  M: SandSailorStudio.Attributes.AttributeManager get_forgeAttributes() [pub]
+  M: System.Void set_forgeAttributes(SandSailorStudio.Attributes.AttributeManager ) [pub]
+  M: SSSGame.Network.NetworkHittable get_hittable() [pub]
+  M: System.Void set_hittable(SSSGame.Network.NetworkHittable ) [pub]
+  M: UnityEngine.Transform get_hitFxPos() [pub]
+  M: System.Void set_hitFxPos(UnityEngine.Transform ) [pub]
+  M: SSSGame.Combat.FxSetup get_hitFx() [pub]
+  M: System.Void set_hitFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.Combat.FxSetup get_successFx() [pub]
+  M: System.Void set_successFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.AnvilInteraction/AnvilEvents get_anvilEvents() [pub]
+  M: System.Void set_anvilEvents(SSSGame.AnvilInteraction/AnvilEvents ) [pub]
+  M: SSSGame.Network.NetworkCubeState get_dieState() [pub]
+  M: System.Void set_dieState(SSSGame.Network.NetworkCubeState ) [pub]
+  M: UnityEngine.Transform get_dieHandleTransform() [pub]
+  M: System.Void set_dieHandleTransform(UnityEngine.Transform ) [pub]
+  M: System.Single get_dieJumpHeight() [pub]
+  M: System.Void set_dieJumpHeight(System.Single ) [pub]
+  M: System.Single get_dieRotateTime() [pub]
+  M: System.Void set_dieRotateTime(System.Single ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_hotDisplayContext() [pub]
+  M: System.Void set_hotDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_coldDisplayContext() [pub]
+  M: System.Void set_coldDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: System.Boolean get_noDisplay() [pub]
+  M: System.Void set_noDisplay(System.Boolean ) [pub]
+  M: SSSGame.AnvilInteraction/DieRotationAxis get_allowedRotationAxis() [pub]
+  M: System.Void set_allowedRotationAxis(SSSGame.AnvilInteraction/DieRotationAxis ) [pub]
+  M: System.Boolean get_alwaysRelativeRotation() [pub]
+  M: System.Void set_alwaysRelativeRotation(System.Boolean ) [pub]
+  M: System.Boolean get_takeIntegrityFromItemInfo() [pub]
+  M: System.Void set_takeIntegrityFromItemInfo(System.Boolean ) [pub]
+  M: System.String get_widgetUseText() [pub]
+  M: System.Void set_widgetUseText(System.String ) [pub]
+  M: System.String get_widgetNoIronText() [pub]
+  M: System.Void set_widgetNoIronText(System.String ) [pub]
+  M: System.String get_widgetColdIronText() [pub]
+  M: System.Void set_widgetColdIronText(System.String ) [pub]
+  M: System.Boolean get_showHarvestHp() [pub]
+  M: System.Void set_showHarvestHp(System.Boolean ) [pub]
+  M: System.Boolean get__isEmpty() [pub]
+  M: System.Void set__isEmpty(System.Boolean ) [pub]
+  M: System.Boolean get__hasHotIron() [pub]
+  M: System.Void set__hasHotIron(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.Item get__hotItem() [pub]
+  M: System.Void set__hotItem(SandSailorStudio.Inventory.Item ) [pub]
+  M: SandSailorStudio.Attributes.Property get__hotIronCooked() [pub]
+  M: System.Void set__hotIronCooked(SandSailorStudio.Attributes.Property ) [pub]
+  M: UnityEngine.GameObject get__displayItem() [pub]
+  M: System.Void set__displayItem(UnityEngine.GameObject ) [pub]
+  M: SandSailorStudio.Attributes.AttributeModifier get__activeForgingHeatLossModifier() [pub]
+  M: System.Void set__activeForgingHeatLossModifier(SandSailorStudio.Attributes.AttributeModifier ) [pub]
+  M: System.Boolean get__weatherInsulationAdded() [pub]
+  M: System.Void set__weatherInsulationAdded(System.Boolean ) [pub]
+  M: UnityEngine.Coroutine get__rotationRoutine() [pub]
+  M: System.Void set__rotationRoutine(UnityEngine.Coroutine ) [pub]
+  M: SSSGame.AnvilCleanupQuest get__cleanupQuest() [pub]
+  M: System.Void set__cleanupQuest(SSSGame.AnvilCleanupQuest ) [pub]
+  M: SSSGame.AI.TieredCategoryFilter get__toolFilter() [pub]
+  M: System.Void set__toolFilter(SSSGame.AI.TieredCategoryFilter ) [pub]
+  M: SSSGame.Network.NetworkSession get__session() [pub]
+  M: System.Void set__session(SSSGame.Network.NetworkSession ) [pub]
+  M: UnityEngine.Vector3 get_dieInitialPosition() [pub]
+  M: System.Void set_dieInitialPosition(UnityEngine.Vector3 ) [pub]
+  M: UnityEngine.Quaternion get_dieInitialRotation() [pub]
+  M: System.Void set_dieInitialRotation(UnityEngine.Quaternion ) [pub]
+
+==================================================================
+C: every member ANYWHERE typed SSSGame.CraftingStationType
+==================================================================
+  SSSGame.CraftingStation :: P: SSSGame.CraftingStationType CraftingType
+  SSSGame.CraftingStation :: M: System.Void set_CraftingType(SSSGame.CraftingStationType ) [pub]
+
+==================================================================
+D: every member ANYWHERE typed SSSGame.Bloomstation
+==================================================================
+  SSSGame.BloomstationAnvilQuest/AnvilQuestData :: P: SSSGame.BloomstationAnvilQuest Quest
+  SSSGame.BloomstationBellowsQuest/BellowsQuestData :: P: SSSGame.BloomstationBellowsQuest Quest
+  SSSGame.BloomstationSupplyQuest/BloomstationSupplyQuestData :: P: SSSGame.BloomstationSupplyQuest Quest
+  SSSGame.BloomstationComplainQuest/BloomstationComplainQuestData :: P: SSSGame.BloomstationComplainQuest Quest
+  SSSGame.BloomstationIdleQuest/BloomstationIdleQuestData :: P: SSSGame.BloomstationIdleQuest Quest
+  SSSGame.BloomstationQuest :: P: SSSGame.Bloomstation bloomstation
+  SSSGame.BloomstationQuest :: M: System.Void set_bloomstation(SSSGame.Bloomstation ) [pub]
+  SSSGame.BloomstationQuest/BloomstationQuestData :: P: SSSGame.BloomstationQuest Quest
+  SSSGame.Bloomstation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Bloomstation/SubstitutedPart> substitutedParts
+  SSSGame.Bloomstation :: P: SSSGame.BloomstationComplainQuest _complainQuest
+  SSSGame.Bloomstation :: P: SSSGame.BloomstationIdleQuest _idleQuest
+  SSSGame.Bloomstation :: P: SSSGame.BloomstationSupplyQuest _supplyQuest
+  SSSGame.Bloomstation :: P: SSSGame.BloomstationBellowsQuest _bellowsQuest
+  SSSGame.Bloomstation :: P: SSSGame.BloomstationAnvilQuest _anvilQuest
+  SSSGame.Bloomstation :: P: Fusion.Changed`1<SSSGame.Bloomstation> field_CompilerControlled_Static_Changed_1_Bloomstation_0
+  SSSGame.Bloomstation :: P: Fusion.ChangedDelegate`1<SSSGame.Bloomstation> field_CompilerControlled_Static_ChangedDelegate_1_Bloomstation_0
+  SSSGame.Bloomstation :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Bloomstation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Bloomstation_0
+  SSSGame.Bloomstation :: M: SSSGame.BloomstationAnvilQuest GetAnvilQuest() [pub]
+  SSSGame.Bloomstation :: M: System.Void set_substitutedParts(Il2CppSystem.Collections.Generic.List`1<SSSGame.Bloomstation/SubstitutedPart> ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set__complainQuest(SSSGame.BloomstationComplainQuest ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set__idleQuest(SSSGame.BloomstationIdleQuest ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set__supplyQuest(SSSGame.BloomstationSupplyQuest ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set__bellowsQuest(SSSGame.BloomstationBellowsQuest ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set__anvilQuest(SSSGame.BloomstationAnvilQuest ) [pub]
+  SSSGame.Bloomstation :: M: System.Void set_field_CompilerControlled_Static_Changed_1_Bloomstation_0(Fusion.Changed`1<SSSGame.Bloomstation> ) [static,pub]
+  SSSGame.Bloomstation :: M: System.Void set_field_CompilerControlled_Static_ChangedDelegate_1_Bloomstation_0(Fusion.ChangedDelegate`1<SSSGame.Bloomstation> ) [static,pub]
+  SSSGame.Bloomstation :: M: System.Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Bloomstation_0(Fusion.NetworkBehaviourCallbacks`1<SSSGame.Bloomstation> ) [static,pub]
+  SSSGame.Network.NetworkBloomStation :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<SSSGame.Network.NetworkBloomStation/NetworkTask> __NetworkTasks
+  SSSGame.Network.NetworkBloomStation :: P: Fusion.Changed`1<SSSGame.Network.NetworkBloomStation> field_CompilerControlled_Static_Changed_1_NetworkBloomStation_0
+  SSSGame.Network.NetworkBloomStation :: P: Fusion.ChangedDelegate`1<SSSGame.Network.NetworkBloomStation> field_CompilerControlled_Static_ChangedDelegate_1_NetworkBloomStation_0
+  SSSGame.Network.NetworkBloomStation :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkBloomStation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkBloomStation_0
+  SSSGame.Network.NetworkBloomStation :: P: Fusion.NetworkArray`1<SSSGame.Network.NetworkBloomStation/NetworkTask> _NetworkTasks
+  SSSGame.Network.NetworkBloomStation :: M: System.Boolean _TryGetNetworkTaskFromTask(SSSGame.AI.WorkstationTaskData task, SSSGame.Network.NetworkBloomStation/NetworkTask& networkTask) [virt,pub]
+  SSSGame.Network.NetworkBloomStation :: M: System.Void set___NetworkTasks(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<SSSGame.Network.NetworkBloomStation/NetworkTask> ) [pub]
+  SSSGame.Network.NetworkBloomStation :: M: System.Void set_field_CompilerControlled_Static_Changed_1_NetworkBloomStation_0(Fusion.Changed`1<SSSGame.Network.NetworkBloomStation> ) [static,pub]
+  SSSGame.Network.NetworkBloomStation :: M: System.Void set_field_CompilerControlled_Static_ChangedDelegate_1_NetworkBloomStation_0(Fusion.ChangedDelegate`1<SSSGame.Network.NetworkBloomStation> ) [static,pub]
+  SSSGame.Network.NetworkBloomStation :: M: System.Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkBloomStation_0(Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkBloomStation> ) [static,pub]
+  SSSGame.Network.NetworkBloomStation/NetworkTask :: M: System.Boolean Equals(SSSGame.Network.NetworkBloomStation/NetworkTask other) [virt,pub]
+  SSSGame.UI.WorkstationTutorialPrompt :: M: System.Void set_bloomStationConfigOverride(SSSGame.UI.TutorialConfig ) [pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: P: Fusion.IElementReaderWriter`1<SSSGame.Network.NetworkBloomStation/NetworkTask> Instance
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: M: SSSGame.Network.NetworkBloomStation/NetworkTask Read(System.Byte* data, System.Int32 index) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: M: SSSGame.Network.NetworkBloomStation/NetworkTask& ReadRef(System.Byte* data, System.Int32 index) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: M: System.Void Write(System.Byte* data, System.Int32 index, SSSGame.Network.NetworkBloomStation/NetworkTask val) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: M: Fusion.IElementReaderWriter`1<SSSGame.Network.NetworkBloomStation/NetworkTask> GetInstance() [static,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr6 :: M: System.Void set_Instance(Fusion.IElementReaderWriter`1<SSSGame.Network.NetworkBloomStation/NetworkTask> ) [static,pub]
+
+DONE

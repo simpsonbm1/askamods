@@ -81,11 +81,10 @@ entry — hauling those items to the station is exactly what the villager's own 
 have done, so they belong there whether or not the craft completes, and sweeping them back would
 recreate the v0.8.0 stall. The success metric is a single unconditional log line per fetch:
 `[CFS] [CFS-SS] STOCKED villager=<name> station=<name> wanted=<n> short=<n> itemsMoved=<n>
-qtyMoved=<n> stillShort=<n>`. The open question a run must answer is whether the villager still
-walks the now-pointless route before crafting, or whether the FSM re-checks the manifest and
-short-circuits. ⚠️ Not yet run in-game.
+qtyMoved=<n> stillShort=<n>`. The villager does not walk the now-pointless route: cycle verdicts
+run overwhelmingly `DIRECT` once the station is stocked (354 of 381 in the 2026-07-28 run).
 
-**v0.9.1 diagnostics** (deployed 2026-07-27, ⚠️ not yet run in-game): Two additions to
+**v0.9.1 diagnostics** (run in-game 2026-07-28): Two additions to
 station-stocker logging. First, a shortfall log line in `CraftTransfer.StockStation`,
 emitted when an item is still short after the candidate loop, gated on
 `TransferDiagnostics`: `[CFS] [CFS-SS] StockStation SHORT: '<item>' need <n>, moved
@@ -101,9 +100,27 @@ and cannot separate a crafting table from its auxiliary stations.
 **Scope ruling (user, 2026-07-27): the stocker must NEVER autofill auxiliary stations —
 crafting tables only.** A transform's demand for its input material is standing rather than
 bounded by a recipe, so an unbounded stocker could drain a settlement's raw stock of one
-material into a single auxiliary station's bin. Implementing the gate needs a
-locale-independent way to tell a table from an auxiliary; `GetName()` cannot, and the
-candidate discriminators are still being established.
+material into a single auxiliary station's bin. The user placed metalworkers in this class
+explicitly (2026-07-28): a metalworker is a transform add-on to a workshop, and its inputs are
+out of scope.
+
+**The discriminator is the blueprint's own class** (Cecil-confirmed 2026-07-28). A fetch quest
+reaches its recipe through an all-public chain: the `CrafterFetchQuest` the stocker already holds
+has native class `CrafterSpecificFetchQuest`, which exposes `craftingProject` (`CraftingProject`)
+→ `craftingQuest` (`CraftingQuest`) → `BlueprintInfo`. Recipe families are separate
+`BlueprintInfo` subclasses, so the station kind is one native-class read:
+
+```
+SandSailorStudio.Inventory.BlueprintInfo
+  └─ SSSGame.CraftBlueprintInfo            (P: SSSGame.CraftInteraction interaction)
+       ├─ SSSGame.ForgingBlueprintInfo     ← metalworker / forge
+       ├─ SSSGame.DyeingBlueprintInfo → SSSGame.PaintingBlueprintInfo
+       └─ SSSGame.WorkshopBlueprintInfo → SSSGame.KnowledgeBlueprintInfo
+```
+
+`SSSGame.ForgingBlueprint : CraftBlueprint` mirrors it on the item side. Which class the ordinary
+workshop crafting-table recipes report — `CraftBlueprintInfo` or `WorkshopBlueprintInfo` — is
+⚠️ pending a run that logs it; excluding the wrong one would disable the working half.
 
 **v0.9.0 first-run result (confirmed in-game 2026-07-27):** The station stocker worked
 in its first in-game run. At `Workshop House 2`, 21 of 28 stock attempts moved items
@@ -114,7 +131,28 @@ villager craft at the table with no supply walk. Across the run, 122
 DIRECT to 20 TOURED. Against that, `Workshop House 4` logged 280 consecutive stock
 attempts all reading `wanted=1 short=1 itemsMoved=0 qtyMoved=0` with `stillShort` of
 1 or 10 (villagers Emmeline, Majvi, Harald), and the user observed thrashing there.
-Which item was short is unknown — v0.9.1's shortfall line exists to answer that.
+
+**v0.9.1 run result (confirmed in-game 2026-07-28):** 476 stock attempts, 26 fully satisfied
+(`stillShort=0`), 33 moving a nonzero quantity; 365 `_OnCraftingSuccess` events; cycle verdicts
+354 `DIRECT` to 27 `TOURED`, and every `TOURED` cycle carries `modPulls=0` (the walk survives
+only where the stocker moved nothing). No managed exceptions. The three shortfall causes,
+separated by the new `settlementCandidates` count:
+- **Settlement genuinely holds none** — 439 of the 457 `SHORT` lines are `'Heavy Pelt'`, all at
+  `Workshop House 4`, all `settlementCandidates=0`, zero counter-examples. Heavy Pelt drops from
+  bears, which the user's villagers cannot hunt (user, 2026-07-28), so the mod is a **bystander**
+  to that loop: vanilla villagers retry an unfulfillable craft identically. Not a defect.
+  `Iron Hammer Head` (6) and `Stone Blade` (2) are the same case.
+- **Out of scope** — 8 `'Hot Iron Bloom'` lines at `Workshop House 2` with
+  `settlementCandidates` of 2 or 4 and nothing moved. Hot Iron Bloom is a forge transform of
+  Iron Bloom, so these are metalworker inputs the scope ruling above excludes.
+- **Real defect** — `'Bark'` (need 45, moved 40 from one container, `settlementCandidates=7`)
+  and `'Stick'` (need 12, moved 10, `settlementCandidates=16`) at `Workshop Hut 6`, in a
+  settlement holding large quantities of both (user, 2026-07-28). The candidate loop tried the
+  remaining 6 and 15 containers and every one returned zero.
+
+`stationObj=` does NOT separate a crafting table from an auxiliary: it reports the prefab clone
+name, and `Workshop House 2` and `Workshop House 4` both read `Workshop_L2(Clone)` while
+`Workshop Hut 6` reads `Workshop_L1(Clone)`. It identifies workshop TIER only.
 
 **Phase 2 diagnostic instrument (v0.6.0, keep enabled while Phase 2 is open):** five read-only
 postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
@@ -204,10 +242,18 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
 - The ledger is one flat list, so two players pulling in overlapping windows could cross-attribute
   (single-player unaffected).
 - Diagnostics all default `true` — flip before any public release.
+- **A failed move is invisible in the log.** `CraftTransfer.MoveContainerToAgent` returns 0 for a
+  failed remove and a refused add alike, and the per-move log line only fires when `moved > 0`,
+  so a candidate that yields nothing leaves no trace. The `Bark`/`Stick` shortfall above is
+  therefore undiagnosed between two live explanations: duplicate candidate entries pointing at
+  one physical container, or the destination station inventory hitting capacity and `AddItems`
+  returning 0 (the code adds any shortfall back to the source). Splitting removed-vs-added in
+  that branch is the diagnostic that decides it.
 
 ## Version history
 - **v0.9.1** — diagnostics only: `StockStation SHORT` line with `settlementCandidates`, and
-  `stationObj=` on the `STOCKED` summary line. ⚠️ Not yet run in-game.
+  `stationObj=` on the `STOCKED` summary line. Run in-game 2026-07-28; separated the three
+  shortfall causes and showed `stationObj` reports workshop tier, not station kind.
 - **v0.9.0** — Phase 2c: stock the station at fetch-start instead of suppressing the fetch. New
   `StationStocker.cs` + `Patches/StationStockPatches.cs` postfix on
   `FSM_FetchCraftingSupplies.OnStateEnter`; new no-ledger `CraftTransfer.StockStation`; new

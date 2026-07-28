@@ -1,0 +1,393 @@
+
+==================================================================
+TYPE: SSSGame.AI.CraftingStationTaskData
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.WorkstationTaskData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SSSGame.DyeingBlueprint dyeingBlueprint
+  P: SSSGame.CraftingStation craftingStation
+  P: System.Boolean refurbishOption
+  P: UnityEngine.Vector2Int _quantityRange
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void .ctor(System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, System.Boolean removable, SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void _RefreshQuantityRange() [pub]
+  M: UnityEngine.Vector2Int GetQuantityRange() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.DyeingBlueprint get_dyeingBlueprint() [pub]
+  M: System.Void set_dyeingBlueprint(SSSGame.DyeingBlueprint ) [pub]
+  M: SSSGame.CraftingStation get_craftingStation() [pub]
+  M: System.Void set_craftingStation(SSSGame.CraftingStation ) [pub]
+  M: System.Boolean get_refurbishOption() [pub]
+  M: System.Void set_refurbishOption(System.Boolean ) [pub]
+  M: UnityEngine.Vector2Int get__quantityRange() [pub]
+  M: System.Void set__quantityRange(UnityEngine.Vector2Int ) [pub]
+
+==================================================================
+TYPE: SSSGame.AI.WorkstationTaskData
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SandSailorStudio.Inventory.ItemInfoQuantity itemInfoQuantity
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> VillagersInCharge
+  P: System.Int32 priority
+  P: System.Boolean isRemovable
+  P: System.Boolean shouldUpdateFromNetwork
+  P: System.Boolean pinnedTask
+  P: Il2CppSystem.Action onDataChanged
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, System.Boolean removable) [pub]
+  M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers) [pub]
+  M: System.Void .ctor(System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers) [pub]
+  M: System.Void .ctor(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void SetPriority(System.Int32 value) [pub]
+  M: System.Boolean CheckDispatcher(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Boolean ShouldBeHidden() [virt,pub]
+  M: UnityEngine.Vector2Int GetQuantityRange() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoQuantity get_itemInfoQuantity() [pub]
+  M: System.Void set_itemInfoQuantity(SandSailorStudio.Inventory.ItemInfoQuantity ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> get_VillagersInCharge() [pub]
+  M: System.Void set_VillagersInCharge(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> ) [pub]
+  M: System.Int32 get_priority() [pub]
+  M: System.Void set_priority(System.Int32 ) [pub]
+  M: System.Boolean get_isRemovable() [pub]
+  M: System.Void set_isRemovable(System.Boolean ) [pub]
+  M: System.Boolean get_shouldUpdateFromNetwork() [pub]
+  M: System.Void set_shouldUpdateFromNetwork(System.Boolean ) [pub]
+  M: System.Boolean get_pinnedTask() [pub]
+  M: System.Void set_pinnedTask(System.Boolean ) [pub]
+  M: Il2CppSystem.Action get_onDataChanged() [pub]
+  M: System.Void set_onDataChanged(Il2CppSystem.Action ) [pub]
+
+==================================================================
+TYPE: SSSGame.AI.TaskData
+==================================================================
+  [NOT FOUND]
+
+==================================================================
+TYPE: SSSGame.CraftingQuest
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.CraftingQuest/CraftingQuestData, SSSGame.CraftingQuest/__c__DisplayClass35_0, SSSGame.CraftingQuest/__c__DisplayClass36_0
+  ---- PROPERTIES ----
+  P: SSSGame.AI.TieredCategoryFilter _NeededToolFilter_k__BackingField
+  P: SSSGame.AI.FSM.vFSMBehaviour behaviour
+  P: SSSGame.CraftingStation craftingStation
+  P: System.Int32 depth
+  P: System.Int32 priority
+  P: SandSailorStudio.Inventory.ItemInfoQuantity craftQuota
+  P: SSSGame.CraftingQuest parentQuest
+  P: SandSailorStudio.Inventory.ItemManifest _topLevelTotalParts
+  P: SandSailorStudio.Inventory.ItemManifest _partsManifest
+  P: SandSailorStudio.Inventory.Blueprint _blueprint
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> _subQuests
+  P: SandSailorStudio.Inventory.ItemManifest _suppManifest
+  P: System.Int32 _partsManifestsAdded
+  P: System.Boolean _refurbishOption
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> s_subQuests
+  P: SandSailorStudio.Inventory.BlueprintInfo BlueprintInfo
+  P: SandSailorStudio.Inventory.Blueprint Blueprint
+  P: SandSailorStudio.Inventory.ItemManifest TotalPartsManifest
+  P: SandSailorStudio.Inventory.ItemManifest TopLevelTotalPartsManifest
+  P: SSSGame.AI.TieredCategoryFilter NeededToolFilter
+  P: System.Int32 PartsManifestsNeededToFetch
+  P: System.Boolean RefurbishOption
+  P: System.Int32 Priority
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.BlueprintInfo get_BlueprintInfo() [pub]
+  M: SandSailorStudio.Inventory.Blueprint get_Blueprint() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get_TotalPartsManifest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get_TopLevelTotalPartsManifest() [pub]
+  M: SSSGame.AI.TieredCategoryFilter get_NeededToolFilter() [pub]
+  M: System.Void set_NeededToolFilter(SSSGame.AI.TieredCategoryFilter value) [pub]
+  M: System.Int32 get_PartsManifestsNeededToFetch() [pub]
+  M: System.Boolean get_RefurbishOption() [pub]
+  M: System.Void set_RefurbishOption(System.Boolean value) [pub]
+  M: System.Int32 get_Priority() [pub]
+  M: System.Void set_Priority(System.Int32 value) [pub]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.ItemInfoQuantity craftQuota, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, System.Int32 priority, System.Int32 depth, SSSGame.CraftingQuest parentCraftingQuest) [pub]
+  M: System.Void _CreatePartsSubquests() [pub]
+  M: System.Boolean IsBlueprintRelevantToQuest(SandSailorStudio.Inventory.BlueprintInfo blueprintInfo) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour GetFSMBehavior(SSSGame.AI.QuestData questData) [virt,pub]
+  M: System.Void SetDirty() [virt,pub]
+  M: System.Void OnStationEvent(System.Int32& evId <<BY-REF>>, SandSailorStudio.IEventData evData) [pub]
+  M: System.Boolean RefreshSuppliesManifests() [pub]
+  M: System.Void _AddPartsManifests() [pub]
+  M: System.Void RemovePartsManifest() [pub]
+  M: System.Void PopulateQuestsList(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> quests) [virt,pub]
+  M: System.Single GetResultImportance() [virt,pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: System.Boolean CanCraftAtWorkshop() [virt,pub]
+  M: SSSGame.AI.QuestData CreateQuestData() [virt,pub]
+  M: System.Boolean TryGetFetchDepth(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Int32& depth <<BY-REF>>) [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.AI.TieredCategoryFilter get__NeededToolFilter_k__BackingField() [pub]
+  M: System.Void set__NeededToolFilter_k__BackingField(SSSGame.AI.TieredCategoryFilter ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_behaviour() [pub]
+  M: System.Void set_behaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.CraftingStation get_craftingStation() [pub]
+  M: System.Void set_craftingStation(SSSGame.CraftingStation ) [pub]
+  M: System.Int32 get_depth() [pub]
+  M: System.Void set_depth(System.Int32 ) [pub]
+  M: System.Int32 get_priority() [pub]
+  M: System.Void set_priority(System.Int32 ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoQuantity get_craftQuota() [pub]
+  M: System.Void set_craftQuota(SandSailorStudio.Inventory.ItemInfoQuantity ) [pub]
+  M: SSSGame.CraftingQuest get_parentQuest() [pub]
+  M: System.Void set_parentQuest(SSSGame.CraftingQuest ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__topLevelTotalParts() [pub]
+  M: System.Void set__topLevelTotalParts(SandSailorStudio.Inventory.ItemManifest ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__partsManifest() [pub]
+  M: System.Void set__partsManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+  M: SandSailorStudio.Inventory.Blueprint get__blueprint() [pub]
+  M: System.Void set__blueprint(SandSailorStudio.Inventory.Blueprint ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> get__subQuests() [pub]
+  M: System.Void set__subQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__suppManifest() [pub]
+  M: System.Void set__suppManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+  M: System.Int32 get__partsManifestsAdded() [pub]
+  M: System.Void set__partsManifestsAdded(System.Int32 ) [pub]
+  M: System.Boolean get__refurbishOption() [pub]
+  M: System.Void set__refurbishOption(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> get_s_subQuests() [static,pub]
+  M: System.Void set_s_subQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.CrafterSpecificFetchQuest
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CrafterFetchQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation/CraftingProject craftingProject
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, SSSGame.CraftingStation/CraftingProject craftingProject) [pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftingStation/CraftingProject get_craftingProject() [pub]
+  M: System.Void set_craftingProject(SSSGame.CraftingStation/CraftingProject ) [pub]
+
+==================================================================
+TYPE: SSSGame.CrafterFetchQuest
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.CrafterFetchQuest/CrafterFetchQuestData
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation craftingStation
+  P: SSSGame.AI.FSM.vFSMBehaviour _behaviour
+  P: SandSailorStudio.Inventory.ItemManifest _suppManifest
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour GetFSMBehavior(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SSSGame.AI.QuestData CreateQuestData() [virt,pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftingStation get_craftingStation() [pub]
+  M: System.Void set_craftingStation(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get__behaviour() [pub]
+  M: System.Void set__behaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__suppManifest() [pub]
+  M: System.Void set__suppManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+
+==================================================================
+TYPE: SSSGame.AI.FSM.FSM_FetchCraftingSupplies
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchData, SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchStage
+  ---- PROPERTIES ----
+  P: System.String resultName
+  P: System.Int32 maxSearchDepth
+  P: System.Single worldSearchRange
+  P: System.Single storageSearchRange
+  P: System.Boolean searchWorld
+  P: System.Boolean searchMarkers
+  P: System.Boolean searchStorages
+  P: System.Boolean searchWorldForCompletedObjects
+  P: System.Boolean ignoreHiddenFromResourceGatherers
+  P: System.String categoryName
+  P: System.String defaultName
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.String get_categoryName() [virt,pub]
+  M: System.String get_defaultName() [virt,pub]
+  M: System.Void OnStateEnter(SSSGame.AI.FSM.IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: System.Void OnStateUpdate(SSSGame.AI.FSM.IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: System.Void OnStateExit(SSSGame.AI.FSM.IFSMBehaviourController fsmBehaviour) [virt,pub]
+  M: System.Void _PrepareWorldItemInstance(SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchData actionData, SSSGame.WorldItemInstance wii) [static,pub]
+  M: System.Void _PrepareStorageInteraction(SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchData actionData, SSSGame.StorageInteraction storageIntr) [static,pub]
+  M: System.Void _PrepareGatherInteraction(SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchData actionData, SSSGame.GatherInteraction gatherInteraction) [static,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.String get_resultName() [pub]
+  M: System.Void set_resultName(System.String ) [pub]
+  M: System.Int32 get_maxSearchDepth() [pub]
+  M: System.Void set_maxSearchDepth(System.Int32 ) [pub]
+  M: System.Single get_worldSearchRange() [pub]
+  M: System.Void set_worldSearchRange(System.Single ) [pub]
+  M: System.Single get_storageSearchRange() [pub]
+  M: System.Void set_storageSearchRange(System.Single ) [pub]
+  M: System.Boolean get_searchWorld() [pub]
+  M: System.Void set_searchWorld(System.Boolean ) [pub]
+  M: System.Boolean get_searchMarkers() [pub]
+  M: System.Void set_searchMarkers(System.Boolean ) [pub]
+  M: System.Boolean get_searchStorages() [pub]
+  M: System.Void set_searchStorages(System.Boolean ) [pub]
+  M: System.Boolean get_searchWorldForCompletedObjects() [pub]
+  M: System.Void set_searchWorldForCompletedObjects(System.Boolean ) [pub]
+  M: System.Boolean get_ignoreHiddenFromResourceGatherers() [pub]
+  M: System.Void set_ignoreHiddenFromResourceGatherers(System.Boolean ) [pub]
+
+==================================================================
+B: members typed SSSGame.AI.CraftingStationTaskData
+==================================================================
+  SSSGame.CraftingStation/StudyProject :: P: SSSGame.AI.CraftingStationTaskData taskData
+  SSSGame.CraftingStation/StudyProject :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  SSSGame.CraftingStation/StudyProject :: M: System.Void set_taskData(SSSGame.AI.CraftingStationTaskData ) [pub]
+  SSSGame.CraftingStation/CraftingProject :: P: SSSGame.AI.CraftingStationTaskData taskData
+  SSSGame.CraftingStation/CraftingProject :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  SSSGame.CraftingStation/CraftingProject :: M: System.Void set_taskData(SSSGame.AI.CraftingStationTaskData ) [pub]
+  SSSGame.LiveOps.PlayfabManager :: M: System.Void SendCraftingStationTaskChanged(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData, System.String seed) [pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void OnTaskRefurbishOptionChanged(SSSGame.AI.CraftingStationTaskData task) [pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void OnDyeingOptionChanged(SSSGame.AI.CraftingStationTaskData task) [pub]
+
+==================================================================
+C: members typed CraftInteraction / AnvilInteraction anywhere OUTSIDE
+   the interaction classes themselves (who else holds one)
+==================================================================
+  SSSGame.AnvilCleanupQuest :: P: SSSGame.AnvilInteraction _Anvil_k__BackingField
+  SSSGame.AnvilCleanupQuest :: P: SSSGame.AnvilInteraction Anvil
+  SSSGame.AnvilCleanupQuest :: M: System.Void set_Anvil(SSSGame.AnvilInteraction value) [pub]
+  SSSGame.AnvilCleanupQuest :: M: System.Void .ctor(SSSGame.Workstation workstation, SSSGame.AnvilInteraction anvil, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour) [pub]
+  SSSGame.AnvilCleanupQuest :: M: System.Void set__Anvil_k__BackingField(SSSGame.AnvilInteraction ) [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: P: SSSGame.CraftInteraction _ci
+  SSSGame.CraftingQuest/CraftingQuestData :: M: System.Boolean UsableCraftingTablePredicate(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: M: SSSGame.CraftInteraction FindFreeCraftInteraction() [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: M: System.Void set__ci(SSSGame.CraftInteraction ) [pub]
+  SSSGame.CraftingQuest/__c__DisplayClass35_0 :: M: System.Boolean __ctor_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.CraftingQuest/__c__DisplayClass36_0 :: M: System.Boolean __CreatePartsSubquests_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.AnvilInteraction/__DieRotationRoutine_d__137 :: P: SSSGame.AnvilInteraction __4__this
+  SSSGame.AnvilInteraction/__DieRotationRoutine_d__137 :: M: System.Void set___4__this(SSSGame.AnvilInteraction ) [pub]
+  SSSGame.AnvilInteractionDisplay/__c__DisplayClass6_0 :: P: SSSGame.AnvilInteraction anvilInteraction
+  SSSGame.AnvilInteractionDisplay/__c__DisplayClass6_0 :: M: System.Void set_anvilInteraction(SSSGame.AnvilInteraction ) [pub]
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: P: SSSGame.AnvilInteractionDisplay/__c__DisplayClass6_0 __8__1
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: P: SSSGame.AnvilInteractionDisplay __4__this
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: M: System.Void set___8__1(SSSGame.AnvilInteractionDisplay/__c__DisplayClass6_0 ) [pub]
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: M: System.Void set___4__this(SSSGame.AnvilInteractionDisplay ) [pub]
+  SSSGame.Bloomstation :: P: SSSGame.AnvilInteraction anvil
+  SSSGame.Bloomstation :: M: System.Void set_anvil(SSSGame.AnvilInteraction ) [pub]
+  SSSGame.CarpenterInteraction/CarpentryDisplay :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay/Side> sides
+  SSSGame.CarpenterInteraction/CarpentryDisplay :: M: System.Boolean TryGetSideForAttribute(System.Int32& attrId <<BY-REF>>, SSSGame.CarpenterInteraction/CarpentryDisplay/Side& side <<BY-REF>>) [pub]
+  SSSGame.CarpenterInteraction/CarpentryDisplay :: M: System.Void set_sides(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay/Side> ) [pub]
+  SSSGame.CraftInteractionDisplay/__c__DisplayClass10_0 :: P: SSSGame.CraftInteraction craftInteraction
+  SSSGame.CraftInteractionDisplay/__c__DisplayClass10_0 :: M: System.Void set_craftInteraction(SSSGame.CraftInteraction ) [pub]
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: P: SSSGame.CraftInteractionDisplay/__c__DisplayClass10_0 __8__1
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: P: SSSGame.CraftInteractionDisplay __4__this
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: M: System.Void set___8__1(SSSGame.CraftInteractionDisplay/__c__DisplayClass10_0 ) [pub]
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: M: System.Void set___4__this(SSSGame.CraftInteractionDisplay ) [pub]
+  SSSGame.CraftingAgent :: P: SSSGame.CraftInteraction _activeInteraction
+  SSSGame.CraftingAgent :: P: SSSGame.CraftInteraction ActiveInteraction
+  SSSGame.CraftingAgent :: M: System.Void set__activeInteraction(SSSGame.CraftInteraction ) [pub]
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> _craftingTables
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> _anvils
+  SSSGame.CraftingStation :: M: SSSGame.CraftInteraction FindCraftingTable(Il2CppSystem.Predicate`1<SSSGame.CraftInteraction> predicate) [pub]
+  SSSGame.CraftingStation :: M: System.Void set__craftingTables(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> ) [pub]
+  SSSGame.CraftingStation :: M: System.Void set__anvils(Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> ) [pub]
+  SSSGame.HarboringStation :: P: SSSGame.CarpenterInteraction cuttingRackInteraction
+  SSSGame.HarboringStation :: M: System.Void set_cuttingRackInteraction(SSSGame.CarpenterInteraction ) [pub]
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: P: SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession/AnvilMode _anvilMode
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: P: SSSGame.PlayerAnvilInteractionConfig Config
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: P: SSSGame.AnvilInteraction Interaction
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: M: System.Void set_Config(SSSGame.PlayerAnvilInteractionConfig value) [pub]
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: M: System.Void set_Interaction(SSSGame.AnvilInteraction value) [pub]
+  SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession :: M: System.Void set__anvilMode(SSSGame.PlayerAnvilInteractionConfig/PlayerAnvilInteractionSession/AnvilMode ) [pub]
+  SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession :: P: SSSGame.PlayerCraftInteractionConfig CraftConfig
+  SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession :: P: SSSGame.CraftInteraction CraftInteraction
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: P: SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession/AnvilMode _anvilMode
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: P: SSSGame.VillagerAnvilInteractionConfig Config
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: P: SSSGame.AnvilInteraction Interaction
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: M: System.Void set_Config(SSSGame.VillagerAnvilInteractionConfig value) [pub]
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: M: System.Void set_Interaction(SSSGame.AnvilInteraction value) [pub]
+  SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession :: M: System.Void set__anvilMode(SSSGame.VillagerAnvilInteractionConfig/VillagerAnvilInteractionSession/AnvilMode ) [pub]
+  SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession :: P: SSSGame.VillagerCraftInteractionConfig CraftConfig
+  SSSGame.VillagerCraftInteractionConfig/VillagerCraftSession :: P: SSSGame.CraftInteraction CraftInteraction
+  SSSGame.CraftBlueprintInfo :: P: SSSGame.CraftInteraction interaction
+  SSSGame.CraftBlueprintInfo :: M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  SSSGame.Network.NetworkCubeState :: P: SSSGame.AnvilInteraction/DieRotationAxis lastAxis
+  SSSGame.Network.NetworkCubeState :: M: System.Void StartMoving(SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  SSSGame.Network.NetworkCubeState :: M: System.Void Rpc_StartMoving(SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  SSSGame.Network.NetworkCubeState :: M: System.Void set_lastAxis(SSSGame.AnvilInteraction/DieRotationAxis ) [pub]
+  SSSGame.UI.BuildPreviewTabPage :: M: Il2CppSystem.Collections.IEnumerator _WaitForCraftInteraction() [pub]
+  SSSGame.UI.BuildPreviewTabPage/__c__DisplayClass38_0 :: P: SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession session
+  SSSGame.UI.BuildPreviewTabPage/__c__DisplayClass38_0 :: M: System.Boolean __WaitForCraftInteraction_b__0() [pub]
+  SSSGame.UI.BuildPreviewTabPage/__c__DisplayClass38_0 :: M: System.Void set_session(SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession ) [pub]
+  SSSGame.UI.BuildPreviewTabPage/__WaitForCraft_d__39 :: P: SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession _playerCraftSession_5__2
+  SSSGame.UI.BuildPreviewTabPage/__WaitForCraft_d__39 :: M: System.Void set__playerCraftSession_5__2(SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession ) [pub]
+  SSSGame.UI.CraftMenu :: M: SSSGame.CraftInteraction GetCraftInteraction() [pub]
+  SSSGame.UI.CraftMenu :: M: SSSGame.PlayerCraftInteractionConfig/PlayerCraftInteractionSession GetSession() [pub]
+  SSSGame.AI.FSM.FSM_UseBloomeryAnvil/AnvilData :: P: SSSGame.AnvilInteraction interaction
+  SSSGame.AI.FSM.FSM_UseBloomeryAnvil/AnvilData :: M: System.Void set_interaction(SSSGame.AnvilInteraction ) [pub]
+  SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeData :: P: SSSGame.CraftInteraction interaction
+  SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeData :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> craftingTables
+  SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeData :: M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  SSSGame.AI.FSM.FSM_CraftDyes/CraftDyeData :: M: System.Void set_craftingTables(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> ) [pub]
+  SSSGame.AI.FSM.FSM_CraftDyes/__c__DisplayClass8_0 :: M: System.Boolean _OnStateUpdate_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.AI.FSM.FSM_CraftDyes/__c__DisplayClass8_0 :: M: System.Boolean _OnStateUpdate_b__1(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.AI.FSM.FSM_FetchDyeParts/__c__DisplayClass11_0 :: M: System.Boolean _OnStateUpdate_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: P: SSSGame.CraftInteraction interaction
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingData :: P: SSSGame.DyeingInteraction interaction
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingData :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.DyeingInteraction> dyers
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingData :: M: System.Void set_interaction(SSSGame.DyeingInteraction ) [pub]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingData :: M: System.Void set_dyers(Il2CppSystem.Collections.Generic.List`1<SSSGame.DyeingInteraction> ) [pub]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/__c__DisplayClass8_0 :: M: System.Boolean _OnStateUpdate_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/__c__DisplayClass8_1 :: M: System.Boolean _OnStateUpdate_b__1(SSSGame.DyeingInteraction ci) [pub]
+
+==================================================================
+D: SSSGame.CraftingStation members matching Project|Table|Anvil|Interaction|Kind|Type|Station
+==================================================================
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> craftingProjects
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> studyProjects
+  P: SSSGame.CraftingStationType CraftingType
+  P: SandSailorStudio.Inventory.InventoryComponent stationInventory
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> _craftingTables
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> _studyInteractions
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.StorageSupply,SSSGame.CraftingStation/OutputStorageWrapper> _storageWrappers
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> _anvils
+  P: SSSGame.AI.WorkstationIdleQuest _idleQuest
+  P: Fusion.Changed`1<SSSGame.CraftingStation> field_CompilerControlled_Static_Changed_1_CraftingStation_0
+  P: Fusion.ChangedDelegate`1<SSSGame.CraftingStation> field_CompilerControlled_Static_ChangedDelegate_1_CraftingStation_0
+  P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.CraftingStation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_CraftingStation_0
+  M: System.Void AddTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void RemoveTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Boolean CheckForDuplicateTaskData(SSSGame.AI.WorkstationTaskData newData) [virt,pub]
+  M: SSSGame.StorageInteraction FindInternalStorage(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: SSSGame.StorageInteraction FindStorageInteraction(Il2CppSystem.Func`2<SSSGame.StorageInteraction,System.Boolean> predicate) [virt,pub]
+  M: SSSGame.StudyInteraction FindStudyInteraction(Il2CppSystem.Predicate`1<SSSGame.StudyInteraction> predicate) [pub]
+  M: SSSGame.CraftInteraction FindCraftingTable(Il2CppSystem.Predicate`1<SSSGame.CraftInteraction> predicate) [pub]
+  M: System.Void PopulateStudyInteractionsList(Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> studyInteractions) [pub]
+  M: System.Void _OnStationEvent(System.Int32 arg1, SandSailorStudio.IEventData arg2) [pub]
+  M: System.Void Rpc_ReceiveWhitelistData(Fusion.PlayerRef target, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte> bytes) [pub]
+
+DONE

@@ -1,0 +1,159 @@
+
+==================================================================
+TYPE: SSSGame.CraftBlueprintInfo
+==================================================================
+  BASECHAIN: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- PROPERTIES ----
+  P: System.Single craftVolume
+  P: SSSGame.CraftInteraction interaction
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> blueprintConditionsRules
+  P: System.Boolean availableInTrialVersion
+  P: System.Boolean showUnlockNotification
+  P: SSSGame.Network.NetworkKnowledgeManager _knowledgeManager
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsUnlocked() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> GetAllBlueprintConditionsRules() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemInfo GetItemInfo() [virt,pub]
+  M: System.Boolean UnlockableInTrialMode() [virt,pub]
+  M: System.Void OnUnlock(SSSGame.BlueprintConditionsDatabase database) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Single get_craftVolume() [pub]
+  M: System.Void set_craftVolume(System.Single ) [pub]
+  M: SSSGame.CraftInteraction get_interaction() [pub]
+  M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> get_blueprintConditionsRules() [pub]
+  M: System.Void set_blueprintConditionsRules(Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> ) [pub]
+  M: System.Boolean get_availableInTrialVersion() [pub]
+  M: System.Void set_availableInTrialVersion(System.Boolean ) [pub]
+  M: System.Boolean get_showUnlockNotification() [pub]
+  M: System.Void set_showUnlockNotification(System.Boolean ) [pub]
+  M: SSSGame.Network.NetworkKnowledgeManager get__knowledgeManager() [pub]
+  M: System.Void set__knowledgeManager(SSSGame.Network.NetworkKnowledgeManager ) [pub]
+
+==================================================================
+TYPE: SandSailorStudio.Inventory.BlueprintInfo
+==================================================================
+  BASECHAIN: SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- PROPERTIES ----
+  P: SandSailorStudio.Inventory.ItemInfo result
+  P: System.Int32 quantity
+  P: SandSailorStudio.Inventory.ItemInfoQuantity cost
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoQuantity> parts
+  P: System.Boolean autoConstruct
+  P: System.Boolean consumeOnUse
+  P: System.String Name
+  P: System.Boolean Localized
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean CanBeAcquired(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: System.Boolean CanBeUsed(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: System.Int32 NeedsPart(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+  M: System.String get_Name() [virt,pub]
+  M: System.Single GetAvailablePartsPercent(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: System.Void FillManifest(SandSailorStudio.Inventory.ItemManifest manifest, System.Int32& multiplier) [virt,pub]
+  M: System.Int32 _GetPartsCount(SandSailorStudio.Inventory.ItemCollection container) [pub]
+  M: System.Boolean _CheckParts(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: System.Boolean _CheckCost(SandSailorStudio.Inventory.ItemCollection container) [pub]
+  M: System.String Loc(System.String keyToken, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray interpStrings) [virt,pub]
+  M: System.String GetKey(System.String token) [virt,pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.String,System.String> GetLocalizationStrings() [virt,pub]
+  M: System.Boolean get_Localized() [virt,pub]
+  M: System.Void set_Localized(System.Boolean value) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.String Loc(System.String keyToken, System.String[] interpStrings) [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SandSailorStudio.Inventory.ItemInfo get_result() [pub]
+  M: System.Void set_result(SandSailorStudio.Inventory.ItemInfo ) [pub]
+  M: System.Int32 get_quantity() [pub]
+  M: System.Void set_quantity(System.Int32 ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoQuantity get_cost() [pub]
+  M: System.Void set_cost(SandSailorStudio.Inventory.ItemInfoQuantity ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoQuantity> get_parts() [pub]
+  M: System.Void set_parts(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoQuantity> ) [pub]
+  M: System.Boolean get_autoConstruct() [pub]
+  M: System.Void set_autoConstruct(System.Boolean ) [pub]
+  M: System.Boolean get_consumeOnUse() [pub]
+  M: System.Void set_consumeOnUse(System.Boolean ) [pub]
+
+==================================================================
+TYPE: SandSailorStudio.Inventory.Blueprint
+==================================================================
+  BASECHAIN: SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- PROPERTIES ----
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Boolean Use(UnityEngine.GameObject target) [virt,pub]
+  M: System.Void FillPartsManifest(SandSailorStudio.Inventory.ItemManifest itemManifest) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemInfo GetResultInfo() [pub]
+  M: System.Int32 GetResultQuantity() [pub]
+  M: System.Void _OnPartItemAdded(SandSailorStudio.Inventory.Item item, System.Int32 quantity) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.AnvilBlueprintInfo
+==================================================================
+  [NOT FOUND]
+
+==================================================================
+TYPE: SSSGame.CarpenterBlueprintInfo
+==================================================================
+  [NOT FOUND]
+
+==================================================================
+A: EVERY type deriving (transitively) from SandSailorStudio.Inventory.BlueprintInfo
+==================================================================
+  SSSGame.DynamicDimensionTemplate   base=SSSGame.NodeTemplate
+  SSSGame.LootChestTemplate   base=SSSGame.NodeTemplate
+  SSSGame.NodeTemplate   base=SSSGame.StructureTemplate
+  SSSGame.OutpostTemplate   base=SSSGame.NodeTemplate
+  SSSGame.SettlementTemplate   base=SSSGame.NodeTemplate
+  SSSGame.SkewedNodeTemplate   base=SSSGame.NodeTemplate
+  SSSGame.SplineStructureTemplate   base=SSSGame.NodeTemplate
+  SSSGame.WallTemplate   base=SSSGame.StructureTemplate
+  SSSGame.CookingRecipeInfo   base=SandSailorStudio.Inventory.BlueprintInfo
+  SSSGame.CraftBlueprintInfo   base=SandSailorStudio.Inventory.BlueprintInfo
+  SSSGame.CrockpotRecipeInfo   base=SSSGame.CookingRecipeInfo
+  SSSGame.DyeingBlueprintInfo   base=SSSGame.CraftBlueprintInfo
+  SSSGame.ForgingBlueprintInfo   base=SSSGame.CraftBlueprintInfo
+  SSSGame.KnowledgeBlueprintInfo   base=SSSGame.WorkshopBlueprintInfo
+  SSSGame.PaintingBlueprintInfo   base=SSSGame.DyeingBlueprintInfo
+  SSSGame.StructureTemplate   base=SandSailorStudio.Inventory.BlueprintInfo
+  SSSGame.WorkshopBlueprintInfo   base=SSSGame.CraftBlueprintInfo
+
+==================================================================
+B: EVERY type deriving (transitively) from SandSailorStudio.Inventory.Blueprint
+==================================================================
+  SSSGame.DyeingBlueprint   base=SSSGame.CraftBlueprint
+  SSSGame.ForgingBlueprint   base=SSSGame.CraftBlueprint
+  SSSGame.PaintingBlueprint   base=SSSGame.DyeingBlueprint
+  SSSGame.WorkshopBlueprint   base=SSSGame.CraftBlueprint
+  SSSGame.CookingRecipe   base=SandSailorStudio.Inventory.Blueprint
+  SSSGame.CraftBlueprint   base=SandSailorStudio.Inventory.Blueprint
+  SSSGame.CrockpotRecipe   base=SSSGame.CookingRecipe
+  SSSGame.StructureBlueprint   base=SandSailorStudio.Inventory.Blueprint
+
+==================================================================
+C: members typed CraftBlueprintInfo anywhere
+==================================================================
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: P: SSSGame.CraftBlueprintInfo _bpInfo_5__3
+  SSSGame.AnvilInteractionDisplay/__CraftRoutine_d__6 :: M: System.Void set__bpInfo_5__3(SSSGame.CraftBlueprintInfo ) [pub]
+  SSSGame.CraftInteraction :: P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> _localBlueprints
+  SSSGame.CraftInteraction :: M: System.Void set__localBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> ) [pub]
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: P: SSSGame.CraftBlueprintInfo _bpInfo_5__2
+  SSSGame.CraftInteractionDisplay/__CraftRoutine_d__10 :: M: System.Void set__bpInfo_5__2(SSSGame.CraftBlueprintInfo ) [pub]
+  SSSGame.VillagerOutlet/VillagerSpawningConfiguration :: P: SSSGame.CraftBlueprintInfo summoningInfo
+  SSSGame.VillagerOutlet/VillagerSpawningConfiguration :: M: System.Void set_summoningInfo(SSSGame.CraftBlueprintInfo ) [pub]
+  SSSGame.PlayerCraftInteractionConfig :: P: SSSGame.CraftBlueprintInfo debugBlueprint
+  SSSGame.PlayerCraftInteractionConfig :: M: System.Void set_debugBlueprint(SSSGame.CraftBlueprintInfo ) [pub]
+  SSSGame.Deeds.PlayerCraftingDeedCondition :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CraftBlueprintInfo> blueprintInfos
+  SSSGame.Deeds.PlayerCraftingDeedCondition :: M: System.Void set_blueprintInfos(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CraftBlueprintInfo> ) [pub]
+  SSSGame.Deeds.DeedsDatabase/GameStatistics :: P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.CraftBlueprintInfo,System.Int32> itemsCraftedTable
+  SSSGame.Deeds.DeedsDatabase/GameStatistics :: M: System.Void AddCraft(SSSGame.CraftBlueprintInfo craftBlueprintInfo) [pub]
+  SSSGame.Deeds.DeedsDatabase/GameStatistics :: M: System.Void set_itemsCraftedTable(Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.CraftBlueprintInfo,System.Int32> ) [pub]
+
+DONE

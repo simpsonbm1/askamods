@@ -612,13 +612,38 @@ to metal parts, fibers to linen or thread, hides to leather, wood to planks. A
 settlement can have multiple workshops of the same auxiliary type — e.g. multiple
 carpenters.
 
-**API consequence — station identity:** `CraftingStation.GetName()` returns the
-**building** name (observed values: `Workshop House 4`, `Workshop House 2`,
-`Workshop Hut 6`), so it cannot distinguish a workshop's crafting table from the
-auxiliary stations attached to that same workshop. ⚠️ pending: `station.gameObject.name`
-is the candidate discriminator (logged as `stationObj=` by CraftFromStorageMod v0.9.1) but has
-not yet been read in-game, so the actual object names are unknown and no mod should key off
-them yet.
+**API consequence — station identity.** Neither name distinguishes a workshop's crafting table
+from the auxiliary stations attached to that same workshop:
+- `CraftingStation.GetName()` returns the **building** name (observed: `Workshop House 4`,
+  `Workshop House 2`, `Workshop Hut 6`).
+- `station.gameObject.name` returns the **prefab clone** name, i.e. the workshop TIER (confirmed
+  in-game 2026-07-28: `Workshop House 2` and `Workshop House 4` both read `Workshop_L2(Clone)`,
+  `Workshop Hut 6` reads `Workshop_L1(Clone)`). Do not key station kind off it.
+
+**Ruled out as station-kind discriminators (Cecil 2026-07-28):** `SSSGame.CraftingStationType` is
+only `GROUP` / `INDIVIDUAL`; **nothing derives from `SSSGame.CraftingStation`**, so there is no
+per-kind subclass to test; and `SSSGame.Bloomstation` is a SIBLING of `CraftingStation` under
+`SSSGame.Workstation` with its own `supplyBehaviour`, so it runs a different quest path entirely.
+
+**The working discriminator is the recipe's blueprint class** (Cecil 2026-07-28). Recipe families
+are separate `BlueprintInfo` subclasses, reachable from a crafter fetch quest by an all-public
+chain — `CrafterSpecificFetchQuest.craftingProject` → `CraftingProject.craftingQuest` →
+`CraftingQuest.BlueprintInfo`:
+
+```
+SandSailorStudio.Inventory.BlueprintInfo
+  └─ SSSGame.CraftBlueprintInfo            (P: SSSGame.CraftInteraction interaction)
+       ├─ SSSGame.ForgingBlueprintInfo     ← metalworker / forge
+       ├─ SSSGame.DyeingBlueprintInfo → SSSGame.PaintingBlueprintInfo
+       └─ SSSGame.WorkshopBlueprintInfo → SSSGame.KnowledgeBlueprintInfo
+```
+
+`SSSGame.ForgingBlueprint : CraftBlueprint` mirrors it on the item side. `CraftingStation` holds
+its interactions as `_craftingTables` (`List<CraftInteraction>`) and `_anvils`
+(`List<AnvilInteraction>`); `AnvilInteraction` derives from `Interaction` directly, NOT from
+`CraftInteraction`, and `CarpenterInteraction : AnvilInteraction`. ⚠️ pending: which class the
+ordinary crafting-table recipes report (`CraftBlueprintInfo` vs `WorkshopBlueprintInfo`) has not
+been read in-game.
 
 ### `GatherAndHarvestQuest` — fiber gather can get permanently stuck (confirmed in-game 2026-06-28)
 `GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound(bool value, ItemManifest
