@@ -8,9 +8,9 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) IN PROGRESS — v0.8.0 built, ⚠️ not yet run in-game.** Origin: Nexus request from
-rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
-docs/architecture.md → "Player crafting pipeline".
+(villager half) IN PROGRESS — v0.9.0 built 2026-07-27, ⚠️ not yet run in-game.** Origin: Nexus
+request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem
+facts: docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
 Crafting at a station pulls missing ingredients from any non-blacklisted settlement storage into
@@ -47,6 +47,8 @@ somewhere vanilla already looks, then lets vanilla consume normally.
 | `Transfer/SnapshotTtlSeconds` | `5.0` | Settlement stock snapshot cache lifetime |
 | `Transfer/BlacklistContainerTypes` | see below | Never-drain source containers, by type name |
 | `Transfer/TransferDiagnostics` | `true` | Per-pull / per-sweep logging |
+| `Transfer/StockStationOnFetch` | `true` | v0.9.0 station stocker (Phase 2c) |
+| `Transfer/SuppressFetchQuestPriority` | `false` | Retired v0.8.0 lever, kept behind flag |
 | `UI/ShowSettlementStockInUI` | `true` | Master switch for the requirement-count rewrite |
 | `UI/UiPollSeconds` | `0.2` | Poll tick; also the observed UI update latency |
 | `UI/UiDiagnostics` | `true` | Scoping, hierarchy-dump and rewrite logging |
@@ -62,13 +64,57 @@ input, so the racks are not a real drain risk.
 Villager crafts run the **same pipeline** as the player's (confirmed in-game 2026-07-21):
 `BeginCraftingSequence` fires with session `VillagerCraftSession` / agent `Villager`, and
 `_OnCraftingSuccess` consumes ~865 ms later from the **station** collections while the crafted
-output goes to the villager. So Phase 2 reuses Phase 1's four points rather than inventing a
-mechanism — v0.7.0 added a `Villager` branch to each, pulling into the **station inventory**
-instead of the agent's, with the ledger re-keyed per agent (7 concurrent villager crafts observed).
+output goes to the villager. v0.9.0 stocks the station at fetch-start rather than suppressing the
+quest: let the fetch quest be chosen as vanilla intends, then intercept it the moment it starts
+and teleport the materials into the crafting station, so the walk becomes unnecessary through
+vanilla's own scheduling path.
 
-**What is still missing: the walk.** The villager fetch quest is scheduled independently of the
-craft gate, so widening availability alone changes nothing (see dead-ends). v0.8.0 attacks that by
-suppressing the fetch quest itself — ⚠️ built, not yet run in-game.
+**How v0.9.0 works:** a postfix on `FSM_FetchCraftingSupplies.OnStateEnter` in
+`Patches/StationStockPatches.cs` immediately stocks the station. The resolution chain is:
+`GetQuestData(fsmBehaviour)` gives a base-typed `QuestData`; verify native class is
+`CrafterFetchQuestData` and rewrap by pointer; `.Quest` gives `CrafterFetchQuest`;
+`.craftingStation` gives `CraftingStation`; `GetNeededSuppliesManifest()` is CALLED (never patched
+— its `ItemManifest` return is the inventory-family patch-crash risk); `station.GetInventory()`
+gives the destination `ItemCollection`. The shortfall is computed against the station inventory
+only, then moved by the new `CraftTransfer.StockStation`, which deliberately writes NO ledger
+entry — hauling those items to the station is exactly what the villager's own fetch walk would
+have done, so they belong there whether or not the craft completes, and sweeping them back would
+recreate the v0.8.0 stall. The success metric is a single unconditional log line per fetch:
+`[CFS] [CFS-SS] STOCKED villager=<name> station=<name> wanted=<n> short=<n> itemsMoved=<n>
+qtyMoved=<n> stillShort=<n>`. The open question a run must answer is whether the villager still
+walks the now-pointless route before crafting, or whether the FSM re-checks the manifest and
+short-circuits. ⚠️ Not yet run in-game.
+
+**v0.9.1 diagnostics** (deployed 2026-07-27, ⚠️ not yet run in-game): Two additions to
+station-stocker logging. First, a shortfall log line in `CraftTransfer.StockStation`,
+emitted when an item is still short after the candidate loop, gated on
+`TransferDiagnostics`: `[CFS] [CFS-SS] StockStation SHORT: '<item>' need <n>, moved
+<n>, still short <n> (villager=<name> station=<name>, settlementCandidates=<n>).`
+Before v0.9.1, a shortfall logged nothing, so a failed stock attempt gave no clue
+which item was missing. The `settlementCandidates` count is the metric: zero means
+settlement storage holds none of that item; a count above zero with nothing moved
+means the destination collection refused the items. Second, a `stationObj=` field
+inserted directly after `station=` in the unconditional `STOCKED` summary line, with
+`station.gameObject.name` value, because `GetName()` returns only the building name
+and cannot separate a crafting table from its auxiliary stations.
+
+**Scope ruling (user, 2026-07-27): the stocker must NEVER autofill auxiliary stations —
+crafting tables only.** A transform's demand for its input material is standing rather than
+bounded by a recipe, so an unbounded stocker could drain a settlement's raw stock of one
+material into a single auxiliary station's bin. Implementing the gate needs a
+locale-independent way to tell a table from an auxiliary; `GetName()` cannot, and the
+candidate discriminators are still being established.
+
+**v0.9.0 first-run result (confirmed in-game 2026-07-27):** The station stocker worked
+in its first in-game run. At `Workshop House 2`, 21 of 28 stock attempts moved items
+(sample: `[CFS-SS] StockStation: -1 'Hardwood Long Stick' from Improved Warehouse 4 ->
+station (villager=Barne station=Workshop House 2, still need 0).`). The user watched a
+villager craft at the table with no supply walk. Across the run, 122
+`_OnCraftingSuccess` events fired (zero in v0.8.0), and cycle verdicts split 315
+DIRECT to 20 TOURED. Against that, `Workshop House 4` logged 280 consecutive stock
+attempts all reading `wanted=1 short=1 itemsMoved=0 qtyMoved=0` with `stillShort` of
+1 or 10 (villagers Emmeline, Majvi, Harald), and the user observed thrashing there.
+Which item was short is unknown — v0.9.1's shortfall line exists to answer that.
 
 **Phase 2 diagnostic instrument (v0.6.0, keep enabled while Phase 2 is open):** five read-only
 postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
@@ -104,8 +150,7 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
   and arrives stocked, leaving no shortfall by craft time. **Widening availability is necessary
   but nowhere near sufficient for the villager half.** The fetch is driven by the station's own
   supply manifests (`CraftingStation._minimumFetchManifest`, `GetMinimumFetchManifest()`,
-  `FetchRequirementManifest`, `Workstation.GetItemsNeededFromSettlement()`) consumed via
-  `CrafterFetchQuest.GetNeededSuppliesManifest()`.
+  `FetchRequirementManifest`) consumed via `CrafterFetchQuest.GetNeededSuppliesManifest()`.
 - **✗ Widening the fetch-REACH fields is pointless** (confirmed in-game 2026-07-21).
   `FSM_FetchCraftingSupplies` is already permissive at runtime — `searchStorages=True`,
   `storageSearchRange=100`, `worldSearchRange=20`, `searchWorld=True`, `maxSearchDepth=0` — and
@@ -115,12 +160,37 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
   instance pointer served all five villagers across 231 state entries
   (`FSM_QuestAction : vStateAction : UnityEngine.ScriptableObject`; per-villager data lives in
   `QuestData` via `FSM_QuestAction.GetQuestData`). Any field write on one applies settlement-wide.
-- **⚠️ Never patch the fetch-depth methods** — `CraftingStation.GetFetchDepth(ItemInfo, Int32&)`,
-  `GetPersonalFetchDepth(Villager, ItemInfo, Int32&, Int32&)`, `CraftingQuest.TryGetFetchDepth`.
-  All take by-ref primitives, the project's known-fatal trampoline-NRE family. Read, never detour.
+- **✗ Suppressing the crafter fetch quest's `GetPriority` score stalls crafting completely**
+  (confirmed in-game 2026-07-27). In a 5 minute 49 second run, 704 of 708 `[CFS-P2] CYCLE SUMMARY`
+  lines logged `verdict=DIRECT fetchEnters=0` — the walk really was suppressed — yet all 708
+  logged `modPulls=0`, and no crafting-success marker appeared anywhere in the log. Villagers
+  visibly alternated between sitting down and standing up; villager Gro logged 218 cycles in 349
+  seconds, consecutive cycles 0.6–2.4 seconds apart. The root cause is that the just-in-time pull
+  hangs off `BeginCraftingSequence` (Point C), which the AI scheduler never reaches for a villager
+  standing at an empty station — so suppressing the walk removed the only thing that would ever
+  have stocked it. Record explicitly that the lever itself worked mechanically and the failure was
+  a design problem, not a tuning one: the priority rollup reported `min=-999.9 max=15.5` across
+  the run, so vanilla priorities sit in roughly the −1 to 15.5 range and the mod's −1000 was
+  decisively on the correct end. Suppression fired about 139,000 times across the run (rollup
+  counters `suppressed=39058` of 135113 calls, and `suppressed=100183` of 283665 calls).
+- **Diagnostic rate-limiting note:** the `[CFS-FQ] PRIORITY OBSERVE` lines are rate-limited to the
+  first 20 calls after each 1500 ms idle gap, so the handful of raw lines in a log is a positional
+  sample of the earliest calls per burst and must never be read as representative of the overall
+  suppression rate. Only the `PRIORITY rollup` counters carry that.
+- **⚠️ Never patch the fetch-depth methods** — `CraftingStation.GetFetchDepth()`,
+  `GetPersonalFetchDepth()`, `CraftingQuest.TryGetFetchDepth`. All take by-ref primitives,
+  the project's known-fatal trampoline-NRE family. Read, never detour.
 - **Cecil cannot answer "who calls this" for this game** — interop method bodies are native
   trampolines (`Workstation`: 138 methods, 3153 IL instructions, **2** game-to-game calls). Use
   Cpp2IL or a runtime probe; see architecture.md → IL2CPP interop gotchas.
+- **Confirmed API facts (Cecil 2026-07-27):** `WorkstationQuestData` is nested as
+  `SSSGame.AI.WorkstationQuest/WorkstationQuestData`. `CraftingStation.GetItemManifest()` crashed
+  OuthouseComposterMod, so it stays off-limits. Fetch-depth methods carry by-ref primitives and
+  remain read-only. The actual `ItemManifest` sources are `CrafterFetchQuest.
+  GetNeededSuppliesManifest()`, and on `CraftingStation`: `GetMinimumFetchManifest()`,
+  `get_FetchRequirementManifest()`, `get__minimumFetchManifest()`. `Workstation.
+  GetItemsNeededFromSettlement()` returns `Il2CppSystem.Collections.Generic.List<ItemCategoryInfo>`,
+  not an `ItemManifest`.
 - **Vanilla's displayed `have` already includes the station's own storage**, and the settlement
   snapshot walks that same station, so the station quantity must be netted out or every row
   inflates.
@@ -136,14 +206,21 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
 - Diagnostics all default `true` — flip before any public release.
 
 ## Version history
-- **v0.8.0** — Phase 2 lever 2: suppress the crafter fetch quest. Postfixes `GetPriority(QuestData)`
-  on `CrafterFetchQuest` AND `CrafterSpecificFetchQuest` (the subclass re-declares it), setting
+- **v0.9.1** — diagnostics only: `StockStation SHORT` line with `settlementCandidates`, and
+  `stationObj=` on the `STOCKED` summary line. ⚠️ Not yet run in-game.
+- **v0.9.0** — Phase 2c: stock the station at fetch-start instead of suppressing the fetch. New
+  `StationStocker.cs` + `Patches/StationStockPatches.cs` postfix on
+  `FSM_FetchCraftingSupplies.OnStateEnter`; new no-ledger `CraftTransfer.StockStation`; new
+  `Transfer/StockStationOnFetch` (default true) and `Transfer/SuppressFetchQuestPriority` (default
+  false, retiring the v0.8.0 lever). ⚠️ Not yet run in-game.
+- **v0.8.0** — Phase 2 lever 2: suppress the crafter fetch quest. Postfixes `GetPriority()` on
+  `CrafterFetchQuest` AND `CrafterSpecificFetchQuest` (the subclass re-declares it), setting
   `Transfer/FetchQuestSuppressedPriority` (default −1000) **only when the cached settlement
   snapshot covers the entire needed-supplies manifest** — a villager needing something the mod
   cannot supply stays free to fetch. `GetNeededSuppliesManifest()` is CALLED, never patched
-  (`ItemManifest` return = the risky family). Logs vanilla priority values so the unknown priority
-  scale is learned whichever way the run goes. Also rate-limits the Point A villager line
-  (5619 → a few + rollup). ⚠️ Not yet run in-game.
+  (`ItemManifest` return = the risky family). Logs vanilla priority values. Also rate-limits the
+  Point A villager line (5619 → a few + rollup). Confirmed in-game 2026-07-27 to stall crafting
+  entirely; retired behind `SuppressFetchQuestPriority` (default false).
 - **v0.7.1** — per-villager correlation: `villager=<name>` on every `[CFS-V]` line, plus
   `modPulls=`/`modItemsPulled=` appended to the `[CFS-P2] CYCLE SUMMARY` line.
 - **v0.7.0** — Phase 2 lever 1: `Villager` branch on all four Phase 1 points under

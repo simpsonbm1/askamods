@@ -1,0 +1,586 @@
+==================================================================
+A: TYPES DERIVING (transitively) FROM SSSGame.Interaction, name-filtered
+   to Craft|Anvil|Curing|Study|Dye|Loom|Tan|Forge|Smelt|Saw|Plank|Weav
+==================================================================
+  SSSGame.AnvilInteraction   base=SSSGame.CraftInteraction
+  SSSGame.CraftInteraction   base=SSSGame.Interaction
+  SSSGame.DyeingInteraction   base=SSSGame.CraftInteraction
+  SSSGame.ForgeInteraction   base=SSSGame.CookingInteraction
+  SSSGame.StudyInteraction   base=SSSGame.StorageInteraction
+
+==================================================================
+B: EVERY type deriving from SSSGame.CraftInteraction / SSSGame.AnvilInteraction
+==================================================================
+
+--- derived from SSSGame.CraftInteraction ---
+  SSSGame.AnvilInteraction   base=SSSGame.CraftInteraction
+  SSSGame.CarpenterInteraction   base=SSSGame.AnvilInteraction
+  SSSGame.DyeingInteraction   base=SSSGame.CraftInteraction
+
+--- derived from SSSGame.AnvilInteraction ---
+  SSSGame.CarpenterInteraction   base=SSSGame.AnvilInteraction
+
+==================================================================
+TYPE: SSSGame.AnvilInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.AnvilInteraction/AnvilEvents, SSSGame.AnvilInteraction/DieRotationAxis, SSSGame.AnvilInteraction/__c__DisplayClass118_0, SSSGame.AnvilInteraction/__DieRotationRoutine_d__137
+  ---- PROPERTIES ----
+  P: System.Int32 c_sendToQuenchingEventId
+  P: System.Int32 c_anvilHitEventId
+  P: System.Int32 c_successfulHitEventId
+  P: System.Int32 c_addWeatherInsulation
+  P: System.Int32 c_removeWeatherInsulation
+  P: System.Int32 c_addQualityRatio
+  P: System.Int32 c_sendToQuenchingSuccessResponse
+  P: System.Int32 c_sendToQuenchingBusyResponse
+  P: System.Int32 c_sendToQuenchingFullResponse
+  P: Il2CppSystem.Action OnAnvilHitSuccess
+  P: Il2CppSystem.Action OnHotItemCookedChanged
+  P: Il2CppSystem.Action OnHotItemIntegrityChanged
+  P: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> OnTakeDamage
+  P: System.Single proefficiencyMultiplier
+  P: Il2CppSystem.Action OnComponentHarvested
+  P: System.Boolean _IsConsolidated_k__BackingField
+  P: System.Int32 _ConsolidatedFacesCount_k__BackingField
+  P: System.Single _HotItemCookedRatio_k__BackingField
+  P: System.Boolean showCraftingWhenEmpty
+  P: SSSGame.StorageInteraction hiddenBloomStorageInteraction
+  P: SSSGame.AI.FSM.vFSMBehaviour anvilCleanupBehaviour
+  P: SSSGame.InteractionMoveset moveset
+  P: System.Int32 rotateAnimationId
+  P: UnityEngine.Transform matchTargetPos
+  P: UnityEngine.Transform matchTargetExitPos
+  P: System.Boolean finishSessionAfterEachSide
+  P: System.Boolean specialToolRequrement
+  P: System.Int32 minToolTier
+  P: System.Boolean importantTool
+  P: SandSailorStudio.Inventory.ItemContainerComponent bloomBlockContainer
+  P: SSSGame.Render.Pickable anvilPickable
+  P: SandSailorStudio.Inventory.ItemInfoList hotIronList
+  P: SSSGame.TroughInteraction troughInteraction
+  P: SandSailorStudio.Attributes.AttributeManager forgeAttributes
+  P: SSSGame.Network.NetworkHittable hittable
+  P: UnityEngine.Transform hitFxPos
+  P: SSSGame.Combat.FxSetup hitFx
+  P: SSSGame.Combat.FxSetup successFx
+  P: SSSGame.AnvilInteraction/AnvilEvents anvilEvents
+  P: SSSGame.Network.NetworkCubeState dieState
+  P: UnityEngine.Transform dieHandleTransform
+  P: System.Single dieJumpHeight
+  P: System.Single dieRotateTime
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext hotDisplayContext
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext coldDisplayContext
+  P: System.Boolean noDisplay
+  P: SSSGame.AnvilInteraction/DieRotationAxis allowedRotationAxis
+  P: System.Boolean alwaysRelativeRotation
+  P: System.Boolean takeIntegrityFromItemInfo
+  P: System.String widgetUseText
+  P: System.String widgetNoIronText
+  P: System.String widgetColdIronText
+  P: System.Boolean showHarvestHp
+  P: System.Boolean _isEmpty
+  P: System.Boolean _hasHotIron
+  P: SandSailorStudio.Inventory.Item _hotItem
+  P: SandSailorStudio.Attributes.Property _hotIronCooked
+  P: UnityEngine.GameObject _displayItem
+  P: SandSailorStudio.Attributes.AttributeModifier _activeForgingHeatLossModifier
+  P: System.Boolean _weatherInsulationAdded
+  P: UnityEngine.Coroutine _rotationRoutine
+  P: SSSGame.AnvilCleanupQuest _cleanupQuest
+  P: SSSGame.AI.TieredCategoryFilter _toolFilter
+  P: SSSGame.Network.NetworkSession _session
+  P: UnityEngine.Vector3 dieInitialPosition
+  P: UnityEngine.Quaternion dieInitialRotation
+  P: System.Int32 TeamId
+  P: SSSGame.Combat.IAttackTarget AttackTarget
+  P: System.Boolean FriendlyDamageFromPlayer
+  P: System.Single ProefficiencyGainMultiplier
+  P: System.Boolean IsEmpty
+  P: System.Boolean HasHotIron
+  P: System.Boolean IsConsolidated
+  P: System.Int32 ConsolidatedFacesCount
+  P: System.Single HotItemCookedRatio
+  P: Fusion.NetworkObject NetworkObject
+  P: UnityEngine.GameObject SSSGame.Combat.IDamageReceiver.gameObject
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void add_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Void remove_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Int32 get_TeamId() [virt,pub]
+  M: SSSGame.Combat.IAttackTarget get_AttackTarget() [virt,pub]
+  M: System.Boolean get_FriendlyDamageFromPlayer() [virt,pub]
+  M: System.Single get_ProefficiencyGainMultiplier() [virt,pub]
+  M: System.Boolean get_IsEmpty() [pub]
+  M: System.Void set_IsEmpty(System.Boolean value) [pub]
+  M: System.Boolean get_HasHotIron() [pub]
+  M: System.Void set_HasHotIron(System.Boolean value) [pub]
+  M: System.Boolean get_IsConsolidated() [pub]
+  M: System.Void set_IsConsolidated(System.Boolean value) [pub]
+  M: System.Int32 get_ConsolidatedFacesCount() [pub]
+  M: System.Void set_ConsolidatedFacesCount(System.Int32 value) [pub]
+  M: System.Single get_HotItemCookedRatio() [pub]
+  M: System.Void set_HotItemCookedRatio(System.Single value) [pub]
+  M: Fusion.NetworkObject get_NetworkObject() [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void _OnRemoteDieStartedMoving() [pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Void UseForgingBlueprint(SSSGame.IInteractionAgent agent, SSSGame.ForgingBlueprint fbp) [pub]
+  M: SandSailorStudio.Inventory.IItemFilter GetRequiredToolFilter() [pub]
+  M: System.Void InstantQuenchHere(SSSGame.IInteractionAgent agent) [pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range <<BY-REF>>) [virt,pub]
+  M: System.Void SendToQuenching(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _BloomContainer_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _BloomContainer_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _OnHotIronCookedChanged() [pub]
+  M: System.Void _OnHotIronIntegrityChanged() [pub]
+  M: SSSGame.InteractionStartMode GetStartMode(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void RotateBillet(SSSGame.AnvilInteraction/DieRotationAxis& axis <<BY-REF>>) [pub]
+  M: UnityEngine.Quaternion _GetNextRotation(UnityEngine.Quaternion& currentRotation <<BY-REF>>, SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  M: System.Void _SendToQuenchingInternal(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughBusyMessage(SSSGame.IInteractionAgent agent, Fusion.NetworkId busyInteractor) [pub]
+  M: System.Void _ShowSuccessMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughFullMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _RemoveWeatherInsulationInternal() [pub]
+  M: System.Void _AddWeatherInsulationInternal() [pub]
+  M: System.Void _OnInteractorsChanged(SSSGame.Interaction interaction, System.Int32 interactorsCount, SSSGame.IInteractionAgent lastInteractor, SSSGame.Network.INetworkInteractable/Request/Type lastRequestType) [pub]
+  M: System.Void _OnHittableHit(SSSGame.Network.NetworkHittable/HitInfo obj) [pub]
+  M: System.Single GetHarvestHitPoints() [virt,pub]
+  M: System.Single GetMaxHarvestHitPoints() [virt,pub]
+  M: System.Void SimulateSuccessfulHit() [pub]
+  M: System.Void TakeDamage(SSSGame.Combat.DamageData damage) [virt,pub]
+  M: System.Void _DoQualityChangeInternal(System.Single& profRatio <<BY-REF>>) [pub]
+  M: System.Int32 _GetSidesCount(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Void _SpawnSpoilsFromComponents(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Single& levelProgress <<BY-REF>>, System.Single& multiplier <<BY-REF>>) [pub]
+  M: SSSGame.StatusEffectManager GetStatusEffectManager() [virt,pub]
+  M: SandSailorStudio.Attributes.AttributeManager GetAttributeManager() [virt,pub]
+  M: System.Boolean KnowsAnvilProcessForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SandSailorStudio.Inventory.BlueprintInfo& bpInfo <<BY-REF>>) [pub]
+  M: System.Void _PlayFx(SSSGame.Combat.FxSetup hitFx, UnityEngine.Vector3& position <<BY-REF>>, UnityEngine.Quaternion& rotation <<BY-REF>>, System.Single& scale <<BY-REF>>) [pub]
+  M: Il2CppSystem.Collections.IEnumerator _DieRotationRoutine(UnityEngine.Quaternion targetRotation) [pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos <<BY-REF>>, UnityEngine.Quaternion& localRot <<BY-REF>>) [virt,pub]
+  M: System.Int32 _GetCurrentFaceParameterId(SSSGame.Combat.DamageData damageData, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: UnityEngine.GameObject SSSGame_Combat_IDamageReceiver_get_gameObject() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Int32 get_c_sendToQuenchingEventId() [static,pub]
+  M: System.Void set_c_sendToQuenchingEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_anvilHitEventId() [static,pub]
+  M: System.Void set_c_anvilHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_successfulHitEventId() [static,pub]
+  M: System.Void set_c_successfulHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addWeatherInsulation() [static,pub]
+  M: System.Void set_c_addWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_removeWeatherInsulation() [static,pub]
+  M: System.Void set_c_removeWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addQualityRatio() [static,pub]
+  M: System.Void set_c_addQualityRatio(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingSuccessResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingSuccessResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingBusyResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingBusyResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingFullResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingFullResponse(System.Int32 ) [static,pub]
+  M: Il2CppSystem.Action get_OnAnvilHitSuccess() [pub]
+  M: System.Void set_OnAnvilHitSuccess(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemCookedChanged() [pub]
+  M: System.Void set_OnHotItemCookedChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemIntegrityChanged() [pub]
+  M: System.Void set_OnHotItemIntegrityChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> get_OnTakeDamage() [pub]
+  M: System.Void set_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> ) [pub]
+  M: System.Single get_proefficiencyMultiplier() [pub]
+  M: System.Void set_proefficiencyMultiplier(System.Single ) [pub]
+  M: Il2CppSystem.Action get_OnComponentHarvested() [pub]
+  M: System.Void set_OnComponentHarvested(Il2CppSystem.Action ) [pub]
+  M: System.Boolean get__IsConsolidated_k__BackingField() [pub]
+  M: System.Void set__IsConsolidated_k__BackingField(System.Boolean ) [pub]
+  M: System.Int32 get__ConsolidatedFacesCount_k__BackingField() [pub]
+  M: System.Void set__ConsolidatedFacesCount_k__BackingField(System.Int32 ) [pub]
+  M: System.Single get__HotItemCookedRatio_k__BackingField() [pub]
+  M: System.Void set__HotItemCookedRatio_k__BackingField(System.Single ) [pub]
+  M: System.Boolean get_showCraftingWhenEmpty() [pub]
+  M: System.Void set_showCraftingWhenEmpty(System.Boolean ) [pub]
+  M: SSSGame.StorageInteraction get_hiddenBloomStorageInteraction() [pub]
+  M: System.Void set_hiddenBloomStorageInteraction(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_anvilCleanupBehaviour() [pub]
+  M: System.Void set_anvilCleanupBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.InteractionMoveset get_moveset() [pub]
+  M: System.Void set_moveset(SSSGame.InteractionMoveset ) [pub]
+  M: System.Int32 get_rotateAnimationId() [pub]
+  M: System.Void set_rotateAnimationId(System.Int32 ) [pub]
+  M: UnityEngine.Transform get_matchTargetPos() [pub]
+  M: System.Void set_matchTargetPos(UnityEngine.Transform ) [pub]
+  M: UnityEngine.Transform get_matchTargetExitPos() [pub]
+  M: System.Void set_matchTargetExitPos(UnityEngine.Transform ) [pub]
+  M: System.Boolean get_finishSessionAfterEachSide() [pub]
+  M: System.Void set_finishSessionAfterEachSide(System.Boolean ) [pub]
+  M: System.Boolean get_specialToolRequrement() [pub]
+  M: System.Void set_specialToolRequrement(System.Boolean ) [pub]
+  M: System.Int32 get_minToolTier() [pub]
+  M: System.Void set_minToolTier(System.Int32 ) [pub]
+  M: System.Boolean get_importantTool() [pub]
+  M: System.Void set_importantTool(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.ItemContainerComponent get_bloomBlockContainer() [pub]
+  M: System.Void set_bloomBlockContainer(SandSailorStudio.Inventory.ItemContainerComponent ) [pub]
+  M: SSSGame.Render.Pickable get_anvilPickable() [pub]
+  M: System.Void set_anvilPickable(SSSGame.Render.Pickable ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoList get_hotIronList() [pub]
+  M: System.Void set_hotIronList(SandSailorStudio.Inventory.ItemInfoList ) [pub]
+  M: SSSGame.TroughInteraction get_troughInteraction() [pub]
+  M: System.Void set_troughInteraction(SSSGame.TroughInteraction ) [pub]
+  M: SandSailorStudio.Attributes.AttributeManager get_forgeAttributes() [pub]
+  M: System.Void set_forgeAttributes(SandSailorStudio.Attributes.AttributeManager ) [pub]
+  M: SSSGame.Network.NetworkHittable get_hittable() [pub]
+  M: System.Void set_hittable(SSSGame.Network.NetworkHittable ) [pub]
+  M: UnityEngine.Transform get_hitFxPos() [pub]
+  M: System.Void set_hitFxPos(UnityEngine.Transform ) [pub]
+  M: SSSGame.Combat.FxSetup get_hitFx() [pub]
+  M: System.Void set_hitFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.Combat.FxSetup get_successFx() [pub]
+  M: System.Void set_successFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.AnvilInteraction/AnvilEvents get_anvilEvents() [pub]
+  M: System.Void set_anvilEvents(SSSGame.AnvilInteraction/AnvilEvents ) [pub]
+  M: SSSGame.Network.NetworkCubeState get_dieState() [pub]
+  M: System.Void set_dieState(SSSGame.Network.NetworkCubeState ) [pub]
+  M: UnityEngine.Transform get_dieHandleTransform() [pub]
+  M: System.Void set_dieHandleTransform(UnityEngine.Transform ) [pub]
+  M: System.Single get_dieJumpHeight() [pub]
+  M: System.Void set_dieJumpHeight(System.Single ) [pub]
+  M: System.Single get_dieRotateTime() [pub]
+  M: System.Void set_dieRotateTime(System.Single ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_hotDisplayContext() [pub]
+  M: System.Void set_hotDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_coldDisplayContext() [pub]
+  M: System.Void set_coldDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: System.Boolean get_noDisplay() [pub]
+  M: System.Void set_noDisplay(System.Boolean ) [pub]
+  M: SSSGame.AnvilInteraction/DieRotationAxis get_allowedRotationAxis() [pub]
+  M: System.Void set_allowedRotationAxis(SSSGame.AnvilInteraction/DieRotationAxis ) [pub]
+  M: System.Boolean get_alwaysRelativeRotation() [pub]
+  M: System.Void set_alwaysRelativeRotation(System.Boolean ) [pub]
+  M: System.Boolean get_takeIntegrityFromItemInfo() [pub]
+  M: System.Void set_takeIntegrityFromItemInfo(System.Boolean ) [pub]
+  M: System.String get_widgetUseText() [pub]
+  M: System.Void set_widgetUseText(System.String ) [pub]
+  M: System.String get_widgetNoIronText() [pub]
+  M: System.Void set_widgetNoIronText(System.String ) [pub]
+  M: System.String get_widgetColdIronText() [pub]
+  M: System.Void set_widgetColdIronText(System.String ) [pub]
+  M: System.Boolean get_showHarvestHp() [pub]
+  M: System.Void set_showHarvestHp(System.Boolean ) [pub]
+  M: System.Boolean get__isEmpty() [pub]
+  M: System.Void set__isEmpty(System.Boolean ) [pub]
+  M: System.Boolean get__hasHotIron() [pub]
+  M: System.Void set__hasHotIron(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.Item get__hotItem() [pub]
+  M: System.Void set__hotItem(SandSailorStudio.Inventory.Item ) [pub]
+  M: SandSailorStudio.Attributes.Property get__hotIronCooked() [pub]
+  M: System.Void set__hotIronCooked(SandSailorStudio.Attributes.Property ) [pub]
+  M: UnityEngine.GameObject get__displayItem() [pub]
+  M: System.Void set__displayItem(UnityEngine.GameObject ) [pub]
+  M: SandSailorStudio.Attributes.AttributeModifier get__activeForgingHeatLossModifier() [pub]
+  M: System.Void set__activeForgingHeatLossModifier(SandSailorStudio.Attributes.AttributeModifier ) [pub]
+  M: System.Boolean get__weatherInsulationAdded() [pub]
+  M: System.Void set__weatherInsulationAdded(System.Boolean ) [pub]
+  M: UnityEngine.Coroutine get__rotationRoutine() [pub]
+  M: System.Void set__rotationRoutine(UnityEngine.Coroutine ) [pub]
+  M: SSSGame.AnvilCleanupQuest get__cleanupQuest() [pub]
+  M: System.Void set__cleanupQuest(SSSGame.AnvilCleanupQuest ) [pub]
+  M: SSSGame.AI.TieredCategoryFilter get__toolFilter() [pub]
+  M: System.Void set__toolFilter(SSSGame.AI.TieredCategoryFilter ) [pub]
+  M: SSSGame.Network.NetworkSession get__session() [pub]
+  M: System.Void set__session(SSSGame.Network.NetworkSession ) [pub]
+  M: UnityEngine.Vector3 get_dieInitialPosition() [pub]
+  M: System.Void set_dieInitialPosition(UnityEngine.Vector3 ) [pub]
+  M: UnityEngine.Quaternion get_dieInitialRotation() [pub]
+  M: System.Void set_dieInitialRotation(UnityEngine.Quaternion ) [pub]
+
+==================================================================
+TYPE: SSSGame.CarpenterInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.AnvilInteraction  ->  SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.CarpenterInteraction/CarpentryDisplay
+  ---- PROPERTIES ----
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay> carpentries
+  P: UnityEngine.Transform rotatingCollider
+  P: SSSGame.Combat.FxSetup craftSuccessFx
+  P: System.Boolean adjustHitFxPos
+  P: SSSGame.StorageInteraction directDepositInteraction
+  P: SSSGame.StorageInteraction directWithdrawInteraction
+  P: UnityEngine.GameObject storagesParent
+  P: SandSailorStudio.Inventory.Item _subscribedItem
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Single GetHarvestHitPoints() [virt,pub]
+  M: System.Void FillSpoilsManifest(SandSailorStudio.Inventory.ItemManifest manifest) [pub]
+  M: System.Void _FillManifestWithSpoils(SandSailorStudio.Inventory.ItemManifest manifest, SandSailorStudio.Inventory.ItemInfo itemInfo, System.Single& multiplier <<BY-REF>>) [pub]
+  M: System.Single GetMaxHarvestHitPoints() [virt,pub]
+  M: System.Void _BloomContainer_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _BloomContainer_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _SubscribeToItem(SandSailorStudio.Inventory.Item item) [pub]
+  M: System.Void _UnsubscribeFromItem() [pub]
+  M: System.Void _OnIntegrityChanged() [pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos <<BY-REF>>, UnityEngine.Quaternion& localRot <<BY-REF>>) [virt,pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range <<BY-REF>>) [virt,pub]
+  M: System.Void TakeDamage(SSSGame.Combat.DamageData damage) [virt,pub]
+  M: System.Int32 _GetCurrentFaceParameterId(SSSGame.Combat.DamageData damageData, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay> get_carpentries() [pub]
+  M: System.Void set_carpentries(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay> ) [pub]
+  M: UnityEngine.Transform get_rotatingCollider() [pub]
+  M: System.Void set_rotatingCollider(UnityEngine.Transform ) [pub]
+  M: SSSGame.Combat.FxSetup get_craftSuccessFx() [pub]
+  M: System.Void set_craftSuccessFx(SSSGame.Combat.FxSetup ) [pub]
+  M: System.Boolean get_adjustHitFxPos() [pub]
+  M: System.Void set_adjustHitFxPos(System.Boolean ) [pub]
+  M: SSSGame.StorageInteraction get_directDepositInteraction() [pub]
+  M: System.Void set_directDepositInteraction(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.StorageInteraction get_directWithdrawInteraction() [pub]
+  M: System.Void set_directWithdrawInteraction(SSSGame.StorageInteraction ) [pub]
+  M: UnityEngine.GameObject get_storagesParent() [pub]
+  M: System.Void set_storagesParent(UnityEngine.GameObject ) [pub]
+  M: SandSailorStudio.Inventory.Item get__subscribedItem() [pub]
+  M: System.Void set__subscribedItem(SandSailorStudio.Inventory.Item ) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftBlueprint
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Activate() [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftBlueprintInfo
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: System.Single craftVolume
+  P: SSSGame.CraftInteraction interaction
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> blueprintConditionsRules
+  P: System.Boolean availableInTrialVersion
+  P: System.Boolean showUnlockNotification
+  P: SSSGame.Network.NetworkKnowledgeManager _knowledgeManager
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsUnlocked() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> GetAllBlueprintConditionsRules() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemInfo GetItemInfo() [virt,pub]
+  M: System.Boolean UnlockableInTrialMode() [virt,pub]
+  M: System.Void OnUnlock(SSSGame.BlueprintConditionsDatabase database) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Single get_craftVolume() [pub]
+  M: System.Void set_craftVolume(System.Single ) [pub]
+  M: SSSGame.CraftInteraction get_interaction() [pub]
+  M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> get_blueprintConditionsRules() [pub]
+  M: System.Void set_blueprintConditionsRules(Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> ) [pub]
+  M: System.Boolean get_availableInTrialVersion() [pub]
+  M: System.Void set_availableInTrialVersion(System.Boolean ) [pub]
+  M: System.Boolean get_showUnlockNotification() [pub]
+  M: System.Void set_showUnlockNotification(System.Boolean ) [pub]
+  M: SSSGame.Network.NetworkKnowledgeManager get__knowledgeManager() [pub]
+  M: System.Void set__knowledgeManager(SSSGame.Network.NetworkKnowledgeManager ) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftingStation/StudyProject
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation craftingStation
+  P: SSSGame.StudyQuest studyQuest
+  P: SSSGame.StudyFetchQuest studyFetchQuest
+  P: SSSGame.AI.CraftingStationTaskData taskData
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> students
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  M: System.Void Init() [pub]
+  M: System.Void Dispose() [pub]
+  M: System.Void _OnTaskDataChanged() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftingStation get_craftingStation() [pub]
+  M: System.Void set_craftingStation(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.StudyQuest get_studyQuest() [pub]
+  M: System.Void set_studyQuest(SSSGame.StudyQuest ) [pub]
+  M: SSSGame.StudyFetchQuest get_studyFetchQuest() [pub]
+  M: System.Void set_studyFetchQuest(SSSGame.StudyFetchQuest ) [pub]
+  M: SSSGame.AI.CraftingStationTaskData get_taskData() [pub]
+  M: System.Void set_taskData(SSSGame.AI.CraftingStationTaskData ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> get_students() [pub]
+  M: System.Void set_students(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> ) [pub]
+
+==================================================================
+TYPE: SSSGame.StructureTemplate
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.StructureTemplate/SettlementRequirement, SSSGame.StructureTemplate/OutpostRequirement
+  ---- PROPERTIES ----
+  P: System.Boolean IndexedName
+  P: SSSGame.PlacementTool placementTool
+  P: SSSGame.StructureTemplate/SettlementRequirement settlementRequirement
+  P: SSSGame.StructureTemplate/OutpostRequirement outpostRequirement
+  P: System.Boolean canChangeOutpost
+  P: System.Boolean ignoreTerrainValidation
+  P: System.Boolean ignoreCollisionValidation
+  P: System.Boolean uniqueBuilding
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> structureUpgrades
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> structureAddons
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> buildAssistStructures
+  P: UnityEngine.Sprite markerIcon
+  P: UnityEngine.Color markerIconColor
+  P: SSSGame.BuildPartConfig dismantlePartsConfig
+  P: System.Boolean contributesToParentRepairs
+  P: System.Boolean nonDismantlable
+  ---- METHODS (non-accessor first pass: all) ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean HasUpgrade(SSSGame.StructureTemplate st, System.Boolean recursive) [pub]
+  M: System.Boolean CanBeAcquired(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: SSSGame.Structure Create(SSSGame.Settlement s, SSSGame.Placement p, SSSGame.Structure parent, System.Boolean isUpgrade, System.Boolean spawnedByTool, System.Int32 priorityFlags, System.Boolean wasUpgraded, System.Boolean spawnedByAutoBuilder) [virt,pub]
+  M: SSSGame.StructurePreviewData CreatePreview(SSSGame.StructureBuilder builder) [virt,pub]
+  M: System.Void DestroyPreview(SSSGame.StructurePreviewData data, System.Boolean structureCreated) [virt,pub]
+  M: System.Void UpdatePreview(SSSGame.StructurePreviewData previewData, SSSGame.Placement p) [virt,pub]
+  M: SSSGame.PlacementValidity ValidateFootprint(SSSGame.StructurePreviewData previewData, SSSGame.Placement p) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject WriteMetaData(SSSGame.Structure structure) [virt,pub]
+  M: SSSGame.Placement ReadMetaData(SandSailorStudio.Storage.DataObject metaData, UnityEngine.Vector3 position, UnityEngine.Vector3 rotation) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Boolean get_IndexedName() [pub]
+  M: System.Void set_IndexedName(System.Boolean ) [pub]
+  M: SSSGame.PlacementTool get_placementTool() [pub]
+  M: System.Void set_placementTool(SSSGame.PlacementTool ) [pub]
+  M: SSSGame.StructureTemplate/SettlementRequirement get_settlementRequirement() [pub]
+  M: System.Void set_settlementRequirement(SSSGame.StructureTemplate/SettlementRequirement ) [pub]
+  M: SSSGame.StructureTemplate/OutpostRequirement get_outpostRequirement() [pub]
+  M: System.Void set_outpostRequirement(SSSGame.StructureTemplate/OutpostRequirement ) [pub]
+  M: System.Boolean get_canChangeOutpost() [pub]
+  M: System.Void set_canChangeOutpost(System.Boolean ) [pub]
+  M: System.Boolean get_ignoreTerrainValidation() [pub]
+  M: System.Void set_ignoreTerrainValidation(System.Boolean ) [pub]
+  M: System.Boolean get_ignoreCollisionValidation() [pub]
+  M: System.Void set_ignoreCollisionValidation(System.Boolean ) [pub]
+  M: System.Boolean get_uniqueBuilding() [pub]
+  M: System.Void set_uniqueBuilding(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> get_structureUpgrades() [pub]
+  M: System.Void set_structureUpgrades(Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> get_structureAddons() [pub]
+  M: System.Void set_structureAddons(Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> get_buildAssistStructures() [pub]
+  M: System.Void set_buildAssistStructures(Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> ) [pub]
+  M: UnityEngine.Sprite get_markerIcon() [pub]
+  M: System.Void set_markerIcon(UnityEngine.Sprite ) [pub]
+  M: UnityEngine.Color get_markerIconColor() [pub]
+  M: System.Void set_markerIconColor(UnityEngine.Color ) [pub]
+  M: SSSGame.BuildPartConfig get_dismantlePartsConfig() [pub]
+  M: System.Void set_dismantlePartsConfig(SSSGame.BuildPartConfig ) [pub]
+  M: System.Boolean get_contributesToParentRepairs() [pub]
+  M: System.Void set_contributesToParentRepairs(System.Boolean ) [pub]
+  M: System.Boolean get_nonDismantlable() [pub]
+  M: System.Void set_nonDismantlable(System.Boolean ) [pub]
+
+==================================================================
+C: StructureTemplate members matching Workstation|Station|Job|Slot|Module|Addon
+==================================================================
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> structureAddons
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> get_structureAddons() [pub]
+  M: System.Void set_structureAddons(Il2CppSystem.Collections.Generic.List`1<SSSGame.StructureTemplate> ) [pub]
+
+==================================================================
+D: every member ANYWHERE returning/typed SSSGame.CraftingStation
+   (who owns / hands out a CraftingStation reference)
+==================================================================
+  SSSGame.AnvilCleanupQuest :: P: SSSGame.CraftingStation _cs
+  SSSGame.CraftingQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterFetchQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterResultsQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterComplainQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData :: P: SSSGame.CraftingStation _craftStation
+  SSSGame.CuringFirekeeperQuest/CuringFirekeeperQuestData :: P: SSSGame.CraftingStation _cs
+  SSSGame.DyeingQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.StudyQuest :: P: SSSGame.CraftingStation CraftingStation
+  SSSGame.CraftInteraction :: P: SSSGame.CraftingStation craftStationHost
+  SSSGame.CraftingStation/StudyProject :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CraftingStation/CraftingProject :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CraftingStation/OutputStorageWrapper :: P: SSSGame.CraftingStation _cs
+  SSSGame.CraftingStation/OutputStorageWrapper :: P: SSSGame.CraftingStation CraftingStation
+  SSSGame.Network.NetworkCraftingStation :: P: SSSGame.CraftingStation _craftingStation
+  SSSGame.Network.NetworkCraftingStation :: P: SSSGame.CraftingStation _CraftingStation
+  SSSGame.Deeds.CraftEventData :: P: SSSGame.CraftingStation station
+  SSSGame.UI.CraftMenu :: M: SSSGame.CraftingStation GetCraftingStation() [pub]
+  SSSGame.AI.CraftingStationTaskData :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.AI.WorkstationIdleQuest/CraftStationIdleQuestData :: P: SSSGame.CraftingStation _craftingStation
+
+==================================================================
+E: SSSGame.AI.TaskDataComponents enum values
+==================================================================
+  F: System.Int32 value__
+  F: SSSGame.AI.TaskDataComponents None
+  F: SSSGame.AI.TaskDataComponents Order
+  F: SSSGame.AI.TaskDataComponents Quantity
+  F: SSSGame.AI.TaskDataComponents Priority
+  F: SSSGame.AI.TaskDataComponents ActiveWorkers
+  F: SSSGame.AI.TaskDataComponents PrioritizingWorkers
+  F: SSSGame.AI.TaskDataComponents IsWarehouse
+  F: SSSGame.AI.TaskDataComponents IsKennel
+  F: SSSGame.AI.TaskDataComponents HasWhitelisting
+  F: SSSGame.AI.TaskDataComponents HasStoragePage
+  F: SSSGame.AI.TaskDataComponents CanDestroyChildren
+  F: SSSGame.AI.TaskDataComponents IsMarketplace
+  F: SSSGame.AI.TaskDataComponents NoBlueprintForTasks
+  F: SSSGame.AI.TaskDataComponents OneWorkerPerTask
+  F: SSSGame.AI.TaskDataComponents DontAddVillagersToTasksOnAssign
+  F: SSSGame.AI.TaskDataComponents IsMilitary
+  F: SSSGame.AI.TaskDataComponents HasTasksFromChildren
+  F: SSSGame.AI.TaskDataComponents IsCart
+  F: SSSGame.AI.TaskDataComponents NoAssignPage
+  F: SSSGame.AI.TaskDataComponents NoTasksPage
+  F: SSSGame.AI.TaskDataComponents Trashcan
+  F: SSSGame.AI.TaskDataComponents DontAllowWorkerDismissal
+  F: SSSGame.AI.TaskDataComponents CheckTaskDiscovery
+  F: SSSGame.AI.TaskDataComponents CanViewTasksWithoutWorkers
+  F: SSSGame.AI.TaskDataComponents KeepWorkersAfterDeath
+  F: SSSGame.AI.TaskDataComponents ShowAvailabilityInTask
+  F: SSSGame.AI.TaskDataComponents IsHarbor
+  F: SSSGame.AI.TaskDataComponents HasWardrobe
+  F: SSSGame.AI.TaskDataComponents HasTasksPresets
+  F: SSSGame.AI.TaskDataComponents IsVikingWork
+  F: SSSGame.AI.TaskDataComponents NoStructurePage
+  F: SSSGame.AI.TaskDataComponents NoNetworkWorkstation
+  F: SSSGame.AI.TaskDataComponents IsTavern
+
+DONE

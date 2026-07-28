@@ -573,6 +573,79 @@ internal static class CraftTransfer
         }
     }
 
+    // v0.9.0 Phase 2c: called from StationStocker.HandleFetchStateEnter when a villager's crafting
+    // fetch quest STARTS - the same per-item candidate loop as PullShortfall above (SettlementStock.
+    // GetCandidates -> MoveContainerToAgent, stopping early once an item is satisfied), but with NO
+    // ledger write at all.
+    //
+    // The absent ledger is deliberate: hauling these items to the station is precisely what the
+    // villager's own fetch walk would have done, so they belong in the station whether or not the
+    // craft completes. Sweeping them back would recreate the empty-station stall v0.8.0 produced -
+    // v0.8.0 suppressed the fetch quest outright, leaving a villager standing at an empty station with
+    // nothing to trigger a Point C pull (BeginCraftingSequence, which the AI scheduler never reaches
+    // from there). This method exists precisely so the station is never left empty after a fetch quest
+    // starts, so there is nothing to sweep back and no ledger entry that would ever need one.
+    internal static (int itemsMoved, int qtyMoved, int stillShort) StockStation(
+        List<(ItemInfo info, int missing)> shortfall, ItemCollection destColl,
+        string villagerName, string stationName)
+    {
+        const string tag = "[CFS] [CFS-SS]";
+        int itemsMoved = 0, qtyMoved = 0, stillShort = 0;
+
+        foreach (var (info, missingQty) in shortfall)
+        {
+            int remaining = missingQty;
+            int movedForThisItem = 0;
+
+            List<SettlementStock.ContainerStock> candidates;
+            try { candidates = SettlementStock.GetCandidates(info); }
+            catch (Exception ex) { Plugin.Logger.LogError($"{tag} StockStation GetCandidates error: {ex}"); continue; }
+
+            foreach (var candidate in candidates)
+            {
+                if (remaining <= 0) break;
+                int take = Math.Min(remaining, candidate.Qty);
+                if (take <= 0) continue;
+
+                int moved = 0;
+                try { moved = MoveContainerToAgent(candidate.Container, destColl, info, take); }
+                catch (Exception ex) { Plugin.Logger.LogError($"{tag} StockStation MoveContainerToAgent error: {ex}"); }
+                if (moved <= 0) continue;
+
+                remaining -= moved;
+                movedForThisItem += moved;
+
+                if (Plugin.TransferDiagnostics.Value)
+                    Plugin.Logger.LogInfo($"{tag} StockStation: -{moved} '{SafeName(info)}' from " +
+                        $"{candidate.StructureName}@{candidate.WorldPos} -> station (villager={villagerName} " +
+                        $"station={stationName}, still need {Math.Max(0, remaining)}).");
+            }
+
+            // v0.9.1: shortfall log line - before v0.9.1 a shortfall here logged NOTHING at all (the
+            // per-item line inside the loop above only fires when moved > 0), so a station stuck at
+            // e.g. wanted=1/short=1/itemsMoved=0 (confirmed in-game 2026-07-27, Workshop House 4, 280
+            // consecutive cycles) gave no clue which item was missing or why. settlementCandidates is
+            // the number that answers that: 0 means settlement storage holds none of this item at
+            // all; above 0 means candidates existed but the move still failed to shift anything.
+            if (remaining > 0 && Plugin.TransferDiagnostics.Value)
+                Plugin.Logger.LogInfo($"{tag} StockStation SHORT: '{SafeName(info)}' need {missingQty}, moved " +
+                    $"{movedForThisItem}, still short {remaining} (villager={villagerName} station={stationName}, " +
+                    $"settlementCandidates={candidates.Count}).");
+
+            if (movedForThisItem > 0) itemsMoved++;
+            qtyMoved += movedForThisItem;
+            if (remaining > 0) stillShort += remaining;
+        }
+
+        if (qtyMoved > 0)
+        {
+            try { SettlementStock.Invalidate(); }
+            catch (Exception ex) { Plugin.Logger.LogError($"{tag} StockStation Invalidate error: {ex}"); }
+        }
+
+        return (itemsMoved, qtyMoved, stillShort);
+    }
+
     // Container -> destination collection (agent inventory for a player pull, station inventory for
     // a villager pull). Remove-then-add (OuthouseComposterMod ComposterDiag.DoConvert pattern,
     // confirmed in-game): removes precisely `qty` from THIS container via RemoveFromContainer below,

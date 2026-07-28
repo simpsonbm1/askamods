@@ -601,6 +601,25 @@ biome nodes — none of the BiomeItemInstance/Replenish machinery applies. Confi
   `Rpc_ChangeWhitelistedVillager(id, state)`, `WhitelistNewVillagers` — the game's built-in "which
   villagers may use this station."
 
+### Workshop structure: crafting table & auxiliary stations (confirmed in-game 2026-07-27)
+
+**Building structure:** Each workshop building contains exactly one crafting table
+(where recipe-based items are actually made). A workshop can additionally have up to
+two auxiliary stations attached to it, chosen from: metalworker, carpenter,
+leatherworker, weaver, dyer. **Auxiliary stations are always transforms** — a single
+input material converted to a single output material, never a recipe. Examples: bloom
+to metal parts, fibers to linen or thread, hides to leather, wood to planks. A
+settlement can have multiple workshops of the same auxiliary type — e.g. multiple
+carpenters.
+
+**API consequence — station identity:** `CraftingStation.GetName()` returns the
+**building** name (observed values: `Workshop House 4`, `Workshop House 2`,
+`Workshop Hut 6`), so it cannot distinguish a workshop's crafting table from the
+auxiliary stations attached to that same workshop. ⚠️ pending: `station.gameObject.name`
+is the candidate discriminator (logged as `stationObj=` by CraftFromStorageMod v0.9.1) but has
+not yet been read in-game, so the actual object names are unknown and no mod should key off
+them yet.
+
 ### `GatherAndHarvestQuest` — fiber gather can get permanently stuck (confirmed in-game 2026-06-28)
 `GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound(bool value, ItemManifest
 finderManifest)` — the `finderManifest` parameter (previously unread by any mod) names what the worker

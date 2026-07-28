@@ -1,0 +1,1291 @@
+==================================================================
+Q1a: TYPES DERIVING (transitively) FROM SSSGame.CraftingStation
+==================================================================
+  NO HITS - nothing derives from SSSGame.CraftingStation
+
+==================================================================
+Q1b: TYPES DERIVING (transitively) FROM SSSGame.Workstation
+==================================================================
+  SSSGame.Buildstation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.DefensiveStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.PatrolStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.Bloomstation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.BoatBuildingStation   base=SSSGame.Buildstation   [Assembly-CSharp]
+  SSSGame.BrewingStation   base=SSSGame.CookingStation   [Assembly-CSharp]
+  SSSGame.CampBuildingStation   base=SSSGame.BoatBuildingStation   [Assembly-CSharp]
+  SSSGame.CharcoalStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.CookingStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.CraftingStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.ForestryStation   base=SSSGame.FarmingStation   [Assembly-CSharp]
+  SSSGame.HarboringStation   base=SSSGame.BoatBuildingStation   [Assembly-CSharp]
+  SSSGame.HealingStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.Praystation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.FarmingStation   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.FishingStation   base=SSSGame.ResourceStorage   [Assembly-CSharp]
+  SSSGame.AnimalPen   base=SSSGame.Kennel   [Assembly-CSharp]
+  SSSGame.Kennel   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.CaveResourceStorage   base=SSSGame.ResourceStorage   [Assembly-CSharp]
+  SSSGame.DiningStation   base=SSSGame.ResourceStorage   [Assembly-CSharp]
+  SSSGame.HuntingStation   base=SSSGame.ResourceStorage   [Assembly-CSharp]
+  SSSGame.Marketplace   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.ResourceStorage   base=SSSGame.Workstation   [Assembly-CSharp]
+  SSSGame.VehicleResourceStorage   base=SSSGame.ResourceStorage   [Assembly-CSharp]
+
+==================================================================
+Q1c: TYPE-NAME KEYWORD SWEEP (SSSGame/SandSailor namespaces only)
+==================================================================
+
+--- keyword: Transform ---
+  SandSailorStudio.Utils.ChildTransformHelper   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SandSailorStudio.Utils.StickyTransformHelper   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SandSailorStudio.Utils.TransformEventsHelper   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SandSailorStudio.Utils.TransformHelper   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SSSGame.MultiPivotRotator/SnapTransform   base=System.ValueType   [Assembly-CSharp]
+  SSSGame.PointTransform   base=System.ValueType   [Assembly-CSharp]
+  SSSGame.NetworkRotatableSelector/RotatingTransform   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Network.IntermittentStateInterpolator`1/InterpolatedTransformParameters   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.Network.NetworkTransformHelper   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SSSGame.Combat.SpellSize/TransformConfig   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_GetTargetFromTransformHit   base=SSSGame.AI.FSM.vStateAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_MoveToFollowTransform   base=SSSGame.AI.FSM.vStateAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_MoveToTransform   base=SSSGame.AI.FSM.vStateAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_SetFollowTransformInt   base=SSSGame.AI.FSM.vStateAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_SetTransformPosition   base=SSSGame.AI.FSM.vStateAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_CheckTransformExistence   base=SSSGame.AI.FSM.vStateDecision   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_DistanceToTransform   base=SSSGame.AI.FSM.vStateDecision   [Assembly-CSharp]
+  SandSailorStudio.Hierarchy.TransformHierarchyMapping   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.Hierarchy.TransformHierarchySnapshot   base=UnityEngine.ScriptableObject   [SandSailorStudio]
+  SandSailorStudio.Hierarchy.TransformHierarchySnapshot/TransformNode   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.Gameplay.TransformLerpAction   base=SandSailorStudio.Gameplay.Action   [SandSailorStudio]
+  SandSailorStudio.WorldGen.SpawnTransformRule   base=SandSailorStudio.WorldGen.AreaRule   [SandSailorStudio]
+  SandSailorStudio.WorldGen.SpawnTransformRuleNode   base=SandSailorStudio.WorldGen.AreaRuleNode   [SandSailorStudio]
+  SandSailorStudio.WorldGen.AreaInstanceTransformNode   base=XNode.Node   [SandSailorStudio]
+  SandSailorStudio.WorldGen.TransformerNode   base=SandSailorStudio.WorldGen.ModifierNode   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.PositionTransform   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.SimplePositionTransform   base=System.ValueType   [SandSailorStudio]
+
+--- keyword: Refine ---
+  SandSailorStudio.WorldGen.Deterministic.LandmassNode/RefineFeaturesJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+
+--- keyword: Process ---
+  SandSailorStudio.Inventory.AvailabilityProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.BloomBlockCoolingProcess   base=SSSGame.ForgeHeatingProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.ContainerConfigProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.CookingProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.EmptyContainerSelfDestructProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.ExpirationProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.ActivateContextProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.ContainerItemDurabilityProcess   base=SSSGame.ItemDurablilityProcess   [Assembly-CSharp]
+  SSSGame.ForgeHeatingProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.ItemDurablilityProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.TimeBombProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.PolygonalMaskQueryProcessor   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.IWorldItemInstanceSearchProcessor   base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase   [Assembly-CSharp]
+  SSSGame.IResourceDataQueryProcessor   base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase   [Assembly-CSharp]
+  SSSGame.ResourceFindQueryProcessor   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.ResourceCheckQueryProcessor   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.ResourceFindAllProcessor   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.LandmaskSDFSoundProcessor   base=SSSGame.SoundZoneProcessor   [Assembly-CSharp]
+  SSSGame.SoundZoneProcessor   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SSSGame.TextureMaskSoundProcessor   base=SSSGame.SoundZoneProcessor   [Assembly-CSharp]
+  SSSGame.TerrainNavmeshBuilder/__ProcessCellRequestAsync_d__87   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.TerrainNavmeshBuilder/__ProcessWaterTileRequestAsync_d__88   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.StreamingTerrainVS/ProcessSplatMapJob_Streaming   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.StreamingTerrainVS/ProcessAlphaMapTextureJob_Streaming   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.ProcessAlphaMapTextureHmap16Job   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.StreamingFlattenTextureManager/__ProcessPendingUpdates_d__27   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.TerrainWrapperVS/ProcessSplatMapJob_Custom   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.Weather.WeatherSystem/PostProcessVolumeMixer   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Pathfinding.StreamingGridGraph/ProcessNodesJob   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.Vegetation.VegetationInteractionManager/ColliderManager/ProcessInstancesJob   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+  SSSGame.Network.ItemDecaySyncProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.Network.AnimationDrivenFakingProcessor   base=Fusion.SimulationBehaviour   [Assembly-CSharp]
+  SSSGame.Network.NetworkBatcher/Process   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Network.NetworkBatcherProcess   base=UnityEngine.ScriptableObject   [Assembly-CSharp]
+  SSSGame.Water.BoatMotor/__ProcessPath_d__187   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Combat.ForestryCellProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.Combat.SaplingGrowthProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SSSGame.Combat.TrapProcess   base=SandSailorStudio.Inventory.ItemProcess   [Assembly-CSharp]
+  SandSailorStudio.Inventory.ItemProcess   base=UnityEngine.ScriptableObject   [SandSailorStudio]
+  SandSailorStudio.Inventory.ItemProcessManager   base=UnityEngine.MonoBehaviour   [SandSailorStudio]
+  SandSailorStudio.Inventory.ItemProcessManager/ProcessJob   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.Inventory.ItemProcessManager/BatchedProcessJob   base=SandSailorStudio.Inventory.ItemProcessManager/ProcessJob   [SandSailorStudio]
+  SandSailorStudio.WorldGen.ISplatmapRulesetProcessor   base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase   [SandSailorStudio]
+  SandSailorStudio.WorldGen.AreaRuleProcessorNode   base=XNode.Node   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.NoisePerturbJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.ScaleJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DataProcessJob   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DataProcessJobWrapper`1   base=SandSailorStudio.WorldGen.Deterministic.DataProcessJob   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DataProcessResultCode   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DataProcessResult   base=System.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.BillowyNoiseJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.OctaveNoiseJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.RidgedMultifractalJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.VoronoiCellsJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.VoronoiPitsJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.VoronoiStampJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.AddJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.CombineJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.InflateJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.MultiplyJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.ReplaceJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.SmoothMaxJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.SmoothMinJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.StampJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.StampMaskJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.SubtractJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.TerraceHeightMaskJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.TerraceJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.TerraceMaskJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DiscGeneratorJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.LinesGeneratorJob/ProcessJob   base=Il2CppSystem.ValueType   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.DataProcessNode   base=SandSailorStudio.WorldGen.PreviewableNode   [SandSailorStudio]
+  SandSailorStudio.Attributes.VariableModifierProcessMode   base=System.Enum   [SandSailorStudio]
+  SandSailorStudio.Animation.AnimatorLayerWeightConditionConfig/LayerWeightProcessData   base=SandSailorStudio.Animation.AnimatorProcessData   [SandSailorStudio]
+  SandSailorStudio.Animation.AnimatorProcess   base=UnityEngine.ScriptableObject   [SandSailorStudio]
+  SandSailorStudio.Animation.AnimatorProcessData   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.Animation.AnimatorProcessHost   base=UnityEngine.MonoBehaviour   [SandSailorStudio]
+
+--- keyword: Convert ---
+  SSSGame.CopyAndConvertContours   base=Il2CppSystem.ValueType   [Assembly-CSharp]
+
+--- keyword: Auxiliary ---
+  NO HITS
+
+--- keyword: Aux ---
+  NO HITS
+
+--- keyword: Carpenter ---
+  SSSGame.CarpenterInteraction   base=SSSGame.AnvilInteraction   [Assembly-CSharp]
+
+--- keyword: Metalwork ---
+  NO HITS
+
+--- keyword: Leatherwork ---
+  NO HITS
+
+--- keyword: Weaver ---
+  NO HITS
+
+--- keyword: Dyer ---
+  SSSGame.Network.NetworkDyerState   base=Fusion.NetworkBehaviour   [Assembly-CSharp]
+
+--- keyword: Dyeing ---
+  SSSGame.DyeingQuest   base=SSSGame.AI.WorkstationQuest   [Assembly-CSharp]
+  SSSGame.DyeingQuest/DyeingQuestData   base=SSSGame.AI.WorkstationQuest/WorkstationQuestData   [Assembly-CSharp]
+  SSSGame.DyeingInteraction   base=SSSGame.CraftInteraction   [Assembly-CSharp]
+  SSSGame.DyeingBlueprint   base=SSSGame.CraftBlueprint   [Assembly-CSharp]
+  SSSGame.DyeingBlueprintInfo   base=SSSGame.CraftBlueprintInfo   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies   base=SSSGame.AI.FSM.FSM_QuestAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies/FetchDyeingSuppliesStage   base=System.Enum   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_UseDyeingStation   base=SSSGame.AI.FSM.FSM_QuestAction   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingData   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_UseDyeingStation/DyeingStage   base=System.Enum   [Assembly-CSharp]
+
+--- keyword: Bench ---
+  NO HITS
+
+--- keyword: Table ---
+  SandSailorStudio.Inventory.PlantableItemInfo   base=SandSailorStudio.Inventory.EquipmentItemInfo   [Assembly-CSharp]
+  SSSGame.ProxyActivatableInteraction   base=SSSGame.Interaction   [Assembly-CSharp]
+  SSSGame.ResourceInfo/ExhaustableComponent   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.PlantableItem   base=SandSailorStudio.Inventory.EquipmentItem   [Assembly-CSharp]
+  SSSGame.NetworkRotatableSelector   base=Fusion.NetworkBehaviour   [Assembly-CSharp]
+  SSSGame.NetworkRotatableSelector/Selectables   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.IDamageHarvestable   base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase   [Assembly-CSharp]
+  SSSGame.PerkModifierTable   base=SSSGame.StatusEffectModifierTable   [Assembly-CSharp]
+  SSSGame.StatusEffectModifierTable   base=UnityEngine.ScriptableObject   [Assembly-CSharp]
+  SSSGame.StatusEffectModifierTableList   base=UnityEngine.ScriptableObject   [Assembly-CSharp]
+  SSSGame.TextureTableConfig   base=UnityEngine.ScriptableObject   [Assembly-CSharp]
+  SSSGame.Weather.AmbientAudioMixer/RepeatableSoundData   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Weather.RepeatableAmbientSounds   base=Il2CppSystem.Object   [Assembly-CSharp]
+  SSSGame.Network.NetworkBiomeInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.BiomeIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkCavePillarInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.CavePillarIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkCaveWallInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.CaveWallIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkFarmCellInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.FarmCellIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkInteractable`1   base=Fusion.SimulationBehaviour   [Assembly-CSharp]
+  SSSGame.Network.NetworkInteractable`1/MethodInfoStoreGeneric__TryGetInteractable_Protected_Static_Boolean_NetworkRunner_byref_INetworkIdentity_Int32_byref_T_0`1   base=System.Object   [Assembly-CSharp]
+  SSSGame.Network.INetworkInteractable   base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase   [Assembly-CSharp]
+  SSSGame.Network.NetworkInteractionTable   base=Fusion.NetworkBehaviour   [Assembly-CSharp]
+  SSSGame.Network.NetworkItemInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.ItemObjectIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkItemInteractable/RequestedItemInteractable   base=System.ValueType   [Assembly-CSharp]
+  SSSGame.Network.NetworkObjectInteractable   base=SSSGame.Network.NetworkInteractable`1<SSSGame.Network.NetworkObjectIdentity>   [Assembly-CSharp]
+  SSSGame.Network.NetworkHittable   base=Fusion.SimulationBehaviour   [Assembly-CSharp]
+  SSSGame.Network.NetworkPrefabTable   base=UnityEngine.ScriptableObject   [Assembly-CSharp]
+  SSSGame.UI.SubSelectable   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SSSGame.UI.SubSelectableGroup   base=UnityEngine.MonoBehaviour   [Assembly-CSharp]
+  SSSGame.UI.ItemTableTabPageDetails   base=SandSailorStudio.UI.TabPage   [Assembly-CSharp]
+  SSSGame.Combat.StructureHittable   base=SSSGame.Network.NetworkHittable   [Assembly-CSharp]
+  SSSGame.AI.FSM.FSM_SetWorkDiningTablePos   base=SSSGame.AI.FSM.FSM_QuestAction   [Assembly-CSharp]
+  SandSailorStudio.Utils.ColorTableConfig   base=UnityEngine.ScriptableObject   [SandSailorStudio]
+  SandSailorStudio.UI.SelectableState   base=System.Enum   [SandSailorStudio]
+  SandSailorStudio.UI.SelectableEvents   base=UnityEngine.MonoBehaviour   [SandSailorStudio]
+  SandSailorStudio.UI.SelectableEventsHelper   base=UnityEngine.MonoBehaviour   [SandSailorStudio]
+  SandSailorStudio.UI.TweenSelectableAnimator   base=SandSailorStudio.UI.TweenAnimator   [SandSailorStudio]
+  SandSailorStudio.RNG.RandomTable   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.Platform.AchievementsTable   base=UnityEngine.ScriptableObject   [SandSailorStudio]
+  SandSailorStudio.Inventory.ItemTable   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.Inventory.ItemTableConfig   base=SandSailorStudio.Inventory.BaseItemsConfig   [SandSailorStudio]
+  SandSailorStudio.Inventory.Utils.MultiItemTableFilter   base=Il2CppSystem.Object   [SandSailorStudio]
+  SandSailorStudio.WorldGen.Deterministic.RandomTableNode   base=XNode.Node   [SandSailorStudio]
+
+--- keyword: Workbench ---
+  NO HITS
+
+==================================================================
+Q2: KIND/ROLE/TYPE/CATEGORY-SHAPED MEMBERS ON CraftingStation + Workstation
+==================================================================
+
+--- SSSGame.CraftingStation ---
+  P: Il2CppSystem.Action OnWhitelistDataReceived
+  P: SSSGame.CraftingStationType CraftingType
+  P: SandSailorStudio.IntEventData _intEventData
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _itmManEventData
+  P: System.Boolean _whitelistDataReceived
+  P: SSSGame.Settlement/SettlementEvents/SettlementEventData`1<System.Int32> s_outpostIdEvData
+  P: System.String c_taskDataArray
+  P: System.String c_taskDataItem
+  P: System.String c_taskDataCount
+  P: System.String c_taskDataPriority
+  P: System.String c_taskDataVillagers
+  P: System.String c_taskDataDye
+  P: System.String c_taskDataDyeIdx
+  P: System.Boolean WhitelistDataReceived
+  M: System.Void add_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Void remove_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Boolean get_WhitelistDataReceived() [virt,pub]
+  M: System.Void _OnChildStructureRemoved(SSSGame.Structure obj) [pub]
+  M: System.Void AddTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void RemoveTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Boolean CheckForDuplicateTaskData(SSSGame.AI.WorkstationTaskData newData) [virt,pub]
+  M: System.Void RemoveTaskDispatcherData(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void RequestWhitelistData() [virt,pub]
+  M: System.Void Rpc_RequestWhitelistData(Fusion.PlayerRef player) [pub]
+  M: System.Void Rpc_ReceiveWhitelistData(Fusion.PlayerRef target, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte> bytes) [pub]
+  M: System.Boolean DeserializeTaskData(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskData(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Void _Rpc_RequestWhitelistData_b__157_0(Il2CppSystem.IO.BinaryWriter writer) [pub]
+  M: System.Void _Rpc_ReceiveWhitelistData_b__158_0(Il2CppSystem.IO.BinaryReader reader) [pub]
+  M: Il2CppSystem.Action get_OnWhitelistDataReceived() [pub]
+  M: System.Void set_OnWhitelistDataReceived(Il2CppSystem.Action ) [pub]
+  M: SSSGame.CraftingStationType get_CraftingType() [pub]
+  M: System.Void set_CraftingType(SSSGame.CraftingStationType ) [pub]
+  M: SSSGame.Settlement/SettlementEvents/SettlementEventData`1<System.Int32> get_s_outpostIdEvData() [static,pub]
+  M: System.Void set_s_outpostIdEvData(SSSGame.Settlement/SettlementEvents/SettlementEventData`1<System.Int32> ) [static,pub]
+  M: System.String get_c_taskDataArray() [static,pub]
+  M: System.Void set_c_taskDataArray(System.String ) [static,pub]
+  M: System.String get_c_taskDataItem() [static,pub]
+  M: System.Void set_c_taskDataItem(System.String ) [static,pub]
+  M: System.String get_c_taskDataCount() [static,pub]
+  M: System.Void set_c_taskDataCount(System.String ) [static,pub]
+  M: System.String get_c_taskDataPriority() [static,pub]
+  M: System.Void set_c_taskDataPriority(System.String ) [static,pub]
+  M: System.String get_c_taskDataVillagers() [static,pub]
+  M: System.Void set_c_taskDataVillagers(System.String ) [static,pub]
+  M: System.String get_c_taskDataDye() [static,pub]
+  M: System.Void set_c_taskDataDye(System.String ) [static,pub]
+  M: System.String get_c_taskDataDyeIdx() [static,pub]
+  M: System.Void set_c_taskDataDyeIdx(System.String ) [static,pub]
+  F: System.IntPtr NativeFieldInfoPtr_OnWhitelistDataReceived
+  F: System.IntPtr NativeFieldInfoPtr_CraftingType
+  F: System.IntPtr NativeFieldInfoPtr__intEventData
+  F: System.IntPtr NativeFieldInfoPtr__itmManEventData
+  F: System.IntPtr NativeFieldInfoPtr__whitelistDataReceived
+  F: System.IntPtr NativeFieldInfoPtr_s_outpostIdEvData
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataArray
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataItem
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataCount
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataPriority
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataVillagers
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataDye
+  F: System.IntPtr NativeFieldInfoPtr_c_taskDataDyeIdx
+  F: System.IntPtr NativeMethodInfoPtr_add_OnWhitelistDataReceived_Public_Virtual_Final_New_add_Void_Action_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnWhitelistDataReceived_Public_Virtual_Final_New_rem_Void_Action_0
+  F: System.IntPtr NativeMethodInfoPtr_get_WhitelistDataReceived_Public_Virtual_Final_New_get_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr__OnChildStructureRemoved_Private_Void_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_AddTaskData_Public_Virtual_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveTaskData_Public_Virtual_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_CheckForDuplicateTaskData_Public_Virtual_Boolean_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveTaskDispatcherData_Public_Virtual_Void_ITaskDispatcher_0
+  F: System.IntPtr NativeMethodInfoPtr__OnStationEvent_Private_Void_Int32_IEventData_0
+  F: System.IntPtr NativeMethodInfoPtr_RequestWhitelistData_Public_Virtual_Final_New_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_Rpc_RequestWhitelistData_Protected_Void_PlayerRef_0
+  F: System.IntPtr NativeMethodInfoPtr_Rpc_ReceiveWhitelistData_Protected_Void_PlayerRef_Il2CppStructArray_1_Byte_0
+  F: System.IntPtr NativeMethodInfoPtr_DeserializeTaskData_Public_Virtual_Boolean_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_SerializeTaskData_Public_Virtual_DataObject_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_Deserialize_Public_Virtual_Final_New_Boolean_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_Serialize_Public_Virtual_Final_New_DataObject_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr__Rpc_RequestWhitelistData_b__157_0_Private_Void_BinaryWriter_0
+  F: System.IntPtr NativeMethodInfoPtr__Rpc_ReceiveWhitelistData_b__158_0_Private_Void_BinaryReader_0
+
+--- SSSGame.Workstation ---
+  P: SSSGame.AI.TaskDataComponents TaskDataType
+  P: SSSGame.AI.WorkstationEquipmentColorConfig equipmentColorConfig
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> _taskDatas
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.EquipHandleId,SSSGame.DyeInfo> _dyeConfigurationData
+  M: SSSGame.AI.TaskDataComponents GetTaskDataFlags() [virt,pub]
+  M: System.Int32 GetTaskDataCount() [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> GetWorkstationTaskDatas() [virt,pub]
+  M: System.Void AddTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void InvokeAddTaskData(SSSGame.AI.WorkstationTaskData taskData) [pub]
+  M: System.Void InvokeRemoveTaskData(SSSGame.AI.WorkstationTaskData taskData) [pub]
+  M: System.Void RemoveTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void ClearTaskDatas() [virt,pub]
+  M: System.Boolean CheckForDuplicateTaskData(SSSGame.AI.WorkstationTaskData newData) [virt,pub]
+  M: System.Void RefreshTaskDataPriorities() [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskData(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Boolean DeserializeTaskData(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskDataForRecreation(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Boolean DeserializeTaskDataForRecreation(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: System.Boolean DeserializeTasksPresetData(SandSailorStudio.Storage.DataObject tasksPresetData, SSSGame.Structure targetStructure) [virt,pub]
+  M: System.Void CreateTaskDispatcherData(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void RemoveTaskDispatcherData(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void AddToTaskDatas(SSSGame.Villager villagerToAdd) [virt,pub]
+  M: System.Boolean _CanAddVillagerToTaskData(SSSGame.Villager villagerToAdd, SSSGame.AI.WorkstationTaskData taskData) [virt,pub]
+  M: System.Void _OnBeforeRemoveFromTaskData(SSSGame.Villager villagerToRemove, SSSGame.AI.WorkstationTaskData taskData) [virt,pub]
+  M: System.Void RemoveFromTaskDatas(SSSGame.Villager villagerToRemove) [virt,pub]
+  M: SSSGame.AI.TaskDataComponents get_TaskDataType() [pub]
+  M: System.Void set_TaskDataType(SSSGame.AI.TaskDataComponents ) [pub]
+  M: SSSGame.AI.WorkstationEquipmentColorConfig get_equipmentColorConfig() [pub]
+  M: System.Void set_equipmentColorConfig(SSSGame.AI.WorkstationEquipmentColorConfig ) [pub]
+  F: System.IntPtr NativeFieldInfoPtr_TaskDataType
+  F: System.IntPtr NativeFieldInfoPtr_equipmentColorConfig
+  F: System.IntPtr NativeFieldInfoPtr__taskDatas
+  F: System.IntPtr NativeFieldInfoPtr__dyeConfigurationData
+  F: System.IntPtr NativeMethodInfoPtr_add_OnTaskAdded_Public_Virtual_Final_New_add_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnTaskAdded_Public_Virtual_Final_New_rem_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnTaskRemoved_Public_Virtual_Final_New_add_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnTaskRemoved_Public_Virtual_Final_New_rem_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_GetTaskDataFlags_Public_Virtual_Final_New_TaskDataComponents_0
+  F: System.IntPtr NativeMethodInfoPtr_GetTaskDataCount_Public_Int32_0
+  F: System.IntPtr NativeMethodInfoPtr_GetWorkstationTaskDatas_Public_Virtual_Final_New_List_1_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_AddTaskData_Public_Virtual_New_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_InvokeAddTaskData_Public_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_InvokeRemoveTaskData_Public_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveTaskData_Public_Virtual_New_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_ClearTaskDatas_Public_Virtual_New_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_CheckForDuplicateTaskData_Public_Virtual_New_Boolean_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RefreshTaskDataPriorities_Public_Virtual_Final_New_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_GetItemsNeededFromSettlement_Public_Virtual_New_List_1_ItemCategoryInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_GetItemsToPrepareForWork_Public_Virtual_New_List_1_ItemCategoryInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_ReplaceBoundWorkstation_Public_Virtual_New_Void_DataObject_IWorkstation_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_SerializeTaskData_Public_Virtual_New_DataObject_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_DeserializeTaskData_Public_Virtual_New_Boolean_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_SerializeTaskDataForRecreation_Public_Virtual_New_DataObject_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_DeserializeTaskDataForRecreation_Public_Virtual_New_Boolean_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_SerializeTasksPreset_Public_Virtual_New_DataObject_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_DeserializeTasksPresetData_Public_Virtual_New_Boolean_DataObject_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_CreateTaskDispatcherData_Public_Virtual_New_Void_ITaskDispatcher_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveTaskDispatcherData_Public_Virtual_New_Void_ITaskDispatcher_0
+  F: System.IntPtr NativeMethodInfoPtr_AddToTaskDatas_Public_Virtual_New_Void_Villager_0
+  F: System.IntPtr NativeMethodInfoPtr__CanAddVillagerToTaskData_Protected_Virtual_New_Boolean_Villager_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr__OnBeforeRemoveFromTaskData_Protected_Virtual_New_Void_Villager_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveFromTaskDatas_Public_Virtual_New_Void_Villager_0
+
+==================================================================
+Q3: RECIPE/BLUEPRINT-SHAPED MEMBERS ON CraftingStation + Workstation
+==================================================================
+
+--- SSSGame.CraftingStation ---
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> craftingProjects
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> studyProjects
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> _knownBlueprints
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,SandSailorStudio.Inventory.ItemContainer> _outsourcedBlueprints
+  M: System.Boolean HasCuringOutletWithThisRecipe(SSSGame.CookingRecipeInfo cri) [pub]
+  M: System.Void SetCraftingTargetDirty(System.Int32 bpId) [pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint <<BY-REF>>) [pub]
+  M: System.Boolean IsDyeingAvailableForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.DyeingBlueprintInfo& dyeingBlueprintInfo <<BY-REF>>) [pub]
+  M: System.Boolean _CanUpgradeDyeingProcess(SSSGame.DyeingBlueprintInfo oldDyeBpInfo, System.Int32 oldDyeIndex, SSSGame.DyeingBlueprintInfo newDyeBpInfo, System.Int32& newDyeIndex <<BY-REF>>) [pub]
+  M: System.Void _OnActiveRecipeAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnActiveRecipeRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnBpAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnBpRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> get_craftingProjects() [pub]
+  M: System.Void set_craftingProjects(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> get_studyProjects() [pub]
+  M: System.Void set_studyProjects(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_blueprintInventory() [pub]
+  M: System.Void set_blueprintInventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> get__knownBlueprints() [pub]
+  M: System.Void set__knownBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,SandSailorStudio.Inventory.ItemContainer> get__outsourcedBlueprints() [pub]
+  M: System.Void set__outsourcedBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,SandSailorStudio.Inventory.ItemContainer> ) [pub]
+  F: System.IntPtr NativeFieldInfoPtr_craftingProjects
+  F: System.IntPtr NativeFieldInfoPtr_studyProjects
+  F: System.IntPtr NativeFieldInfoPtr_blueprintInventory
+  F: System.IntPtr NativeFieldInfoPtr__knownBlueprints
+  F: System.IntPtr NativeFieldInfoPtr__outsourcedBlueprints
+  F: System.IntPtr NativeMethodInfoPtr_HasCuringOutletWithThisRecipe_Public_Boolean_CookingRecipeInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_KnowsBlueprintForItem_Public_Boolean_ItemInfo_byref_CraftBlueprint_0
+  F: System.IntPtr NativeMethodInfoPtr_IsDyeingAvailableForThisItem_Public_Boolean_ItemInfo_byref_DyeingBlueprintInfo_0
+  F: System.IntPtr NativeMethodInfoPtr__CanUpgradeDyeingProcess_Private_Boolean_DyeingBlueprintInfo_Int32_DyeingBlueprintInfo_byref_Int32_0
+  F: System.IntPtr NativeMethodInfoPtr__OnActiveRecipeAdded_Private_Void_ItemCollection_Item_Int32_ItemEventContext_0
+  F: System.IntPtr NativeMethodInfoPtr__OnActiveRecipeRemoved_Private_Void_ItemCollection_Item_Int32_ItemEventContext_0
+  F: System.IntPtr NativeMethodInfoPtr__OnBpAdded_Private_Void_ItemCollection_Item_Int32_ItemEventContext_0
+  F: System.IntPtr NativeMethodInfoPtr__OnBpRemoved_Private_Void_ItemCollection_Item_Int32_ItemEventContext_0
+
+--- SSSGame.Workstation ---
+  NO HITS
+
+==================================================================
+TYPE: SSSGame.CraftingStationType
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: System.Enum
+  INTERFACES: 
+  ---- PROPERTIES ----
+  ---- FIELDS ----
+  F: System.Int32 value__ [pub]
+  F: SSSGame.CraftingStationType GROUP [static] [pub]
+  F: SSSGame.CraftingStationType INDIVIDUAL [static] [pub]
+  ---- METHODS (incl. accessors) ----
+
+==================================================================
+TYPE: SSSGame.CraftingStation/CraftingProject
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation craftingStation
+  P: SSSGame.CraftingQuest craftingQuest
+  P: SSSGame.CrafterSpecificFetchQuest fetchQuestSpecific
+  P: SSSGame.AI.CraftingStationTaskData taskData
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> crafters
+  P: System.Boolean pendingRemake
+  P: System.Int32 _productsAdded
+  P: SandSailorStudio.Inventory.ItemManifest _productManifest
+  ---- FIELDS ----
+  ---- METHODS (incl. accessors) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  M: System.Void Init() [pub]
+  M: System.Void Dispose() [pub]
+  M: System.Void RemakeQuest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetProductManifest() [pub]
+  M: System.Void _CreateCraftingQuest() [pub]
+  M: System.Void _OnTaskDataChanged() [pub]
+  M: System.Void _OnStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftingStation get_craftingStation() [pub]
+  M: System.Void set_craftingStation(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.CraftingQuest get_craftingQuest() [pub]
+  M: System.Void set_craftingQuest(SSSGame.CraftingQuest ) [pub]
+  M: SSSGame.CrafterSpecificFetchQuest get_fetchQuestSpecific() [pub]
+  M: System.Void set_fetchQuestSpecific(SSSGame.CrafterSpecificFetchQuest ) [pub]
+  M: SSSGame.AI.CraftingStationTaskData get_taskData() [pub]
+  M: System.Void set_taskData(SSSGame.AI.CraftingStationTaskData ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> get_crafters() [pub]
+  M: System.Void set_crafters(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> ) [pub]
+  M: System.Boolean get_pendingRemake() [pub]
+  M: System.Void set_pendingRemake(System.Boolean ) [pub]
+  M: System.Int32 get__productsAdded() [pub]
+  M: System.Void set__productsAdded(System.Int32 ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get__productManifest() [pub]
+  M: System.Void set__productManifest(SandSailorStudio.Inventory.ItemManifest ) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.CraftInteraction/CraftingEvents, SSSGame.CraftInteraction/__c__DisplayClass25_0
+  ---- PROPERTIES ----
+  P: SSSGame.CraftInteraction/CraftingEvents craftingEvents
+  P: SSSGame.CraftingStation craftStationHost
+  P: SSSGame.CraftBlueprint blueprint   *** KEYWORD
+  P: SandSailorStudio.Inventory.InventoryComponent inventory
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory   *** KEYWORD
+  P: SandSailorStudio.Inventory.ItemInfoList localBlueprintsList   *** KEYWORD
+  P: System.Boolean useAgentInventory
+  P: System.Int32 craftActionId
+  P: System.Boolean _destroyed
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> _localBlueprints   *** KEYWORD
+  P: SSSGame.Structure _ownerStructure
+  P: System.Boolean _parentedHost   *** KEYWORD
+  P: System.Boolean _parentedInv   *** KEYWORD
+  P: SandSailorStudio.Inventory.ItemManifest s_bpManifest
+  P: SSSGame.Structure OwnerStructure
+  P: SandSailorStudio.Inventory.ItemCollection ItemInventory
+  P: SSSGame.CraftBlueprint ActiveBlueprint   *** KEYWORD
+  ---- FIELDS ----
+  ---- METHODS (incl. accessors) ----
+  M: System.Void .cctor() [static,priv]
+  M: SSSGame.Structure get_OwnerStructure() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemCollection get_ItemInventory() [virt,pub]
+  M: SSSGame.CraftBlueprint get_ActiveBlueprint() [virt,pub]   *** KEYWORD
+  M: System.Void Awake() [virt,pub]
+  M: System.Void OnDisable() [virt,pub]
+  M: System.Void OnDestroy() [virt,pub]
+  M: System.Void DestroyGameObject(UnityEngine.GameObject gameObject) [pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Boolean CheckAgent(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean CheckOwnedRequirements(SandSailorStudio.Inventory.Blueprint bp, SSSGame.IInteractionAgent agent) [pub]   *** KEYWORD
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Boolean _CheckOwnedBlueprintManifest(SandSailorStudio.Inventory.ItemManifest itemManifest, SSSGame.IInteractionAgent agent) [virt,pub]   *** KEYWORD
+  M: System.Void _OnCraftingSuccess(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint <<BY-REF>>) [virt,pub]   *** KEYWORD
+  M: System.Boolean ActivateBlueprint(SSSGame.CraftBlueprint bp) [virt,pub]   *** KEYWORD
+  M: SSSGame.AI.IWorkstation GetWorkstation() [virt,pub]
+  M: System.String GetTaskDescription() [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]   *** KEYWORD
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _ReparentToStructure(SSSGame.Structure structure) [pub]   *** KEYWORD
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftInteraction/CraftingEvents get_craftingEvents() [pub]
+  M: System.Void set_craftingEvents(SSSGame.CraftInteraction/CraftingEvents ) [pub]
+  M: SSSGame.CraftingStation get_craftStationHost() [pub]
+  M: System.Void set_craftStationHost(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.CraftBlueprint get_blueprint() [pub]   *** KEYWORD
+  M: System.Void set_blueprint(SSSGame.CraftBlueprint ) [pub]   *** KEYWORD
+  M: SandSailorStudio.Inventory.InventoryComponent get_inventory() [pub]
+  M: System.Void set_inventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_blueprintInventory() [pub]   *** KEYWORD
+  M: System.Void set_blueprintInventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]   *** KEYWORD
+  M: SandSailorStudio.Inventory.ItemInfoList get_localBlueprintsList() [pub]   *** KEYWORD
+  M: System.Void set_localBlueprintsList(SandSailorStudio.Inventory.ItemInfoList ) [pub]   *** KEYWORD
+  M: System.Boolean get_useAgentInventory() [pub]
+  M: System.Void set_useAgentInventory(System.Boolean ) [pub]
+  M: System.Int32 get_craftActionId() [pub]
+  M: System.Void set_craftActionId(System.Int32 ) [pub]
+  M: System.Boolean get__destroyed() [pub]
+  M: System.Void set__destroyed(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> get__localBlueprints() [pub]   *** KEYWORD
+  M: System.Void set__localBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> ) [pub]   *** KEYWORD
+  M: SSSGame.Structure get__ownerStructure() [pub]
+  M: System.Void set__ownerStructure(SSSGame.Structure ) [pub]
+  M: System.Boolean get__parentedHost() [pub]   *** KEYWORD
+  M: System.Void set__parentedHost(System.Boolean ) [pub]   *** KEYWORD
+  M: System.Boolean get__parentedInv() [pub]   *** KEYWORD
+  M: System.Void set__parentedInv(System.Boolean ) [pub]   *** KEYWORD
+  M: SandSailorStudio.Inventory.ItemManifest get_s_bpManifest() [static,pub]
+  M: System.Void set_s_bpManifest(SandSailorStudio.Inventory.ItemManifest ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.Structure
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.Structure/Ids, SSSGame.Structure/MiscellaneousBuffer, SSSGame.Structure/NetworkedFlags, SSSGame.Structure/SpawnData, SSSGame.Structure/__c, SSSGame.Structure/__c__DisplayClass191_0, SSSGame.Structure/__c__DisplayClass224_0, SSSGame.Structure/__c__DisplayClass231_0, SSSGame.Structure/MethodInfoStoreGeneric_FindStructureComponent_Public_T_Predicate_1_T_0`1, SSSGame.Structure/MethodInfoStoreGeneric_GetStructureComponent_Public_T_0`1, SSSGame.Structure/MethodInfoStoreGeneric_TryGetStructureComponent_Public_Boolean_byref_T_0`1, SSSGame.Structure/MethodInfoStoreGeneric_TryGetStructureComponent_Public_Boolean_Predicate_1_T_byref_T_0`1
+  ---- PROPERTIES ----
+  P: System.String c_VolumeLayer
+  P: System.String c_Layer
+  P: System.String c_AnchorTag
+  P: System.String c_FootprintTag
+  P: System.String c_FootprintValidationTag
+  P: System.Single c_fallbackDismantleRefundChance
+  P: System.Single c_fallbackDestroyRefoundChance
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnBeforeParentChange   *** KEYWORD
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnAfterParentChange   *** KEYWORD
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnBeforeDismantle
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnAfterDismantle
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnStructureDeath
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnChildIDChanged   *** KEYWORD
+  P: Il2CppSystem.Action OnAfterDeserialization
+  P: Fusion.NetworkString`1<Fusion._16> __NetworkedStructureName
+  P: SSSGame.Structure/Ids __NetworkedIDs
+  P: SSSGame.Structure/MiscellaneousBuffer _NetworkedMiscellaneousBuffer
+  P: System.Boolean _isActive
+  P: System.Int32 _uniqueId
+  P: System.Byte _outpostId
+  P: SSSGame.StructureContainer childStructureContainer   *** KEYWORD
+  P: SSSGame.StructurePreview preview
+  P: SSSGame.BuildSite buildSite
+  P: SSSGame.Combat.FxSetup dismantleFx
+  P: System.Boolean _destroyStructureWhenDead
+  P: System.Boolean _treatAllStoragesAsOne
+  P: System.Boolean allowInventoryMenuPanelsWhileDismantled
+  P: System.Boolean spawnedByAutoBuilder
+  P: System.Boolean autoLevelWithOwnFootprint
+  P: SSSGame.TerraformingToolOperation autoLevelOperation
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> activityComponents
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.GameObject> activityObjects
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.StorageSupply> storageSupplies
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> _storagesBuffer
+  P: SSSGame.StructureFootprintLevel footprintLevel
+  P: SSSGame.Settlement _Settlement_k__BackingField
+  P: SSSGame.StructureTemplate _Template_k__BackingField
+  P: SSSGame.StructureTemplate _template
+  P: UnityEngine.GameObject IssueMarker
+  P: System.String _structureName
+  P: System.String _customDefaultName
+  P: Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> OnSpawned
+  P: Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> OnDespawned
+  P: System.Boolean _despawned
+  P: Il2CppSystem.Action`1<System.String> OnNameChanged
+  P: System.Boolean _dismantled
+  P: System.Int32 _dismantledStoragesCount
+  P: System.Boolean _isRecreating
+  P: System.Byte _childID   *** KEYWORD
+  P: SSSGame.Structure _parentStructure   *** KEYWORD
+  P: System.Boolean _isUpgrade
+  P: SSSGame.RepairPart _repairPart
+  P: System.Boolean _IsDead_k__BackingField
+  P: System.Boolean _isDeadChild   *** KEYWORD
+  P: Il2CppSystem.Action`1<System.Boolean> OnVisibilityChanged
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnActivate
+  P: Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder> OnOutpostDataChangedEvent
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> _structureComponentsCache
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Storage.IStorageSerializable> _storageSerializableCache
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructurePlacementStateHandler> _placementHandlers
+  P: System.Boolean _initialized
+  P: SandSailorStudio.Attributes.AttributeManager _attrMan
+  P: SSSGame.PaintPart _paintPart
+  P: SSSGame.Combat.StructureHittable _stuctureHittable
+  P: SSSGame.DismantlePile _dismantlePile
+  P: SSSGame.StatusEffectManager _statusEffMan
+  P: SSSGame.ModularBuilding _modularBuilding
+  P: System.Boolean _hasModularBuilding
+  P: SSSGame.BuildingModule _module
+  P: System.Boolean _hasModule
+  P: System.Boolean _deserializing
+  P: System.Boolean _internalDismantled
+  P: SSSGame.UI.ConfirmActionMenu _confirmDismantleMenu
+  P: SSSGame.Network.NetworkLink linkage
+  P: SSSGame.StructureCullHandler _cullHandler
+  P: SSSGame.Network.NetworkSession session
+  P: System.String c_BuildSiteKey
+  P: System.String c_ChildrenKey   *** KEYWORD
+  P: System.String c_ComponentsKey
+  P: System.String c_IsUpgradeKey
+  P: System.String c_structureName
+  P: System.String c_uniqueTemplateId
+  P: System.String c_outpostId
+  P: System.String c_IsDeadChildKey   *** KEYWORD
+  P: System.String c_DismantledKey
+  P: SSSGame.WorldDataCell _localizationCell
+  P: Fusion.Changed`1<SSSGame.Structure> field_CompilerControlled_Static_Changed_1_Structure_0
+  P: Fusion.ChangedDelegate`1<SSSGame.Structure> field_CompilerControlled_Static_ChangedDelegate_1_Structure_0
+  P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Structure> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Structure_0
+  P: System.Boolean IsActive
+  P: Fusion.NetworkString`1<Fusion._16> _NetworkedStructureName
+  P: Fusion.NetworkId NetworkedParent   *** KEYWORD
+  P: System.Int32 TemplateID
+  P: SSSGame.Structure/Ids _NetworkedIDs
+  P: SSSGame.Structure/MiscellaneousBuffer NetworkedMiscellaneousBuffer
+  P: System.Int32 UniqueTemplateId
+  P: System.Boolean WasUpgraded
+  P: System.Int32 ConfigurationIndex   *** KEYWORD
+  P: System.Int32 OutpostId
+  P: System.Boolean IsDeadChild   *** KEYWORD
+  P: SSSGame.Settlement Settlement
+  P: SSSGame.Structure Parent   *** KEYWORD
+  P: SSSGame.Structure Root
+  P: SSSGame.StructureTemplate Template
+  P: System.String StructureName
+  P: System.String DefaultName
+  P: System.Boolean Dismantled
+  P: System.Byte ChildID   *** KEYWORD
+  P: System.Boolean IsUpgrade
+  P: System.Boolean LocallyPlacedStructure
+  P: SSSGame.RepairPart RepairPart
+  P: System.Boolean IsDead
+  P: SSSGame.StructureCullHandler CullHandler
+  P: SSSGame.Network.IProxyLinkedComponent/ComponentType LinkedComponentType
+  P: System.Boolean IsValid
+  ---- FIELDS ----
+  ---- METHODS (incl. accessors) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void add_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void remove_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void add_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void remove_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void add_OnBeforeDismantle(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnBeforeDismantle(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void add_OnAfterDismantle(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnAfterDismantle(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void add_OnStructureDeath(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnStructureDeath(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void add_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void remove_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]   *** KEYWORD
+  M: System.Void add_OnAfterDeserialization(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnAfterDeserialization(Il2CppSystem.Action value) [pub]
+  M: System.Boolean get_IsActive() [pub]
+  M: System.Void set_IsActive(System.Boolean value) [pub]
+  M: Fusion.NetworkString`1<Fusion._16> get__NetworkedStructureName() [pub]
+  M: System.Void set__NetworkedStructureName(Fusion.NetworkString`1<Fusion._16> value) [pub]
+  M: Fusion.NetworkId get_NetworkedParent() [pub]   *** KEYWORD
+  M: System.Void set_NetworkedParent(Fusion.NetworkId value) [pub]   *** KEYWORD
+  M: System.Int32 get_TemplateID() [pub]
+  M: System.Void set_TemplateID(System.Int32 value) [pub]
+  M: SSSGame.Structure/Ids get__NetworkedIDs() [pub]
+  M: System.Void set__NetworkedIDs(SSSGame.Structure/Ids value) [pub]
+  M: SSSGame.Structure/MiscellaneousBuffer get_NetworkedMiscellaneousBuffer() [pub]
+  M: System.Void set_NetworkedMiscellaneousBuffer(SSSGame.Structure/MiscellaneousBuffer value) [pub]
+  M: System.Int32 get_UniqueTemplateId() [pub]
+  M: System.Void set_UniqueTemplateId(System.Int32 value) [pub]
+  M: System.Boolean get_WasUpgraded() [pub]
+  M: System.Void set_WasUpgraded(System.Boolean value) [pub]
+  M: System.Int32 get_ConfigurationIndex() [pub]   *** KEYWORD
+  M: System.Void set_ConfigurationIndex(System.Int32 value) [pub]   *** KEYWORD
+  M: System.Int32 get_OutpostId() [virt,pub]
+  M: System.Void set_OutpostId(System.Int32 value) [virt,pub]
+  M: System.Boolean get_IsDeadChild() [pub]   *** KEYWORD
+  M: System.Void set_IsDeadChild(System.Boolean value) [pub]   *** KEYWORD
+  M: SSSGame.Settlement get_Settlement() [pub]
+  M: System.Void set_Settlement(SSSGame.Settlement value) [pub]
+  M: System.Int32 GetStructureID() [pub]
+  M: SSSGame.Structure get_Parent() [pub]   *** KEYWORD
+  M: System.Void set_Parent(SSSGame.Structure value) [pub]   *** KEYWORD
+  M: SSSGame.Structure get_Root() [pub]
+  M: SSSGame.StructureTemplate get_Template() [pub]
+  M: System.Void set_Template(SSSGame.StructureTemplate value) [pub]
+  M: System.String get_StructureName() [virt,pub]
+  M: System.Void set_StructureName(System.String value) [virt,pub]
+  M: System.String get_DefaultName() [pub]
+  M: System.Void set_DefaultName(System.String value) [pub]
+  M: System.Void add_OnSpawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> value) [virt,pub]
+  M: System.Void remove_OnSpawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> value) [virt,pub]
+  M: System.Void add_OnDespawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> value) [virt,pub]
+  M: System.Void remove_OnDespawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> value) [virt,pub]
+  M: System.Void add_OnNameChanged(Il2CppSystem.Action`1<System.String> value) [virt,pub]
+  M: System.Void remove_OnNameChanged(Il2CppSystem.Action`1<System.String> value) [virt,pub]
+  M: System.Boolean get_Dismantled() [pub]
+  M: System.Void set_Dismantled(System.Boolean value) [pub]
+  M: System.Byte get_ChildID() [pub]   *** KEYWORD
+  M: System.Void set_ChildID(System.Byte value) [pub]   *** KEYWORD
+  M: System.Boolean get_IsUpgrade() [pub]
+  M: System.Void set_IsUpgrade(System.Boolean value) [pub]
+  M: System.Boolean get_LocallyPlacedStructure() [pub]
+  M: SSSGame.RepairPart get_RepairPart() [pub]
+  M: System.Boolean get_IsDead() [pub]
+  M: System.Void set_IsDead(System.Boolean value) [pub]
+  M: System.Void add_OnOutpostDataChangedEvent(Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder> value) [pub]
+  M: System.Void remove_OnOutpostDataChangedEvent(Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder> value) [pub]
+  M: SSSGame.StructureCullHandler get_CullHandler() [pub]
+  M: System.Void Awake() [virt,pub]
+  M: SSSGame.Network.IProxyLinkedComponent/ComponentType get_LinkedComponentType() [virt,pub]
+  M: System.Void OnProxyObjectsLinked(SSSGame.Network.NetworkLink previous, SSSGame.Network.NetworkLink parent) [virt,pub]   *** KEYWORD
+  M: System.Void Spawned() [virt,pub]
+  M: System.Void Despawned(Fusion.NetworkRunner runner, System.Boolean hasState) [virt,pub]
+  M: System.Void _OnGlobalPlayerLeft(Fusion.PlayerRef pRef) [pub]
+  M: System.Void AfterSpawned() [virt,pub]
+  M: System.Void _RefreshLinkToParent() [pub]   *** KEYWORD
+  M: System.Void _Spawned() [pub]
+  M: System.Void _Initialize() [pub]
+  M: System.Void Rpc_ChangeName(System.String newName) [pub]
+  M: System.Void _OnStructureNameChanged(Fusion.Changed`1<SSSGame.Structure> changed) [static,pub]
+  M: System.Void DisableActivityObjects() [pub]
+  M: System.Void SetRebuiltCount(System.Int32 count) [pub]
+  M: System.Int32 GetRebuiltCount(System.Boolean baseValueOnly) [pub]
+  M: System.Boolean HasUnbuiltChildStructures() [pub]   *** KEYWORD
+  M: System.Void ForceKill() [pub]
+  M: System.Void _InitializeAttributes() [virt,pub]
+  M: System.Void _OnCurrentHpReachedMin() [virt,pub]
+  M: System.Void _OnIdsChanged(Fusion.Changed`1<SSSGame.Structure> changed) [static,pub]
+  M: System.Void _OnIDsChanged(SSSGame.Structure/Ids& previousIDs <<BY-REF>>) [pub]
+  M: System.Void _OnMiscellaneousBufferChanged(Fusion.Changed`1<SSSGame.Structure> changed) [static,pub]
+  M: System.Void _OnMiscellaneousBufferChanged(SSSGame.Structure/MiscellaneousBuffer& previousBuffer <<BY-REF>>) [pub]
+  M: System.Void Rpc_PlayDismantleFx() [pub]
+  M: System.Void Rpc_RequestDismantle(System.Boolean stealthly) [pub]
+  M: System.Void _OnDismantledStateChanged() [pub]
+  M: System.Void LocalDismantle() [virt,pub]
+  M: System.Boolean TryCheckAllValidStorages() [pub]
+  M: System.Void _TryCheckValidStorages(SSSGame.DismantlePile dismantlePile) [pub]
+  M: System.Int32 GetValidStoragesCount(SSSGame.DismantlePile dismantlePile) [pub]
+  M: System.Void ToggleDismantleAppearance() [pub]
+  M: System.Void DespawnDismantlePile() [virt,pub]
+  M: SSSGame.IStructureComponent FindStructureComponent(Il2CppSystem.Predicate`1<SSSGame.IStructureComponent> predicate) [pub]
+  M: T FindStructureComponent(Il2CppSystem.Predicate`1<T> predicate) [pub]
+  M: T GetStructureComponent() [pub]
+  M: System.Boolean TryGetStructureComponent(T& comp <<BY-REF>>) [pub]
+  M: System.Boolean TryGetStructureComponent(Il2CppSystem.Predicate`1<T> predicate, T& comp <<BY-REF>>) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> GetAllStructureComponents() [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Storage.IStorageSerializable> GetAllStorageSerializables() [pub]
+  M: System.Void ActivateIssueMarker(System.Boolean value) [pub]
+  M: Il2CppSystem.Collections.Generic.IReadOnlyList`1<SSSGame.IStructurePlacementStateHandler> GetPlacementHandlers() [pub]
+  M: System.Void Activate() [virt,pub]
+  M: System.Void _DestroyBuildSite() [pub]
+  M: System.Void _OnIsDeadChildChanged() [pub]   *** KEYWORD
+  M: System.Void Rpc_Activate() [pub]
+  M: System.Void Rpc_RebuildStructure() [pub]
+  M: System.Void Rpc_SetOutpostId(System.Byte id) [pub]
+  M: System.Void Upgrade(SSSGame.StructureTemplate structureTemplate) [virt,pub]
+  M: System.Void _OnUpgradeActivation(SSSGame.Structure structureUpgrade) [virt,pub]
+  M: SSSGame.Structure Rebuild() [pub]
+  M: SSSGame.Structure _RecreateStructure(System.Boolean isUpgradeOperation) [pub]
+  M: SSSGame.StructureTemplate GetRecreationResultTemplate() [virt,pub]
+  M: System.Void Dismantle(System.Boolean stealthly) [virt,pub]
+  M: System.String GetCustomName() [pub]
+  M: System.Void _InvokeChildIdChanged(SSSGame.Structure structure) [pub]   *** KEYWORD
+  M: System.Void _SpawnDismantledParts(SSSGame.Structure structure, System.Single spawnChance) [pub]
+  M: System.Void DismantleIfNoChildren(System.Boolean stealthly) [virt,pub]   *** KEYWORD
+  M: System.Void DismantleWithDialogue(Il2CppSystem.Action confirmCallback) [pub]
+  M: System.Void DismantleIfNoChildrenMasterOnly(System.Boolean stealthly) [virt,pub]   *** KEYWORD
+  M: System.Boolean get_IsValid() [pub]
+  M: System.Boolean IsNonDismantlable() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetDismantleManifest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetScavengeManifest() [virt,pub]
+  M: System.Single GetDestructionRefundChance() [pub]
+  M: System.Single GetDismantleRefundChance() [pub]
+  M: SandSailorStudio.Attributes.AttributeManager GetAttributeManager() [pub]
+  M: SSSGame.PaintPart GetPaintPart() [pub]
+  M: SSSGame.Combat.StructureHittable GetStructureHittable() [pub]
+  M: SSSGame.DismantlePile GetDismantlePile() [pub]
+  M: SSSGame.StatusEffectManager GetStatusEffectManager() [pub]
+  M: SSSGame.ModularBuilding GetModularBuilding() [pub]
+  M: SSSGame.BuildingModule GetModule() [pub]
+  M: System.Void OnOutpostDataChanged(SSSGame.IOutpostDataHolder outpostData) [virt,pub]
+  M: System.Void _AdjustPosition() [pub]
+  M: System.Void _FlattenTerrain(UnityEngine.Vector3 point, System.Int32 lenx, System.Int32 lenz, System.Int32 smooth, System.Single incdec) [pub]
+  M: System.Void _TextureDeformation(UnityEngine.Vector3 pos, System.Single craterSizeInMeters, System.Int32 textureIDnum) [pub]
+  M: UnityEngine.Vector3 GetNormalizedPositionRelativeToTerrain(UnityEngine.Vector3 pos, UnityEngine.Terrain terrain) [pub]
+  M: UnityEngine.Vector3 GetRelativeTerrainPositionFromPos(UnityEngine.Vector3 pos, UnityEngine.Terrain terrain, System.Int32 mapWidth, System.Int32 mapHeight) [pub]
+  M: System.Boolean HasAnyVikingParent(SSSGame.Structure structure) [static,pub]   *** KEYWORD
+  M: System.String GetNameWithOutpost() [virt,pub]
+  M: System.String GetName() [virt,pub]
+  M: System.Boolean Deserialize(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: System.Boolean DeserializeChildren(SandSailorStudio.Storage.DataObject source) [pub]   *** KEYWORD
+  M: SandSailorStudio.Storage.DataObject Serialize(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeChildren(SandSailorStudio.Storage.DataObject destination) [virt,pub]   *** KEYWORD
+  M: System.Boolean _InactiveRootDeserialize(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject _InactiveRootSerialize(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: UnityEngine.Vector3 GetPosition() [virt,pub]
+  M: System.Void SetWorldCell(SSSGame.WorldDataCell cell) [virt,pub]
+  M: SSSGame.WorldDataCell GetWorldCell() [virt,pub]
+  M: System.Void UpdateCullingRange(SandSailorStudio.Culling.WorldCullingRange visibilityDistanceBand) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void CopyBackingFieldsToState(System.Boolean ) [virt,pub]
+  M: System.Void CopyStateToBackingFields() [virt,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_4(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_5(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.String get_c_VolumeLayer() [static,pub]
+  M: System.Void set_c_VolumeLayer(System.String ) [static,pub]
+  M: System.String get_c_Layer() [static,pub]
+  M: System.Void set_c_Layer(System.String ) [static,pub]
+  M: System.String get_c_AnchorTag() [static,pub]
+  M: System.Void set_c_AnchorTag(System.String ) [static,pub]
+  M: System.String get_c_FootprintTag() [static,pub]
+  M: System.Void set_c_FootprintTag(System.String ) [static,pub]
+  M: System.String get_c_FootprintValidationTag() [static,pub]
+  M: System.Void set_c_FootprintValidationTag(System.String ) [static,pub]
+  M: System.Single get_c_fallbackDismantleRefundChance() [static,pub]
+  M: System.Void set_c_fallbackDismantleRefundChance(System.Single ) [static,pub]
+  M: System.Single get_c_fallbackDestroyRefoundChance() [static,pub]
+  M: System.Void set_c_fallbackDestroyRefoundChance(System.Single ) [static,pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnBeforeParentChange() [pub]   *** KEYWORD
+  M: System.Void set_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]   *** KEYWORD
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnAfterParentChange() [pub]   *** KEYWORD
+  M: System.Void set_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]   *** KEYWORD
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnBeforeDismantle() [pub]
+  M: System.Void set_OnBeforeDismantle(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnAfterDismantle() [pub]
+  M: System.Void set_OnAfterDismantle(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnStructureDeath() [pub]
+  M: System.Void set_OnStructureDeath(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnChildIDChanged() [pub]   *** KEYWORD
+  M: System.Void set_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]   *** KEYWORD
+  M: Il2CppSystem.Action get_OnAfterDeserialization() [pub]
+  M: System.Void set_OnAfterDeserialization(Il2CppSystem.Action ) [pub]
+  M: Fusion.NetworkString`1<Fusion._16> get___NetworkedStructureName() [pub]
+  M: System.Void set___NetworkedStructureName(Fusion.NetworkString`1<Fusion._16> ) [pub]
+  M: SSSGame.Structure/Ids get___NetworkedIDs() [pub]
+  M: System.Void set___NetworkedIDs(SSSGame.Structure/Ids ) [pub]
+  M: SSSGame.Structure/MiscellaneousBuffer get__NetworkedMiscellaneousBuffer() [pub]
+  M: System.Void set__NetworkedMiscellaneousBuffer(SSSGame.Structure/MiscellaneousBuffer ) [pub]
+  M: System.Boolean get__isActive() [pub]
+  M: System.Void set__isActive(System.Boolean ) [pub]
+  M: System.Int32 get__uniqueId() [pub]
+  M: System.Void set__uniqueId(System.Int32 ) [pub]
+  M: System.Byte get__outpostId() [pub]
+  M: System.Void set__outpostId(System.Byte ) [pub]
+  M: SSSGame.StructureContainer get_childStructureContainer() [pub]   *** KEYWORD
+  M: System.Void set_childStructureContainer(SSSGame.StructureContainer ) [pub]   *** KEYWORD
+  M: SSSGame.StructurePreview get_preview() [pub]
+  M: System.Void set_preview(SSSGame.StructurePreview ) [pub]
+  M: SSSGame.BuildSite get_buildSite() [pub]
+  M: System.Void set_buildSite(SSSGame.BuildSite ) [pub]
+  M: SSSGame.Combat.FxSetup get_dismantleFx() [pub]
+  M: System.Void set_dismantleFx(SSSGame.Combat.FxSetup ) [pub]
+  M: System.Boolean get__destroyStructureWhenDead() [pub]
+  M: System.Void set__destroyStructureWhenDead(System.Boolean ) [pub]
+  M: System.Boolean get__treatAllStoragesAsOne() [pub]
+  M: System.Void set__treatAllStoragesAsOne(System.Boolean ) [pub]
+  M: System.Boolean get_allowInventoryMenuPanelsWhileDismantled() [pub]
+  M: System.Void set_allowInventoryMenuPanelsWhileDismantled(System.Boolean ) [pub]
+  M: System.Boolean get_spawnedByAutoBuilder() [pub]
+  M: System.Void set_spawnedByAutoBuilder(System.Boolean ) [pub]
+  M: System.Boolean get_autoLevelWithOwnFootprint() [pub]
+  M: System.Void set_autoLevelWithOwnFootprint(System.Boolean ) [pub]
+  M: SSSGame.TerraformingToolOperation get_autoLevelOperation() [pub]
+  M: System.Void set_autoLevelOperation(SSSGame.TerraformingToolOperation ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> get_activityComponents() [pub]
+  M: System.Void set_activityComponents(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.GameObject> get_activityObjects() [pub]
+  M: System.Void set_activityObjects(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.GameObject> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.StorageSupply> get_storageSupplies() [pub]
+  M: System.Void set_storageSupplies(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.StorageSupply> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> get__storagesBuffer() [static,pub]
+  M: System.Void set__storagesBuffer(Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> ) [static,pub]
+  M: SSSGame.StructureFootprintLevel get_footprintLevel() [pub]
+  M: System.Void set_footprintLevel(SSSGame.StructureFootprintLevel ) [pub]
+  M: SSSGame.Settlement get__Settlement_k__BackingField() [pub]
+  M: System.Void set__Settlement_k__BackingField(SSSGame.Settlement ) [pub]
+  M: SSSGame.StructureTemplate get__Template_k__BackingField() [pub]
+  M: System.Void set__Template_k__BackingField(SSSGame.StructureTemplate ) [pub]
+  M: SSSGame.StructureTemplate get__template() [pub]
+  M: System.Void set__template(SSSGame.StructureTemplate ) [pub]
+  M: UnityEngine.GameObject get_IssueMarker() [pub]
+  M: System.Void set_IssueMarker(UnityEngine.GameObject ) [pub]
+  M: System.String get__structureName() [pub]
+  M: System.Void set__structureName(System.String ) [pub]
+  M: System.String get__customDefaultName() [pub]
+  M: System.Void set__customDefaultName(System.String ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> get_OnSpawned() [pub]
+  M: System.Void set_OnSpawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> get_OnDespawned() [pub]
+  M: System.Void set_OnDespawned(Il2CppSystem.Action`1<SSSGame.Network.INetworkLifetimeTracker> ) [pub]
+  M: System.Boolean get__despawned() [pub]
+  M: System.Void set__despawned(System.Boolean ) [pub]
+  M: Il2CppSystem.Action`1<System.String> get_OnNameChanged() [pub]
+  M: System.Void set_OnNameChanged(Il2CppSystem.Action`1<System.String> ) [pub]
+  M: System.Boolean get__dismantled() [pub]
+  M: System.Void set__dismantled(System.Boolean ) [pub]
+  M: System.Int32 get__dismantledStoragesCount() [pub]
+  M: System.Void set__dismantledStoragesCount(System.Int32 ) [pub]
+  M: System.Boolean get__isRecreating() [pub]
+  M: System.Void set__isRecreating(System.Boolean ) [pub]
+  M: System.Byte get__childID() [pub]   *** KEYWORD
+  M: System.Void set__childID(System.Byte ) [pub]   *** KEYWORD
+  M: SSSGame.Structure get__parentStructure() [pub]   *** KEYWORD
+  M: System.Void set__parentStructure(SSSGame.Structure ) [pub]   *** KEYWORD
+  M: System.Boolean get__isUpgrade() [pub]
+  M: System.Void set__isUpgrade(System.Boolean ) [pub]
+  M: SSSGame.RepairPart get__repairPart() [pub]
+  M: System.Void set__repairPart(SSSGame.RepairPart ) [pub]
+  M: System.Boolean get__IsDead_k__BackingField() [pub]
+  M: System.Void set__IsDead_k__BackingField(System.Boolean ) [pub]
+  M: System.Boolean get__isDeadChild() [pub]   *** KEYWORD
+  M: System.Void set__isDeadChild(System.Boolean ) [pub]   *** KEYWORD
+  M: Il2CppSystem.Action`1<System.Boolean> get_OnVisibilityChanged() [pub]
+  M: System.Void set_OnVisibilityChanged(Il2CppSystem.Action`1<System.Boolean> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnActivate() [pub]
+  M: System.Void set_OnActivate(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder> get_OnOutpostDataChangedEvent() [pub]
+  M: System.Void set_OnOutpostDataChangedEvent(Il2CppSystem.Action`1<SSSGame.IOutpostDataHolder> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> get__structureComponentsCache() [pub]
+  M: System.Void set__structureComponentsCache(Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Storage.IStorageSerializable> get__storageSerializableCache() [pub]
+  M: System.Void set__storageSerializableCache(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Storage.IStorageSerializable> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructurePlacementStateHandler> get__placementHandlers() [pub]
+  M: System.Void set__placementHandlers(Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructurePlacementStateHandler> ) [pub]
+  M: System.Boolean get__initialized() [pub]
+  M: System.Void set__initialized(System.Boolean ) [pub]
+  M: SandSailorStudio.Attributes.AttributeManager get__attrMan() [pub]
+  M: System.Void set__attrMan(SandSailorStudio.Attributes.AttributeManager ) [pub]
+  M: SSSGame.PaintPart get__paintPart() [pub]
+  M: System.Void set__paintPart(SSSGame.PaintPart ) [pub]
+  M: SSSGame.Combat.StructureHittable get__stuctureHittable() [pub]
+  M: System.Void set__stuctureHittable(SSSGame.Combat.StructureHittable ) [pub]
+  M: SSSGame.DismantlePile get__dismantlePile() [pub]
+  M: System.Void set__dismantlePile(SSSGame.DismantlePile ) [pub]
+  M: SSSGame.StatusEffectManager get__statusEffMan() [pub]
+  M: System.Void set__statusEffMan(SSSGame.StatusEffectManager ) [pub]
+  M: SSSGame.ModularBuilding get__modularBuilding() [pub]
+  M: System.Void set__modularBuilding(SSSGame.ModularBuilding ) [pub]
+  M: System.Boolean get__hasModularBuilding() [pub]
+  M: System.Void set__hasModularBuilding(System.Boolean ) [pub]
+  M: SSSGame.BuildingModule get__module() [pub]
+  M: System.Void set__module(SSSGame.BuildingModule ) [pub]
+  M: System.Boolean get__hasModule() [pub]
+  M: System.Void set__hasModule(System.Boolean ) [pub]
+  M: System.Boolean get__deserializing() [pub]
+  M: System.Void set__deserializing(System.Boolean ) [pub]
+  M: System.Boolean get__internalDismantled() [pub]
+  M: System.Void set__internalDismantled(System.Boolean ) [pub]
+  M: SSSGame.UI.ConfirmActionMenu get__confirmDismantleMenu() [pub]
+  M: System.Void set__confirmDismantleMenu(SSSGame.UI.ConfirmActionMenu ) [pub]
+  M: SSSGame.Network.NetworkLink get_linkage() [pub]
+  M: System.Void set_linkage(SSSGame.Network.NetworkLink ) [pub]
+  M: SSSGame.StructureCullHandler get__cullHandler() [pub]
+  M: System.Void set__cullHandler(SSSGame.StructureCullHandler ) [pub]
+  M: SSSGame.Network.NetworkSession get_session() [pub]
+  M: System.Void set_session(SSSGame.Network.NetworkSession ) [pub]
+  M: System.String get_c_BuildSiteKey() [static,pub]
+  M: System.Void set_c_BuildSiteKey(System.String ) [static,pub]
+  M: System.String get_c_ChildrenKey() [static,pub]   *** KEYWORD
+  M: System.Void set_c_ChildrenKey(System.String ) [static,pub]   *** KEYWORD
+  M: System.String get_c_ComponentsKey() [static,pub]
+  M: System.Void set_c_ComponentsKey(System.String ) [static,pub]
+  M: System.String get_c_IsUpgradeKey() [static,pub]
+  M: System.Void set_c_IsUpgradeKey(System.String ) [static,pub]
+  M: System.String get_c_structureName() [static,pub]
+  M: System.Void set_c_structureName(System.String ) [static,pub]
+  M: System.String get_c_uniqueTemplateId() [static,pub]
+  M: System.Void set_c_uniqueTemplateId(System.String ) [static,pub]
+  M: System.String get_c_outpostId() [static,pub]
+  M: System.Void set_c_outpostId(System.String ) [static,pub]
+  M: System.String get_c_IsDeadChildKey() [static,pub]   *** KEYWORD
+  M: System.Void set_c_IsDeadChildKey(System.String ) [static,pub]   *** KEYWORD
+  M: System.String get_c_DismantledKey() [static,pub]
+  M: System.Void set_c_DismantledKey(System.String ) [static,pub]
+  M: SSSGame.WorldDataCell get__localizationCell() [pub]
+  M: System.Void set__localizationCell(SSSGame.WorldDataCell ) [pub]
+  M: Fusion.Changed`1<SSSGame.Structure> get_field_CompilerControlled_Static_Changed_1_Structure_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_Changed_1_Structure_0(Fusion.Changed`1<SSSGame.Structure> ) [static,pub]
+  M: Fusion.ChangedDelegate`1<SSSGame.Structure> get_field_CompilerControlled_Static_ChangedDelegate_1_Structure_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_ChangedDelegate_1_Structure_0(Fusion.ChangedDelegate`1<SSSGame.Structure> ) [static,pub]
+  M: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Structure> get_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Structure_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Structure_0(Fusion.NetworkBehaviourCallbacks`1<SSSGame.Structure> ) [static,pub]
+
+==================================================================
+Q4: STRUCTURE-SIDE LINK MEMBERS (Structure + Workstation)
+==================================================================
+
+--- SSSGame.Structure ---
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnBeforeParentChange
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnAfterParentChange
+  P: Il2CppSystem.Action`1<SSSGame.Structure> OnChildIDChanged
+  P: SSSGame.StructureContainer childStructureContainer
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> activityComponents
+  P: System.Byte _childID
+  P: SSSGame.Structure _parentStructure
+  P: System.Boolean _isDeadChild
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> _structureComponentsCache
+  P: SSSGame.BuildingModule _module
+  P: System.Boolean _hasModule
+  P: System.String c_ChildrenKey
+  P: System.String c_ComponentsKey
+  P: System.String c_IsDeadChildKey
+  P: Fusion.NetworkId NetworkedParent
+  P: System.Boolean IsDeadChild
+  P: SSSGame.Structure Parent
+  P: System.Byte ChildID
+  P: SSSGame.Network.IProxyLinkedComponent/ComponentType LinkedComponentType
+  M: System.Void add_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void add_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void add_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: System.Void remove_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> value) [pub]
+  M: Fusion.NetworkId get_NetworkedParent() [pub]
+  M: System.Void set_NetworkedParent(Fusion.NetworkId value) [pub]
+  M: System.Boolean get_IsDeadChild() [pub]
+  M: System.Void set_IsDeadChild(System.Boolean value) [pub]
+  M: SSSGame.Structure get_Parent() [pub]
+  M: System.Void set_Parent(SSSGame.Structure value) [pub]
+  M: System.Byte get_ChildID() [pub]
+  M: System.Void set_ChildID(System.Byte value) [pub]
+  M: SSSGame.Network.IProxyLinkedComponent/ComponentType get_LinkedComponentType() [virt,pub]
+  M: System.Void OnProxyObjectsLinked(SSSGame.Network.NetworkLink previous, SSSGame.Network.NetworkLink parent) [virt,pub]
+  M: System.Void _RefreshLinkToParent() [pub]
+  M: System.Boolean HasUnbuiltChildStructures() [pub]
+  M: SSSGame.IStructureComponent FindStructureComponent(Il2CppSystem.Predicate`1<SSSGame.IStructureComponent> predicate) [pub]
+  M: T FindStructureComponent(Il2CppSystem.Predicate`1<T> predicate) [pub]
+  M: T GetStructureComponent() [pub]
+  M: System.Boolean TryGetStructureComponent(T& comp <<BY-REF>>) [pub]
+  M: System.Boolean TryGetStructureComponent(Il2CppSystem.Predicate`1<T> predicate, T& comp <<BY-REF>>) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> GetAllStructureComponents() [pub]
+  M: System.Void _OnIsDeadChildChanged() [pub]
+  M: System.Void _InvokeChildIdChanged(SSSGame.Structure structure) [pub]
+  M: System.Void DismantleIfNoChildren(System.Boolean stealthly) [virt,pub]
+  M: System.Void DismantleIfNoChildrenMasterOnly(System.Boolean stealthly) [virt,pub]
+  M: SSSGame.BuildingModule GetModule() [pub]
+  M: System.Boolean HasAnyVikingParent(SSSGame.Structure structure) [static,pub]
+  M: System.Boolean DeserializeChildren(SandSailorStudio.Storage.DataObject source) [pub]
+  M: SandSailorStudio.Storage.DataObject SerializeChildren(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnBeforeParentChange() [pub]
+  M: System.Void set_OnBeforeParentChange(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnAfterParentChange() [pub]
+  M: System.Void set_OnAfterParentChange(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Structure> get_OnChildIDChanged() [pub]
+  M: System.Void set_OnChildIDChanged(Il2CppSystem.Action`1<SSSGame.Structure> ) [pub]
+  M: SSSGame.StructureContainer get_childStructureContainer() [pub]
+  M: System.Void set_childStructureContainer(SSSGame.StructureContainer ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> get_activityComponents() [pub]
+  M: System.Void set_activityComponents(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<UnityEngine.MonoBehaviour> ) [pub]
+  M: System.Byte get__childID() [pub]
+  M: System.Void set__childID(System.Byte ) [pub]
+  M: SSSGame.Structure get__parentStructure() [pub]
+  M: System.Void set__parentStructure(SSSGame.Structure ) [pub]
+  M: System.Boolean get__isDeadChild() [pub]
+  M: System.Void set__isDeadChild(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> get__structureComponentsCache() [pub]
+  M: System.Void set__structureComponentsCache(Il2CppSystem.Collections.Generic.List`1<SSSGame.IStructureComponent> ) [pub]
+  M: SSSGame.BuildingModule get__module() [pub]
+  M: System.Void set__module(SSSGame.BuildingModule ) [pub]
+  M: System.Boolean get__hasModule() [pub]
+  M: System.Void set__hasModule(System.Boolean ) [pub]
+  M: System.String get_c_ChildrenKey() [static,pub]
+  M: System.Void set_c_ChildrenKey(System.String ) [static,pub]
+  M: System.String get_c_ComponentsKey() [static,pub]
+  M: System.Void set_c_ComponentsKey(System.String ) [static,pub]
+  M: System.String get_c_IsDeadChildKey() [static,pub]
+  M: System.Void set_c_IsDeadChildKey(System.String ) [static,pub]
+  F: System.IntPtr NativeFieldInfoPtr_OnBeforeParentChange
+  F: System.IntPtr NativeFieldInfoPtr_OnAfterParentChange
+  F: System.IntPtr NativeFieldInfoPtr_OnChildIDChanged
+  F: System.IntPtr NativeFieldInfoPtr_childStructureContainer
+  F: System.IntPtr NativeFieldInfoPtr_activityComponents
+  F: System.IntPtr NativeFieldInfoPtr__childID
+  F: System.IntPtr NativeFieldInfoPtr__parentStructure
+  F: System.IntPtr NativeFieldInfoPtr__isDeadChild
+  F: System.IntPtr NativeFieldInfoPtr__structureComponentsCache
+  F: System.IntPtr NativeFieldInfoPtr__module
+  F: System.IntPtr NativeFieldInfoPtr__hasModule
+  F: System.IntPtr NativeFieldInfoPtr_c_ChildrenKey
+  F: System.IntPtr NativeFieldInfoPtr_c_ComponentsKey
+  F: System.IntPtr NativeFieldInfoPtr_c_IsDeadChildKey
+  F: System.IntPtr NativeMethodInfoPtr_add_OnBeforeParentChange_Public_add_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnBeforeParentChange_Public_rem_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnAfterParentChange_Public_add_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnAfterParentChange_Public_rem_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnChildIDChanged_Public_add_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnChildIDChanged_Public_rem_Void_Action_1_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_get_NetworkedParent_Public_get_NetworkId_0
+  F: System.IntPtr NativeMethodInfoPtr_set_NetworkedParent_Public_set_Void_NetworkId_0
+  F: System.IntPtr NativeMethodInfoPtr_get_IsDeadChild_Public_get_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_set_IsDeadChild_Public_set_Void_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_get_Parent_Public_get_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_set_Parent_Public_set_Void_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_get_ChildID_Public_get_Byte_0
+  F: System.IntPtr NativeMethodInfoPtr_set_ChildID_Public_set_Void_Byte_0
+  F: System.IntPtr NativeMethodInfoPtr_get_LinkedComponentType_Public_Virtual_Final_New_get_ComponentType_0
+  F: System.IntPtr NativeMethodInfoPtr__RefreshLinkToParent_Private_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_HasUnbuiltChildStructures_Public_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_FindStructureComponent_Public_IStructureComponent_Predicate_1_IStructureComponent_0
+  F: System.IntPtr NativeMethodInfoPtr_FindStructureComponent_Public_T_Predicate_1_T_0
+  F: System.IntPtr NativeMethodInfoPtr_GetStructureComponent_Public_T_0
+  F: System.IntPtr NativeMethodInfoPtr_TryGetStructureComponent_Public_Boolean_byref_T_0
+  F: System.IntPtr NativeMethodInfoPtr_TryGetStructureComponent_Public_Boolean_Predicate_1_T_byref_T_0
+  F: System.IntPtr NativeMethodInfoPtr_GetAllStructureComponents_Public_List_1_IStructureComponent_0
+  F: System.IntPtr NativeMethodInfoPtr__OnIsDeadChildChanged_Private_Void_0
+  F: System.IntPtr NativeMethodInfoPtr__InvokeChildIdChanged_Protected_Void_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_DismantleIfNoChildren_Public_Virtual_New_Void_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_DismantleIfNoChildrenMasterOnly_Public_Virtual_New_Void_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_GetModule_Public_BuildingModule_0
+  F: System.IntPtr NativeMethodInfoPtr_HasAnyVikingParent_Public_Static_Boolean_Structure_0
+  F: System.IntPtr NativeMethodInfoPtr_DeserializeChildren_Public_Boolean_DataObject_0
+  F: System.IntPtr NativeMethodInfoPtr_SerializeChildren_Public_Virtual_New_DataObject_DataObject_0
+
+--- SSSGame.Workstation ---
+  P: SSSGame.Workstation/WorkstationStationEvents _EventsChannel_k__BackingField
+  P: Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> OnWorkstationChanged
+  P: Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> OnTaskAdded
+  P: Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> OnTaskRemoved
+  P: Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> OnEquipmentColorsChanged
+  P: SSSGame.AI.TaskDataComponents TaskDataType
+  P: SSSGame.AI.WorkstationEquipmentColorConfig equipmentColorConfig
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> _taskDatas
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.Network.INetworkWorkstation> _networkWorkstations
+  P: SSSGame.Network.NetworkWorkstationEquipmentColor _networkEquipmentColor
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.IWorkstation> _boundWorkstations
+  P: Fusion.Changed`1<SSSGame.Workstation> field_CompilerControlled_Static_Changed_1_Workstation_0
+  P: Fusion.ChangedDelegate`1<SSSGame.Workstation> field_CompilerControlled_Static_ChangedDelegate_1_Workstation_0
+  P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Workstation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Workstation_0
+  P: SSSGame.Workstation/WorkstationStationEvents EventsChannel
+  P: System.Boolean IsVikingWorkstation
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.Network.INetworkWorkstation> NetworkWorkstations
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.IWorkstation> BoundWorkstations
+  M: SSSGame.Workstation/WorkstationStationEvents get_EventsChannel() [pub]
+  M: System.Void set_EventsChannel(SSSGame.Workstation/WorkstationStationEvents value) [pub]
+  M: System.Void add_OnWorkstationChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> value) [virt,pub]
+  M: System.Void remove_OnWorkstationChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> value) [virt,pub]
+  M: System.Void add_OnTaskAdded(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> value) [virt,pub]
+  M: System.Void remove_OnTaskAdded(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> value) [virt,pub]
+  M: System.Void add_OnTaskRemoved(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> value) [virt,pub]
+  M: System.Void remove_OnTaskRemoved(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> value) [virt,pub]
+  M: System.Void add_OnEquipmentColorsChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> value) [pub]
+  M: System.Void remove_OnEquipmentColorsChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> value) [pub]
+  M: System.Boolean get_IsVikingWorkstation() [virt,pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.Network.INetworkWorkstation> get_NetworkWorkstations() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.IWorkstation> get_BoundWorkstations() [virt,pub]
+  M: SSSGame.AI.TaskDataComponents GetTaskDataFlags() [virt,pub]
+  M: System.Void WorkstationChanged() [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> GetWorkstationTaskDatas() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.ITaskAgent> GetWorkstationTaskAgents() [pub]
+  M: System.Void AddTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void InvokeAddTaskData(SSSGame.AI.WorkstationTaskData taskData) [pub]
+  M: System.Void InvokeRemoveTaskData(SSSGame.AI.WorkstationTaskData taskData) [pub]
+  M: System.Void RemoveTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Boolean CheckForDuplicateTaskData(SSSGame.AI.WorkstationTaskData newData) [virt,pub]
+  M: System.Void OnBeforeBoundWorkstationSerialization() [virt,pub]
+  M: System.Void ReplaceBoundWorkstation(SandSailorStudio.Storage.DataObject source, SSSGame.AI.IWorkstation toReplace, SSSGame.AI.IWorkstation replacement) [virt,pub]
+  M: System.Boolean _CanAddVillagerToTaskData(SSSGame.Villager villagerToAdd, SSSGame.AI.WorkstationTaskData taskData) [virt,pub]
+  M: System.Void _OnBeforeRemoveFromTaskData(SSSGame.Villager villagerToRemove, SSSGame.AI.WorkstationTaskData taskData) [virt,pub]
+  M: SSSGame.Workstation/WorkstationStationEvents get__EventsChannel_k__BackingField() [pub]
+  M: System.Void set__EventsChannel_k__BackingField(SSSGame.Workstation/WorkstationStationEvents ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> get_OnWorkstationChanged() [pub]
+  M: System.Void set_OnWorkstationChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> ) [pub]
+  M: Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> get_OnTaskAdded() [pub]
+  M: System.Void set_OnTaskAdded(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> ) [pub]
+  M: Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> get_OnTaskRemoved() [pub]
+  M: System.Void set_OnTaskRemoved(Il2CppSystem.Action`2<SSSGame.AI.IWorkstation,SSSGame.AI.WorkstationTaskData> ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> get_OnEquipmentColorsChanged() [pub]
+  M: System.Void set_OnEquipmentColorsChanged(Il2CppSystem.Action`1<SSSGame.AI.IWorkstation> ) [pub]
+  M: SSSGame.AI.TaskDataComponents get_TaskDataType() [pub]
+  M: System.Void set_TaskDataType(SSSGame.AI.TaskDataComponents ) [pub]
+  M: SSSGame.AI.WorkstationEquipmentColorConfig get_equipmentColorConfig() [pub]
+  M: System.Void set_equipmentColorConfig(SSSGame.AI.WorkstationEquipmentColorConfig ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> get__taskDatas() [pub]
+  M: System.Void set__taskDatas(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.WorkstationTaskData> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.Network.INetworkWorkstation> get__networkWorkstations() [pub]
+  M: System.Void set__networkWorkstations(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.Network.INetworkWorkstation> ) [pub]
+  M: SSSGame.Network.NetworkWorkstationEquipmentColor get__networkEquipmentColor() [pub]
+  M: System.Void set__networkEquipmentColor(SSSGame.Network.NetworkWorkstationEquipmentColor ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.IWorkstation> get__boundWorkstations() [pub]
+  M: System.Void set__boundWorkstations(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.IWorkstation> ) [pub]
+  M: Fusion.Changed`1<SSSGame.Workstation> get_field_CompilerControlled_Static_Changed_1_Workstation_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_Changed_1_Workstation_0(Fusion.Changed`1<SSSGame.Workstation> ) [static,pub]
+  M: Fusion.ChangedDelegate`1<SSSGame.Workstation> get_field_CompilerControlled_Static_ChangedDelegate_1_Workstation_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_ChangedDelegate_1_Workstation_0(Fusion.ChangedDelegate`1<SSSGame.Workstation> ) [static,pub]
+  M: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Workstation> get_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Workstation_0() [static,pub]
+  M: System.Void set_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Workstation_0(Fusion.NetworkBehaviourCallbacks`1<SSSGame.Workstation> ) [static,pub]
+  F: System.IntPtr NativeFieldInfoPtr_OnWorkstationChanged
+  F: System.IntPtr NativeFieldInfoPtr__networkWorkstations
+  F: System.IntPtr NativeFieldInfoPtr__boundWorkstations
+  F: System.IntPtr NativeFieldInfoPtr_field_CompilerControlled_Static_Changed_1_Workstation_0
+  F: System.IntPtr NativeFieldInfoPtr_field_CompilerControlled_Static_ChangedDelegate_1_Workstation_0
+  F: System.IntPtr NativeFieldInfoPtr_field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_Workstation_0
+  F: System.IntPtr NativeMethodInfoPtr_get_EventsChannel_Public_get_WorkstationStationEvents_0
+  F: System.IntPtr NativeMethodInfoPtr_set_EventsChannel_Protected_set_Void_WorkstationStationEvents_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnWorkstationChanged_Public_Virtual_Final_New_add_Void_Action_1_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnWorkstationChanged_Public_Virtual_Final_New_rem_Void_Action_1_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnTaskAdded_Public_Virtual_Final_New_add_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnTaskAdded_Public_Virtual_Final_New_rem_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnTaskRemoved_Public_Virtual_Final_New_add_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnTaskRemoved_Public_Virtual_Final_New_rem_Void_Action_2_IWorkstation_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_add_OnEquipmentColorsChanged_Public_add_Void_Action_1_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_remove_OnEquipmentColorsChanged_Public_rem_Void_Action_1_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_get_IsVikingWorkstation_Public_Virtual_Final_New_get_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_get_NetworkWorkstations_Public_Virtual_Final_New_get_Il2CppReferenceArray_1_INetworkWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_get_BoundWorkstations_Public_Virtual_Final_New_get_List_1_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr_GetTaskDataFlags_Public_Virtual_Final_New_TaskDataComponents_0
+  F: System.IntPtr NativeMethodInfoPtr_WorkstationChanged_Public_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_GetWorkstationTaskDatas_Public_Virtual_Final_New_List_1_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_GetWorkstationTaskAgents_Public_List_1_ITaskAgent_0
+  F: System.IntPtr NativeMethodInfoPtr_AddTaskData_Public_Virtual_New_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_InvokeAddTaskData_Public_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_InvokeRemoveTaskData_Public_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_RemoveTaskData_Public_Virtual_New_Void_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_CheckForDuplicateTaskData_Public_Virtual_New_Boolean_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr_OnBeforeBoundWorkstationSerialization_Public_Virtual_New_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_ReplaceBoundWorkstation_Public_Virtual_New_Void_DataObject_IWorkstation_IWorkstation_0
+  F: System.IntPtr NativeMethodInfoPtr__CanAddVillagerToTaskData_Protected_Virtual_New_Boolean_Villager_WorkstationTaskData_0
+  F: System.IntPtr NativeMethodInfoPtr__OnBeforeRemoveFromTaskData_Protected_Virtual_New_Void_Villager_WorkstationTaskData_0
+
+==================================================================
+PASS X: every member ANYWHERE whose TYPE is SSSGame.CraftingStationType
+==================================================================
+  SSSGame.CraftingStationType :: F: SSSGame.CraftingStationType GROUP
+  SSSGame.CraftingStationType :: F: SSSGame.CraftingStationType INDIVIDUAL
+  SSSGame.CraftingStation :: P: SSSGame.CraftingStationType CraftingType
+  SSSGame.CraftingStation :: M: SSSGame.CraftingStationType get_CraftingType() [pub]
+  SSSGame.CraftingStation :: M: System.Void set_CraftingType(SSSGame.CraftingStationType ) [pub]
+
+DONE

@@ -75,6 +75,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> BlacklistContainerTypes = null!;
     internal static ConfigEntry<bool> TransferDiagnostics = null!;
     internal static ConfigEntry<float> FetchQuestSuppressedPriority = null!;
+    internal static ConfigEntry<bool> StockStationOnFetch = null!;
+    internal static ConfigEntry<bool> SuppressFetchQuestPriority = null!;
 
     // --- config: UI (v0.4.0 idea-17 UI follow-up - settlement-stock requirement-UI feature; folds
     // cached settlement stock into the crafting menu's per-ingredient have/need text. PURELY
@@ -237,6 +239,25 @@ public class Plugin : BasePlugin
             "'priority' runs on - see the rate-limited '[CFS] [CFS-FQ] PRIORITY OBSERVE' / 'PRIORITY rollup' " +
             "log lines this feature emits for the vanilla values actually observed in-game. Editable without " +
             "a rebuild if the value needs retuning. Only takes effect when EnableForVillagers=true.");
+
+        StockStationOnFetch = Config.Bind(
+            "Transfer", "StockStationOnFetch", true,
+            "v0.9.0 Phase 2c: when a villager's crafting fetch quest STARTS (FSM_FetchCraftingSupplies." +
+            "OnStateEnter), move the items she was about to fetch from settlement storage directly into " +
+            "the crafting station's inventory, deleting the supply walk. This inverts the v0.8.0 approach: " +
+            "instead of suppressing the fetch quest so it never fires, let vanilla choose it as intended " +
+            "and intercept it at its start. Watch the '[CFS-SS]' log lines. Defaults true per project " +
+            "convention (the user is testing this immediately).");
+
+        SuppressFetchQuestPriority = Config.Bind(
+            "Transfer", "SuppressFetchQuestPriority", false,
+            "RETIRED v0.8.0 lever (formerly the sole gate for the CrafterFetchQuest/CrafterSpecificFetchQuest " +
+            "GetPriority suppression patches). Defaults OFF because it starves the v0.9.0 stocker: " +
+            "suppressing the fetch quest's priority stops FSM_FetchCraftingSupplies.OnStateEnter from ever " +
+            "firing, which is the hook StockStationOnFetch depends on. Confirmed in-game 2026-07-27 to " +
+            "stall villager crafting entirely when enabled (704 of 708 cycles logged verdict=DIRECT " +
+            "fetchEnters=0, but all 708 cycles logged modPulls=0 - the villager stopped walking but nothing " +
+            "was ever crafted). Set true only to re-test the old lever in isolation.");
 
         ShowSettlementStockInUI = Config.Bind(
             "UI", "ShowSettlementStockInUI", true,
@@ -407,21 +428,38 @@ public class Plugin : BasePlugin
         else
             Logger.LogInfo("[CFS] TraceStorageWhitelist=false - IsWhitelistedByStorage patch NOT applied.");
 
-        // v0.8.0 Phase 2b: suppress the villager fetch-quest priority when settlement storage already
-        // covers its whole needed-supplies manifest, so the v0.7.0 just-in-time pull (Point C) can
-        // supply the villager at craft time instead of her walking off first - the v0.7.0/v0.7.1
-        // availability widening alone did NOT stop the walk (confirmed in-game 2026-07-21; the walk
-        // turned out to be scheduled off GetPriority, not CheckOwnedRequirements). Gated on
-        // EnableForVillagers alone - no separate trace flag exists for this feature, matching its
-        // single-purpose "villager crafting" scope. See FetchQuestSuppression.cs / Patches/FetchQuestPatches.cs.
-        if (EnableForVillagers.Value)
+        // v0.8.0 Phase 2b (RETIRED lever, v0.9.0): suppress the villager fetch-quest priority when
+        // settlement storage already covers its whole needed-supplies manifest, so the v0.7.0
+        // just-in-time pull (Point C) can supply the villager at craft time instead of her walking off
+        // first. Confirmed in-game 2026-07-27 to stall villager crafting entirely (verdict=DIRECT on
+        // 704/708 cycles, but modPulls=0 on all 708 - the walk stopped but nothing was ever crafted,
+        // because suppressing the fetch quest also stops FSM_FetchCraftingSupplies.OnStateEnter from
+        // ever firing, which v0.9.0's StockStationOnFetch depends on). Now gated on EnableForVillagers
+        // AND the new SuppressFetchQuestPriority flag (default false) rather than EnableForVillagers
+        // alone. See FetchQuestSuppression.cs / Patches/FetchQuestPatches.cs.
+        if (EnableForVillagers.Value && SuppressFetchQuestPriority.Value)
         {
             harmony.PatchAll(typeof(Patches.CrafterFetchQuestGetPriorityPatch));
             harmony.PatchAll(typeof(Patches.CrafterSpecificFetchQuestGetPriorityPatch));
         }
         else
         {
-            Logger.LogInfo("[CFS] EnableForVillagers=false - CrafterFetchQuest/CrafterSpecificFetchQuest GetPriority suppression patches NOT applied.");
+            string offFlag = !EnableForVillagers.Value ? "EnableForVillagers=false" : "SuppressFetchQuestPriority=false";
+            Logger.LogInfo($"[CFS] {offFlag} - CrafterFetchQuest/CrafterSpecificFetchQuest GetPriority suppression patches NOT applied.");
+        }
+
+        // v0.9.0 Phase 2c: stock the crafting station directly from settlement storage the moment a
+        // villager's fetch quest STARTS (FSM_FetchCraftingSupplies.OnStateEnter), so the walk becomes
+        // unnecessary through vanilla's own scheduling rather than by suppressing it. See
+        // StationStocker.cs / Patches/StationStockPatches.cs.
+        if (EnableForVillagers.Value && StockStationOnFetch.Value)
+        {
+            harmony.PatchAll(typeof(Patches.FetchCraftingSuppliesStockPatch));
+        }
+        else
+        {
+            string offFlag = !EnableForVillagers.Value ? "EnableForVillagers=false" : "StockStationOnFetch=false";
+            Logger.LogInfo($"[CFS] {offFlag} - FetchCraftingSuppliesStockPatch (station stocker) NOT applied.");
         }
 
         Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Storage-pull: " +
@@ -434,8 +472,9 @@ public class Plugin : BasePlugin
             $"Phase 2a villager-fetch spike: EnableVillagerFetchTrace={EnableVillagerFetchTrace.Value} " +
             $"TraceStorageWhitelist={TraceStorageWhitelist.Value} MaxWhitelistLogsPerCycle={MaxWhitelistLogsPerCycle.Value} " +
             $"(read-only observation of the villager-fetch FSM chain - see [CFS-P2] log lines, correlate against [CFS-V]). " +
-            $"Phase 2b fetch-quest priority suppression: gated on EnableForVillagers, " +
-            $"FetchQuestSuppressedPriority={FetchQuestSuppressedPriority.Value} (see [CFS-FQ] log lines).");
+            $"Phase 2b fetch-quest priority suppression (RETIRED lever): SuppressFetchQuestPriority={SuppressFetchQuestPriority.Value}, " +
+            $"FetchQuestSuppressedPriority={FetchQuestSuppressedPriority.Value} (see [CFS-FQ] log lines). " +
+            $"Phase 2c station stocker: StockStationOnFetch={StockStationOnFetch.Value} (see [CFS-SS] log lines).");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide
