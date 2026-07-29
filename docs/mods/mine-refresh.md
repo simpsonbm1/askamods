@@ -115,3 +115,26 @@ and solved.
   both IsServer and IsSharedModeMasterClient flags (possibly invite flow makes host join as client
   with IsSceneMaster). v1.3.3's step 4 logs full runner diagnostics to reveal his actual state;
   awaiting feedback. Workaround: set `[General] ForceAllowRefresh = true`.
+- **goblinhood88** (2026-07-07, v1.3.1 — the version live 2026-06-29 → 07-10): "GAME WONT LOAD."
+  The game fails to start whenever the mod is installed. Asked for the `.dll.off` isolation test
+  and `LogOutput.log`; never responded, bug closed. ⚠️ PENDING — no cause identified.
+- **Makeway** (2026-07-29, version unknown): "Loader crash if i use it and game wont start… all
+  the other mods work fine, only as soon as this mod is there won't load." Requested by DM:
+  `LogOutput.log` via pastebin, `ErrorLog.log` pasted inline, whether a fresh `Aska.exe` dump
+  exists in `%LOCALAPPDATA%\CrashDumps`, Steam beta branch vs normal, and a plugins-folder
+  isolation test run after the log is copied. ⚠️ PENDING — no cause identified.
+
+**Load-failure reports — what the version range can rule out.** Both load-failure reports name
+this mod (not a different one), three weeks apart, with different reporters. Between v1.3.1 and
+v1.3.4 the load path is git-verified unchanged apart from two lines: `Patches/` is byte-identical
+(all four Harmony targets), and `Plugin.cs` differs only by an added `ForceAllowRefresh`
+`Config.Bind` plus the `SafetyRadius` default 25.0f → 10.0f.
+`ClassInjector.RegisterTypeInIl2Cpp<MineRefreshTracker>()`, the `DontDestroyOnLoad` GameObject +
+`AddComponent`, and `harmony.PatchAll()` resolving `CavesManager.Start`, `Character.Spawned`,
+`Character.Despawned` and `PlayerCharacter.Spawned/Despawned` are identical across that range.
+So the `Loading [MineRefreshMod x.y.z]` line is the first thing to read in any log a reporter
+sends: **later than 1.3.1** means the typing guard, authority-gate rework and SafetyRadius change
+are all excluded and the unchanged load path is the remaining surface; **also 1.3.1** excludes
+nothing. `ErrorLog.log` matters as much as `LogOutput.log` here — an unhandled chainloader abort
+takes down every plugin and leaves `LogOutput.log` ending clean at `Chainloader initialized`, with
+the real exception only in `ErrorLog.log` (see architecture.md → Startup chainloader abort).
