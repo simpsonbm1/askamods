@@ -8,9 +8,9 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) IN PROGRESS — v0.9.0 built 2026-07-27, ⚠️ not yet run in-game.** Origin: Nexus
-request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem
-facts: docs/architecture.md → "Player crafting pipeline".
+(villager half) IN PROGRESS — v0.9.2 and v0.9.3 not yet run in-game.** Origin: Nexus request
+from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
+docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
 Crafting at a station pulls missing ingredients from any non-blacklisted settlement storage into
@@ -46,6 +46,7 @@ somewhere vanilla already looks, then lets vanilla consume normally.
 | `Transfer/SweepBackLeftovers` | `true` | Return unconsumed pulled items to their sources |
 | `Transfer/SnapshotTtlSeconds` | `5.0` | Settlement stock snapshot cache lifetime |
 | `Transfer/BlacklistContainerTypes` | see below | Never-drain source containers, by type name |
+| `Transfer/SkipBlueprintClasses` | see below | Never-stock auxiliary-station recipes, by class |
 | `Transfer/TransferDiagnostics` | `true` | Per-pull / per-sweep logging |
 | `Transfer/StockStationOnFetch` | `true` | v0.9.0 station stocker (Phase 2c) |
 | `Transfer/SuppressFetchQuestPriority` | `false` | Retired v0.8.0 lever, kept behind flag |
@@ -55,10 +56,19 @@ somewhere vanilla already looks, then lets vanilla consume normally.
 | `Census/CensusHotkey` | `F12` | Read-only settlement storage census dump |
 | `Census/CensusTryQuerySettlementResources` | `false` | **Leave false** — that call hangs the game |
 
-Blacklist default: `CharacterFlask`, `CharacterBuilder`, `ArmorRack*` family, `Storage_Core`,
-`Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`. It is belt-and-braces only — user-confirmed
-2026-07-20 that armor racks hold finished products and no ASKA recipe consumes finished gear as an
-input, so the racks are not a real drain risk.
+Blacklist defaults:
+- **`Transfer/BlacklistContainerTypes`:** `CharacterFlask`, `CharacterBuilder`, `ArmorRack*`
+  family, `Storage_Core`, `Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`. It is
+  belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold finished products and
+  no ASKA recipe consumes finished gear as an input, so the racks are not a real drain risk.
+- **`Transfer/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
+  These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
+  stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
+  listing a subclass can never catch its parent. User chose this five-entry default on
+  2026-07-28.
+
+**Configuration gotcha:** Changing a bind's default does NOT rewrite an existing `.cfg` file.
+A deployed machine needs its config edited by hand for a new entry to take effect.
 
 ## Phase 2 — the villager half (in progress)
 Villager crafts run the **same pipeline** as the player's (confirmed in-game 2026-07-21):
@@ -161,7 +171,7 @@ postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
 verdict=DIRECT|TOURED … modPulls=<n>` line is the success metric. **Baselines to beat (villager
 Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.1).**
 
-## Dead-ends and traps (all confirmed in-game 2026-07-20)
+## Dead-ends and traps
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
   the `GetStructures()` walk.
 - **`_OnCraftingSuccess` IS the consumption site** — the ~3–6 ms between its prefix and postfix.
@@ -232,6 +242,17 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
 - **Vanilla's displayed `have` already includes the station's own storage**, and the settlement
   snapshot walks that same station, so the station quantity must be netted out or every row
   inflates.
+- **`CraftingStationType` cannot serve as a forge-versus-table discriminator (Cecil 2026-07-28):**
+  The enum only reports GROUP or INDIVIDUAL, not station kind. See docs/architecture.md →
+  Workshop structure section for the working discriminator (blueprint class).
+- **⚠️ Availability widening impact on villager behavior is UNTESTED (as of 2026-07-28):** The
+  mod's availability-widening lever logged 18,700 widenings across 13 villagers in a single run,
+  meaning it told the game a recipe was craftable that many times where vanilla considered it
+  uncraftable. Whether that widening drives observed villager behaviour — a villager chopping a
+  Hardwood Long Stick into Wood Shafts while 389 sticks sat in settlement storage, and bark being
+  consumed five per craft while rope and fibers were already stocked — is unconfirmed. A baseline
+  run with `EnableForVillagers=false` would settle it; the user decided on 2026-07-29 to ship
+  fixes first and skip that baseline.
 
 ## Known limits
 - **Host/solo only** (`IsHostOrSolo()` gates the availability, pull and sweep paths); non-host
@@ -251,6 +272,16 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
   that branch is the diagnostic that decides it.
 
 ## Version history
+- **v0.9.3** — added a station-based fallback resolution chain so the blueprint-class gate also
+  covers plain `CrafterFetchQuest` quests (which lack a direct `craftingProject` link), stopped
+  the candidate retry loop once a destination refuses an item (logged as `destinationRefused=true`
+  on the SHORT line), blacklisted `Storage_HotItemsSmall` as a pull source, and added a
+  diagnostic `stationType=` field to separate workshop tier from station kind. ⚠️ Not yet run
+  in-game.
+- **v0.9.2** — added the blueprint-class gate (`Transfer/SkipBlueprintClasses`) with a
+  fail-open resolution chain, added a `bpClass=` field to the STOCKED log line, and added
+  zero-move and candidate-list diagnostics that separate a failed source removal from a refused
+  destination add. ⚠️ Not yet run in-game.
 - **v0.9.1** — diagnostics only: `StockStation SHORT` line with `settlementCandidates`, and
   `stationObj=` on the `STOCKED` summary line. Run in-game 2026-07-28; separated the three
   shortfall causes and showed `stationObj` reports workshop tier, not station kind.
@@ -258,7 +289,8 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
   `StationStocker.cs` + `Patches/StationStockPatches.cs` postfix on
   `FSM_FetchCraftingSupplies.OnStateEnter`; new no-ledger `CraftTransfer.StockStation`; new
   `Transfer/StockStationOnFetch` (default true) and `Transfer/SuppressFetchQuestPriority` (default
-  false, retiring the v0.8.0 lever). ⚠️ Not yet run in-game.
+  false, retiring the v0.8.0 lever). Built 2026-07-27, run in-game 2026-07-28; worked in first run
+  with 122 `_OnCraftingSuccess` events.
 - **v0.8.0** — Phase 2 lever 2: suppress the crafter fetch quest. Postfixes `GetPriority()` on
   `CrafterFetchQuest` AND `CrafterSpecificFetchQuest` (the subclass re-declares it), setting
   `Transfer/FetchQuestSuppressedPriority` (default −1000) **only when the cached settlement

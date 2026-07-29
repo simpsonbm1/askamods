@@ -255,6 +255,10 @@ public class CraftWatcher : MonoBehaviour
         // can never produce a misleading DIRECT/TOURED verdict after a reload.
         try { VillagerFetchTrace.ClearWorldState(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] VillagerFetchTrace.ClearWorldState error: {ex}"); }
+        // v0.9.2: drops the blueprint-class-gate rate-limiter dictionaries (string/int only, no
+        // interop wrappers held) so a stale run's counts don't survive into the next world session.
+        try { StationStocker.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] StationStocker.ClearWorldState error: {ex}"); }
 
         // Don't let a stale abort banner survive into the next world.
         _guiMessage = "";

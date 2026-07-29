@@ -641,9 +641,10 @@ SandSailorStudio.Inventory.BlueprintInfo
 `SSSGame.ForgingBlueprint : CraftBlueprint` mirrors it on the item side. `CraftingStation` holds
 its interactions as `_craftingTables` (`List<CraftInteraction>`) and `_anvils`
 (`List<AnvilInteraction>`); `AnvilInteraction` derives from `Interaction` directly, NOT from
-`CraftInteraction`, and `CarpenterInteraction : AnvilInteraction`. ⚠️ pending: which class the
-ordinary crafting-table recipes report (`CraftBlueprintInfo` vs `WorkshopBlueprintInfo`) has not
-been read in-game.
+`CraftInteraction`, and `CarpenterInteraction : AnvilInteraction`. **Both `CraftBlueprintInfo`
+and `WorkshopBlueprintInfo` occur in live play:** a villager at Workshop Hut 6 reported
+`CraftBlueprintInfo`, a villager at Workshop House 2 reported `WorkshopBlueprintInfo`, and the
+cooking loop at Workshop House 4 reported `CookingRecipeInfo` (confirmed in-game 2026-07-28).
 
 ### `GatherAndHarvestQuest` — fiber gather can get permanently stuck (confirmed in-game 2026-06-28)
 `GatherAndHarvestQuest.GatherAndHarvestData.ComplainNoResourcesFound(bool value, ItemManifest
@@ -1320,6 +1321,17 @@ outer `CheckOwnedRequirements` call can drive many inner `_CheckOwnedBlueprintMa
 inner for 1 outer observed). **An availability postfix must be agent-gated to
 `PlayerInteractionAgent` for COST as well as correctness.**
 
+**Villager crafting fetch quests come in two native classes (confirmed in-game 2026-07-28):**
+Some are `CrafterSpecificFetchQuest`, which carries a public `craftingProject` link reaching
+`CraftingProject.craftingQuest` and then `CraftingQuest.BlueprintInfo`. The rest are plain
+`CrafterFetchQuest`, which has no such link — its only members are `craftingStation`,
+`_behaviour` and `_suppManifest`. In one run, 447 of 899 station-stocking events came from the
+plain kind. To reach a blueprint for the plain kind go through the station instead:
+`CraftingStation.craftingProjects` is a public `List<CraftingProject>`, and each element exposes
+`craftingQuest` and from there `BlueprintInfo`. Note the caveat that a station can hold several
+projects and a plain `CrafterFetchQuest` gives no way to tell which project it belongs to, so
+attribution is only safe when every project on the station resolves to the same blueprint class.
+
 **Crafting-menu requirement rows — the `have/need` UI (confirmed in-game 2026-07-20,
 CraftFromStorageMod v0.4.x–v0.5.1):**
 - The row is `SSSGame.UI.ItemThumbnailPanel`; its number is the TMP at
@@ -1369,6 +1381,22 @@ all containers enumerated: **651 containers holding 44,670 items** across **71 w
 `GetItemsNeededFromSettlement()` returns real counts (0–3 observed across Farm / Hunter's House /
 Bloomery / Cooking House / Guard Tower) and is a live lever. Some stations report
 `inventoryTotal=?` (Guard Tower / DefensiveStation) — that accessor returns null there.
+**Settlement storage enumeration returns duplicate entries for a single physical container
+(confirmed in-game 2026-07-28):** In one candidate dump for Bark, three entries named
+`Improved Warehouse 3`, `Warehouse Extension` and `Bark Storage` all carried the identical world
+position `(136.26, 47.98, 424.94)`, the identical container type `Storage_WarehouseStorage_WoodMedium`,
+and the identical quantity of 51. Two other dumps showed a workshop name and `Improved Metalworker`
+sharing one position the same way. The practical consequence is that a raw candidate count
+overstates the number of real containers by roughly one and a half to two times, and code that
+walks candidates must expect the same physical container to appear more than once.
+**A station inventory refuses hot items even when it is completely empty (confirmed in-game
+2026-07-28):** Attempts to add `Hot Iron Bloom` (container type `Storage_HotItemsSmall`) into a
+crafting station's inventory returned an added count of zero while the destination held zero of
+that item. This is distinct from a capacity refusal — a capacity refusal was separately observed
+for Bark, where the destination already held 40 and refused further adds. The distinguishing test
+is whether the source removal succeeded: a successful removal paired with a zero add means the
+destination refused the item, whereas a zero removal means the source snapshot was stale or
+duplicated.
 **Type-based blacklist rule (instead of the structural EquipPoint probe that yielded 0 hits):**
 skip containers reachable from an `EquipmentManager` (via `equipPoints : List<EquipPoint>` →
 `.ItemContainer`), and skip hard-coded never-drain types: `CharacterFlask`, `CharacterBuilder`

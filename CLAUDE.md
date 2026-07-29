@@ -282,15 +282,13 @@ askamods/
                                 (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.9.1 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.9.3 —
                                 Phase 1 (player half) complete, confirmed in-game 2026-07-20,
-                                host/solo only; Phase 2 (villager half) in progress — v0.9.0
-                                station-stocker worked in first run 2026-07-27 (villager crafted
-                                with no supply walk, 122 craft-success events) but one workshop
-                                loops with nothing moved, v0.9.1 adds diagnostics to identify
-                                missing item; v0.8.0 fetch-priority-suppression lever retired
-                                (stalled crafting); diagnostics still default true — docs/mods/
-                                craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md idea 17]
+                                host/solo only; Phase 2 (villager half) in progress, station
+                                stocker working (365 craft-success events in 2026-07-28 run) but
+                                v0.9.2 and v0.9.3 not yet confirmed in-game; diagnostics still
+                                default true — docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md
+                                idea 17]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
                                 identity beside translated display strings, to retarget the
                                 locale-gated mods; F5 in-world [DEV TOOL v0.4.0, NOT for Nexus —

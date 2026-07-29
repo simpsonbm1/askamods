@@ -76,6 +76,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TransferDiagnostics = null!;
     internal static ConfigEntry<float> FetchQuestSuppressedPriority = null!;
     internal static ConfigEntry<bool> StockStationOnFetch = null!;
+    internal static ConfigEntry<string> SkipBlueprintClasses = null!;
     internal static ConfigEntry<bool> SuppressFetchQuestPriority = null!;
 
     // --- config: UI (v0.4.0 idea-17 UI follow-up - settlement-stock requirement-UI feature; folds
@@ -217,10 +218,12 @@ public class Plugin : BasePlugin
 
         BlacklistContainerTypes = Config.Bind(
             "Transfer", "BlacklistContainerTypes",
-            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse",
+            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall",
             "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
             "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
-            "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead.");
+            "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead. v0.9.3: " +
+            "hot items (e.g. 'Hot Iron Bloom') are refused by a destination station inventory even when empty, " +
+            "so draining them only shuffles blooms between metalworkers (confirmed in-game 2026-07-28).");
 
         TransferDiagnostics = Config.Bind(
             "Transfer", "TransferDiagnostics", true,
@@ -248,6 +251,16 @@ public class Plugin : BasePlugin
             "instead of suppressing the fetch quest so it never fires, let vanilla choose it as intended " +
             "and intercept it at its start. Watch the '[CFS-SS]' log lines. Defaults true per project " +
             "convention (the user is testing this immediately).");
+
+        SkipBlueprintClasses = Config.Bind(
+            "Transfer", "SkipBlueprintClasses",
+            "ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo",
+            "v0.9.2: comma-separated NATIVE class names of blueprint families the villager station-stocker " +
+            "NEVER stocks. These craft at auxiliary stations (forge, dye/paint bench, study) rather than from " +
+            "a crafting table's own bin, so moving materials into the station inventory does nothing useful. " +
+            "Matched EXACTLY (case-insensitive) against the recipe's native class name, so listing a subclass " +
+            "never catches its parent. Leave empty to stock every family. Only takes effect when " +
+            "StockStationOnFetch=true.");
 
         SuppressFetchQuestPriority = Config.Bind(
             "Transfer", "SuppressFetchQuestPriority", false,

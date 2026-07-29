@@ -35,6 +35,17 @@ internal static class StationStocker
     // MarkAlive (hardcodes "[CFS-FQ]", reserved for the v0.8.0 retired lever).
     private static readonly HashSet<string> _aliveLogged = new();
 
+    // v0.9.2: cached parse of Plugin.SkipBlueprintClasses, same shape as SettlementStock's
+    // _blacklistCache/_blacklistRaw pair - rebuilt only when the raw config string actually changes.
+    private static HashSet<string>? _skipClassCache;
+    private static string _skipClassRaw = "";
+
+    // v0.9.2: rate limiters for the two new diagnostic lines this feature adds. Both are plain
+    // string-keyed counters (never interop wrappers - project-wide gotcha), cleared on world-leave
+    // via ClearWorldState below.
+    private static readonly Dictionary<string, int> _unresolvedBpClassLogged = new(); // keyed by failReason
+    private static readonly Dictionary<string, int> _skipLogged = new(); // keyed by "bpClass|station"
+
     internal static void MarkAlive(string target)
     {
         try
@@ -46,6 +57,164 @@ internal static class StationStocker
         {
             Plugin.Logger.LogError($"[CFS] [CFS-SS] StationStocker.MarkAlive error: {ex}");
         }
+    }
+
+    // v0.9.2: world-leave reset for this file's own rate-limiter dictionaries (StationStocker holds
+    // no interop wrappers of its own - string/int only - but a stale run's counts shouldn't survive
+    // into the next world session). Wired from CraftWatcher.ClearWorldState alongside every other
+    // per-mod tracker's own reset.
+    internal static void ClearWorldState()
+    {
+        try
+        {
+            _unresolvedBpClassLogged.Clear();
+            _skipLogged.Clear();
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] StationStocker.ClearWorldState error: {ex}");
+        }
+    }
+
+    private static HashSet<string> GetSkipClasses()
+    {
+        string raw = "";
+        try { raw = Plugin.SkipBlueprintClasses?.Value ?? ""; } catch { }
+        if (_skipClassCache != null && raw == _skipClassRaw) return _skipClassCache;
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var part in raw.Split(','))
+        {
+            var t = part.Trim();
+            if (t.Length > 0) set.Add(t);
+        }
+        _skipClassRaw = raw;
+        _skipClassCache = set;
+        return set;
+    }
+
+    // v0.9.2: resolves the native class name of the blueprint a villager's crafting fetch quest is
+    // actually fetching FOR, via the CrafterSpecificFetchQuest -> CraftingProject -> CraftingQuest ->
+    // BlueprintInfo chain (Cecil-confirmed 2026-07-28, _explore/cecil_cfs_v092*.ps1/_out.txt). Every
+    // step wrapped in its own try/catch. FAIL-OPEN is mandatory here: an empty return must mean
+    // "stock exactly as v0.9.1 did" - a null link in the chain must never silently disable working
+    // behavior, so the caller treats "" as "not gated" rather than "blocked".
+    //
+    // v0.9.3: a plain CrafterFetchQuest (not the ...Specific... subclass) has no craftingProject link
+    // at all, and the v0.9.2 in-game run showed that's HALF of all fetch quests (447/899 STOCKED lines
+    // logged bpClass=? with reason=notSpecific:CrafterFetchQuest) - leaving the gate blind to them.
+    // The fallback below goes through the STATION instead of the quest: a station only ever gets
+    // gated when every one of its own craftingProjects agrees on the same blueprint class, which keeps
+    // the fail-open guarantee - an ambiguous or unreadable station stocks exactly as it did before.
+    private static string ResolveBlueprintClass(CrafterFetchQuest quest, CraftingStation station, out string failReason)
+    {
+        failReason = "";
+        try
+        {
+            // Step 1: identify the REAL native class before rewrapping - managed as/is casts lie for
+            // interop objects materialized under a base declared type (project-wide gotcha).
+            string questClass = Plugin.NativeClassName(quest);
+            if (questClass != "CrafterSpecificFetchQuest")
+            {
+                return ResolveBlueprintClassViaStation(station, out failReason);
+            }
+
+            // Step 2.
+            IntPtr ptr = VillagerFetchTrace.SafePointer(quest);
+            if (ptr == IntPtr.Zero) { failReason = "nullPtr"; return ""; }
+
+            // Step 3: rewrap by pointer (same pattern as the CrafterFetchQuestData rewrap above).
+            CrafterSpecificFetchQuest specific;
+            try { specific = new CrafterSpecificFetchQuest(ptr); }
+            catch (Exception ex) { failReason = "rewrapError:" + ex.GetType().Name; return ""; }
+
+            // Step 4.
+            CraftingStation.CraftingProject? project = null;
+            try { project = specific.craftingProject; } catch { }
+            if (project == null) { failReason = "nullProject"; return ""; }
+
+            // Step 5.
+            CraftingQuest? craftingQuest = null;
+            try { craftingQuest = project.craftingQuest; } catch { }
+            if (craftingQuest == null) { failReason = "nullQuest"; return ""; }
+
+            // Step 6.
+            BlueprintInfo? bpInfo = null;
+            try { bpInfo = craftingQuest.BlueprintInfo; } catch { }
+            if (bpInfo == null) { failReason = "nullBpInfo"; return ""; }
+
+            // Step 7.
+            return Plugin.NativeClassName(bpInfo);
+        }
+        catch (Exception ex)
+        {
+            failReason = "exception:" + ex.GetType().Name;
+            return "";
+        }
+    }
+
+    // v0.9.3: fallback path for a plain CrafterFetchQuest, which carries no craftingProject link -
+    // walks the STATION's own craftingProjects list instead and reads each element's
+    // craftingQuest.BlueprintInfo chain (same shape as the specific-quest path above, just rooted at
+    // the station rather than the quest). Attribution rule: a plain CrafterFetchQuest gives no way to
+    // know WHICH of the station's projects it belongs to, so this only ever returns a class when every
+    // resolved project agrees - otherwise it returns "" (ambiguous/unresolved), which the caller
+    // treats as "not gated", preserving fail-open.
+    private static string ResolveBlueprintClassViaStation(CraftingStation station, out string failReason)
+    {
+        failReason = "";
+        try
+        {
+            Il2CppSystem.Collections.Generic.List<CraftingStation.CraftingProject>? projects = null;
+            try { projects = station.craftingProjects; } catch { }
+            if (projects == null || projects.Count == 0) { failReason = "fallbackNoProjects"; return ""; }
+
+            string? agreed = null;
+            bool ambiguous = false;
+            int resolvedCount = 0;
+            int distinctCount = 0;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                CraftingStation.CraftingProject? project = null;
+                try { project = projects[i]; } catch { }
+                if (project == null) continue;
+
+                CraftingQuest? craftingQuest = null;
+                try { craftingQuest = project.craftingQuest; } catch { }
+                if (craftingQuest == null) continue;
+
+                BlueprintInfo? bpInfo = null;
+                try { bpInfo = craftingQuest.BlueprintInfo; } catch { }
+                if (bpInfo == null) continue;
+
+                string cls = Plugin.NativeClassName(bpInfo);
+                resolvedCount++;
+                if (seen.Add(cls)) distinctCount++;
+                if (agreed == null) agreed = cls;
+                else if (!string.Equals(agreed, cls, StringComparison.OrdinalIgnoreCase)) ambiguous = true;
+            }
+
+            if (resolvedCount == 0) { failReason = "fallbackUnresolved"; return ""; }
+            if (ambiguous) { failReason = "fallbackAmbiguous:" + distinctCount; return ""; }
+            return agreed!;
+        }
+        catch (Exception ex)
+        {
+            failReason = "exception:" + ex.GetType().Name;
+            return "";
+        }
+    }
+
+    // v0.9.3: diagnostic-only - returns station.CraftingType.ToString() so one run's worth of STOCKED
+    // lines reveals the enum's actual values, since a station-kind test may later replace the
+    // blueprint-class gate entirely (see the file header + Plugin.cs SkipBlueprintClasses comment).
+    // Nothing branches on this; "?" on any failure.
+    private static string ResolveStationType(CraftingStation station)
+    {
+        try { return station.CraftingType.ToString(); }
+        catch { return "?"; }
     }
 
     // Called from Patches/StationStockPatches.cs FetchCraftingSuppliesStockPatch.Postfix. Wrapped in
@@ -92,6 +261,38 @@ internal static class StationStocker
             try { station = quest.craftingStation; } catch (Exception ex) { Plugin.Logger.LogError($"[CFS] [CFS-SS] get_craftingStation error: {ex}"); }
             if (station == null) return;
 
+            // v0.9.2: resolved early (moved up from below Step 10) so both the SKIP gate and the
+            // eventual STOCKED line can reuse the same villager/station name strings.
+            string villagerName = VillagerFetchTrace.SafeVillagerName(fsmBehaviour);
+            string stationName = ResolveStationName(station);
+            string stationObjName = ResolveStationObjectName(station); // v0.9.1
+
+            // v0.9.2: blueprint-class gate - metalworker/forge and other auxiliary-station recipes
+            // (dyeing, painting, study) don't craft from a station bin, so stocking the station
+            // inventory for them does nothing useful. bpClass is resolved ONCE here and reused by
+            // Part 2's STOCKED line below regardless of which branch this takes.
+            string bpClass = ResolveBlueprintClass(quest, station, out string bpFailReason);
+            if (bpFailReason.Length > 0)
+            {
+                _unresolvedBpClassLogged.TryGetValue(bpFailReason, out int loggedCount);
+                if (loggedCount < 5)
+                {
+                    _unresolvedBpClassLogged[bpFailReason] = loggedCount + 1;
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-SS] bpClass UNRESOLVED reason={bpFailReason} (stocking anyway - fail-open).");
+                }
+            }
+            if (bpClass.Length > 0 && GetSkipClasses().Contains(bpClass))
+            {
+                string skipKey = bpClass + "|" + stationName;
+                _skipLogged.TryGetValue(skipKey, out int skipCount);
+                if (skipCount < 10)
+                {
+                    _skipLogged[skipKey] = skipCount + 1;
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-SS] SKIP blueprintClass={bpClass} villager={villagerName} station={stationName}");
+                }
+                return;
+            }
+
             // Step 7: CALL GetNeededSuppliesManifest(), never patch it - ItemManifest return type is
             // the inventory-family patch-crash risk this project avoids (FetchQuestSuppression.cs line
             // 161 already calls it the same way).
@@ -120,18 +321,18 @@ internal static class StationStocker
             }
             if (shortfall.Count == 0) return;
 
-            string villagerName = VillagerFetchTrace.SafeVillagerName(fsmBehaviour);
-            string stationName = ResolveStationName(station);
-            string stationObjName = ResolveStationObjectName(station); // v0.9.1
-
             // Step 11.
             var (itemsMoved, qtyMoved, stillShort) = CraftTransfer.StockStation(shortfall, stationInv, villagerName, stationName);
 
             // Step 12: one unconditional summary line - this is the run's success metric, not behind
-            // TransferDiagnostics.
+            // TransferDiagnostics. v0.9.2 appends bpClass so a run's worth of STOCKED lines tells us,
+            // in one grep, whether ordinary crafting-table recipes report CraftBlueprintInfo or
+            // WorkshopBlueprintInfo (currently unknown) - "?" when the resolution chain came up empty.
+            // v0.9.3 appends stationType (purely diagnostic, see ResolveStationType's own comment).
             Plugin.Logger.LogInfo($"[CFS] [CFS-SS] STOCKED villager={villagerName} station={stationName} " +
                 $"stationObj={stationObjName} wanted={pairs.Count} short={shortfall.Count} itemsMoved={itemsMoved} " +
-                $"qtyMoved={qtyMoved} stillShort={stillShort}");
+                $"qtyMoved={qtyMoved} stillShort={stillShort} bpClass={(bpClass.Length > 0 ? bpClass : "?")} " +
+                $"stationType={ResolveStationType(station)}");
         }
         catch (Exception ex)
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using BepInEx.Configuration;
 using Il2CppInterop.Runtime.InteropTypes;
 using SandSailorStudio.Inventory;
@@ -69,6 +70,12 @@ internal static class CraftTransfer
     // dictionary key, so existing player behavior is unchanged.
     private static readonly Dictionary<IntPtr, List<LedgerEntry>> _ledger = new();
 
+    // v0.9.2: rate limiters for StockStation's zero-move / candidate-dump diagnostic lines. String-
+    // keyed only (itemName|stationName) - never an interop wrapper (project-wide gotcha) - so these
+    // are safe to hold across frames and just need clearing on world-leave like every other tracker.
+    private static readonly Dictionary<string, int> _zeroMoveLogged = new();
+    private static readonly Dictionary<string, int> _candidateDumpLogged = new();
+
     // Reentrancy flag (design point A/C). While true, TryReportAvailable must report VANILLA truth,
     // never fabricate __result=true - this is what makes the verify-call in
     // HandleBeginCraftingSequence an honest check of what was actually moved instead of an infinite
@@ -106,6 +113,9 @@ internal static class CraftTransfer
                 "station inventory persists within the same save); they simply won't be swept back.");
         _ledger.Clear();
         _verifying = false;
+        // v0.9.2: string-keyed rate-limiter dictionaries, cleared alongside the ledger.
+        _zeroMoveLogged.Clear();
+        _candidateDumpLogged.Clear();
     }
 
     // ---- Point A: called from Patches/GatePatches.cs CheckOwnedRequirementsPatch.Postfix. Only
@@ -541,7 +551,7 @@ internal static class CraftTransfer
                 int take = Math.Min(remaining, candidate.Qty);
                 if (take <= 0) continue;
 
-                int moved = MoveContainerToAgent(candidate.Container, destColl, info, take);
+                int moved = MoveContainerToAgent(candidate.Container, destColl, info, take, out _);
                 if (moved <= 0) continue;
 
                 remaining -= moved;
@@ -596,6 +606,12 @@ internal static class CraftTransfer
         {
             int remaining = missingQty;
             int movedForThisItem = 0;
+            // v0.9.3: set when a candidate's ADD was refused by the destination (removed>0, moved==0)
+            // - once that happens no other candidate can succeed either (same destination, same
+            // refusal), so the candidate loop below breaks early instead of retrying. Distinct from
+            // removed==0 (the SOURCE had nothing - stale/duplicate snapshot entry), which still
+            // continues to the next candidate exactly as before.
+            bool destinationRefused = false;
 
             List<SettlementStock.ContainerStock> candidates;
             try { candidates = SettlementStock.GetCandidates(info); }
@@ -607,10 +623,54 @@ internal static class CraftTransfer
                 int take = Math.Min(remaining, candidate.Qty);
                 if (take <= 0) continue;
 
+                // v0.9.2: before/after snapshots of the DESTINATION's quantity of this item, so a
+                // zero-move candidate can be told apart from a station that silently already had the
+                // item (stationHad == stationNow either way, but removed/added below distinguish a
+                // failed REMOVE from a refused ADD). Defaults to -1 on read failure, matching the
+                // GetItemQuantity usage already at StationStocker.cs:117.
+                int stationHadBefore = -1;
+                try { stationHadBefore = destColl.GetItemQuantity(info); } catch { }
+
                 int moved = 0;
-                try { moved = MoveContainerToAgent(candidate.Container, destColl, info, take); }
+                int removed = 0;
+                try { moved = MoveContainerToAgent(candidate.Container, destColl, info, take, out removed); }
                 catch (Exception ex) { Plugin.Logger.LogError($"{tag} StockStation MoveContainerToAgent error: {ex}"); }
-                if (moved <= 0) continue;
+
+                if (moved <= 0)
+                {
+                    if (Plugin.TransferDiagnostics.Value)
+                    {
+                        int stationHadAfter = -1;
+                        try { stationHadAfter = destColl.GetItemQuantity(info); } catch { }
+
+                        string zeroMoveKey = SafeName(info) + "|" + stationName;
+                        _zeroMoveLogged.TryGetValue(zeroMoveKey, out int zeroMoveCount);
+                        if (zeroMoveCount < 5)
+                        {
+                            _zeroMoveLogged[zeroMoveKey] = zeroMoveCount + 1;
+                            // Vector3 must be .ToString()'d explicitly - interpolating a Unity struct
+                            // directly into a BepInEx Logger.Log* call throws VerificationException at
+                            // the log site (project-wide gotcha).
+                            Plugin.Logger.LogInfo($"{tag} StockStation ZERO-MOVE: '{SafeName(info)}' from " +
+                                $"{candidate.StructureName}@{candidate.WorldPos.ToString()} snapshotQty={candidate.Qty} " +
+                                $"take={take} removed={removed} added={moved} stationHad={stationHadBefore} " +
+                                $"stationNow={stationHadAfter} (villager={villagerName} station={stationName}).");
+                        }
+                    }
+
+                    // v0.9.3: removed>0 means the DESTINATION refused the add (not a stale source
+                    // snapshot) - in-game evidence 2026-07-28 showed this retried every remaining
+                    // candidate for a full/refusing station (6x 'Hot Iron Bloom' into an empty
+                    // Storage_HotItemsSmall, 5x 'Bark' into a full 40/40 bin), which just shuffled
+                    // items between stations instead of stocking anything. No other candidate can
+                    // succeed once the destination itself has refused, so stop trying for this item.
+                    if (removed > 0)
+                    {
+                        destinationRefused = true;
+                        break;
+                    }
+                    continue;
+                }
 
                 remaining -= moved;
                 movedForThisItem += moved;
@@ -627,10 +687,39 @@ internal static class CraftTransfer
             // consecutive cycles) gave no clue which item was missing or why. settlementCandidates is
             // the number that answers that: 0 means settlement storage holds none of this item at
             // all; above 0 means candidates existed but the move still failed to shift anything.
+            // v0.9.3: appends " destinationRefused=true" when the loop above broke early because the
+            // destination itself refused an add, so the log says WHY the item was abandoned early
+            // (as opposed to simply exhausting the candidate list).
             if (remaining > 0 && Plugin.TransferDiagnostics.Value)
+            {
                 Plugin.Logger.LogInfo($"{tag} StockStation SHORT: '{SafeName(info)}' need {missingQty}, moved " +
                     $"{movedForThisItem}, still short {remaining} (villager={villagerName} station={stationName}, " +
-                    $"settlementCandidates={candidates.Count}).");
+                    $"settlementCandidates={candidates.Count})." +
+                    (destinationRefused ? " destinationRefused=true" : ""));
+
+                // v0.9.2: candidate dump - immediately follows SHORT so a stuck workshop's log answers
+                // "what did the candidate list actually look like" without a second run. Capped at the
+                // first 20 candidates and rate-limited separately from the SHORT line itself (3 dumps
+                // per item|station - a stuck workshop loops hundreds of times per run, and the
+                // candidate list rarely changes call to call).
+                string candidatesKey = SafeName(info) + "|" + stationName;
+                _candidateDumpLogged.TryGetValue(candidatesKey, out int candidatesCount);
+                if (candidatesCount < 3)
+                {
+                    _candidateDumpLogged[candidatesKey] = candidatesCount + 1;
+                    var sb = new StringBuilder();
+                    sb.Append($"{tag} StockStation CANDIDATES '{SafeName(info)}' n={candidates.Count}: ");
+                    int shown = Math.Min(candidates.Count, 20);
+                    for (int i = 0; i < shown; i++)
+                    {
+                        if (i > 0) sb.Append("; ");
+                        var c = candidates[i];
+                        sb.Append($"[{i}] {c.StructureName}@{c.WorldPos.ToString()} type={c.TypeName} qty={c.Qty}");
+                    }
+                    if (candidates.Count > shown) sb.Append($" ...(+{candidates.Count - shown} more)");
+                    Plugin.Logger.LogInfo(sb.ToString());
+                }
+            }
 
             if (movedForThisItem > 0) itemsMoved++;
             qtyMoved += movedForThisItem;
@@ -652,9 +741,16 @@ internal static class CraftTransfer
     // then adds the ACTUAL removed amount to the destination via ItemCollection.AddItems (2-arg,
     // returns the count actually added - the capacity-failure detector). Any shortfall on the add
     // side is added back to the source container so nothing is lost.
-    private static int MoveContainerToAgent(ItemContainer source, ItemCollection destColl, ItemInfo info, int qty)
+    //
+    // v0.9.2: gained the `removed` out-parameter so a caller can tell a failed REMOVE (settlement
+    // container didn't actually have the item despite SettlementStock's snapshot saying so - a stale
+    // or racing snapshot) from a refused ADD (removed fine, but the destination collection wouldn't
+    // accept it - e.g. station inventory full/capacity-gated). Both previously collapsed into the
+    // same "moved <= 0" outcome at every call site, which is exactly what made a failed candidate
+    // leave no trace in the log.
+    private static int MoveContainerToAgent(ItemContainer source, ItemCollection destColl, ItemInfo info, int qty, out int removed)
     {
-        int removed = RemoveFromContainer(source, info, qty);
+        removed = RemoveFromContainer(source, info, qty);
         if (removed <= 0) return 0;
 
         int added = 0;
