@@ -164,6 +164,27 @@ separated by the new `settlementCandidates` count:
 name, and `Workshop House 2` and `Workshop House 4` both read `Workshop_L2(Clone)` while
 `Workshop Hut 6` reads `Workshop_L1(Clone)`. It identifies workshop TIER only.
 
+**v0.9.2 run result (confirmed in-game 2026-07-28):** The forge gate fires and its fail-open
+path works. There were 12 `SKIP blueprintClass=ForgingBlueprintInfo` lines (6 at Workshop House
+2, 6 at Workshop House 5), and zero `[CFS]` exceptions across 899 STOCKED events. The gate was
+blind to roughly half of all fetch quests: 447 of the 899 STOCKED lines logged `bpClass=?` with
+`notSpecific:CrafterFetchQuest` as the only failure reason. Plain `CrafterFetchQuest` carries no
+`craftingProject` link, so the blueprint class cannot be resolved from the quest — this is exactly
+what v0.9.3's station-based fallback chain addresses. Two distinct move failures showed up,
+separable for the first time because v0.9.2 logs `removed=` and `added=` independently. The
+first is a destination at capacity, seen five times as `'Bark' … removed=5 added=0 stationHad=40
+stationNow=40 (villager=Alva station=Workshop Hut 6)` when vanilla's quest manifest needed 45
+bark but the station bin capped at 40. The second is a destination refusing an add into an EMPTY
+inventory, seen six times as `'Hot Iron Bloom' … removed=1 added=0 stationHad=0 stationNow=0`
+with container type `Storage_HotItemsSmall`, where the mod was shuffling blooms between
+metalworkers and back. Duplicate candidate entries are confirmed real: `CANDIDATES 'Bark' n=6`
+lists `Improved Warehouse 3`, `Warehouse Extension`, and `Bark Storage` all at position
+`(136.26, 47.98, 424.94)` with identical container type and `qty=51`. Candidate counts run
+roughly 1.5 to 2 times the physical container count. Both ordinary crafting-table blueprint
+classes appeared and neither is skip-listed: `CraftBlueprintInfo` from Alva at Workshop Hut 6,
+and `WorkshopBlueprintInfo` from Siv at Workshop House 2. Workshop House 4's Heavy Pelt loop
+reports `CookingRecipeInfo`.
+
 **Phase 2 diagnostic instrument (v0.6.0, keep enabled while Phase 2 is open):** five read-only
 postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
 `FSM_UseCraftingStation.OnStateEnter`, `FSM_ReturnCraftingSupplies.OnStateEnter` and
@@ -265,13 +286,27 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
 - Diagnostics all default `true` — flip before any public release.
 - **A failed move is invisible in the log.** `CraftTransfer.MoveContainerToAgent` returns 0 for a
   failed remove and a refused add alike, and the per-move log line only fires when `moved > 0`,
-  so a candidate that yields nothing leaves no trace. The `Bark`/`Stick` shortfall above is
-  therefore undiagnosed between two live explanations: duplicate candidate entries pointing at
-  one physical container, or the destination station inventory hitting capacity and `AddItems`
-  returning 0 (the code adds any shortfall back to the source). Splitting removed-vs-added in
-  that branch is the diagnostic that decides it.
+  so a candidate that yields nothing leaves no trace. Two distinct failure causes are behind it,
+  both confirmed in the v0.9.2 run: a destination at capacity (returning 0 on `AddItems`), and a
+  destination refusing an add into an empty inventory. Both appeared as unexplained zero-moves in
+  the v0.9.1 run; v0.9.2's split of `removed=` and `added=` counters is what separated a failed
+  source removal from a refused destination add.
 
 ## Version history
+- **v0.9.5** — corrected the dropped-recipe count in the new per-villager log line. It had
+  counted every repeat widening of an already-dropped recipe while labeling the number as
+  distinct recipes, so it now tracks a set of recipe names instead and the reported number
+  matches the label. ⚠️ Not yet run in-game.
+- **v0.9.4** — added a widened-recipe diagnostic answering a question the earlier rollup could
+  not: the rollup reported how many times the mod widened the craft-availability gate per
+  villager, but never which recipe was widened. The per-widening raw line now carries the
+  recipe name and the missing-item shortfall. Each rollup flush emits one line per villager
+  listing that villager's widened recipes with per-recipe counts and shortfall for each,
+  ordered by descending count and capped at top 8, with explicit suffixes reporting anything
+  omitted so nothing truncates silently. The original `TryReportAvailable rollup:` line is
+  unchanged. One reading caveat: the shortfall recorded per recipe is the FIRST one seen in a
+  flush burst, so a recipe whose missing set changed mid-burst shows only its earliest state.
+  ⚠️ Not yet run in-game.
 - **v0.9.3** — added a station-based fallback resolution chain so the blueprint-class gate also
   covers plain `CrafterFetchQuest` quests (which lack a direct `craftingProject` link), stopped
   the candidate retry loop once a destination refuses an item (logged as `destinationRefused=true`
@@ -281,7 +316,7 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
 - **v0.9.2** — added the blueprint-class gate (`Transfer/SkipBlueprintClasses`) with a
   fail-open resolution chain, added a `bpClass=` field to the STOCKED log line, and added
   zero-move and candidate-list diagnostics that separate a failed source removal from a refused
-  destination add. ⚠️ Not yet run in-game.
+  destination add. Run in-game 2026-07-28; confirmed the forge gate fires.
 - **v0.9.1** — diagnostics only: `StockStation SHORT` line with `settlementCandidates`, and
   `stationObj=` on the `STOCKED` summary line. Run in-game 2026-07-28; separated the three
   shortfall causes and showed `stationObj` reports workshop tier, not station kind.

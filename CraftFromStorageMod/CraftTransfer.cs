@@ -166,10 +166,23 @@ internal static class CraftTransfer
                 if (isVillager)
                 {
                     string villagerName = SafeVillagerName(agent);
-                    if (VillagerAvailabilityRollup.Record(villagerName))
+                    // v0.9.4: resolved only inside this already-widening, already-diagnostics-gated
+                    // branch (never above the early-outs) - this is WHICH recipe got widened and by
+                    // what shortfall, feeding VillagerAvailabilityRollup's new per-recipe breakdown so
+                    // a future run can tell whether the widening correlates with odd villager choices.
+                    string bpName = Patches.GateLog.SafeBlueprintName(bp);
+                    string shortfallSig;
+                    try
+                    {
+                        shortfallSig = string.Join("+", shortfall.Select(s => $"{SafeName(s.info)}x{s.missing}"));
+                    }
+                    catch { shortfallSig = "?"; }
+
+                    if (VillagerAvailabilityRollup.Record(villagerName, bpName, shortfallSig))
                     {
                         Plugin.Logger.LogInfo($"[CFS] [CFS-V] TryReportAvailable: settlement storage can cover " +
-                            $"{shortfall.Count} missing item type(s) for agent={agentClass} villager={villagerName} - reporting craftable.");
+                            $"{shortfall.Count} missing item type(s) for agent={agentClass} villager={villagerName} " +
+                            $"bp='{bpName}' shortfall=[{shortfallSig}] - reporting craftable.");
                     }
                 }
                 else
@@ -992,16 +1005,33 @@ internal static class VillagerAvailabilityRollup
 {
     private const long FlushIdleMs = 1500;
     private const int MaxRawLogsPerVillager = 3;
+    // v0.9.4: bounds the per-recipe dictionary below - a villager churning through many distinct
+    // blueprints in one idle-flush burst shouldn't grow this rollup's memory unbounded.
+    private const int MaxRecipesPerVillager = 40;
+    // v0.9.4: how many of a villager's recorded recipes get their own segment on the new
+    // per-villager Flush line - keeps that line readable when a villager widened a lot of distinct
+    // recipes in one burst.
+    private const int MaxRecipesShownPerLine = 8;
 
     private static int _totalCalls;
     private static readonly Dictionary<string, int> _rawLoggedPerVillager = new();
     private static readonly Dictionary<string, int> _countPerVillager = new();
+    // v0.9.4: per villager, per recipe name -> (call count, first-seen shortfall signature). Answers
+    // WHICH recipe the gate widened and WHAT was missing, which the plain per-villager total above
+    // can't - needed to tell whether widening correlates with odd villager crafting choices.
+    private static readonly Dictionary<string, Dictionary<string, (int count, string shortfallSig)>> _recipesPerVillager = new();
+    // v0.9.5: distinct recipe NAMES dropped past MaxRecipesPerVillager, per villager - so Flush can
+    // report the omission instead of silently hiding recipes past the cap. A plain call counter would
+    // tally every repeat widening of an already-dropped recipe, so with widening counts in the
+    // thousands it would report hundreds where the honest answer is "5 recipes didn't fit" - the set
+    // is what makes the reported number match the "distinct recipe(s)" wording on the Flush line.
+    private static readonly Dictionary<string, HashSet<string>> _droppedRecipesPerVillager = new();
     private static long _lastCallMs = -1;
     private static readonly Stopwatch _sw = new();
 
     // Returns true if THIS call should also get its own raw log line (first MaxRawLogsPerVillager
     // per villager per idle-flush burst).
-    internal static bool Record(string villagerName)
+    internal static bool Record(string villagerName, string bpName, string shortfallSig)
     {
         try
         {
@@ -1010,6 +1040,31 @@ internal static class VillagerAvailabilityRollup
             _totalCalls++;
             _countPerVillager.TryGetValue(villagerName, out int c);
             _countPerVillager[villagerName] = c + 1;
+
+            // v0.9.4: per-recipe detail for this villager - first shortfall signature seen for a
+            // given recipe wins, later differing signatures aren't interesting enough to keep.
+            if (!_recipesPerVillager.TryGetValue(villagerName, out var recipes))
+            {
+                recipes = new Dictionary<string, (int, string)>();
+                _recipesPerVillager[villagerName] = recipes;
+            }
+            if (recipes.TryGetValue(bpName, out var entry))
+            {
+                recipes[bpName] = (entry.count + 1, entry.shortfallSig);
+            }
+            else if (recipes.Count < MaxRecipesPerVillager)
+            {
+                recipes[bpName] = (1, shortfallSig);
+            }
+            else
+            {
+                if (!_droppedRecipesPerVillager.TryGetValue(villagerName, out var dropped))
+                {
+                    dropped = new HashSet<string>();
+                    _droppedRecipesPerVillager[villagerName] = dropped;
+                }
+                dropped.Add(bpName);
+            }
 
             _rawLoggedPerVillager.TryGetValue(villagerName, out int logged);
             if (logged < MaxRawLogsPerVillager)
@@ -1047,11 +1102,47 @@ internal static class VillagerAvailabilityRollup
         {
             Plugin.Logger.LogError($"[CFS] [CFS-V] VillagerAvailabilityRollup.Flush error: {ex}");
         }
+
+        // v0.9.4: one extra line per villager with recorded recipes - which recipe(s) got widened
+        // and what was missing, so the rollup line's per-villager COUNT can be paired with the
+        // recipe(s) driving it. Isolated in its own try/catch so a formatting bug here can never
+        // take down the existing rollup line above.
+        try
+        {
+            foreach (var kv in _recipesPerVillager)
+            {
+                string villagerName = kv.Key;
+                var recipes = kv.Value;
+                if (recipes.Count == 0) continue;
+
+                var ordered = recipes.OrderByDescending(r => r.Value.count).ToList();
+                var shown = ordered.Take(MaxRecipesShownPerLine)
+                    .Select(r => $"'{r.Key}'x{r.Value.count} shortfall=[{r.Value.shortfallSig}]");
+                string segments = string.Join(", ", shown);
+
+                int omitted = ordered.Count - MaxRecipesShownPerLine;
+                string omittedPart = omitted > 0 ? $" (+{omitted} more recipe(s) omitted)" : "";
+
+                _droppedRecipesPerVillager.TryGetValue(villagerName, out var neverRecordedSet);
+                int neverRecorded = neverRecordedSet?.Count ?? 0;
+                string neverRecordedPart = neverRecorded > 0
+                    ? $" (+{neverRecorded} distinct recipe(s) never recorded - per-villager cap {MaxRecipesPerVillager})"
+                    : "";
+
+                Plugin.Logger.LogInfo($"[CFS] [CFS-V] widened recipes for {villagerName}: {segments}{omittedPart}{neverRecordedPart}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-V] VillagerAvailabilityRollup.Flush per-recipe error: {ex}");
+        }
         finally
         {
             _totalCalls = 0;
             _rawLoggedPerVillager.Clear();
             _countPerVillager.Clear();
+            _recipesPerVillager.Clear();
+            _droppedRecipesPerVillager.Clear();
             _sw.Reset();
             _lastCallMs = -1;
         }
