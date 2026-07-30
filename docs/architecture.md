@@ -148,6 +148,26 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   the patched instance. **Record: `GetItemManifest` must not be patched.** Note that the
   inventory-family dead-end (above) covers **parameter** types; this finding concerns a method
   whose only inventory-family type is its **return type**.
+- **`Harmony.PatchAll()` turns a game-type resolution failure into an unkillable process death.**
+  `PatchAll()` enumerates every type in the mod assembly and calls
+  `HarmonyMethodExtensions.GetFromType`, which calls `RuntimeType.GetCustomAttributes(true)`. That
+  makes the CLR materialize EVERY custom attribute on EVERY type, so a
+  `[HarmonyPatch(typeof(SomeGameType), "Method")]` attribute forces the game type to be resolved
+  inside unmanaged attribute-blob parsing (`CustomAttribute._CreateCaObject`). A failure there
+  surfaces as `Fatal error. Internal CLR error. (0x80131506)`, which kills the process with no
+  managed exception and nothing a try/catch can intercept. Reported by a Nexus user against
+  MineRefreshMod 1.3.4 on a 2026-04-27 game build; does NOT reproduce on a 2026-06-15 build.
+  **Pattern that makes the failure legible** (MineRefreshMod v1.3.5): drop `PatchAll()`, drop the
+  `[HarmonyPatch(typeof(...))]` attributes so the assembly carries no game-type tokens in attribute
+  metadata, and call `harmony.Patch()` once per target inside a try/catch, resolving each target
+  type through a `Func<Type>` lambda so the `typeof` is JITted inside that try/catch. Log a line
+  per successful attach. **This is a diagnostic, not a cure.** On the reporter's machine v1.3.5
+  still died, but his log named the exact target it died on (`PlayerCharacter.Spawned`, after three
+  earlier targets attached cleanly), which is information `PatchAll()` cannot produce. The
+  try/catch did NOT intercept that death, so on that build the failure is not a managed exception.
+  ⚠️ The crash is NOT yet root-caused — the enforcing condition is still unnamed. Every other mod
+  in this repo still uses `PatchAll()`, and nine of them hook the same `PlayerCharacter` methods.
+  Full evidence: [`docs/mods/mine-refresh.md`](mods/mine-refresh.md).
 
 ---
 
@@ -693,6 +713,24 @@ same surface symptom ("the village is short on X").
 - **Interop chain:** `SSSGame.Workstation` → `NetworkComponent` → `Fusion.NetworkBehaviour` →
   `Fusion.SimulationBehaviour`, so `HasStateAuthority` compiles directly on `Workstation` (Cecil
   cross-assembly chain walk, build-verified).
+- **`SSSGame.UI.TaskDataPanel` is the universal task-row UI and the ONLY per-villager task toggle**
+  (`_villagersDiv`, `_villagersDisplayer`, `_selectAllVillagersButton`,
+  `_onVillagerToggleValueChanged(VillagerPanel, Boolean)`, `_SetVillagers(WorkstationTaskData)`).
+  It covers every specialization inline — patrol routes, trade routes, vehicles, dye colours,
+  schedules, filter-item priorities, refurbish. **Farming and forestry are the sole exception**
+  (Cecil-confirmed 2026-07-30): see the FarmingStation entry below.
+- **Farming/forestry stations have task data but NO per-villager task UI** (Cecil-confirmed
+  2026-07-30). `SSSGame.FarmingStation : Workstation` (no own `_CanAddVillagerToTaskData`;
+  `ForestryStation : FarmingStation`). Its tasks are `SSSGame.AI.FarmingStationTaskData :
+  WorkstationTaskData`, one per painted crop cell, ctor `(seedsConfiguration, List<Villager>
+  villagers, removable, FarmCrop, cellIndex)` — so `VillagersInCharge` exists on them. But the rows
+  render as `SSSGame.UI.FarmCropTaskPanel`, whose whole member set is `currentSeedIcon` /
+  `previousSeedIcon` / `notSeededIcon` / `HostPanel` / `TileIndex`; tasks are authored by
+  `FarmCropPainterPanel.CreateTaskDatas(Boolean)` from the paint grid. The farm's villager control
+  is the **whitelist** instead — `FarmingStation` implements `SSSGame.IWhitelistingSite`
+  (`IsWhitelisted`, `Rpc_ChangeWhitelistedVillager`, `WhitelistNewVillagers`), surfaced by
+  `WorkstationMenu._PrepareWhitelistPageVisuals`. **Any mod that manipulates `VillagersInCharge`
+  must exempt the farming family**, because the player has no UI to undo it.
 
 ### Workstation task priority machinery (idea-12 groundwork)
 **Task data + priority (confirmed in-game 2026-07-09; Cecil-verified 2026-07-12):**

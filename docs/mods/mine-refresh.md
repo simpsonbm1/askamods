@@ -2,8 +2,8 @@
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
 
-**v1.3.5 — patches applied individually instead of through `PatchAll()` (⚠️ FIX ATTEMPTED, not
-confirmed in-game)**
+**v1.3.5 — patches applied individually instead of through `PatchAll()` (confirmed working
+in-game 2026-07-30; does NOT resolve Makeway's crash)**
 `Plugin.Load` calls a guarded `ApplyPatch` helper once per target and never calls
 `harmony.PatchAll()`. Each target's game type is resolved through a lambda, which keeps the
 `typeof` inside a try/catch. The `[HarmonyPatch(typeof(...))]` attributes are gone from
@@ -132,19 +132,33 @@ and solved.
 - **goblinhood88** (2026-07-07, v1.3.1 — the version live 2026-06-29 → 07-10): "GAME WONT LOAD."
   The game fails to start whenever the mod is installed. Asked for the `.dll.off` isolation test
   and `LogOutput.log`; never responded, bug closed. ⚠️ PENDING — no cause identified.
-- **Makeway** (v1.3.4, logs supplied 2026-07-30): the game closes during plugin load, no window
-  ever appears, and a fresh `Aska.exe` dump lands in `%LOCALAPPDATA%\CrashDumps`. Normal Steam
-  branch, not beta. His `ErrorLog.log` opens `Fatal error. Internal CLR error. (0x80131506)` with
-  the stack `MineRefreshMod.Plugin.Load` → `Harmony.PatchAll()` →
-  `HarmonyLib.PatchClassProcessor..ctor` → `HarmonyMethodExtensions.GetFromType(System.Type)` →
-  `RuntimeType.GetCustomAttributes(Boolean)` → `CustomAttribute._CreateCaObject`. That last frame
-  is the CLR materializing an attribute object out of metadata, so it dies while Harmony reads
-  this mod's own `[HarmonyPatch(typeof(...))]` attributes. A fatal CLR error of this kind kills
-  the process and cannot be caught by try/catch. His `LogOutput.log` ends at
-  `Registered mono type MineRefreshMod.MineRefreshTracker in il2cpp domain`, the line immediately
-  before `harmony.PatchAll()` in `Plugin.cs`. His isolation test: the mod alone works, and adding
+- **Makeway** (v1.3.4 and v1.3.5, logs supplied 2026-07-30): the game closes during plugin load,
+  no window ever appears, and a fresh `Aska.exe` dump lands in `%LOCALAPPDATA%\CrashDumps`. Normal
+  Steam branch, not beta. His v1.3.4 isolation test: the mod alone works, and adding
   `askaplus.bepinex.mod.dll` (Aska Plus 0.5.2) alone is enough to crash it.
-  ⚠️ NOT YET ROOT-CAUSED — crash site named, enforcing condition not named.
+  ⚠️ NOT YET ROOT-CAUSED — the failing hook is named, the enforcing condition is not.
+
+**The failing hook is `PlayerCharacter.Spawned` (confirmed from his v1.3.5 log, 2026-07-30).**
+v1.3.5 attaches its five hooks one at a time and logs each success, so his log names the stopping
+point directly. It ends at `[MineRefreshMod] Patched Character.Despawned`, having already logged
+`Patched CavesManager.Start` and `Patched Character.Spawned`. The fourth attach,
+`PlayerCharacter.Spawned`, wrote no success line, no skip warning and no error before the process
+died, and the fifth was never reached. `CavesManager` and `Character` therefore both resolve and
+patch cleanly on his build; `PlayerCharacter` is what kills the process. His description of the
+symptom change: "it continues loading for longer before shutting down."
+
+**The v1.3.4 crash signature, for comparison.** His v1.3.4 `ErrorLog.log` opens
+`Fatal error. Internal CLR error. (0x80131506)` with the stack `MineRefreshMod.Plugin.Load` →
+`Harmony.PatchAll()` → `HarmonyLib.PatchClassProcessor..ctor` →
+`HarmonyMethodExtensions.GetFromType(System.Type)` → `RuntimeType.GetCustomAttributes(Boolean)` →
+`CustomAttribute._CreateCaObject`, and his v1.3.4 `LogOutput.log` ends at
+`Registered mono type MineRefreshMod.MineRefreshTracker in il2cpp domain`, the line immediately
+before `harmony.PatchAll()`. That frame is the CLR materializing an attribute object out of
+metadata. Two facts follow from v1.3.5 still dying. Attribute materialization is the site of the
+v1.3.4 crash but not the whole cause, since v1.3.5 carries no game-type tokens in attribute
+metadata at all. The per-attach try/catch does not intercept the v1.3.5 death either, so whatever
+fails inside that fourth attach is not a managed exception. `ErrorLog.log` for the v1.3.5 run has
+been requested and is the next piece of evidence owed.
 
 **The Aska Plus pairing does not reproduce (2026-07-30).** Aska Plus 0.5.2 was installed beside
 MineRefreshMod 1.3.4 on the dev desktop and the game started normally, logging
@@ -162,15 +176,16 @@ header is `Aska.exe`'s last-write time — verified locally, where the header re
 `6/15/2026 8:53:18 PM`. Makeway's header reads `BepInEx 6.0.0-be.755 - Aska (27-04-2026
 14:51:25)`, roughly seven weeks older. This mod's patch attributes name `CavesManager`,
 `Character` and `PlayerCharacter` through `typeof`, resolved against interop assemblies generated
-from whatever `GameAssembly.dll` the machine has; a type or member that moved between those two
-builds would fail exactly at `_CreateCaObject`. ⚠️ UNVERIFIED — it does not account for his
-isolation test reporting the mod fine on its own. `typeof(Character)` appears in no other mod in
-this repo, only in `Patches/LifecyclePatches.cs`.
+from whatever `GameAssembly.dll` the machine has, so a type that moved between those two builds is
+the leading candidate for what `PlayerCharacter` resolution hits on his machine. ⚠️ UNVERIFIED —
+it does not account for his v1.3.4 isolation test reporting the mod fine on its own.
 
-**Next discriminating test.** A reporter on an older build can bisect the three suspect types
-using mods already published: HealthRegenMod names `PlayerCharacter`, SeedScoutMod names
-`CavesManager`, and nothing but MineRefreshMod names `Character`. Whichever of those crashes for
-him names the type whose resolution fails.
+**Exposure beyond this mod.** Nine other mods in this repo hook `PlayerCharacter.Spawned` and
+`PlayerCharacter.Despawned` exactly the same way: CraftFromStorageMod, DenRespawnMod,
+GroundItemVacuumMod, HealthRegenMod, NoNeedsMod, OuthouseComposterMod, TreeRespawnMod,
+VillagerAmmoMod and WarpTourMod. Makeway has none of them installed, so his logs say nothing about
+whether they crash on his build. ⚠️ UNTESTED — do not change any of them until his v1.3.5
+`ErrorLog.log` names the actual failure.
 
 **Load-failure reports — what the version range can rule out.** Both load-failure reports name
 this mod (not a different one), three weeks apart, with different reporters. Between v1.3.1 and

@@ -73,6 +73,43 @@ ToS-sensitive).
 
 ---
 
+## Getting a test build to one reporter WITHOUT touching Nexus (established 2026-07-30)
+
+**The problem:** a bug reporter needs a build to try, but any upload to the mod's Nexus file group
+risks Vortex offering it to everyone as an update. Nexus has **no beta or experimental channel** —
+there is no opt-in branch like Steam's. The `category=optional` input on the workflow leaves the
+main download in place, but the upload still lands in the same file group (`file_id`), and whether
+Vortex offers an optional-category file as an update is unverified. Do not bet the main download
+on it.
+
+**Use a GitHub pre-release instead.** The repo is public, so the reporter gets a one-click download
+and nothing Vortex watches is touched. The DLL is already committed, so this is three commands:
+
+```
+Compress-Archive -Path <Mod>\<Mod>.dll -DestinationPath <Mod>-<version>.zip
+gh release create <mod>-v<version>-test <zip>#<zip> --title "<Mod> <version> (test build)" \
+  --prerelease --notes-file <notes.md>
+gh release view <mod>-v<version>-test --json isPrerelease,assets,url
+```
+
+- `--prerelease` keeps it off the repo's "latest release" slot.
+- Write the notes to a **file** and pass `--notes-file`. Passing notes inline through the Bash tool
+  breaks on backticks (`unexpected EOF while looking for matching \``) when the text contains code
+  spans for paths.
+- The `#<name>` suffix on the asset path sets the asset's display label.
+- Notes should say plainly that this is not the Nexus release and that the main download is
+  unchanged, in reporter-facing language with no internal type or method names.
+
+**Nexus rule caveat, and why this was judged acceptable:** off-site download links are discouraged
+on Nexus because they look untrustworthy. The user's 2026-07-30 ruling was that a link into the
+repo that already hosts every mod's source is defensible, since the reporter can see the whole
+project around it. Keep it to one-off reporter builds, and never as a substitute for publishing.
+
+**First use:** MineRefreshMod 1.3.5, sent to reporter Makeway 2026-07-30 —
+<https://github.com/simpsonbm1/askamods/releases/tag/minerefresh-v1.3.5-test>.
+
+---
+
 ## Initial Mod Page Setup & Formatting (New Mod Page Drafts)
 
 When creating a new mod page on Nexus Mods, the upload API cannot be used (the page must be created manually first on the website). 

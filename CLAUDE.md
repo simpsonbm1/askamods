@@ -268,7 +268,7 @@ askamods/
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.1 — docs/mods/task-unlocker.md]
-  ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.0.1 — docs/mods/zero-task-workers.md]
+  ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1 — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, locale-safe — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated dens + PopulationSpawner force-respawn [COMPLETE v1.4.4 — v1.3.0 locale den-key + German auto-revive test ⚠️ pending — docs/mods/den-respawn.md]
