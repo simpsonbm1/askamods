@@ -1,12 +1,10 @@
 using System;
-using HarmonyLib;
 using SSSGame;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MineRefreshMod.Patches;
 
-[HarmonyPatch(typeof(CavesManager), nameof(CavesManager.Start))]
 internal static class CavesManagerStartPatch
 {
     static void Postfix(CavesManager __instance)
@@ -34,7 +32,6 @@ internal static class CavesManagerStartPatch
     }
 }
 
-[HarmonyPatch(typeof(Character), nameof(Character.Spawned))]
 internal static class CharacterSpawnedPatch
 {
     static void Postfix(Character __instance)
@@ -62,7 +59,6 @@ internal static class CharacterSpawnedPatch
     }
 }
 
-[HarmonyPatch(typeof(Character), nameof(Character.Despawned))]
 internal static class CharacterDespawnedPatch
 {
     static void Postfix(Character __instance)

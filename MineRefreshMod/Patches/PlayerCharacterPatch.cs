@@ -1,10 +1,8 @@
 using System;
-using HarmonyLib;
 using SSSGame;
 
 namespace MineRefreshMod.Patches;
 
-[HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Spawned))]
 internal static class PlayerSpawnedPatch
 {
     static void Postfix(PlayerCharacter __instance)
@@ -22,7 +20,6 @@ internal static class PlayerSpawnedPatch
     }
 }
 
-[HarmonyPatch(typeof(PlayerCharacter), nameof(PlayerCharacter.Despawned))]
 internal static class PlayerDespawnedPatch
 {
     static void Postfix(PlayerCharacter __instance)

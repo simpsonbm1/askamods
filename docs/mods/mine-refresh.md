@@ -2,6 +2,20 @@
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
 
+**v1.3.5 — patches applied individually instead of through `PatchAll()` (⚠️ FIX ATTEMPTED, not
+confirmed in-game)**
+`Plugin.Load` calls a guarded `ApplyPatch` helper once per target and never calls
+`harmony.PatchAll()`. Each target's game type is resolved through a lambda, which keeps the
+`typeof` inside a try/catch. The `[HarmonyPatch(typeof(...))]` attributes are gone from
+`Patches/LifecyclePatches.cs` and `Patches/PlayerCharacterPatch.cs`, so this assembly's attribute
+metadata carries no game-type tokens at all. `PatchAll()` makes the CLR materialize every custom
+attribute on every type in the assembly, and a game type that fails to resolve during that sweep
+kills the process with `Fatal error. Internal CLR error. (0x80131506)` and no catchable exception.
+Each target now logs `Patched <label>` on success, or a warning naming the target it skipped, so a
+resolution failure disables one hook and leaves the mod loaded. The five targets are
+`CavesManager.Start`, `Character.Spawned`, `Character.Despawned`, `PlayerCharacter.Spawned` and
+`PlayerCharacter.Despawned`.
+
 **v1.3.4 — SafetyRadius default lowered to 10m (confirmed in-game 2026-07-13)**
 Lowered `SafetyRadius` default from 25.0 to 10.0 meters. The 25m default caused
 frequent false-positive "player/worker too close" blocks. Caveat: BepInEx preserves
@@ -118,11 +132,45 @@ and solved.
 - **goblinhood88** (2026-07-07, v1.3.1 — the version live 2026-06-29 → 07-10): "GAME WONT LOAD."
   The game fails to start whenever the mod is installed. Asked for the `.dll.off` isolation test
   and `LogOutput.log`; never responded, bug closed. ⚠️ PENDING — no cause identified.
-- **Makeway** (2026-07-29, version unknown): "Loader crash if i use it and game wont start… all
-  the other mods work fine, only as soon as this mod is there won't load." Requested by DM:
-  `LogOutput.log` via pastebin, `ErrorLog.log` pasted inline, whether a fresh `Aska.exe` dump
-  exists in `%LOCALAPPDATA%\CrashDumps`, Steam beta branch vs normal, and a plugins-folder
-  isolation test run after the log is copied. ⚠️ PENDING — no cause identified.
+- **Makeway** (v1.3.4, logs supplied 2026-07-30): the game closes during plugin load, no window
+  ever appears, and a fresh `Aska.exe` dump lands in `%LOCALAPPDATA%\CrashDumps`. Normal Steam
+  branch, not beta. His `ErrorLog.log` opens `Fatal error. Internal CLR error. (0x80131506)` with
+  the stack `MineRefreshMod.Plugin.Load` → `Harmony.PatchAll()` →
+  `HarmonyLib.PatchClassProcessor..ctor` → `HarmonyMethodExtensions.GetFromType(System.Type)` →
+  `RuntimeType.GetCustomAttributes(Boolean)` → `CustomAttribute._CreateCaObject`. That last frame
+  is the CLR materializing an attribute object out of metadata, so it dies while Harmony reads
+  this mod's own `[HarmonyPatch(typeof(...))]` attributes. A fatal CLR error of this kind kills
+  the process and cannot be caught by try/catch. His `LogOutput.log` ends at
+  `Registered mono type MineRefreshMod.MineRefreshTracker in il2cpp domain`, the line immediately
+  before `harmony.PatchAll()` in `Plugin.cs`. His isolation test: the mod alone works, and adding
+  `askaplus.bepinex.mod.dll` (Aska Plus 0.5.2) alone is enough to crash it.
+  ⚠️ NOT YET ROOT-CAUSED — crash site named, enforcing condition not named.
+
+**The Aska Plus pairing does not reproduce (2026-07-30).** Aska Plus 0.5.2 was installed beside
+MineRefreshMod 1.3.4 on the dev desktop and the game started normally, logging
+`MineRefreshMod v1.3.4 loaded successfully`. Three candidate differences are ruled out by that
+run. Both runs load Aska Plus first and inject its four mono types (`GrassTool`,
+`AskaPlusSpawner`, `VillagerBonusSpawn`, `PlayerBonusSpawn`) ahead of
+`MineRefreshMod.MineRefreshTracker`, so injection order is not it. The Il2CppInterop warning
+`Class::Init signatures have been exhausted, using a substitute!` sits at line 12 of BOTH logs,
+so the substitute-injection path is not it. `BepInEx 6.0.0-be.755`, `Unity 6000.3.12f1` and
+`.NET 6.0.7` are identical across the two machines, so the loader stack is not it.
+
+**The game executable build is the one confirmed difference.** The date in BepInEx's preloader
+header is `Aska.exe`'s last-write time — verified locally, where the header reads
+`BepInEx 6.0.0-be.755 - Aska (6/15/2026 8:53:18 PM)` and `Aska.exe` LastWriteTime is
+`6/15/2026 8:53:18 PM`. Makeway's header reads `BepInEx 6.0.0-be.755 - Aska (27-04-2026
+14:51:25)`, roughly seven weeks older. This mod's patch attributes name `CavesManager`,
+`Character` and `PlayerCharacter` through `typeof`, resolved against interop assemblies generated
+from whatever `GameAssembly.dll` the machine has; a type or member that moved between those two
+builds would fail exactly at `_CreateCaObject`. ⚠️ UNVERIFIED — it does not account for his
+isolation test reporting the mod fine on its own. `typeof(Character)` appears in no other mod in
+this repo, only in `Patches/LifecyclePatches.cs`.
+
+**Next discriminating test.** A reporter on an older build can bisect the three suspect types
+using mods already published: HealthRegenMod names `PlayerCharacter`, SeedScoutMod names
+`CavesManager`, and nothing but MineRefreshMod names `Character`. Whichever of those crashes for
+him names the type whose resolution fails.
 
 **Load-failure reports — what the version range can rule out.** Both load-failure reports name
 this mod (not a different one), three weeks apart, with different reporters. Between v1.3.1 and

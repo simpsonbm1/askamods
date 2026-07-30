@@ -73,10 +73,48 @@ public class Plugin : BasePlugin
         UnityEngine.Object.DontDestroyOnLoad(go);
         go.AddComponent<MineRefreshTracker>();
 
-        // Apply Harmony patches
+        // Apply Harmony patches one at a time, each guarded.
+        // PatchAll() is deliberately NOT used: it sweeps every type in this assembly and makes
+        // the CLR materialize every custom attribute on it, so a [HarmonyPatch(typeof(GameType))]
+        // attribute forces game-type resolution inside unmanaged attribute-blob parsing. A failure
+        // there is a fatal process kill that try/catch cannot intercept. Resolving each target
+        // through a lambda keeps the typeof inside this try/catch instead.
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
-        harmony.PatchAll();
+        ApplyPatch(harmony, "CavesManager.Start", () => typeof(CavesManager), "Start", typeof(Patches.CavesManagerStartPatch));
+        ApplyPatch(harmony, "Character.Spawned", () => typeof(Character), "Spawned", typeof(Patches.CharacterSpawnedPatch));
+        ApplyPatch(harmony, "Character.Despawned", () => typeof(Character), "Despawned", typeof(Patches.CharacterDespawnedPatch));
+        ApplyPatch(harmony, "PlayerCharacter.Spawned", () => typeof(PlayerCharacter), "Spawned", typeof(Patches.PlayerSpawnedPatch));
+        ApplyPatch(harmony, "PlayerCharacter.Despawned", () => typeof(PlayerCharacter), "Despawned", typeof(Patches.PlayerDespawnedPatch));
 
         Logger.LogInfo($"MineRefreshMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. Hotkey='{TriggerHotkey.Value}', SafetyRadius={SafetyRadius.Value}m, TriggerOnlyNearEntrance={TriggerOnlyNearEntrance.Value}");
+    }
+
+    private static void ApplyPatch(Harmony harmony, string label, Func<Type> resolveTarget, string methodName, Type patchClass)
+    {
+        try
+        {
+            var targetType = resolveTarget();
+            var target = AccessTools.DeclaredMethod(targetType, methodName)
+                         ?? AccessTools.Method(targetType, methodName);
+            if (target == null)
+            {
+                Logger.LogWarning($"[MineRefreshMod] Skipped {label}: method not found on this game build. The mod still loads; this hook is inactive.");
+                return;
+            }
+
+            var postfix = AccessTools.Method(patchClass, "Postfix");
+            if (postfix == null)
+            {
+                Logger.LogError($"[MineRefreshMod] Skipped {label}: {patchClass.Name}.Postfix is missing.");
+                return;
+            }
+
+            harmony.Patch(target, postfix: new HarmonyMethod(postfix));
+            Logger.LogInfo($"[MineRefreshMod] Patched {label}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"[MineRefreshMod] Patch FAILED for {label}: {ex}");
+        }
     }
 }
