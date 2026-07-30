@@ -45,6 +45,11 @@ internal static class StationStocker
     // via ClearWorldState below.
     private static readonly Dictionary<string, int> _unresolvedBpClassLogged = new(); // keyed by failReason
     private static readonly Dictionary<string, int> _skipLogged = new(); // keyed by "bpClass|station"
+    // v0.10.0 originally added a _stationSkipLogged rate limiter here for a station-class SKIP line.
+    // v0.10.1 (defect fix): retired - the physical-transform gate below now calls
+    // CraftTransfer.IsSkippedStation(CraftingStation) directly, which owns its own rate-limited
+    // "[CFS] [CFS-SS] stationProbe" diagnostic (see CraftTransfer.cs) covering the SAME matched/
+    // not-matched distinction this line used to report, plus the unresolved/null cases it never could.
 
     internal static void MarkAlive(string target)
     {
@@ -266,6 +271,39 @@ internal static class StationStocker
             string villagerName = VillagerFetchTrace.SafeVillagerName(fsmBehaviour);
             string stationName = ResolveStationName(station);
             string stationObjName = ResolveStationObjectName(station); // v0.9.1
+
+            // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): physical-transform station gate - an item
+            // placed on the station and struck/dyed rather than drawn from a bin (forge/sawhorses/dye
+            // bench by default), so stocking the station inventory does nothing useful. Checked BEFORE
+            // the blueprint-class gate below, since it's the cheaper test and doesn't need the
+            // quest/project/blueprint chain walk.
+            //
+            // v0.10.1 (defect fix): v0.10.0 resolved the interaction INLINE here via a single
+            // station.gameObject.GetComponent<CraftInteraction>() call and never found anything -
+            // confirmed in-game 2026-07-29 (20x "SKIP blueprintClass=ForgingBlueprintInfo" from the
+            // gate below, ZERO "SKIP stationClass=" lines, against a carpenter station where
+            // AnvilInteraction is the easiest possible match). The resolution now lives in
+            // CraftTransfer.IsSkippedStation(CraftingStation) itself, which walks self, every ancestor
+            // and every descendant instead of a single GetComponent call, and logs its own rate-
+            // limited "[CFS] [CFS-SS] stationProbe" outcome for every station it's asked about (see
+            // that method) - this call site no longer needs its own resolution or its own SKIP line.
+            //
+            // v0.11.0 (TRANSFORM_STATION_PLAN.md Change 2): this early return is now conditional on
+            // Plugin.StockTransformStationMaterials (default false). The user LIKES the stocker keeping
+            // a transform station's own rack topped up (confirmed in-game 2026-07-29: a carpentry rack
+            // holding one hardwood log and one hardwood long stick at a time refilled without the
+            // carpenter walking to a warehouse) and wants it kept, but behind a toggle defaulted OFF -
+            // so they can verify the toggle actually does something by switching it on. Scoped to the
+            // STOCKER ONLY: CraftTransfer.TryReportAvailable and HandleBeginCraftingSequence never
+            // consult this toggle and must keep standing aside unconditionally (see the comments at
+            // those two sites).
+            if (CraftTransfer.IsSkippedStation(station))
+            {
+                if (!SafeGetBool(Plugin.StockTransformStationMaterials, false)) return;
+
+                Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
+                    $"to stock physical-transform station villager={villagerName} station={stationName}.");
+            }
 
             // v0.9.2: blueprint-class gate - metalworker/forge and other auxiliary-station recipes
             // (dyeing, painting, study) don't craft from a station bin, so stocking the station

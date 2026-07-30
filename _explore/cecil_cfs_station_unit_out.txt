@@ -1,0 +1,1401 @@
+
+==================================================================
+TYPE: SSSGame.CraftingStation
+==================================================================
+  BASECHAIN: SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CraftingStation/StudyProject, SSSGame.CraftingStation/CraftingProject, SSSGame.CraftingStation/OutputStorageWrapper, SSSGame.CraftingStation/__c__DisplayClass106_0, SSSGame.CraftingStation/__c__DisplayClass169_0
+  ---- PROPERTIES ----
+  P: SandSailorStudio.Inventory.ItemManifest _GlobalInventoryManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _FetchPromiseManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _FetchRequirementManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _CraftRquirementManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _CraftPromiseManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _FullCraftingManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _StudyManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest _StudyDecompositionManifest_k__BackingField
+  P: SSSGame.Structure _Structure_k__BackingField
+  P: System.Boolean _WhitelistNewVillagers_k__BackingField
+  P: Il2CppSystem.Action OnWhitelistDataReceived
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> craftingProjects
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> studyProjects
+  P: SSSGame.CraftingStationType CraftingType
+  P: SSSGame.AI.FSM.vFSMBehaviour idleCrafterBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour complainBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour fetchBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour craftBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour returnBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour findToolsBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour cleanupInventoryBehaviour
+  P: SSSGame.AI.FSM.vFSMBehaviour studyBehaviour
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory
+  P: SandSailorStudio.Inventory.InventoryComponent stationInventory
+  P: System.Boolean shouldSendFetchTargetChangedEvent
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> _craftingTables
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> _storageSupplies
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> _studyInteractions
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.StorageSupply,SSSGame.CraftingStation/OutputStorageWrapper> _storageWrappers
+  P: System.Boolean _storagesRegisteredToSettlement
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> _anvils
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CuringOutlet> _curingOutlets
+  P: SSSGame.CrafterFetchQuest _globalFetchQuest
+  P: SSSGame.CrafterResultsQuest _resultsQuest
+  P: SSSGame.CrafterComplainQuest _complainQuest
+  P: SSSGame.AI.WorkstationIdleQuest _idleQuest
+  P: SSSGame.AI.FindHarvestingToolsQuest _findToolsQuest
+  P: SSSGame.AI.CleanupInventoryQuest _cleanupInventoryQuest
+  P: System.Boolean _deserialized
+  P: SandSailorStudio.IntEventData _intEventData
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _itmManEventData
+  P: System.Boolean _registeredToTaskManager
+  P: System.Boolean _dirtyMinimumFetchManifest
+  P: System.Boolean _dirtySurplusManifest
+  P: SandSailorStudio.Inventory.ItemManifest _minimumFetchManifest
+  P: SandSailorStudio.Inventory.ItemManifest _surplusManifest
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> _knownBlueprints
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest>> _outsourcedQuests
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,SandSailorStudio.Inventory.ItemContainer> _outsourcedBlueprints
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> s_itemList
+  P: SandSailorStudio.Inventory.ItemManifest s_itemManifest
+  P: Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> _villagersWhitelist
+  P: System.Boolean _whitelistAllVillagers
+  P: System.Boolean _whitelistDataReceived
+  P: SSSGame.Settlement/SettlementEvents/SettlementEventData`1<System.Int32> s_outpostIdEvData
+  P: SSSGame.Network.NetworkSession _session
+  P: System.String c_taskDataArray
+  P: System.String c_taskDataItem
+  P: System.String c_taskDataCount
+  P: System.String c_taskDataPriority
+  P: System.String c_taskDataVillagers
+  P: System.String c_taskDataDye
+  P: System.String c_taskDataDyeIdx
+  P: System.String c_taskRefurbish
+  P: System.String c_whitelistAll
+  P: System.String c_whitelistedVillagers
+  P: Fusion.Changed`1<SSSGame.CraftingStation> field_CompilerControlled_Static_Changed_1_CraftingStation_0
+  P: Fusion.ChangedDelegate`1<SSSGame.CraftingStation> field_CompilerControlled_Static_ChangedDelegate_1_CraftingStation_0
+  P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.CraftingStation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_CraftingStation_0
+  P: SandSailorStudio.Inventory.ItemManifest GlobalInventoryManifest
+  P: SandSailorStudio.Inventory.ItemManifest FetchPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest FetchRequirementManifest
+  P: SandSailorStudio.Inventory.ItemManifest CraftRquirementManifest
+  P: SandSailorStudio.Inventory.ItemManifest CraftPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest FullCraftingManifest
+  P: SandSailorStudio.Inventory.ItemManifest StudyManifest
+  P: SandSailorStudio.Inventory.ItemManifest StudyDecompositionManifest
+  P: System.Boolean IsMobile
+  P: SSSGame.Structure Structure
+  P: System.Boolean WhitelistNewVillagers
+  P: System.Boolean WhitelistedAllVillagers
+  P: System.Boolean WhitelistDataReceived
+  P: System.Boolean ShowWhitelistedVillagers
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void add_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Void remove_OnWhitelistDataReceived(Il2CppSystem.Action value) [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void _OnChildStructureRemoved(SSSGame.Structure obj) [pub]
+  M: System.Void Start() [virt,pub]
+  M: System.String GetName() [virt,pub]
+  M: System.Void Despawned(Fusion.NetworkRunner runner, System.Boolean hasState) [virt,pub]
+  M: System.Void AddTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Void RemoveTaskData(SSSGame.AI.WorkstationTaskData data) [virt,pub]
+  M: System.Boolean CheckForDuplicateTaskData(SSSGame.AI.WorkstationTaskData newData) [virt,pub]
+  M: System.Boolean SetTaskAgent(SSSGame.AI.ITaskAgent agent) [virt,pub]
+  M: System.Boolean ReleaseTaskAgent(SSSGame.AI.ITaskAgent agent) [virt,pub]
+  M: SSSGame.StorageSupply FindStorage(Il2CppSystem.Predicate`1<SSSGame.StorageSupply> predicate) [pub]
+  M: SSSGame.StorageInteraction FindInternalStorage(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: UnityEngine.Transform GetTransform() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetItemManifest() [virt,pub]
+  M: SSSGame.StorageInteraction FindStorageInteraction(Il2CppSystem.Func`2<SSSGame.StorageInteraction,System.Boolean> predicate) [virt,pub]
+  M: System.Void SetDirtyMinimumFetchManifest() [pub]
+  M: System.Void SetDirtyFetchReqManifest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetSurplusManifest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetMinimumFetchManifest() [pub]
+  M: SSSGame.CuringOutlet FindCuringOutlet(Il2CppSystem.Predicate`1<SSSGame.CuringOutlet> predicate) [pub]
+  M: System.Boolean HasCuringOutletWithThisRecipe(SSSGame.CookingRecipeInfo cri) [pub]
+  M: System.Boolean GetFetchDepth(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Int32& minDepth) [pub]
+  M: System.Boolean GetPersonalFetchDepth(SSSGame.Villager villager, SandSailorStudio.Inventory.ItemInfo itemInfo, System.Int32& minDepth, System.Int32& topPriority) [pub]
+  M: SandSailorStudio.Inventory.ItemCollection GetInventory() [virt,pub]
+  M: SSSGame.StudyInteraction FindStudyInteraction(Il2CppSystem.Predicate`1<SSSGame.StudyInteraction> predicate) [pub]
+  M: SSSGame.CraftInteraction FindCraftingTable(Il2CppSystem.Predicate`1<SSSGame.CraftInteraction> predicate) [pub]
+  M: System.Void PopulateStudyInteractionsList(Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> studyInteractions) [pub]
+  M: System.Void SetCraftingTargetDirty(System.Int32 bpId) [pub]
+  M: System.Void SetCraftPromiseDirty(SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Boolean AddTaskDispatcher(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void _OtherInventory_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OtherInventory_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint) [pub]
+  M: System.Boolean IsDyeingAvailableForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.DyeingBlueprintInfo& dyeingBlueprintInfo) [pub]
+  M: System.Void RemoveTaskDispatcher(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void RemoveTaskDispatcherData(SSSGame.AI.ITaskDispatcher td) [virt,pub]
+  M: System.Void _OnStructureActivated(SSSGame.Structure structure) [pub]
+  M: System.Void _OnStructureDeath(SSSGame.Structure obj) [pub]
+  M: System.Boolean _CanUpgradeDyeingProcess(SSSGame.DyeingBlueprintInfo oldDyeBpInfo, System.Int32 oldDyeIndex, SSSGame.DyeingBlueprintInfo newDyeBpInfo, System.Int32& newDyeIndex) [pub]
+  M: System.Void _RegisterStorage() [pub]
+  M: System.Void _UnregisterStorage() [pub]
+  M: System.Void _OnActiveRecipeAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnActiveRecipeRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnBpAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _OnBpRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _SendFetchTargetChangedEvent() [pub]
+  M: System.Void _OnStationEvent(System.Int32 arg1, SandSailorStudio.IEventData arg2) [pub]
+  M: System.Boolean IsFuelNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean IsItemNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: System.Void RequestWhitelistData() [virt,pub]
+  M: System.Void SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) [pub]
+  M: System.Boolean IsShownAsWhitelisted(SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean IsWhitelisted(SSSGame.Villager villager) [virt,pub]
+  M: System.Void Rpc_ChangeWhitelistAllState(System.Boolean whitelistAll) [pub]
+  M: System.Void Rpc_ChangeWhitelistedVillager(System.Int32 id, System.Boolean state) [pub]
+  M: System.Void Rpc_RequestWhitelistData(Fusion.PlayerRef player) [pub]
+  M: System.Void Rpc_ReceiveWhitelistData(Fusion.PlayerRef target, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte> bytes) [pub]
+  M: System.Boolean DeserializeTaskData(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject SerializeTaskData(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Boolean Deserialize(SandSailorStudio.Storage.DataObject source) [virt,pub]
+  M: SandSailorStudio.Storage.DataObject Serialize(SandSailorStudio.Storage.DataObject destination) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void SSSGame_IWhitelistingSite_SetWhitelistedVillager(SSSGame.Villager villager, System.Boolean& whitelist) [virt,pub]
+  M: System.Void _Rpc_RequestWhitelistData_b__157_0(Il2CppSystem.IO.BinaryWriter writer) [pub]
+  M: System.Void _Rpc_ReceiveWhitelistData_b__158_0(Il2CppSystem.IO.BinaryReader reader) [pub]
+  M: System.Void CopyBackingFieldsToState(System.Boolean ) [virt,pub]
+  M: System.Void CopyStateToBackingFields() [virt,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(Fusion.NetworkBehaviour behaviour, Fusion.SimulationMessage* message) [static,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftingStation/CraftingProject
+==================================================================
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation craftingStation
+  P: SSSGame.CraftingQuest craftingQuest
+  P: SSSGame.CrafterSpecificFetchQuest fetchQuestSpecific
+  P: SSSGame.AI.CraftingStationTaskData taskData
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> crafters
+  P: System.Boolean pendingRemake
+  P: System.Int32 _productsAdded
+  P: SandSailorStudio.Inventory.ItemManifest _productManifest
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  M: System.Void Init() [pub]
+  M: System.Void Dispose() [pub]
+  M: System.Void RemakeQuest() [pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetProductManifest() [pub]
+  M: System.Void _CreateCraftingQuest() [pub]
+  M: System.Void _OnTaskDataChanged() [pub]
+  M: System.Void _OnStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CrafterFetchQuest
+==================================================================
+  BASECHAIN: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CrafterFetchQuest/CrafterFetchQuestData
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation craftingStation
+  P: SSSGame.AI.FSM.vFSMBehaviour _behaviour
+  P: SandSailorStudio.Inventory.ItemManifest _suppManifest
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour GetFSMBehavior(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SSSGame.AI.QuestData CreateQuestData() [virt,pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CrafterSpecificFetchQuest
+==================================================================
+  BASECHAIN: SSSGame.CrafterFetchQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ---- PROPERTIES ----
+  P: SSSGame.CraftingStation/CraftingProject craftingProject
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, SSSGame.CraftingStation/CraftingProject craftingProject) [pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetNeededSuppliesManifest() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftingQuest
+==================================================================
+  BASECHAIN: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CraftingQuest/CraftingQuestData, SSSGame.CraftingQuest/__c__DisplayClass35_0, SSSGame.CraftingQuest/__c__DisplayClass36_0
+  ---- PROPERTIES ----
+  P: SSSGame.AI.TieredCategoryFilter _NeededToolFilter_k__BackingField
+  P: SSSGame.AI.FSM.vFSMBehaviour behaviour
+  P: SSSGame.CraftingStation craftingStation
+  P: System.Int32 depth
+  P: System.Int32 priority
+  P: SandSailorStudio.Inventory.ItemInfoQuantity craftQuota
+  P: SSSGame.CraftingQuest parentQuest
+  P: SandSailorStudio.Inventory.ItemManifest _topLevelTotalParts
+  P: SandSailorStudio.Inventory.ItemManifest _partsManifest
+  P: SandSailorStudio.Inventory.Blueprint _blueprint
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> _subQuests
+  P: SandSailorStudio.Inventory.ItemManifest _suppManifest
+  P: System.Int32 _partsManifestsAdded
+  P: System.Boolean _refurbishOption
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> s_subQuests
+  P: SandSailorStudio.Inventory.BlueprintInfo BlueprintInfo
+  P: SandSailorStudio.Inventory.Blueprint Blueprint
+  P: SandSailorStudio.Inventory.ItemManifest TotalPartsManifest
+  P: SandSailorStudio.Inventory.ItemManifest TopLevelTotalPartsManifest
+  P: SSSGame.AI.TieredCategoryFilter NeededToolFilter
+  P: System.Int32 PartsManifestsNeededToFetch
+  P: System.Boolean RefurbishOption
+  P: System.Int32 Priority
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation) [pub]
+  M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.ItemInfoQuantity craftQuota, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, System.Int32 priority, System.Int32 depth, SSSGame.CraftingQuest parentCraftingQuest) [pub]
+  M: System.Void _CreatePartsSubquests() [pub]
+  M: System.Boolean IsBlueprintRelevantToQuest(SandSailorStudio.Inventory.BlueprintInfo blueprintInfo) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour GetFSMBehavior(SSSGame.AI.QuestData questData) [virt,pub]
+  M: System.Void SetDirty() [virt,pub]
+  M: System.Void OnStationEvent(System.Int32& evId, SandSailorStudio.IEventData evData) [pub]
+  M: System.Boolean RefreshSuppliesManifests() [pub]
+  M: System.Void _AddPartsManifests() [pub]
+  M: System.Void RemovePartsManifest() [pub]
+  M: System.Void PopulateQuestsList(Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingQuest> quests) [virt,pub]
+  M: System.Single GetResultImportance() [virt,pub]
+  M: System.Single GetPriority(SSSGame.AI.QuestData questData) [virt,pub]
+  M: System.Boolean CanCraftAtWorkshop() [virt,pub]
+  M: SSSGame.AI.QuestData CreateQuestData() [virt,pub]
+  M: System.Boolean TryGetFetchDepth(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Int32& depth) [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftInteraction
+==================================================================
+  BASECHAIN: SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CraftInteraction/CraftingEvents, SSSGame.CraftInteraction/__c__DisplayClass25_0
+  ---- PROPERTIES ----
+  P: SSSGame.CraftInteraction/CraftingEvents craftingEvents
+  P: SSSGame.CraftingStation craftStationHost
+  P: SSSGame.CraftBlueprint blueprint
+  P: SandSailorStudio.Inventory.InventoryComponent inventory
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory
+  P: SandSailorStudio.Inventory.ItemInfoList localBlueprintsList
+  P: System.Boolean useAgentInventory
+  P: System.Int32 craftActionId
+  P: System.Boolean _destroyed
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> _localBlueprints
+  P: SSSGame.Structure _ownerStructure
+  P: System.Boolean _parentedHost
+  P: System.Boolean _parentedInv
+  P: SandSailorStudio.Inventory.ItemManifest s_bpManifest
+  P: SSSGame.Structure OwnerStructure
+  P: SandSailorStudio.Inventory.ItemCollection ItemInventory
+  P: SSSGame.CraftBlueprint ActiveBlueprint
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void OnDisable() [virt,pub]
+  M: System.Void OnDestroy() [virt,pub]
+  M: System.Void DestroyGameObject(UnityEngine.GameObject gameObject) [pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Boolean CheckAgent(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean CheckOwnedRequirements(SandSailorStudio.Inventory.Blueprint bp, SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Boolean _CheckOwnedBlueprintManifest(SandSailorStudio.Inventory.ItemManifest itemManifest, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _OnCraftingSuccess(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint) [virt,pub]
+  M: System.Boolean ActivateBlueprint(SSSGame.CraftBlueprint bp) [virt,pub]
+  M: SSSGame.AI.IWorkstation GetWorkstation() [virt,pub]
+  M: System.String GetTaskDescription() [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _ReparentToStructure(SSSGame.Structure structure) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+TYPE: SSSGame.CarpenterInteraction
+==================================================================
+  BASECHAIN: SSSGame.AnvilInteraction  ->  SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  NESTED   : SSSGame.CarpenterInteraction/CarpentryDisplay
+  ---- PROPERTIES ----
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CarpenterInteraction/CarpentryDisplay> carpentries
+  P: UnityEngine.Transform rotatingCollider
+  P: SSSGame.Combat.FxSetup craftSuccessFx
+  P: System.Boolean adjustHitFxPos
+  P: SSSGame.StorageInteraction directDepositInteraction
+  P: SSSGame.StorageInteraction directWithdrawInteraction
+  P: UnityEngine.GameObject storagesParent
+  P: SandSailorStudio.Inventory.Item _subscribedItem
+  ---- METHODS (non-accessor) ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Single GetHarvestHitPoints() [virt,pub]
+  M: System.Void FillSpoilsManifest(SandSailorStudio.Inventory.ItemManifest manifest) [pub]
+  M: System.Void _FillManifestWithSpoils(SandSailorStudio.Inventory.ItemManifest manifest, SandSailorStudio.Inventory.ItemInfo itemInfo, System.Single& multiplier) [pub]
+  M: System.Single GetMaxHarvestHitPoints() [virt,pub]
+  M: System.Void _BloomContainer_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _BloomContainer_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _SubscribeToItem(SandSailorStudio.Inventory.Item item) [pub]
+  M: System.Void _UnsubscribeFromItem() [pub]
+  M: System.Void _OnIntegrityChanged() [pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos, UnityEngine.Quaternion& localRot) [virt,pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range) [virt,pub]
+  M: System.Void TakeDamage(SSSGame.Combat.DamageData damage) [virt,pub]
+  M: System.Int32 _GetCurrentFaceParameterId(SSSGame.Combat.DamageData damageData, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+
+==================================================================
+Q1: every member ANYWHERE typed CraftingStation (holders + one-vs-many)
+==================================================================
+  SSSGame.AnvilCleanupQuest :: P: SSSGame.CraftingStation _cs
+  SSSGame.CuringQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.ItemInfoQuantity craftQuota, SSSGame.AI.FSM.vFSMBehaviour craftBehaviour, System.Int32 priority, System.Int32 depth, SSSGame.AI.FSM.vFSMBehaviour cureBehaviour, SSSGame.CraftingQuest parentCraftingQuest) [pub]
+  SSSGame.CraftingQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CraftingQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.CraftingQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.ItemInfoQuantity craftQuota, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, System.Int32 priority, System.Int32 depth, SSSGame.CraftingQuest parentCraftingQuest) [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  SSSGame.StudyFetchQuest :: P: SSSGame.CraftingStation/StudyProject studyProject
+  SSSGame.StudyFetchQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, SSSGame.CraftingStation/StudyProject studyProject) [pub]
+  SSSGame.CrafterSpecificFetchQuest :: P: SSSGame.CraftingStation/CraftingProject craftingProject
+  SSSGame.CrafterSpecificFetchQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour, SSSGame.CraftingStation/CraftingProject craftingProject) [pub]
+  SSSGame.CrafterFetchQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterFetchQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour fsmBehaviour) [pub]
+  SSSGame.CrafterFetchQuest/CrafterFetchQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  SSSGame.CrafterResultsQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterResultsQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour behaviour) [pub]
+  SSSGame.CrafterResultsQuest/CrafterResultsQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  SSSGame.CrafterComplainQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CrafterComplainQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour behaviour) [pub]
+  SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData :: P: SSSGame.CraftingStation _craftStation
+  SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData :: M: System.Void .ctor(SSSGame.AI.Quest quest, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [virt,pub]
+  SSSGame.CrafterComplainQuest/CraftingStationComplainQuestData/__c__DisplayClass21_0 :: M: System.Boolean __OnCraftingStationEvent_b__0(SSSGame.StorageSupply ss) [pub]
+  SSSGame.CuringFirekeeperQuest/CuringFirekeeperQuestData :: P: SSSGame.CraftingStation _cs
+  SSSGame.DyeingQuest :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.DyeingQuest/DyeingQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [pub]
+  SSSGame.StudyQuest :: P: SSSGame.CraftingStation/StudyProject _Project_k__BackingField
+  SSSGame.StudyQuest :: P: SSSGame.CraftingStation CraftingStation
+  SSSGame.StudyQuest :: P: SSSGame.CraftingStation/StudyProject Project
+  SSSGame.StudyQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.CraftingStation/StudyProject studyProject, SSSGame.AI.FSM.vFSMBehaviour behaviour) [pub]
+  SSSGame.CraftInteraction :: P: SSSGame.CraftingStation craftStationHost
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> craftingProjects
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> studyProjects
+  SSSGame.CraftingStation :: P: SSSGame.CraftingStationType CraftingType
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.StorageSupply,SSSGame.CraftingStation/OutputStorageWrapper> _storageWrappers
+  SSSGame.CraftingStation :: P: Fusion.Changed`1<SSSGame.CraftingStation> field_CompilerControlled_Static_Changed_1_CraftingStation_0
+  SSSGame.CraftingStation :: P: Fusion.ChangedDelegate`1<SSSGame.CraftingStation> field_CompilerControlled_Static_ChangedDelegate_1_CraftingStation_0
+  SSSGame.CraftingStation :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.CraftingStation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_CraftingStation_0
+  SSSGame.CraftingStation/StudyProject :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CraftingStation/StudyProject :: P: SSSGame.AI.CraftingStationTaskData taskData
+  SSSGame.CraftingStation/StudyProject :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  SSSGame.CraftingStation/CraftingProject :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.CraftingStation/CraftingProject :: P: SSSGame.AI.CraftingStationTaskData taskData
+  SSSGame.CraftingStation/CraftingProject :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData) [pub]
+  SSSGame.CraftingStation/OutputStorageWrapper :: P: SSSGame.CraftingStation _cs
+  SSSGame.CraftingStation/OutputStorageWrapper :: P: SSSGame.CraftingStation CraftingStation
+  SSSGame.CraftingStation/OutputStorageWrapper :: M: System.Void Init(SSSGame.CraftingStation craftingStation, SSSGame.StorageSupply ss) [pub]
+  SSSGame.CraftingStation/__c__DisplayClass106_0 :: M: System.Boolean _RemoveTaskData_b__0(SSSGame.CraftingStation/StudyProject cp) [pub]
+  SSSGame.CraftingStation/__c__DisplayClass106_0 :: M: System.Boolean _RemoveTaskData_b__1(SSSGame.CraftingStation/CraftingProject cp) [pub]
+  SSSGame.SettlementIssueTrackerWidget :: M: Il2CppSystem.Collections.Generic.IEnumerator`1<SandSailorStudio.Inventory.ItemInfo> GetCraftingStationComplaints() [pub]
+  SSSGame.LiveOps.PlayfabManager :: M: System.Void SendCraftingStationPriorityChanged(SSSGame.CraftingStation craftingStation, SSSGame.AI.WorkstationTaskData taskData, System.Boolean dragAndDrop, System.String seed) [pub]
+  SSSGame.LiveOps.PlayfabManager :: M: System.Void SendCraftingStationTaskChanged(SSSGame.CraftingStation craftingStation, SSSGame.AI.CraftingStationTaskData taskData, System.String seed) [pub]
+  SSSGame.LiveOps.PlayfabManager :: M: System.Void SendPlayerCraft(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.Blueprint blueprint, System.String seed) [pub]
+  SSSGame.LiveOps.PlayfabManager :: M: System.Void SendVillagerCraft(SSSGame.CraftingStation craftingStation, SandSailorStudio.Inventory.Blueprint blueprint, System.String seed) [pub]
+  SSSGame.Network.NetworkCraftingStation :: P: SSSGame.CraftingStation _craftingStation
+  SSSGame.Network.NetworkCraftingStation :: P: Fusion.Changed`1<SSSGame.Network.NetworkCraftingStation> field_CompilerControlled_Static_Changed_1_NetworkCraftingStation_0
+  SSSGame.Network.NetworkCraftingStation :: P: Fusion.ChangedDelegate`1<SSSGame.Network.NetworkCraftingStation> field_CompilerControlled_Static_ChangedDelegate_1_NetworkCraftingStation_0
+  SSSGame.Network.NetworkCraftingStation :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkCraftingStation> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkCraftingStation_0
+  SSSGame.Network.NetworkCraftingStation :: P: SSSGame.CraftingStation _CraftingStation
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void OnTaskRefurbishOptionChanged(SSSGame.AI.CraftingStationTaskData task) [pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void OnDyeingOptionChanged(SSSGame.AI.CraftingStationTaskData task) [pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void Rpc_AddTask(SSSGame.Network.NetworkCraftingStation/NetworkTask networkTask, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<Fusion.NetworkId> villagersInChargeIDs) [virt,pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Void Rpc_RemoveTaskData(SSSGame.Network.NetworkCraftingStation/NetworkTask networkTask) [virt,pub]
+  SSSGame.Network.NetworkCraftingStation :: M: System.Boolean _TryGetNetworkTaskFromTask(SSSGame.AI.WorkstationTaskData task, SSSGame.Network.NetworkCraftingStation/NetworkTask& networkTask) [virt,pub]
+  SSSGame.Network.NetworkCraftingStation/NetworkTask :: M: System.Boolean Equals(SSSGame.Network.NetworkCraftingStation/NetworkTask other) [virt,pub]
+  SSSGame.Network.NetworkCraftingStation_128 :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> __NetworkTasks
+  SSSGame.Network.NetworkCraftingStation_128 :: P: Fusion.Changed`1<SSSGame.Network.NetworkCraftingStation_128> field_CompilerControlled_Static_Changed_1_NetworkCraftingStation_128_0
+  SSSGame.Network.NetworkCraftingStation_128 :: P: Fusion.ChangedDelegate`1<SSSGame.Network.NetworkCraftingStation_128> field_CompilerControlled_Static_ChangedDelegate_1_NetworkCraftingStation_128_0
+  SSSGame.Network.NetworkCraftingStation_128 :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkCraftingStation_128> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkCraftingStation_128_0
+  SSSGame.Network.NetworkCraftingStation_128 :: P: Fusion.NetworkArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> _NetworkTasks
+  SSSGame.Network.NetworkCraftingStation_32 :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> __NetworkTasks
+  SSSGame.Network.NetworkCraftingStation_32 :: P: Fusion.Changed`1<SSSGame.Network.NetworkCraftingStation_32> field_CompilerControlled_Static_Changed_1_NetworkCraftingStation_32_0
+  SSSGame.Network.NetworkCraftingStation_32 :: P: Fusion.ChangedDelegate`1<SSSGame.Network.NetworkCraftingStation_32> field_CompilerControlled_Static_ChangedDelegate_1_NetworkCraftingStation_32_0
+  SSSGame.Network.NetworkCraftingStation_32 :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkCraftingStation_32> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkCraftingStation_32_0
+  SSSGame.Network.NetworkCraftingStation_32 :: P: Fusion.NetworkArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> _NetworkTasks
+  SSSGame.Network.NetworkCraftingStation_8 :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> __NetworkTasks
+  SSSGame.Network.NetworkCraftingStation_8 :: P: Fusion.Changed`1<SSSGame.Network.NetworkCraftingStation_8> field_CompilerControlled_Static_Changed_1_NetworkCraftingStation_8_0
+  SSSGame.Network.NetworkCraftingStation_8 :: P: Fusion.ChangedDelegate`1<SSSGame.Network.NetworkCraftingStation_8> field_CompilerControlled_Static_ChangedDelegate_1_NetworkCraftingStation_8_0
+  SSSGame.Network.NetworkCraftingStation_8 :: P: Fusion.NetworkBehaviourCallbacks`1<SSSGame.Network.NetworkCraftingStation_8> field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_NetworkCraftingStation_8_0
+  SSSGame.Network.NetworkCraftingStation_8 :: P: Fusion.NetworkArray`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> _NetworkTasks
+  SSSGame.Deeds.CraftEventData :: P: SSSGame.CraftingStation station
+  SSSGame.UI.CraftMenu :: M: SSSGame.CraftingStation GetCraftingStation() [pub]
+  SSSGame.AI.CraftingStationTaskData :: P: SSSGame.CraftingStation craftingStation
+  SSSGame.AI.CraftingStationTaskData :: M: System.Void .ctor(Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.CraftingStationTaskData :: M: System.Void .ctor(System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.CraftingStationTaskData :: M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.CraftingStationTaskData :: M: System.Void .ctor(SandSailorStudio.Inventory.ItemInfo info, System.Int32 quantity, Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> villagers, System.Boolean removable, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.WorkstationIdleQuest/CraftStationIdleQuestData :: P: SSSGame.CraftingStation _craftingStation
+  SSSGame.AI.WorkstationIdleQuest/CraftStationIdleQuestData :: M: System.Void .ctor(SSSGame.AI.Quest quest, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.FishingComplainQuest :: M: System.Void .ctor(SSSGame.CraftingStation craftingStation, SSSGame.AI.FSM.vFSMBehaviour behaviour) [pub]
+  SSSGame.AI.FishingComplainQuest/FishingComplainQuestData :: M: System.Void .ctor(SSSGame.AI.Quest quest, SSSGame.CraftingStation craftingStation) [pub]
+  SSSGame.AI.FishingComplainQuest/FishingComplainQuestData :: M: System.Void _OnCraftingStationEvent(System.Int32 evId, SandSailorStudio.IEventData evData) [virt,pub]
+  SSSGame.AI.FSM.FSM_StudyArtefact/ActionData :: M: SSSGame.StudyInteraction FindInteractionToStudyAt(SSSGame.CraftingStation craftingStation) [pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr10 :: P: Fusion.IElementReaderWriter`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> Instance
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr10 :: M: SSSGame.Network.NetworkCraftingStation/NetworkTask Read(System.Byte* data, System.Int32 index) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr10 :: M: SSSGame.Network.NetworkCraftingStation/NetworkTask& ReadRef(System.Byte* data, System.Int32 index) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr10 :: M: System.Void Write(System.Byte* data, System.Int32 index, SSSGame.Network.NetworkCraftingStation/NetworkTask val) [virt,pub]
+  Fusion.CodeGen.ValueTypePrivateSealedIE1NeInRedaNeObinWr10 :: M: Fusion.IElementReaderWriter`1<SSSGame.Network.NetworkCraftingStation/NetworkTask> GetInstance() [static,pub]
+
+==================================================================
+Q2: members on the Project/Quest family typed Blueprint* or *Interaction
+==================================================================
+  SSSGame.CraftingQuest :: P: SandSailorStudio.Inventory.Blueprint _blueprint
+  SSSGame.CraftingQuest :: P: SandSailorStudio.Inventory.BlueprintInfo BlueprintInfo
+  SSSGame.CraftingQuest :: P: SandSailorStudio.Inventory.Blueprint Blueprint
+  SSSGame.CraftingQuest :: M: System.Boolean IsBlueprintRelevantToQuest(SandSailorStudio.Inventory.BlueprintInfo blueprintInfo) [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: P: SSSGame.CraftInteraction _ci
+  SSSGame.CraftingQuest/CraftingQuestData :: P: SSSGame.CraftBlueprint Blueprint
+  SSSGame.CraftingQuest/CraftingQuestData :: M: System.Boolean UsableCraftingTablePredicate(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.CraftingQuest/CraftingQuestData :: M: SSSGame.CraftInteraction FindFreeCraftInteraction() [pub]
+  SSSGame.CraftingQuest/__c__DisplayClass35_0 :: P: SandSailorStudio.Inventory.BlueprintInfo bpInfo
+  SSSGame.CraftingQuest/__c__DisplayClass35_0 :: M: System.Boolean __ctor_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.CraftingQuest/__c__DisplayClass36_0 :: P: SSSGame.CraftBlueprint subBlueprint
+  SSSGame.CraftingQuest/__c__DisplayClass36_0 :: M: System.Boolean __CreatePartsSubquests_b__0(SSSGame.CraftInteraction ci) [pub]
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> _craftingTables
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> _studyInteractions
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> _anvils
+  SSSGame.CraftingStation :: P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> _knownBlueprints
+  SSSGame.CraftingStation :: M: SSSGame.StorageInteraction FindInternalStorage(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  SSSGame.CraftingStation :: M: SSSGame.StorageInteraction FindStorageInteraction(Il2CppSystem.Func`2<SSSGame.StorageInteraction,System.Boolean> predicate) [virt,pub]
+  SSSGame.CraftingStation :: M: SSSGame.StudyInteraction FindStudyInteraction(Il2CppSystem.Predicate`1<SSSGame.StudyInteraction> predicate) [pub]
+  SSSGame.CraftingStation :: M: SSSGame.CraftInteraction FindCraftingTable(Il2CppSystem.Predicate`1<SSSGame.CraftInteraction> predicate) [pub]
+  SSSGame.CraftingStation :: M: System.Void PopulateStudyInteractionsList(Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> studyInteractions) [pub]
+  SSSGame.CraftingStation :: M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint) [pub]
+  SSSGame.CraftingStation :: M: System.Boolean IsDyeingAvailableForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.DyeingBlueprintInfo& dyeingBlueprintInfo) [pub]
+  SSSGame.CraftingStation :: M: System.Boolean _CanUpgradeDyeingProcess(SSSGame.DyeingBlueprintInfo oldDyeBpInfo, System.Int32 oldDyeIndex, SSSGame.DyeingBlueprintInfo newDyeBpInfo, System.Int32& newDyeIndex) [pub]
+  SSSGame.CraftingStation/OutputStorageWrapper :: M: SSSGame.StorageInteraction FindStorageInteraction(Il2CppSystem.Func`2<SSSGame.StorageInteraction,System.Boolean> predicate) [virt,pub]
+  SSSGame.AI.CraftingStationTaskData :: P: SSSGame.DyeingBlueprint dyeingBlueprint
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: P: SSSGame.IInteractionArea area
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: P: SSSGame.CraftInteraction interaction
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: P: SSSGame.InteractionSession session
+  SSSGame.AI.FSM.FSM_UseCraftingStation/CraftData :: P: SSSGame.IInteractionAgent agent
+  SSSGame.AI.FSM.FSM_UseCraftingStation/__c__DisplayClass9_0 :: P: SandSailorStudio.Inventory.BlueprintInfo bpInfo
+
+==================================================================
+Q3: CraftInteraction-family members matching Station|Workstation|Owner|Parent|Unit|Addon
+==================================================================
+  --- SSSGame.CraftInteraction ---
+  P: SSSGame.CraftingStation craftStationHost
+  P: SSSGame.Structure _ownerStructure
+  P: System.Boolean _parentedHost
+  P: System.Boolean _parentedInv
+  P: SSSGame.Structure OwnerStructure
+  M: System.Void DestroyGameObject(UnityEngine.GameObject gameObject) [pub]
+  M: SSSGame.AI.IWorkstation GetWorkstation() [virt,pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _ReparentToStructure(SSSGame.Structure structure) [pub]
+  --- SSSGame.AnvilInteraction ---
+  P: UnityEngine.Transform matchTargetPos
+  P: UnityEngine.Transform matchTargetExitPos
+  P: UnityEngine.Transform hitFxPos
+  P: UnityEngine.Transform dieHandleTransform
+  P: UnityEngine.GameObject _displayItem
+  P: UnityEngine.Coroutine _rotationRoutine
+  P: UnityEngine.Vector3 dieInitialPosition
+  P: UnityEngine.Quaternion dieInitialRotation
+  P: UnityEngine.GameObject SSSGame.Combat.IDamageReceiver.gameObject
+  M: System.Void add_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range) [virt,pub]
+  M: UnityEngine.Quaternion _GetNextRotation(UnityEngine.Quaternion& currentRotation, SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  M: System.Void _PlayFx(SSSGame.Combat.FxSetup hitFx, UnityEngine.Vector3& position, UnityEngine.Quaternion& rotation, System.Single& scale) [pub]
+  M: Il2CppSystem.Collections.IEnumerator _DieRotationRoutine(UnityEngine.Quaternion targetRotation) [pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos, UnityEngine.Quaternion& localRot) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: UnityEngine.GameObject SSSGame_Combat_IDamageReceiver_get_gameObject() [virt,pub]
+  --- SSSGame.CarpenterInteraction ---
+  P: UnityEngine.Transform rotatingCollider
+  P: UnityEngine.GameObject storagesParent
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos, UnityEngine.Quaternion& localRot) [virt,pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range) [virt,pub]
+  --- SSSGame.Interaction ---
+  P: UnityEngine.GameObject host
+  M: UnityEngine.GameObject GetHostObject() [virt,pub]
+
+==================================================================
+Q4: types matching Workshop|Addon|Add_On|Module|Upgrade|Extension|Attachment
+==================================================================
+  <Module>   BASE: (none)
+  RootMotion.LayerMaskExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  UltimateRope/ERopeExtensionMode   BASE: System.Enum
+  ModuleAnchorColorsAsset   BASE: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Photon.Chat.Demo.AppSettingsExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  TriangleNet.Geometry.ExtensionMethods   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModulePlacementTool   BASE: SSSGame.ValidationPlacementTool  ->  SSSGame.PlacementTool  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModulePlacementTool/Target   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModulePlacementTool/SelectedObject   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.TerraformingDockModulePlacementTool   BASE: SSSGame.TerraformingDockPlacementTool  ->  SSSGame.DockPlacementTool  ->  SSSGame.WaterSurfacePointPlacementTool  ->  SSSGame.ValidationPlacementTool  ->  SSSGame.PlacementTool  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.TerraformingModulePlacementTool   BASE: SSSGame.BuildingModulePlacementTool  ->  SSSGame.ValidationPlacementTool  ->  SSSGame.PlacementTool  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingAttachmentPoint   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingAttachmentPoint/Location   BASE: System.Enum
+  SSSGame.BuildingModule   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModule/Connectors   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModule/Connectors/Margins   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModule/Connectors/Type   BASE: System.Enum
+  SSSGame.BuildingModuleAnchor   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModuleAnchor/AnchorType   BASE: System.Enum
+  SSSGame.BuildingModuleAnchor/Influences   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModuleAnchor/Tag   BASE: System.Enum
+  SSSGame.BuildingModuleAnchorInfluenced   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModuleAnchorInfluenced/InfluenceContainer   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildingModuleAnchorInfluenced/InfluenceContainerType   BASE: System.Enum
+  SSSGame.BuildingModuleConstants   BASE: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ModulePlacementLengthRule   BASE: SSSGame.ModulePlacementRule  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ModulePlacementOnlyRule   BASE: SSSGame.ModulePlacementRule  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ModulePlacementRule   BASE: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ModulePlacementSquareRule   BASE: SSSGame.ModulePlacementRule  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.TemporaryBuildingModule   BASE: SSSGame.BuildingModule  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon/__c__DisplayClass6_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon/__c__DisplayClass6_1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon/__c__DisplayClass6_2   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharacterDebugAddon/__c__DisplayClass6_3   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/MonsterDebugOption   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_2   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_3   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_4   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_5   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MonstersDebugAddon/__c__DisplayClass9_6   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CameraDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CameraDebugAddon/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CameraDebugAddon/_Start_d__5   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.DebugAddons   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.DebugAddonCommand   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IDebugAddon   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ItemContainerComponentUpgradeable   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ItemContainerComponentUpgradeable/UpgradeData   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.WorkshopBlueprint   BASE: SSSGame.CraftBlueprint  ->  SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.WorkshopBlueprintInfo   BASE: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.RectExtension   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AnimationDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AnimationDebugAddon/__c__DisplayClass8_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.SettlementDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.SettlementDebugAddon/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.SettlementDebugAddon/__c__DisplayClass3_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.SettlementDebugAddon/__c__DisplayClass3_1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IInteractionWidgetProvider/MethodInfoStoreGeneric_SetupAddonSlot_Public_Abstract_Virtual_New_Boolean_IInteractionWidgetUser_T_byref_T_Int32_0`1   BASE: System.Object
+  SSSGame.InteractWidget/MethodInfoStoreGeneric_SetupAddonSlot_Public_Virtual_Final_New_Boolean_IInteractionWidgetUser_T_byref_T_Int32_0`1   BASE: System.Object
+  SSSGame.BiomeVFXCameraAttachment   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BiomesDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MapDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.NavigationDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.NavigationDebugAddon/__c__DisplayClass6_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Weather.MicrosplatExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Vegetation.VegetationVFXAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Vegetation.VegetationInteractionAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkDebugAddon   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkDebugAddon/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkPreviewAddonsContainer   BASE: Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Water.InteractSlot_BoatAddon   BASE: SSSGame.InteractSlot  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.StructureUpgradePreviewPage   BASE: SandSailorStudio.UI.TabPage  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.StructureUpgradesTabPage   BASE: SandSailorStudio.UI.TabPage  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.StructureUpgradesTabPage/Mode   BASE: System.Enum
+  SSSGame.UI.InputModuleHelper   BASE: UnityEngine.EventSystems.BaseInputModule  ->  UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.StructureUpgradePanel   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.UpgradedDopdown   BASE: TMPro.TMP_Dropdown  ->  UnityEngine.UI.Selectable  ->  UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.TabButtonUpgradeItem   BASE: SandSailorStudio.UI.TabButton  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.CustomInputModule   BASE: UnityEngine.InputSystem.UI.InputSystemUIInputModule  ->  UnityEngine.EventSystems.BaseInputModule  ->  UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  AwesomeTechnologies.Extensions.ReflectionExtentions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Extensions.ReflectionExtentions/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.VegetationSystem.Biomes.UnityExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.ListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.ListExtensions/ArrayAccessor`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.ListExtensions/MethodInfoStoreGeneric_GetInternalArray_Public_Static_Il2CppArrayBase_1_T_List_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.MeshExtension   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.MeshExtension/Vertices   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.MeshExtension/Vertices/MethodInfoStoreGeneric_CreateList_Private_List_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.MeshExtension/Vertices/MethodInfoStoreGeneric_Copy_Private_Void_byref_List_1_T_List_1_T_Int32_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToFast_Public_Static_Void_NativeArray_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToFast_Public_Static_Void_NativeSlice_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToFast_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToFast_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopySlice_Public_Static_Void_NativeArray_1_T_Int32_Int32_Il2CppObjectBase_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromFast_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromFast_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromFast_Public_Static_Void_NativeArray_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromFast_Public_Static_Void_NativeArray_1_T_List_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_ToByteSpan_Public_Static_Span_1_Byte_NativeArray_1_T_Boolean_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_ToByteSpan_Public_Static_Span_1_Byte_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_GetByteSize_Public_Static_Int32_NativeArray_1_T_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromFast_Public_Static_Void_NativeArray_1_T_Il2CppStructArray_1_Byte_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromWithStride_Public_Static_Void_NativeArray_1_T_Int32_Int32_NativeArray_1_T_Int32_Int32_Int32_0`1   BASE: System.Object
+  AwesomeTechnologies.Utility.UtilityExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  AwesomeTechnologies.Utility.Quadtree.RectExtension   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Steamworks.RemoteStorageEnumerateWorkshopFilesResult_t   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Steamworks.RemoteStorageEnumerateUserSharedWorkshopFilesResult_t   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Steamworks.WorkshopEULAStatus_t   BASE: System.ValueType
+  Steamworks.EWorkshopFileType   BASE: System.Enum
+  Steamworks.EWorkshopVote   BASE: System.Enum
+  Steamworks.EWorkshopFileAction   BASE: System.Enum
+  Steamworks.EWorkshopEnumerationType   BASE: System.Enum
+  Steamworks.EWorkshopVideoProvider   BASE: System.Enum
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  MagicaCloth2.MathExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList128BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2IsCapacity_Public_Static_Boolean_byref_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2Set_Public_Static_Void_byref_FixedList128Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2SetLimit_Public_Static_Void_byref_FixedList128Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2RemoveItemAtSwapBack_Public_Static_Void_byref_FixedList128Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2Push_Public_Static_Void_byref_FixedList128Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2Pop_Public_Static_T_byref_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2Enqueue_Public_Static_Void_byref_FixedList128Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList128BytesExtensions/MethodInfoStoreGeneric_MC2Dequque_Public_Static_T_byref_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2IsCapacity_Public_Static_Boolean_byref_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2Set_Public_Static_Void_byref_FixedList32Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2SetLimit_Public_Static_Void_byref_FixedList32Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2RemoveItemAtSwapBack_Public_Static_Void_byref_FixedList32Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2Push_Public_Static_Void_byref_FixedList32Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2Pop_Public_Static_T_byref_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2Enqueue_Public_Static_Void_byref_FixedList32Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList32BytesExtensions/MethodInfoStoreGeneric_MC2Dequque_Public_Static_T_byref_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2IsCapacity_Public_Static_Boolean_byref_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2Set_Public_Static_Void_byref_FixedList4096Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2SetLimit_Public_Static_Void_byref_FixedList4096Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2RemoveItemAtSwapBack_Public_Static_Void_byref_FixedList4096Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2Push_Public_Static_Void_byref_FixedList4096Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2Pop_Public_Static_T_byref_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2Enqueue_Public_Static_Void_byref_FixedList4096Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList4096BytesExtensions/MethodInfoStoreGeneric_MC2Dequque_Public_Static_T_byref_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2IsCapacity_Public_Static_Boolean_byref_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2Set_Public_Static_Void_byref_FixedList512Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2SetLimit_Public_Static_Void_byref_FixedList512Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2RemoveItemAtSwapBack_Public_Static_Void_byref_FixedList512Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2Push_Public_Static_Void_byref_FixedList512Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2Pop_Public_Static_T_byref_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2Enqueue_Public_Static_Void_byref_FixedList512Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList512BytesExtensions/MethodInfoStoreGeneric_MC2Dequque_Public_Static_T_byref_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2IsCapacity_Public_Static_Boolean_byref_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2Set_Public_Static_Void_byref_FixedList64Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2SetLimit_Public_Static_Void_byref_FixedList64Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2RemoveItemAtSwapBack_Public_Static_Void_byref_FixedList64Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2Push_Public_Static_Void_byref_FixedList64Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2Pop_Public_Static_T_byref_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2Enqueue_Public_Static_Void_byref_FixedList64Bytes_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.FixedList64BytesExtensions/MethodInfoStoreGeneric_MC2Dequque_Public_Static_T_byref_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  MagicaCloth2.NativeArrayExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.NativeArrayExtensions/MethodInfoStoreGeneric_MC2DisposeSafe_Public_Static_Void_byref_NativeArray_1_T_0`1   BASE: System.Object
+  MagicaCloth2.NativeArrayExtensions/MethodInfoStoreGeneric_MC2Resize_Public_Static_Void_byref_NativeArray_1_T_Int32_Allocator_NativeArrayOptions_0`1   BASE: System.Object
+  MagicaCloth2.NativeArrayExtensions/MethodInfoStoreGeneric_MC2ToRawBytes_Public_Static_Il2CppStructArray_1_Byte_byref_NativeArray_1_T_0`1   BASE: System.Object
+  MagicaCloth2.NativeArrayExtensions/MethodInfoStoreGeneric_MC2FromRawBytes_Public_Static_NativeArray_1_T_Il2CppStructArray_1_Byte_Allocator_0`1   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.NativeMultiHashMapExtensions/SetParallelMultiHashMapJob`2   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2Contains_Public_Static_Boolean_byref_NativeParallelMultiHashMap_2_TKey_TValue_TKey_TValue_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2UniqueAdd_Public_Static_Void_byref_NativeParallelMultiHashMap_2_TKey_TValue_TKey_TValue_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2RemoveValue_Public_Static_Boolean_byref_NativeParallelMultiHashMap_2_TKey_TValue_TKey_TValue_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2ToFixedList512Bytes_Public_Static_FixedList512Bytes_1_TValue_byref_NativeParallelMultiHashMap_2_TKey_TValue_TKey_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2ToFixedList128Bytes_Public_Static_FixedList128Bytes_1_TValue_byref_NativeParallelMultiHashMap_2_TKey_TValue_TKey_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2Serialize_Public_Static_ValueTuple_2_Il2CppArrayBase_1_TKey_Il2CppArrayBase_1_TValue_byref_NativeParallelMultiHashMap_2_TKey_TValue_0`2   BASE: System.Object
+  MagicaCloth2.NativeMultiHashMapExtensions/MethodInfoStoreGeneric_MC2DisposeSafe_Public_Static_Void_byref_NativeParallelMultiHashMap_2_TKey_TValue_0`2   BASE: System.Object
+  MagicaCloth2.NativeReferenceExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Newtonsoft.Json.JsonExtensionDataAttribute   BASE: Il2CppSystem.Attribute  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Utilities.StringReferenceExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Utilities.TypeExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Serialization.ExtensionDataSetter   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Serialization.ExtensionDataGetter   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Schema.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Schema.Extensions/__c__DisplayClass0_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Schema.Extensions/__c__DisplayClass1_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c__0`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c__1`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c__13`2   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c__2`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/__c__3`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/_Convert_d__14`2   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/_Values_d__11`2   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Ancestors_Public_Static_IJEnumerable_1_JToken_IEnumerable_1_T_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_AncestorsAndSelf_Public_Static_IJEnumerable_1_JToken_IEnumerable_1_T_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Descendants_Public_Static_IJEnumerable_1_JToken_IEnumerable_1_T_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_DescendantsAndSelf_Public_Static_IJEnumerable_1_JToken_IEnumerable_1_T_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Values_Public_Static_IEnumerable_1_U_IEnumerable_1_JToken_Object_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Values_Public_Static_IEnumerable_1_U_IEnumerable_1_JToken_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Value_Public_Static_U_IEnumerable_1_JToken_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Value_Public_Static_U_IEnumerable_1_T_0`2   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Values_Internal_Static_IEnumerable_1_U_IEnumerable_1_T_Object_0`2   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Children_Public_Static_IJEnumerable_1_JToken_IEnumerable_1_T_0`1   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Children_Public_Static_IEnumerable_1_U_IEnumerable_1_T_0`2   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Convert_Internal_Static_IEnumerable_1_U_IEnumerable_1_T_0`2   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_Convert_Internal_Static_U_T_0`2   BASE: System.Object
+  Newtonsoft.Json.Linq.Extensions/MethodInfoStoreGeneric_AsJEnumerable_Public_Static_IJEnumerable_1_T_IEnumerable_1_T_0`1   BASE: System.Object
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Photon.Realtime.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Photon.Realtime.Extensions/MethodInfoStoreGeneric_ToStringFull_Public_Static_String_List_1_T_0`1   BASE: System.Object
+  <Module>   BASE: (none)
+  PlayFab.WsaReflectionExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Extensions/ImageFilterMode   BASE: System.Enum
+  Extensions/_Fade_d__55   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Extensions/_Fade_d__56   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Extensions/MethodInfoStoreGeneric_TryGetComponentInParent_Public_Static_Boolean_Component_byref_T_Boolean_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_TryGetComponentInChildren_Public_Static_Boolean_Component_byref_T_Boolean_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_GetCopyOf_Public_Static_T_Component_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_TryGetComponentInChildren_Public_Static_Boolean_GameObject_byref_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_GetComponentsInChildren_Public_Static_List_1_T_GameObject_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_Shuffle_Public_Static_Void_List_1_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_AddUnique_Public_Static_Void_List_1_T_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_AddSorted_Public_Static_Void_List_1_T_T_IComparer_1_T_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_Swap_Public_Static_Void_List_1_T_Int32_Int32_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_InsertSwap_Public_Static_Void_List_1_T_Int32_Int32_0`1   BASE: System.Object
+  Extensions/MethodInfoStoreGeneric_RemoveLast_Public_Static_Void_List_1_T_0`1   BASE: System.Object
+  SSSGame.UI.UpgradedButton   BASE: SandSailorStudio.UI.EventButton  ->  UnityEngine.UI.Button  ->  UnityEngine.UI.Selectable  ->  UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.UpgradedButton/ButtonPointerEnterEvent   BASE: UnityEngine.Events.UnityEvent  ->  UnityEngine.Events.UnityEventBase  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.UpgradedButton/ButtonPointerExitEvent   BASE: UnityEngine.Events.UnityEvent  ->  UnityEngine.Events.UnityEventBase  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.UpgradedToggle   BASE: SandSailorStudio.UI.EventToggle  ->  UnityEngine.UI.Toggle  ->  UnityEngine.UI.Selectable  ->  UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.BossUpgradeEventData   BASE: SandSailorStudio.BoolEventData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Fixed.FQ14Vec2Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Types.int2extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Types.NativeArrayExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToManagedArray_Public_Static_Void_NativeArray_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToManagedArray_Public_Static_Void_NativeSlice_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToManagedArray_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyToManagedArray_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopySliceToManagedArray_Public_Static_Void_NativeArray_1_T_Int32_Int32_Il2CppObjectBase_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromManaged2DArray_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromManaged3DArray_Public_Static_Void_NativeArray_1_T_Il2CppObjectBase_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromManagedArray_Public_Static_Void_NativeArray_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_ToByteSpan_Public_Static_Span_1_Byte_NativeArray_1_T_Boolean_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_ToByteSpan_Public_Static_Span_1_Byte_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_GetByteSize_Public_Static_Int32_NativeArray_1_T_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromByteBuffer_Public_Static_Void_NativeArray_1_T_Il2CppStructArray_1_Byte_0`1   BASE: System.Object
+  SandSailorStudio.Types.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFromNativeArrayWithStride_Public_Static_Void_NativeArray_1_T_Int32_Int32_NativeArray_1_T_Int32_Int32_Int32_0`1   BASE: System.Object
+  SandSailorStudio.Procedural.LSystemSymbolModule   BASE: SandSailorStudio.Procedural.LSystemSymbol  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Procedural.LSystemSymbolModule/__c__DisplayClass3_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Localization.LocalizedAssetExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.DebugCompute.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.WorldGeneratorModule   BASE: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.Deterministic.FixCurveExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.Deterministic.PerlinGeneratorModule   BASE: SandSailorStudio.WorldGen.WorldGeneratorModule  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Unity.Jobs.JobParallelIndexListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.JobParallelIndexListExtensions/MethodInfoStoreGeneric_ScheduleAppend_Public_Static_JobHandle_T_NativeList_1_Int32_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.JobParallelIndexListExtensions/MethodInfoStoreGeneric_ScheduleFilter_Public_Static_JobHandle_T_NativeList_1_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobFilterExtensions/JobFilterProducer`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobFilterExtensions/JobFilterProducer`1/JobWrapper   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobFilterExtensions/JobFilterProducer`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_ScheduleAppend_Public_Static_JobHandle_T_NativeList_1_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_ScheduleFilter_Public_Static_JobHandle_T_NativeList_1_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_RunAppend_Public_Static_Void_T_NativeList_1_Int32_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_RunFilter_Public_Static_Void_T_NativeList_1_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_ScheduleAppendByRef_Public_Static_JobHandle_byref_T_NativeList_1_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_ScheduleFilterByRef_Public_Static_JobHandle_byref_T_NativeList_1_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_RunAppendByRef_Public_Static_Void_byref_T_NativeList_1_Int32_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobFilterExtensions/MethodInfoStoreGeneric_RunFilterByRef_Public_Static_Void_byref_T_NativeList_1_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForBatchExtensions/JobParallelForBatchProducer`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForBatchExtensions/JobParallelForBatchProducer`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_ScheduleByRef_Public_Static_JobHandle_byref_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_ScheduleParallel_Public_Static_JobHandle_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_ScheduleParallelByRef_Public_Static_JobHandle_byref_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_ScheduleBatch_Public_Static_JobHandle_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_ScheduleBatchByRef_Public_Static_JobHandle_byref_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_Run_Public_Static_Void_T_Int32_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_RunByRef_Public_Static_Void_byref_T_Int32_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_RunBatch_Public_Static_Void_T_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForBatchExtensions/MethodInfoStoreGeneric_RunBatchByRef_Public_Static_Void_byref_T_Int32_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForDeferExtensions/JobParallelForDeferProducer`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForDeferExtensions/JobParallelForDeferProducer`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_NativeList_1_U_Int32_JobHandle_0`2   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_ScheduleByRef_Public_Static_JobHandle_byref_T_NativeList_1_U_Int32_JobHandle_0`2   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_ptr_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_ScheduleByRef_Public_Static_JobHandle_byref_T_ptr_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForDeferExtensions/MethodInfoStoreGeneric_ScheduleInternal_Private_Static_JobHandle_byref_T_Int32_ptr_Void_ptr_Void_JobHandle_0`1   BASE: System.Object
+  Unity.Collections.FixedList32BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedList32BytesExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_byref_FixedList32Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList32BytesExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_byref_FixedList32Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList32BytesExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Boolean_byref_FixedList32Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList32BytesExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_byref_FixedList32Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList64BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedList64BytesExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_byref_FixedList64Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList64BytesExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_byref_FixedList64Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList64BytesExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Boolean_byref_FixedList64Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList64BytesExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_byref_FixedList64Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList128BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedList128BytesExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_byref_FixedList128Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList128BytesExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_byref_FixedList128Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList128BytesExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Boolean_byref_FixedList128Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList128BytesExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_byref_FixedList128Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList512BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedList512BytesExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_byref_FixedList512Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList512BytesExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_byref_FixedList512Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList512BytesExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Boolean_byref_FixedList512Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList512BytesExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_byref_FixedList512Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList4096BytesExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedList4096BytesExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_byref_FixedList4096Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList4096BytesExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_byref_FixedList4096Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList4096BytesExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Boolean_byref_FixedList4096Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedList4096BytesExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_byref_FixedList4096Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList32Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList64Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList128Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList512Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.FixedListExtensions/MethodInfoStoreGeneric_Sort_Public_Static_Void_byref_FixedList4096Bytes_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.ListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.ListExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_List_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.ListExtensions/MethodInfoStoreGeneric_RemoveSwapBack_Public_Static_Boolean_List_1_T_Predicate_1_T_0`1   BASE: System.Object
+  Unity.Collections.ListExtensions/MethodInfoStoreGeneric_RemoveAtSwapBack_Public_Static_Void_List_1_T_Int32_0`1   BASE: System.Object
+  Unity.Collections.ListExtensions/MethodInfoStoreGeneric_ToNativeList_Public_Static_NativeList_1_T_List_1_T_AllocatorHandle_0`1   BASE: System.Object
+  Unity.Collections.ListExtensions/MethodInfoStoreGeneric_ToNativeArray_Public_Static_NativeArray_1_T_List_1_T_AllocatorHandle_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeArrayExtensions/NativeArrayStaticId`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_NativeArray_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_NativeArray_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_ReadOnly_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_ReadOnly_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_ptr_Void_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_ptr_Void_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFrom_Public_Static_Void_byref_NativeArray_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFrom_Public_Static_Void_byref_NativeArray_1_T_byref_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_CopyFrom_Public_Static_Void_byref_NativeArray_1_T_byref_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Reinterpret_Public_Static_NativeArray_1_U_NativeArray_1_T_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_NativeArray_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_CheckReinterpretSize_Private_Static_Void_byref_NativeArray_1_T_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Initialize_Internal_Static_Void_byref_NativeArray_1_T_Int32_AllocatorHandle_NativeArrayOptions_0`1   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_Initialize_Internal_Static_Void_byref_NativeArray_1_T_Int32_byref_U_NativeArrayOptions_0`2   BASE: System.Object
+  Unity.Collections.NativeArrayExtensions/MethodInfoStoreGeneric_DisposeCheckAllocator_Internal_Static_Void_byref_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_NativeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_NativeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_NativeArray_1_T_byref_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_NativeList_1_T_byref_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_NativeList_1_T_byref_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeListExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_NativeList_1_T_byref_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_Unique_Public_Static_Int32_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_GetUniqueKeyArray_Public_Static_ValueTuple_2_NativeArray_1_TKey_Int32_UnsafeParallelMultiHashMap_2_TKey_TValue_AllocatorHandle_0`2   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_GetUniqueKeyArray_Public_Static_ValueTuple_2_NativeArray_1_TKey_Int32_NativeParallelMultiHashMap_2_TKey_TValue_AllocatorHandle_0`2   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_GetUnsafeBucketData_Public_Static_UnsafeParallelHashMapBucketData_NativeParallelHashMap_2_TKey_TValue_0`2   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_GetUnsafeBucketData_Public_Static_UnsafeParallelHashMapBucketData_NativeParallelMultiHashMap_2_TKey_TValue_0`2   BASE: System.Object
+  Unity.Collections.NativeParallelHashMapExtensions/MethodInfoStoreGeneric_Remove_Public_Static_Void_NativeParallelMultiHashMap_2_TKey_TValue_TKey_TValue_0`2   BASE: System.Object
+  Unity.Collections.HashSetExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeParallelMultiHashMapExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeParallelMultiHashMapExtensions/MethodInfoStoreGeneric_Initialize_Internal_Static_Void_byref_NativeParallelMultiHashMap_2_TKey_TValue_Int32_byref_U_0`3   BASE: System.Object
+  Unity.Collections.NativeSortExtension   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeSortExtension/DefaultComparer`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_ptr_T_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_ptr_T_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_DefaultComparer_1_T_ptr_T_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_U_ptr_T_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_ptr_T_Int32_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_ptr_T_Int32_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeArray_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_DefaultComparer_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_U_NativeArray_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeArray_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeArray_1_T_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_ReadOnly_T_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_ReadOnly_T_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_DefaultComparer_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_U_NativeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJobDefer_Public_Static_SortJobDefer_2_T_DefaultComparer_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJobDefer_Public_Static_SortJobDefer_2_T_U_NativeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeList_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeList_1_T_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_UnsafeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_DefaultComparer_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_U_UnsafeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_UnsafeList_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_UnsafeList_1_T_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeSlice_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Sort_Public_Static_Void_NativeSlice_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_DefaultComparer_1_T_NativeSlice_1_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SortJob_Public_Static_SortJob_2_T_U_NativeSlice_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeSlice_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_BinarySearch_Public_Static_Int32_NativeSlice_1_T_T_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_IntroSort_Internal_Static_Void_ptr_Void_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_IntroSort_R_Internal_Static_Void_ptr_Void_Int32_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_InsertionSort_Private_Static_Void_ptr_Void_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Partition_Private_Static_Int32_ptr_Void_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_HeapSort_Private_Static_Void_ptr_Void_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Heapify_Private_Static_Void_ptr_Void_Int32_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_Swap_Private_Static_Void_ptr_Void_Int32_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SwapIfGreaterWithItems_Private_Static_Void_ptr_Void_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_IntroSortStruct_Private_Static_Void_ptr_Void_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_IntroSortStruct_R_Private_Static_Void_ptr_Void_byref_Int32_byref_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_InsertionSortStruct_Private_Static_Void_ptr_Void_byref_Int32_byref_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_PartitionStruct_Private_Static_Int32_ptr_Void_byref_Int32_byref_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_HeapSortStruct_Private_Static_Void_ptr_Void_byref_Int32_byref_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_HeapifyStruct_Private_Static_Void_ptr_Void_Int32_Int32_byref_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SwapStruct_Private_Static_Void_ptr_Void_Int32_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_SwapIfGreaterWithItemsStruct_Private_Static_Void_ptr_Void_Int32_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_CheckStrideMatchesSize_Private_Static_Void_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSortExtension/MethodInfoStoreGeneric_CheckComparer_Private_Static_Void_ptr_T_Int32_U_0`2   BASE: System.Object
+  Unity.Collections.NotBurstCompatible.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NotBurstCompatible.Extensions/MethodInfoStoreGeneric_ToArray_Public_Static_Il2CppArrayBase_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.NotBurstCompatible.Extensions/MethodInfoStoreGeneric_ToArray_Public_Static_Il2CppArrayBase_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.NotBurstCompatible.Extensions/MethodInfoStoreGeneric_ToArrayNBC_Public_Static_Il2CppArrayBase_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.NotBurstCompatible.Extensions/MethodInfoStoreGeneric_CopyFromNBC_Public_Static_Void_NativeList_1_T_Il2CppArrayBase_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.DataStreamExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_UnsafeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_UnsafeList_1_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_ReadOnly_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_ReadOnly_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_IndexOf_Public_Static_Int32_ParallelReader_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_Contains_Public_Static_Boolean_ParallelReader_T_U_0`2   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeListExtensions/MethodInfoStoreGeneric_ArraysEqual_Public_Static_Boolean_UnsafeList_1_T_byref_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafePtrListExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.UnsafePtrListExtensions/MethodInfoStoreGeneric_ListData_Public_Static_byref_UnsafeList_1_IntPtr_byref_UnsafePtrList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafePtrListExtensions/MethodInfoStoreGeneric_ListDataRO_Public_Static_UnsafeList_1_IntPtr_UnsafePtrList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_NativeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList128Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList32Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList4096Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList512Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_FixedList64Bytes_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeArray_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_ReadOnly_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_NativeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_ExceptWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_IntersectWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.HashSetExtensions/MethodInfoStoreGeneric_UnionWith_Public_Static_Void_byref_UnsafeParallelHashSet_1_T_UnsafeList_1_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeTextExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtilityExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtilityExtensions/MethodInfoStoreGeneric_ReadArrayElementBoundsChecked_Public_Static_T_ptr_Void_Int32_Int32_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtilityExtensions/MethodInfoStoreGeneric_WriteArrayElementBoundsChecked_Public_Static_Void_ptr_Void_Int32_T_Int32_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtilityExtensions/MethodInfoStoreGeneric_AddressOf_Public_Static_ptr_Void_byref_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtilityExtensions/MethodInfoStoreGeneric_AsRef_Public_Static_byref_T_byref_T_0`1   BASE: System.Object
+  Unity.Collections.LowLevel.Unsafe.NotBurstCompatible.Extensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.LowLevel.Unsafe.NotBurstCompatible.Extensions/MethodInfoStoreGeneric_ToArray_Public_Static_Il2CppArrayBase_1_T_UnsafeParallelHashSet_1_T_0`1   BASE: System.Object
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Unity.Services.Core.Networking.Internal.HttpRequestExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.AsyncOperationExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.AsyncOperationExtensions/__c__DisplayClass1_0   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.AsyncOperationExtensions/__c__DisplayClass3_0`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.AsyncOperationExtensions/MethodInfoStoreGeneric_GetAwaiter_Public_Static_AsyncOperationAwaiter_1_T_IAsyncOperation_1_T_0`1   BASE: System.Object
+  Unity.Services.Core.Internal.AsyncOperationExtensions/MethodInfoStoreGeneric_AsTask_Public_Static_Task_1_T_IAsyncOperation_1_T_0`1   BASE: System.Object
+  Unity.Services.Core.Internal.DependencyTreeExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.DictionaryExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Core.Internal.DictionaryExtensions/MethodInfoStoreGeneric_MergeNoOverride_Public_Static_TDictionary_TDictionary_IDictionary_2_TKey_TValue_0`3   BASE: System.Object
+  Unity.Services.Core.Internal.DictionaryExtensions/MethodInfoStoreGeneric_MergeAllowOverride_Public_Static_TDictionary_TDictionary_IDictionary_2_TKey_TValue_0`3   BASE: System.Object
+  Unity.Services.Core.Internal.DictionaryExtensions/MethodInfoStoreGeneric_ValueEquals_Public_Static_Boolean_IDictionary_2_TKey_TValue_IDictionary_2_TKey_TValue_0`2   BASE: System.Object
+  Unity.Services.Core.Internal.DictionaryExtensions/MethodInfoStoreGeneric_ValueEquals_Public_Static_Boolean_IDictionary_2_TKey_TValue_IDictionary_2_TKey_TValue_TComparer_0`3   BASE: System.Object
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Unity.Jobs.IJobExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobExtensions/JobStruct`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobExtensions/JobStruct`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  Unity.Jobs.IJobExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobExtensions/MethodInfoStoreGeneric_Run_Public_Static_Void_T_0`1   BASE: System.Object
+  Unity.Jobs.IJobForExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobForExtensions/ForJobStruct`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobForExtensions/ForJobStruct`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobForExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobForExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  Unity.Jobs.IJobForExtensions/MethodInfoStoreGeneric_ScheduleParallel_Public_Static_JobHandle_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobForExtensions/MethodInfoStoreGeneric_ScheduleParallelByRef_Public_Static_JobHandle_byref_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForExtensions/ParallelForJobStruct`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForExtensions/ParallelForJobStruct`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Jobs.IJobParallelForExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_Int32_Int32_JobHandle_0`1   BASE: System.Object
+  Unity.Jobs.IJobParallelForExtensions/MethodInfoStoreGeneric_Run_Public_Static_Void_T_Int32_0`1   BASE: System.Object
+  Unity.IntegerTime.RationalTimeExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.IntegerTime.RationalTimeExtensions/ToDouble_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.IntegerTime.RationalTimeExtensions/IsValid_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.IntegerTime.RationalTimeExtensions/Add_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.IntegerTime.RationalTimeExtensions/Subtract_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.IntegerTime.RationalTimeExtensions/Multiply_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.IntegerTime.RationalTimeExtensions/Divide_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.Collections.CollectionExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.CollectionExtensions/__c__DisplayClass7_0`1   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.CollectionExtensions/MethodInfoStoreGeneric_AddToArray_Internal_Static_Void_byref_Il2CppArrayBase_1_T_T_0`1   BASE: System.Object
+  Unity.Collections.CollectionExtensions/MethodInfoStoreGeneric_InsertIntoArray_Internal_Static_Void_byref_Il2CppArrayBase_1_T_Int32_T_0`1   BASE: System.Object
+  Unity.Collections.CollectionExtensions/MethodInfoStoreGeneric_RemoveFromArray_Internal_Static_Void_byref_Il2CppArrayBase_1_T_Int32_0`1   BASE: System.Object
+  Unity.Collections.CollectionExtensions/MethodInfoStoreGeneric_SerializedView_Internal_Static_String_IEnumerable_1_T_Func_2_T_String_0`1   BASE: System.Object
+  Unity.Collections.NativeSliceExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Collections.NativeSliceExtensions/MethodInfoStoreGeneric_Slice_Public_Static_NativeSlice_1_T_NativeArray_1_T_Int32_Int32_0`1   BASE: System.Object
+  Unity.Collections.NativeSliceExtensions/MethodInfoStoreGeneric_Slice_Public_Static_NativeSlice_1_T_NativeSlice_1_T_Int32_Int32_0`1   BASE: System.Object
+  Unity.IntegerTime.DiscreteTimeTimeExtensions   BASE: System.Object
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  Unity.Hierarchy.HierarchyExtensions   BASE: System.Object
+  Unity.Hierarchy.StopwatchExtensions   BASE: System.Object
+  Unity.Hierarchy.SpanExtensions   BASE: System.Object
+  Unity.Hierarchy.HierarchyViewOperationExtension   BASE: System.Object
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+  <Module>   BASE: (none)
+
+DONE

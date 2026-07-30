@@ -8,7 +8,9 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) IN PROGRESS — v0.9.2 and v0.9.3 not yet run in-game.** Origin: Nexus request
+(villager half) IN PROGRESS — everything through v0.11.0 confirmed in-game 2026-07-30, including
+the transform-station gate in both toggle positions. Remaining work: that gate is per-BUILDING and
+must become per-UNIT (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus request
 from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
 docs/architecture.md → "Player crafting pipeline".
 
@@ -192,6 +194,86 @@ postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
 verdict=DIRECT|TOURED … modPulls=<n>` line is the success metric. **Baselines to beat (villager
 Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.1).**
 
+**Physical-transform station gate (v0.10.0+)** — Villagers at a carpenter
+station stood idle instead of working. Confirmed in-game 2026-07-29 by
+running with `EnableForVillagers=false`: carpenters worked normally without
+the mod and hovered doing nothing with it on. The carpenter is a physical
+transform: stick on sawhorses, struck with an axe, not a recipe from a
+station bin. A long stick is large and cannot enter a crafting bin. The mod
+reported the requirement covered anyway, so the game saw no reason to send
+the villager fetching, so materials never arrived and the craft never began.
+This reproduces the same stall the retired v0.8.0 fetch-quest-priority lever
+produced deliberately (recorded 2026-07-27).
+
+The discriminator (Cecil 2026-07-29): exactly three types derive from
+`SSSGame.CraftInteraction`: `SSSGame.AnvilInteraction`,
+`SSSGame.CarpenterInteraction`, and `SSSGame.DyeingInteraction`. Deriving
+from `AnvilInteraction` identifies a physical-transform station; plain
+`CraftInteraction` identifies ordinary bin crafting. The mod matches the
+interaction's native class name and every ancestor class name, so a future
+subclass is caught automatically. Managed casts lie for interop objects
+under a base declared type, so this must be a native class-name read and
+never a cast.
+
+A workshop building owns several work surfaces. Confirmed in-game 2026-07-30,
+one station object reported four of them and none on the station itself:
+`all=[CraftInteraction@descendant; AnvilInteraction@descendant;
+CarpenterInteraction@descendant; CarpenterInteraction@descendant]`. Because
+interactions sit on descendant objects, the v0.10.0 lookup checking only the
+station's own GameObject found nothing; v0.10.1 replaced it with a walk over
+the station itself, its ancestors to depth 10, then descendants to 200 nodes.
+
+Config and confirmed behaviour: `Transfer/StockTransformStationMaterials` is
+a bool defaulting to false, read in exactly one place, the station stocker.
+The two availability paths never consult it and always stand aside at
+transform stations, because reporting a transform recipe already satisfied
+is what stalled villagers entirely. Confirmed in-game 2026-07-30 with OFF:
+metalworkers walked to warehouse to collect iron bloom themselves, the mod
+logged zero bloom moves, and recipe-family skip lines dropped from 20 to 0,
+because the station gate now runs before the recipe gate and returns first.
+Confirmed with ON: 41 override lines fired, 50 moves across three buildings
+covering fourteen materials, and five iron bloom deliveries arrived with no
+villager walking. The availability check still stood aside six times, so
+vanilla decided when to fetch and the mod only delivered.
+
+The intended model (user, 2026-07-30): by default the PLAYER crafts from
+storage at workshop tables. The first toggle lets VILLAGERS do the same at
+workshop tables. The second toggle additionally lets villagers craft at
+workshop ADD-ON UNITS, the physical transforms, and requires the first
+toggle on. The stocker already enforces that dependency because it refuses
+to run unless the villager toggle is set. A possible third layer covering
+bloomeries is undecided.
+
+Known limit against that model: the gate currently works per BUILDING, not
+per unit. A workshop containing any add-on unit is skipped whole when the
+second toggle is off, so a villager at that same workshop's ordinary table
+gets no help either, which breaks the first toggle for that workshop. The
+armorsmith is unaffected because it is a separate building holding a single
+ordinary work surface, reported in-game 2026-07-30 as `count=1`.
+
+Ground truth for the per-unit fix (Cecil 2026-07-30): `SSSGame.CraftingStation`
+keeps its units in separate typed lists: `_craftingTables` as
+`List<CraftInteraction>`, `_anvils` as `List<AnvilInteraction>`, and
+`_studyInteractions` as `List<StudyInteraction>`. So the game already
+distinguishes tables from add-ons. `SSSGame.CraftInteraction.craftStationHost`
+is a back-reference from a unit to its workshop. `SSSGame.CraftingQuest/
+CraftingQuestData` carries a `CraftInteraction _ci` property naming the
+exact unit a crafting job will use, alongside `FindFreeCraftInteraction()`
+and `UsableCraftingTablePredicate(CraftInteraction)`. Reading the unit off
+the crafting job is therefore a per-unit route that needs no hierarchy search.
+
+Diagnostics added, all defaulting on: a `stationProbe` line reports every
+work surface found for a station, with each one's native class name and
+whether it was found on the station, an ancestor or a descendant, plus which
+was selected and whether it matched. A `destinationProbe` line reports the
+collection the stocker writes to, its `canAddItems` value and the remaining
+capacity for the item about to move. A `standing aside` line fires at each
+of the two availability paths naming the station class. These exist because
+the v0.10.0 gates returned silently, which made a working gate and an absent
+workload indistinguishable in the log. Also record that the capacity
+pre-check added in v0.10.0, which asks a destination how much it can accept
+before touching the source, has never refused a move in any run so far.
+
 ## Dead-ends and traps
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
   the `GetStructures()` walk.
@@ -293,6 +375,18 @@ Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.
   source removal from a refused destination add.
 
 ## Version history
+- **v0.11.0** — added `Transfer/StockTransformStationMaterials` (default false, stocker
+  only) plus the `stationProbe` per-surface listing and the `destinationProbe` line.
+  Confirmed in-game 2026-07-30 in both positions.
+- **v0.10.1** — fixed the station lookup, which had checked only the station's own
+  GameObject and so never resolved anything, and added fire-verification logging to
+  the two availability gates that previously returned silently. Confirmed in-game
+  2026-07-30.
+- **v0.10.0** — added the physical-transform station gate keyed on `AnvilInteraction`
+  ancestry, the `Transfer/SkipStationClasses` config, and a destination capacity
+  pre-check before every move. Confirmed in-game 2026-07-30 to unstall carpenters.
+  The older `SkipBlueprintClasses` recipe gate was deliberately left in place as a
+  second gate.
 - **v0.9.5** — corrected the dropped-recipe count in the new per-villager log line. It had
   counted every repeat widening of an already-dropped recipe while labeling the number as
   distinct recipes, so it now tracks a set of recipe names instead and the reported number

@@ -78,6 +78,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> StockStationOnFetch = null!;
     internal static ConfigEntry<string> SkipBlueprintClasses = null!;
     internal static ConfigEntry<bool> SuppressFetchQuestPriority = null!;
+    internal static ConfigEntry<string> SkipStationClasses = null!;
+    internal static ConfigEntry<bool> StockTransformStationMaterials = null!;
 
     // --- config: UI (v0.4.0 idea-17 UI follow-up - settlement-stock requirement-UI feature; folds
     // cached settlement stock into the crafting menu's per-ingredient have/need text. PURELY
@@ -261,6 +263,26 @@ public class Plugin : BasePlugin
             "Matched EXACTLY (case-insensitive) against the recipe's native class name, so listing a subclass " +
             "never catches its parent. Leave empty to stock every family. Only takes effect when " +
             "StockStationOnFetch=true.");
+
+        SkipStationClasses = Config.Bind(
+            "Transfer", "SkipStationClasses",
+            "AnvilInteraction,CarpenterInteraction,DyeingInteraction",
+            "v0.10.0 (TRANSFORM_STATION_PLAN.md): comma-separated NATIVE class names of station " +
+            "interaction types the mod never acts on, because they are physical transforms where an " +
+            "item is placed on the station rather than drawn from its bin. Matched against the " +
+            "interaction's own native class name AND every ancestor class name, so a future subclass " +
+            "is caught automatically. Empty disables the test.");
+
+        StockTransformStationMaterials = Config.Bind(
+            "Transfer", "StockTransformStationMaterials", false,
+            "v0.11.0 (TRANSFORM_STATION_PLAN.md): when true, the villager station stocker DOES deliver " +
+            "materials into a physical-transform station's own material rack, even though the mod " +
+            "otherwise stands aside at those stations. Confirmed in-game 2026-07-29 that this keeps a " +
+            "carpenter's rack topped up one item at a time so she never walks to a warehouse for a log " +
+            "or a long stick. Defaults false because it is the mod acting at a station it is otherwise " +
+            "told to leave alone. Has NO effect on the craft-availability check, which always stands " +
+            "aside at these stations - reporting a transform recipe already satisfied is what stalled " +
+            "villagers entirely.");
 
         SuppressFetchQuestPriority = Config.Bind(
             "Transfer", "SuppressFetchQuestPriority", false,
@@ -487,7 +509,9 @@ public class Plugin : BasePlugin
             $"(read-only observation of the villager-fetch FSM chain - see [CFS-P2] log lines, correlate against [CFS-V]). " +
             $"Phase 2b fetch-quest priority suppression (RETIRED lever): SuppressFetchQuestPriority={SuppressFetchQuestPriority.Value}, " +
             $"FetchQuestSuppressedPriority={FetchQuestSuppressedPriority.Value} (see [CFS-FQ] log lines). " +
-            $"Phase 2c station stocker: StockStationOnFetch={StockStationOnFetch.Value} (see [CFS-SS] log lines).");
+            $"Phase 2c station stocker: StockStationOnFetch={StockStationOnFetch.Value} (see [CFS-SS] log lines). " +
+            $"StockTransformStationMaterials={StockTransformStationMaterials.Value} (stocker-only override, default " +
+            $"false, for a physical-transform station's own rack - see TRANSFORM_STATION_PLAN.md).");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide

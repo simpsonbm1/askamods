@@ -282,11 +282,14 @@ askamods/
                                 (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.9.5 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.11.0 —
                                 Phase 1 (player half) complete, confirmed in-game 2026-07-20,
-                                host/solo only; Phase 2 (villager half) in progress, station
-                                stocker working (365 craft-success events in 2026-07-28 run) but
-                                v0.9.2 and v0.9.3 not yet confirmed in-game; diagnostics still
+                                host/solo only; Phase 2 (villager half) in progress — everything
+                                through v0.11.0 confirmed in-game 2026-07-30, incl. the
+                                physical-transform station gate (AnvilInteraction ancestry) in both
+                                positions of Transfer/StockTransformStationMaterials; next: make
+                                that gate per-UNIT not per-BUILDING
+                                (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md); diagnostics still
                                 default true — docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md
                                 idea 17]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
@@ -337,6 +340,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 | [`TerrainLevelerMod/BULLDOZER_UI_PLAN.md`](TerrainLevelerMod/BULLDOZER_UI_PLAN.md) | Mod 15 — the bulldozer build-menu square: design + evidence chain, build-menu/localization ground truth (COMPLETE 2026-07-01) |
 | [`TerrainLevelerMod/DRAG_CRASH_PLAN.md`](TerrainLevelerMod/DRAG_CRASH_PLAN.md) | Mod 15 — drag-crash root cause (BitSet256 network-state overflow) + fix, confirmed in-game 2026-07-01 |
 | [`SupplyChainMod/DEMAND_MODEL_PLAN.md`](SupplyChainMod/DEMAND_MODEL_PLAN.md) | Mod 26 — approved demand-model & Phase 2d redesign plan (demand loop incl. future task creation, container ground truth + slot math, lever map, gated build sequence; user decisions 2026-07-15) |
+| [`CraftFromStorageMod/TRANSFORM_STATION_PLAN.md`](CraftFromStorageMod/TRANSFORM_STATION_PLAN.md) | Mod 28 — plan awaiting review: stand aside for physical-transform stations (`AnvilInteraction` ancestry identifies forge/carpenter/dye) and pre-check destination capacity before any move. Carries the Cecil ground truth for the interaction hierarchy and the `ItemStorageClass` size model, plus the user's 2026-07-29 rule that this mod must not touch what gets made when |
 | [`TreeRespawnMod/STONE_RESPAWN_HANDOFF.md`](TreeRespawnMod/STONE_RESPAWN_HANDOFF.md) | Why mining/stone respawn was abandoned (don't re-attempt) |
 | [`VILLAGER_FIGHTBACK_HANDOFF.md`](VILLAGER_FIGHTBACK_HANDOFF.md) | Mod 7 — the lever-by-lever combat investigation log (deep evidence behind architecture.md's fight-vs-flee section) |
 | [`ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md`](ResourceMarkerRadiusMod/MAP_RADIUS_HANDOFF.md) | Mod 16 — map marker radius debugging handoff (WIP) |

@@ -1,0 +1,1012 @@
+==================================================================
+Q1a: ALL types whose name ends in BlueprintInfo (or Blueprint)
+==================================================================
+  SSSGame.CraftBlueprintInfo   BASE: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.DyeingBlueprint   BASE: SSSGame.CraftBlueprint  ->  SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.DyeingBlueprintInfo   BASE: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ForgingBlueprint   BASE: SSSGame.CraftBlueprint  ->  SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ForgingBlueprintInfo   BASE: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IConditionalBlueprint   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.KnowledgeBlueprintInfo   BASE: SSSGame.WorkshopBlueprintInfo  ->  SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PaintingBlueprint   BASE: SSSGame.DyeingBlueprint  ->  SSSGame.CraftBlueprint  ->  SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PaintingBlueprintInfo   BASE: SSSGame.DyeingBlueprintInfo  ->  SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.WorkshopBlueprint   BASE: SSSGame.CraftBlueprint  ->  SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.WorkshopBlueprintInfo   BASE: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CraftBlueprint   BASE: SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.StructureBlueprint   BASE: SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkKnowledgeManager/KnowledgeBlueprint   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Inventory.Blueprint   BASE: SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Inventory.BlueprintInfo   BASE: SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+
+==================================================================
+TYPE: SSSGame.BlueprintInfo
+==================================================================
+  [NOT FOUND]
+
+==================================================================
+TYPE: SSSGame.CraftBlueprintInfo
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: System.Single craftVolume
+  P: SSSGame.CraftInteraction interaction
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> blueprintConditionsRules
+  P: System.Boolean availableInTrialVersion
+  P: System.Boolean showUnlockNotification
+  P: SSSGame.Network.NetworkKnowledgeManager _knowledgeManager
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsUnlocked() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> GetAllBlueprintConditionsRules() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemInfo GetItemInfo() [virt,pub]
+  M: System.Boolean UnlockableInTrialMode() [virt,pub]
+  M: System.Void OnUnlock(SSSGame.BlueprintConditionsDatabase database) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Single get_craftVolume() [pub]
+  M: System.Void set_craftVolume(System.Single ) [pub]
+  M: SSSGame.CraftInteraction get_interaction() [pub]
+  M: System.Void set_interaction(SSSGame.CraftInteraction ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> get_blueprintConditionsRules() [pub]
+  M: System.Void set_blueprintConditionsRules(Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> ) [pub]
+  M: System.Boolean get_availableInTrialVersion() [pub]
+  M: System.Void set_availableInTrialVersion(System.Boolean ) [pub]
+  M: System.Boolean get_showUnlockNotification() [pub]
+  M: System.Void set_showUnlockNotification(System.Boolean ) [pub]
+  M: SSSGame.Network.NetworkKnowledgeManager get__knowledgeManager() [pub]
+  M: System.Void set__knowledgeManager(SSSGame.Network.NetworkKnowledgeManager ) [pub]
+
+==================================================================
+TYPE: SSSGame.WorkshopBlueprintInfo
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SSSGame.StructureTemplate addonRequirement
+  P: SSSGame.StructureTemplate colorChangingRequirement
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> refurbishableItems
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.StructureTemplate get_addonRequirement() [pub]
+  M: System.Void set_addonRequirement(SSSGame.StructureTemplate ) [pub]
+  M: SSSGame.StructureTemplate get_colorChangingRequirement() [pub]
+  M: System.Void set_colorChangingRequirement(SSSGame.StructureTemplate ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> get_refurbishableItems() [pub]
+  M: System.Void set_refurbishableItems(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> ) [pub]
+
+==================================================================
+TYPE: SSSGame.ForgingBlueprintInfo
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CraftBlueprintInfo  ->  SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: SandSailorStudio.Inventory.ItemInfoQuantity actualForgingPart
+  P: System.Boolean takeSpoilsFromHotItem
+  P: System.Boolean divideSpoilsForEachSide
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoQuantity get_actualForgingPart() [pub]
+  M: System.Void set_actualForgingPart(SandSailorStudio.Inventory.ItemInfoQuantity ) [pub]
+  M: System.Boolean get_takeSpoilsFromHotItem() [pub]
+  M: System.Void set_takeSpoilsFromHotItem(System.Boolean ) [pub]
+  M: System.Boolean get_divideSpoilsForEachSide() [pub]
+  M: System.Void set_divideSpoilsForEachSide(System.Boolean ) [pub]
+
+==================================================================
+TYPE: SSSGame.CookingRecipeInfo
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: System.Boolean anyIngredient
+  P: System.Boolean hidden
+  P: System.Single cookingRateMultiplier
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> blueprintConditionsRules
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsUnlocked() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> GetAllBlueprintConditionsRules() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemInfo GetItemInfo() [virt,pub]
+  M: System.Void OnUnlock(SSSGame.BlueprintConditionsDatabase database) [virt,pub]
+  M: System.Boolean UnlockableInTrialMode() [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Boolean get_anyIngredient() [pub]
+  M: System.Void set_anyIngredient(System.Boolean ) [pub]
+  M: System.Boolean get_hidden() [pub]
+  M: System.Void set_hidden(System.Boolean ) [pub]
+  M: System.Single get_cookingRateMultiplier() [pub]
+  M: System.Void set_cookingRateMultiplier(System.Single ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> get_blueprintConditionsRules() [pub]
+  M: System.Void set_blueprintConditionsRules(Il2CppSystem.Collections.Generic.List`1<SSSGame.BlueprintConditionsRule> ) [pub]
+
+==================================================================
+TYPE: SSSGame.CraftInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.CraftInteraction/CraftingEvents, SSSGame.CraftInteraction/__c__DisplayClass25_0
+  ---- PROPERTIES ----
+  P: SSSGame.CraftInteraction/CraftingEvents craftingEvents
+  P: SSSGame.CraftingStation craftStationHost
+  P: SSSGame.CraftBlueprint blueprint
+  P: SandSailorStudio.Inventory.InventoryComponent inventory
+  P: SandSailorStudio.Inventory.InventoryComponent blueprintInventory
+  P: SandSailorStudio.Inventory.ItemInfoList localBlueprintsList
+  P: System.Boolean useAgentInventory
+  P: System.Int32 craftActionId
+  P: System.Boolean _destroyed
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> _localBlueprints
+  P: SSSGame.Structure _ownerStructure
+  P: System.Boolean _parentedHost
+  P: System.Boolean _parentedInv
+  P: SandSailorStudio.Inventory.ItemManifest s_bpManifest
+  P: SSSGame.Structure OwnerStructure
+  P: SandSailorStudio.Inventory.ItemCollection ItemInventory
+  P: SSSGame.CraftBlueprint ActiveBlueprint
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: SSSGame.Structure get_OwnerStructure() [virt,pub]
+  M: SandSailorStudio.Inventory.ItemCollection get_ItemInventory() [virt,pub]
+  M: SSSGame.CraftBlueprint get_ActiveBlueprint() [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void OnDisable() [virt,pub]
+  M: System.Void OnDestroy() [virt,pub]
+  M: System.Void DestroyGameObject(UnityEngine.GameObject gameObject) [pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _OnStartSession(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void _OnFinishSession(SSSGame.InteractionSession s, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Boolean CheckAgent(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean CheckOwnedRequirements(SandSailorStudio.Inventory.Blueprint bp, SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Boolean _CheckOwnedBlueprintManifest(SandSailorStudio.Inventory.ItemManifest itemManifest, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _OnCraftingSuccess(SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Boolean KnowsBlueprintForItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.CraftBlueprint& blueprint <<BY-REF>>) [virt,pub]
+  M: System.Boolean ActivateBlueprint(SSSGame.CraftBlueprint bp) [virt,pub]
+  M: SSSGame.AI.IWorkstation GetWorkstation() [virt,pub]
+  M: System.String GetTaskDescription() [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void Initialize(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void OnBeforeDismantle(SSSGame.Structure ownerStructure) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _ReparentToStructure(SSSGame.Structure structure) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: SSSGame.CraftInteraction/CraftingEvents get_craftingEvents() [pub]
+  M: System.Void set_craftingEvents(SSSGame.CraftInteraction/CraftingEvents ) [pub]
+  M: SSSGame.CraftingStation get_craftStationHost() [pub]
+  M: System.Void set_craftStationHost(SSSGame.CraftingStation ) [pub]
+  M: SSSGame.CraftBlueprint get_blueprint() [pub]
+  M: System.Void set_blueprint(SSSGame.CraftBlueprint ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_inventory() [pub]
+  M: System.Void set_inventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: SandSailorStudio.Inventory.InventoryComponent get_blueprintInventory() [pub]
+  M: System.Void set_blueprintInventory(SandSailorStudio.Inventory.InventoryComponent ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoList get_localBlueprintsList() [pub]
+  M: System.Void set_localBlueprintsList(SandSailorStudio.Inventory.ItemInfoList ) [pub]
+  M: System.Boolean get_useAgentInventory() [pub]
+  M: System.Void set_useAgentInventory(System.Boolean ) [pub]
+  M: System.Int32 get_craftActionId() [pub]
+  M: System.Void set_craftActionId(System.Int32 ) [pub]
+  M: System.Boolean get__destroyed() [pub]
+  M: System.Void set__destroyed(System.Boolean ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> get__localBlueprints() [pub]
+  M: System.Void set__localBlueprints(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprintInfo> ) [pub]
+  M: SSSGame.Structure get__ownerStructure() [pub]
+  M: System.Void set__ownerStructure(SSSGame.Structure ) [pub]
+  M: System.Boolean get__parentedHost() [pub]
+  M: System.Void set__parentedHost(System.Boolean ) [pub]
+  M: System.Boolean get__parentedInv() [pub]
+  M: System.Void set__parentedInv(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.ItemManifest get_s_bpManifest() [static,pub]
+  M: System.Void set_s_bpManifest(SandSailorStudio.Inventory.ItemManifest ) [static,pub]
+
+==================================================================
+TYPE: SSSGame.AnvilInteraction
+==================================================================
+  ASSEMBLY : Assembly-CSharp
+  BASECHAIN: SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  NESTED   : SSSGame.AnvilInteraction/AnvilEvents, SSSGame.AnvilInteraction/DieRotationAxis, SSSGame.AnvilInteraction/__c__DisplayClass118_0, SSSGame.AnvilInteraction/__DieRotationRoutine_d__137
+  ---- PROPERTIES ----
+  P: System.Int32 c_sendToQuenchingEventId
+  P: System.Int32 c_anvilHitEventId
+  P: System.Int32 c_successfulHitEventId
+  P: System.Int32 c_addWeatherInsulation
+  P: System.Int32 c_removeWeatherInsulation
+  P: System.Int32 c_addQualityRatio
+  P: System.Int32 c_sendToQuenchingSuccessResponse
+  P: System.Int32 c_sendToQuenchingBusyResponse
+  P: System.Int32 c_sendToQuenchingFullResponse
+  P: Il2CppSystem.Action OnAnvilHitSuccess
+  P: Il2CppSystem.Action OnHotItemCookedChanged
+  P: Il2CppSystem.Action OnHotItemIntegrityChanged
+  P: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> OnTakeDamage
+  P: System.Single proefficiencyMultiplier
+  P: Il2CppSystem.Action OnComponentHarvested
+  P: System.Boolean _IsConsolidated_k__BackingField
+  P: System.Int32 _ConsolidatedFacesCount_k__BackingField
+  P: System.Single _HotItemCookedRatio_k__BackingField
+  P: System.Boolean showCraftingWhenEmpty
+  P: SSSGame.StorageInteraction hiddenBloomStorageInteraction
+  P: SSSGame.AI.FSM.vFSMBehaviour anvilCleanupBehaviour
+  P: SSSGame.InteractionMoveset moveset
+  P: System.Int32 rotateAnimationId
+  P: UnityEngine.Transform matchTargetPos
+  P: UnityEngine.Transform matchTargetExitPos
+  P: System.Boolean finishSessionAfterEachSide
+  P: System.Boolean specialToolRequrement
+  P: System.Int32 minToolTier
+  P: System.Boolean importantTool
+  P: SandSailorStudio.Inventory.ItemContainerComponent bloomBlockContainer
+  P: SSSGame.Render.Pickable anvilPickable
+  P: SandSailorStudio.Inventory.ItemInfoList hotIronList
+  P: SSSGame.TroughInteraction troughInteraction
+  P: SandSailorStudio.Attributes.AttributeManager forgeAttributes
+  P: SSSGame.Network.NetworkHittable hittable
+  P: UnityEngine.Transform hitFxPos
+  P: SSSGame.Combat.FxSetup hitFx
+  P: SSSGame.Combat.FxSetup successFx
+  P: SSSGame.AnvilInteraction/AnvilEvents anvilEvents
+  P: SSSGame.Network.NetworkCubeState dieState
+  P: UnityEngine.Transform dieHandleTransform
+  P: System.Single dieJumpHeight
+  P: System.Single dieRotateTime
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext hotDisplayContext
+  P: SandSailorStudio.Inventory.ItemObjectSpawnContext coldDisplayContext
+  P: System.Boolean noDisplay
+  P: SSSGame.AnvilInteraction/DieRotationAxis allowedRotationAxis
+  P: System.Boolean alwaysRelativeRotation
+  P: System.Boolean takeIntegrityFromItemInfo
+  P: System.String widgetUseText
+  P: System.String widgetNoIronText
+  P: System.String widgetColdIronText
+  P: System.Boolean showHarvestHp
+  P: System.Boolean _isEmpty
+  P: System.Boolean _hasHotIron
+  P: SandSailorStudio.Inventory.Item _hotItem
+  P: SandSailorStudio.Attributes.Property _hotIronCooked
+  P: UnityEngine.GameObject _displayItem
+  P: SandSailorStudio.Attributes.AttributeModifier _activeForgingHeatLossModifier
+  P: System.Boolean _weatherInsulationAdded
+  P: UnityEngine.Coroutine _rotationRoutine
+  P: SSSGame.AnvilCleanupQuest _cleanupQuest
+  P: SSSGame.AI.TieredCategoryFilter _toolFilter
+  P: SSSGame.Network.NetworkSession _session
+  P: UnityEngine.Vector3 dieInitialPosition
+  P: UnityEngine.Quaternion dieInitialRotation
+  P: System.Int32 TeamId
+  P: SSSGame.Combat.IAttackTarget AttackTarget
+  P: System.Boolean FriendlyDamageFromPlayer
+  P: System.Single ProefficiencyGainMultiplier
+  P: System.Boolean IsEmpty
+  P: System.Boolean HasHotIron
+  P: System.Boolean IsConsolidated
+  P: System.Int32 ConsolidatedFacesCount
+  P: System.Single HotItemCookedRatio
+  P: Fusion.NetworkObject NetworkObject
+  P: UnityEngine.GameObject SSSGame.Combat.IDamageReceiver.gameObject
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void add_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnAnvilHitSuccess(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemCookedChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void remove_OnHotItemIntegrityChanged(Il2CppSystem.Action value) [pub]
+  M: System.Void add_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Void remove_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> value) [virt,pub]
+  M: System.Int32 get_TeamId() [virt,pub]
+  M: SSSGame.Combat.IAttackTarget get_AttackTarget() [virt,pub]
+  M: System.Boolean get_FriendlyDamageFromPlayer() [virt,pub]
+  M: System.Single get_ProefficiencyGainMultiplier() [virt,pub]
+  M: System.Boolean get_IsEmpty() [pub]
+  M: System.Void set_IsEmpty(System.Boolean value) [pub]
+  M: System.Boolean get_HasHotIron() [pub]
+  M: System.Void set_HasHotIron(System.Boolean value) [pub]
+  M: System.Boolean get_IsConsolidated() [pub]
+  M: System.Void set_IsConsolidated(System.Boolean value) [pub]
+  M: System.Int32 get_ConsolidatedFacesCount() [pub]
+  M: System.Void set_ConsolidatedFacesCount(System.Int32 value) [pub]
+  M: System.Single get_HotItemCookedRatio() [pub]
+  M: System.Void set_HotItemCookedRatio(System.Single value) [pub]
+  M: Fusion.NetworkObject get_NetworkObject() [virt,pub]
+  M: System.Void Awake() [virt,pub]
+  M: System.Void _OnRemoteDieStartedMoving() [pub]
+  M: System.Void Start() [virt,pub]
+  M: System.Void UseForgingBlueprint(SSSGame.IInteractionAgent agent, SSSGame.ForgingBlueprint fbp) [pub]
+  M: SandSailorStudio.Inventory.IItemFilter GetRequiredToolFilter() [pub]
+  M: System.Void InstantQuenchHere(SSSGame.IInteractionAgent agent) [pub]
+  M: UnityEngine.Transform GetContextualMatchTargetPos(SSSGame.IInteractionAgent agent, System.Single& range <<BY-REF>>) [virt,pub]
+  M: System.Void SendToQuenching(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void BeginCraftingSequence(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void Finish(SSSGame.IInteractionAgent agent, SSSGame.InteractionSessionState reason) [virt,pub]
+  M: System.Void _BloomContainer_OnItemAdded(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _BloomContainer_OnItemRemoved(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [virt,pub]
+  M: System.Void _OnHotIronCookedChanged() [pub]
+  M: System.Void _OnHotIronIntegrityChanged() [pub]
+  M: SSSGame.InteractionStartMode GetStartMode(SSSGame.InteractionSession session) [virt,pub]
+  M: System.Void RotateBillet(SSSGame.AnvilInteraction/DieRotationAxis& axis <<BY-REF>>) [pub]
+  M: UnityEngine.Quaternion _GetNextRotation(UnityEngine.Quaternion& currentRotation <<BY-REF>>, SSSGame.AnvilInteraction/DieRotationAxis axis) [pub]
+  M: System.Void _SendToQuenchingInternal(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughBusyMessage(SSSGame.IInteractionAgent agent, Fusion.NetworkId busyInteractor) [pub]
+  M: System.Void _ShowSuccessMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _ShowTroughFullMessage(SSSGame.IInteractionAgent agent) [pub]
+  M: System.Void _RemoveWeatherInsulationInternal() [pub]
+  M: System.Void _AddWeatherInsulationInternal() [pub]
+  M: System.Void _OnInteractorsChanged(SSSGame.Interaction interaction, System.Int32 interactorsCount, SSSGame.IInteractionAgent lastInteractor, SSSGame.Network.INetworkInteractable/Request/Type lastRequestType) [pub]
+  M: System.Void _OnHittableHit(SSSGame.Network.NetworkHittable/HitInfo obj) [pub]
+  M: System.Single GetHarvestHitPoints() [virt,pub]
+  M: System.Single GetMaxHarvestHitPoints() [virt,pub]
+  M: System.Void SimulateSuccessfulHit() [pub]
+  M: System.Void TakeDamage(SSSGame.Combat.DamageData damage) [virt,pub]
+  M: System.Void _DoQualityChangeInternal(System.Single& profRatio <<BY-REF>>) [pub]
+  M: System.Int32 _GetSidesCount(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Void _SpawnSpoilsFromComponents(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Single& levelProgress <<BY-REF>>, System.Single& multiplier <<BY-REF>>) [pub]
+  M: SSSGame.StatusEffectManager GetStatusEffectManager() [virt,pub]
+  M: SandSailorStudio.Attributes.AttributeManager GetAttributeManager() [virt,pub]
+  M: System.Boolean KnowsAnvilProcessForThisItem(SandSailorStudio.Inventory.ItemInfo itemInfo, SandSailorStudio.Inventory.BlueprintInfo& bpInfo <<BY-REF>>) [pub]
+  M: System.Void _PlayFx(SSSGame.Combat.FxSetup hitFx, UnityEngine.Vector3& position <<BY-REF>>, UnityEngine.Quaternion& rotation <<BY-REF>>, System.Single& scale <<BY-REF>>) [pub]
+  M: Il2CppSystem.Collections.IEnumerator _DieRotationRoutine(UnityEngine.Quaternion targetRotation) [pub]
+  M: System.Void _SetLocalDieHandlePositionAndRotation(UnityEngine.Vector3& localPos <<BY-REF>>, UnityEngine.Quaternion& localRot <<BY-REF>>) [virt,pub]
+  M: System.Int32 _GetCurrentFaceParameterId(SSSGame.Combat.DamageData damageData, SSSGame.IInteractionAgent agent) [virt,pub]
+  M: System.Void _RemoveSelfFromHost(SSSGame.Structure obj) [virt,pub]
+  M: System.Void _OnAfterParentChange(SSSGame.Structure obj) [virt,pub]
+  M: System.Boolean IsAvailable() [virt,pub]
+  M: System.Void GetAvailableQuests(Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest> quests) [virt,pub]
+  M: System.Void .ctor() [pub]
+  M: UnityEngine.GameObject SSSGame_Combat_IDamageReceiver_get_gameObject() [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Int32 get_c_sendToQuenchingEventId() [static,pub]
+  M: System.Void set_c_sendToQuenchingEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_anvilHitEventId() [static,pub]
+  M: System.Void set_c_anvilHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_successfulHitEventId() [static,pub]
+  M: System.Void set_c_successfulHitEventId(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addWeatherInsulation() [static,pub]
+  M: System.Void set_c_addWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_removeWeatherInsulation() [static,pub]
+  M: System.Void set_c_removeWeatherInsulation(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_addQualityRatio() [static,pub]
+  M: System.Void set_c_addQualityRatio(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingSuccessResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingSuccessResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingBusyResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingBusyResponse(System.Int32 ) [static,pub]
+  M: System.Int32 get_c_sendToQuenchingFullResponse() [static,pub]
+  M: System.Void set_c_sendToQuenchingFullResponse(System.Int32 ) [static,pub]
+  M: Il2CppSystem.Action get_OnAnvilHitSuccess() [pub]
+  M: System.Void set_OnAnvilHitSuccess(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemCookedChanged() [pub]
+  M: System.Void set_OnHotItemCookedChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action get_OnHotItemIntegrityChanged() [pub]
+  M: System.Void set_OnHotItemIntegrityChanged(Il2CppSystem.Action ) [pub]
+  M: Il2CppSystem.Action`1<SSSGame.Combat.DamageData> get_OnTakeDamage() [pub]
+  M: System.Void set_OnTakeDamage(Il2CppSystem.Action`1<SSSGame.Combat.DamageData> ) [pub]
+  M: System.Single get_proefficiencyMultiplier() [pub]
+  M: System.Void set_proefficiencyMultiplier(System.Single ) [pub]
+  M: Il2CppSystem.Action get_OnComponentHarvested() [pub]
+  M: System.Void set_OnComponentHarvested(Il2CppSystem.Action ) [pub]
+  M: System.Boolean get__IsConsolidated_k__BackingField() [pub]
+  M: System.Void set__IsConsolidated_k__BackingField(System.Boolean ) [pub]
+  M: System.Int32 get__ConsolidatedFacesCount_k__BackingField() [pub]
+  M: System.Void set__ConsolidatedFacesCount_k__BackingField(System.Int32 ) [pub]
+  M: System.Single get__HotItemCookedRatio_k__BackingField() [pub]
+  M: System.Void set__HotItemCookedRatio_k__BackingField(System.Single ) [pub]
+  M: System.Boolean get_showCraftingWhenEmpty() [pub]
+  M: System.Void set_showCraftingWhenEmpty(System.Boolean ) [pub]
+  M: SSSGame.StorageInteraction get_hiddenBloomStorageInteraction() [pub]
+  M: System.Void set_hiddenBloomStorageInteraction(SSSGame.StorageInteraction ) [pub]
+  M: SSSGame.AI.FSM.vFSMBehaviour get_anvilCleanupBehaviour() [pub]
+  M: System.Void set_anvilCleanupBehaviour(SSSGame.AI.FSM.vFSMBehaviour ) [pub]
+  M: SSSGame.InteractionMoveset get_moveset() [pub]
+  M: System.Void set_moveset(SSSGame.InteractionMoveset ) [pub]
+  M: System.Int32 get_rotateAnimationId() [pub]
+  M: System.Void set_rotateAnimationId(System.Int32 ) [pub]
+  M: UnityEngine.Transform get_matchTargetPos() [pub]
+  M: System.Void set_matchTargetPos(UnityEngine.Transform ) [pub]
+  M: UnityEngine.Transform get_matchTargetExitPos() [pub]
+  M: System.Void set_matchTargetExitPos(UnityEngine.Transform ) [pub]
+  M: System.Boolean get_finishSessionAfterEachSide() [pub]
+  M: System.Void set_finishSessionAfterEachSide(System.Boolean ) [pub]
+  M: System.Boolean get_specialToolRequrement() [pub]
+  M: System.Void set_specialToolRequrement(System.Boolean ) [pub]
+  M: System.Int32 get_minToolTier() [pub]
+  M: System.Void set_minToolTier(System.Int32 ) [pub]
+  M: System.Boolean get_importantTool() [pub]
+  M: System.Void set_importantTool(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.ItemContainerComponent get_bloomBlockContainer() [pub]
+  M: System.Void set_bloomBlockContainer(SandSailorStudio.Inventory.ItemContainerComponent ) [pub]
+  M: SSSGame.Render.Pickable get_anvilPickable() [pub]
+  M: System.Void set_anvilPickable(SSSGame.Render.Pickable ) [pub]
+  M: SandSailorStudio.Inventory.ItemInfoList get_hotIronList() [pub]
+  M: System.Void set_hotIronList(SandSailorStudio.Inventory.ItemInfoList ) [pub]
+  M: SSSGame.TroughInteraction get_troughInteraction() [pub]
+  M: System.Void set_troughInteraction(SSSGame.TroughInteraction ) [pub]
+  M: SandSailorStudio.Attributes.AttributeManager get_forgeAttributes() [pub]
+  M: System.Void set_forgeAttributes(SandSailorStudio.Attributes.AttributeManager ) [pub]
+  M: SSSGame.Network.NetworkHittable get_hittable() [pub]
+  M: System.Void set_hittable(SSSGame.Network.NetworkHittable ) [pub]
+  M: UnityEngine.Transform get_hitFxPos() [pub]
+  M: System.Void set_hitFxPos(UnityEngine.Transform ) [pub]
+  M: SSSGame.Combat.FxSetup get_hitFx() [pub]
+  M: System.Void set_hitFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.Combat.FxSetup get_successFx() [pub]
+  M: System.Void set_successFx(SSSGame.Combat.FxSetup ) [pub]
+  M: SSSGame.AnvilInteraction/AnvilEvents get_anvilEvents() [pub]
+  M: System.Void set_anvilEvents(SSSGame.AnvilInteraction/AnvilEvents ) [pub]
+  M: SSSGame.Network.NetworkCubeState get_dieState() [pub]
+  M: System.Void set_dieState(SSSGame.Network.NetworkCubeState ) [pub]
+  M: UnityEngine.Transform get_dieHandleTransform() [pub]
+  M: System.Void set_dieHandleTransform(UnityEngine.Transform ) [pub]
+  M: System.Single get_dieJumpHeight() [pub]
+  M: System.Void set_dieJumpHeight(System.Single ) [pub]
+  M: System.Single get_dieRotateTime() [pub]
+  M: System.Void set_dieRotateTime(System.Single ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_hotDisplayContext() [pub]
+  M: System.Void set_hotDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: SandSailorStudio.Inventory.ItemObjectSpawnContext get_coldDisplayContext() [pub]
+  M: System.Void set_coldDisplayContext(SandSailorStudio.Inventory.ItemObjectSpawnContext ) [pub]
+  M: System.Boolean get_noDisplay() [pub]
+  M: System.Void set_noDisplay(System.Boolean ) [pub]
+  M: SSSGame.AnvilInteraction/DieRotationAxis get_allowedRotationAxis() [pub]
+  M: System.Void set_allowedRotationAxis(SSSGame.AnvilInteraction/DieRotationAxis ) [pub]
+  M: System.Boolean get_alwaysRelativeRotation() [pub]
+  M: System.Void set_alwaysRelativeRotation(System.Boolean ) [pub]
+  M: System.Boolean get_takeIntegrityFromItemInfo() [pub]
+  M: System.Void set_takeIntegrityFromItemInfo(System.Boolean ) [pub]
+  M: System.String get_widgetUseText() [pub]
+  M: System.Void set_widgetUseText(System.String ) [pub]
+  M: System.String get_widgetNoIronText() [pub]
+  M: System.Void set_widgetNoIronText(System.String ) [pub]
+  M: System.String get_widgetColdIronText() [pub]
+  M: System.Void set_widgetColdIronText(System.String ) [pub]
+  M: System.Boolean get_showHarvestHp() [pub]
+  M: System.Void set_showHarvestHp(System.Boolean ) [pub]
+  M: System.Boolean get__isEmpty() [pub]
+  M: System.Void set__isEmpty(System.Boolean ) [pub]
+  M: System.Boolean get__hasHotIron() [pub]
+  M: System.Void set__hasHotIron(System.Boolean ) [pub]
+  M: SandSailorStudio.Inventory.Item get__hotItem() [pub]
+  M: System.Void set__hotItem(SandSailorStudio.Inventory.Item ) [pub]
+  M: SandSailorStudio.Attributes.Property get__hotIronCooked() [pub]
+  M: System.Void set__hotIronCooked(SandSailorStudio.Attributes.Property ) [pub]
+  M: UnityEngine.GameObject get__displayItem() [pub]
+  M: System.Void set__displayItem(UnityEngine.GameObject ) [pub]
+  M: SandSailorStudio.Attributes.AttributeModifier get__activeForgingHeatLossModifier() [pub]
+  M: System.Void set__activeForgingHeatLossModifier(SandSailorStudio.Attributes.AttributeModifier ) [pub]
+  M: System.Boolean get__weatherInsulationAdded() [pub]
+  M: System.Void set__weatherInsulationAdded(System.Boolean ) [pub]
+  M: UnityEngine.Coroutine get__rotationRoutine() [pub]
+  M: System.Void set__rotationRoutine(UnityEngine.Coroutine ) [pub]
+  M: SSSGame.AnvilCleanupQuest get__cleanupQuest() [pub]
+  M: System.Void set__cleanupQuest(SSSGame.AnvilCleanupQuest ) [pub]
+  M: SSSGame.AI.TieredCategoryFilter get__toolFilter() [pub]
+  M: System.Void set__toolFilter(SSSGame.AI.TieredCategoryFilter ) [pub]
+  M: SSSGame.Network.NetworkSession get__session() [pub]
+  M: System.Void set__session(SSSGame.Network.NetworkSession ) [pub]
+  M: UnityEngine.Vector3 get_dieInitialPosition() [pub]
+  M: System.Void set_dieInitialPosition(UnityEngine.Vector3 ) [pub]
+  M: UnityEngine.Quaternion get_dieInitialRotation() [pub]
+  M: System.Void set_dieInitialRotation(UnityEngine.Quaternion ) [pub]
+
+==================================================================
+Q1c: BlueprintInfo-family members matching World|Placed|Transform|Spawn|Prop|
+     Sawhorse|Carpenter|Station|Interaction|Requires
+==================================================================
+  SSSGame.CraftBlueprintInfo :: P: SSSGame.CraftInteraction interaction
+  SSSGame.DyeingBlueprint :: M: System.Boolean HasProperty(System.Int32& id <<BY-REF>>) [virt,pub]
+  SSSGame.DyeingBlueprint :: M: System.Boolean TryGetProperty(System.Int32& id <<BY-REF>>, SandSailorStudio.Attributes.Property& property <<BY-REF>>) [virt,pub]
+  SSSGame.DyeingBlueprint :: M: System.Boolean TryGetPropertyValue(System.Int32& id <<BY-REF>>, System.Single& value <<BY-REF>>) [virt,pub]
+  SSSGame.BlueprintConditionsDatabase :: M: System.Void SpawnNetworkLogic() [pub]
+  SSSGame.BlueprintConditionsDatabase :: M: System.Void _OnBeforeNetworkLogicSpawned(Fusion.NetworkRunner spawner, Fusion.NetworkObject spawned) [pub]
+  SSSGame.Network.NetworkBlueprintConditionsDatabase :: M: System.Void Spawned() [virt,pub]
+
+==================================================================
+Q1d: types matching Carpenter|Sawhorse|Sawbuck|Chop|Woodwork|Transform
+==================================================================
+  RootMotion.BakerTransform   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  RopePersistManager/RopeData/TransformInfo   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  FollowTransformHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  FollowTransform   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  TransformSmoothFollow   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  TransformsCollection   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  TransformsCollection/TransformColEntry   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Utils.ChildTransformHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Utils.StickyTransformHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Utils.TransformEventsHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Utils.TransformHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.MultiPivotRotator/SnapTransform   BASE: System.ValueType
+  SSSGame.PointTransform   BASE: System.ValueType
+  SSSGame.CarpenterInteraction   BASE: SSSGame.AnvilInteraction  ->  SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CarpenterInteraction/CarpentryDisplay   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CarpenterInteraction/CarpentryDisplay/Side   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.NetworkRotatableSelector/RotatingTransform   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.IntermittentStateInterpolator`1/InterpolatedTransformParameters   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkTransformHelper   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Combat.SpellSize/TransformConfig   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_GetTargetFromTransformHit   BASE: SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_MoveToFollowTransform   BASE: SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_MoveToTransform   BASE: SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetFollowTransformInt   BASE: SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetTransformPosition   BASE: SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CheckTransformExistence   BASE: SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_DistanceToTransform   BASE: SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Invector.vBodySnappingControl/vBoneTransformSnapping   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Invector.vBodySnappingControl/vBoneTransformSnapping/Orientation   BASE: System.Enum
+  Invector.IK.IKOffsetTransform   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Invector.Utils.vResetTransform   BASE: Invector.vMonoBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Invector.Utils.vSetTransform   BASE: Invector.vMonoBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Pathfinding.ITransformedGraph   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Pathfinding.Util.ITransform   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Pathfinding.Util.GraphTransform   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Cinemachine.NoiseSettings/TransformNoiseParams   BASE: System.ValueType
+  Fusion.IAfterPhysicsSyncTransforms2D   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.IAfterPhysicsSyncTransforms3D   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform   BASE: Fusion.NetworkPositionRotation  ->  Fusion.NetworkPosition  ->  Fusion.NetworkAreaOfInterestBehaviour  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform/ConsecutiveStateInterp   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform/InterpolatedTransformParameters   BASE: System.ValueType
+  Fusion.NetworkTransform/IInterpolationImplementation   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform/IntermittentStateInterp   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform/IntermittentStateInterp/PositionState   BASE: System.ValueType
+  Fusion.NetworkTransform/IntermittentStateInterp/RotationState   BASE: System.ValueType
+  Fusion.NetworkTransform/LegacyIntermittentStateInterp   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransform/PositionRotationValues   BASE: System.ValueType
+  Fusion.NetworkTransform/SmoothErrorCorrectionInterp   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransformAnchor   BASE: Fusion.NetworkAreaOfInterestBehaviour  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransformObsolete   BASE: Fusion.NetworkTransformAnchor  ->  Fusion.NetworkAreaOfInterestBehaviour  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkTransformObsolete/UpdateTransformParameters   BASE: System.ValueType
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_EnsureRootComponentExists_Public_Static_T_Transform_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetParentComponent_Public_Static_T_Transform_0`1   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentsInParents_Public_Static_Void_Transform_List_1_T_0`1   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentInChildren_Public_Static_T_Transform_Boolean_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentInParent_Public_Static_T_Transform_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentInParents_Public_Static_T_Transform_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentsInParents_Public_Static_Void_Transform_List_1_T_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentsInChildren_Public_Static_List_1_T_Transform_List_1_T_Boolean_0`2   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentsInChildren_Public_Static_List_1_T_Transform_List_1_T_Boolean_Il2CppReferenceArray_1_Type_0`1   BASE: System.Object
+  Fusion.NestedComponentUtilities/MethodInfoStoreGeneric_GetNestedComponentsInChildren_Public_Static_Void_Transform_Boolean_List_1_T_0`3   BASE: System.Object
+  Fusion.NetworkRunner/AttachOptions   BASE: System.Enum
+  MagicaCloth2.SelectionData/TransformPositionJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.ITransform   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.RenderSetupData/ReadTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.SimulationManager/SplitPost_SumProxyTriangleAndTransform_Job   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData/RestoreTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData/ReadTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData/ShareSerializationData   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData/UniqueSerializationData   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformData/MethodInfoStoreGeneric_ReferenceIndexOf_Private_Int32_List_1_T_T_0`1   BASE: System.Object
+  MagicaCloth2.TransformManager   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/EnableTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/RestoreTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/RestoreBaseTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/ReadTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/WriteTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformManager/ReadComponentTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformRecord   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.TransformRecordSerializeData   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.JobUtility/TransformPositionJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.JobUtility/TransformPositionJob2   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.ExTransformAccessArray   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.VirtualMesh/Proxy_CalcVertexToTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.VirtualMesh/Proxy_BoneClothApplayTransformFlagJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  MagicaCloth2.VirtualMeshTransform   BASE: System.ValueType
+  SandSailorStudio.Hierarchy.TransformHierarchyMapping   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Hierarchy.TransformHierarchySnapshot   BASE: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Hierarchy.TransformHierarchySnapshot/TransformNode   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Gameplay.TransformLerpAction   BASE: SandSailorStudio.Gameplay.Action  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Gameplay.TransformLerpAction/__Lerp_d__10   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.SpawnTransformRule   BASE: SandSailorStudio.WorldGen.AreaRule  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.SpawnTransformRuleNode   BASE: SandSailorStudio.WorldGen.AreaRuleNode  ->  XNode.Node  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.AreaInstanceTransformNode   BASE: XNode.Node  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.TransformerNode   BASE: SandSailorStudio.WorldGen.ModifierNode  ->  SandSailorStudio.WorldGen.HeightmapNode  ->  SandSailorStudio.WorldGen.PreviewableNode  ->  XNode.Node  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.Deterministic.PositionTransform   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.WorldGen.Deterministic.SimplePositionTransform   BASE: System.ValueType
+  UnityEngine.Animations.Rigging.DampedTransformJob   BASE: System.ValueType
+  UnityEngine.Animations.Rigging.IDampedTransformData   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.DampedTransformJobBinder`1   BASE: UnityEngine.Animations.Rigging.AnimationJobBinder`2<UnityEngine.Animations.Rigging.DampedTransformJob,T>
+  UnityEngine.Animations.Rigging.OverrideTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.OverrideTransformJob/Space   BASE: System.Enum
+  UnityEngine.Animations.Rigging.IOverrideTransformData   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.OverrideTransformJobBinder`1   BASE: UnityEngine.Animations.Rigging.AnimationJobBinder`2<UnityEngine.Animations.Rigging.OverrideTransformJob,T>
+  UnityEngine.Animations.Rigging.RigSyncSceneToStreamJob/TransformSyncer   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.ReadWriteTransformHandle   BASE: System.ValueType
+  UnityEngine.Animations.Rigging.ReadOnlyTransformHandle   BASE: System.ValueType
+  UnityEngine.Animations.Rigging.WeightedTransformArrayBinder   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.DampedTransformData   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.DampedTransform   BASE: UnityEngine.Animations.Rigging.RigConstraint`3<UnityEngine.Animations.Rigging.DampedTransformJob,UnityEngine.Animations.Rigging.DampedTransformData,UnityEngine.Animations.Rigging.DampedTransformJobBinder`1<UnityEngine.Animations.Rigging.DampedTransformData>>
+  UnityEngine.Animations.Rigging.OverrideTransformData   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.OverrideTransformData/Space   BASE: System.Enum
+  UnityEngine.Animations.Rigging.OverrideTransform   BASE: UnityEngine.Animations.Rigging.RigConstraint`3<UnityEngine.Animations.Rigging.OverrideTransformJob,UnityEngine.Animations.Rigging.OverrideTransformData,UnityEngine.Animations.Rigging.OverrideTransformJobBinder`1<UnityEngine.Animations.Rigging.OverrideTransformData>>
+  UnityEngine.Animations.Rigging.RigTransform   BASE: UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.ITransformProvider   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.WeightedTransform   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.WeightedTransformArray   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.WeightedTransformArray/Enumerator   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.AffineTransform   BASE: System.ValueType
+  UnityEngine.InputSystem.InputBinding/MatchOptions   BASE: System.Enum
+  Unity.Mathematics.AffineTransform   BASE: System.ValueType
+  Unity.Mathematics.RigidTransform   BASE: System.ValueType
+  UnityEngine.Rendering.ProbeReferenceVolume/RefVolTransform   BASE: System.ValueType
+  SamplesShowcase/_lerpTransform_d__31   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rendering.TransformUpdateFlags   BASE: System.Enum
+  UnityEngine.Rendering.InstanceDataSystem/TransformUpdateJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rendering.InstanceDataSystem/InstanceTransformUpdateIDs   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rendering.TransformUpdatePacket   BASE: System.ValueType
+  UnityEngine.Rendering.UpdateLODGroupTransformJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rendering.HighDefinition.HDCachedShadowAtlas/CachedTransform   BASE: System.ValueType
+  TMPro.Compute_DistanceTransform_EventTypes   BASE: System.Enum
+  Unity.UI.Shaders.Sample.RectTransformSize   BASE: UnityEngine.EventSystems.UIBehaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rendering.RadeonRays.Transform   BASE: System.ValueType
+  UnityEngine.VFX.Utility.VFXTransformBinder   BASE: UnityEngine.VFX.Utility.VFXSpaceableBinder  ->  UnityEngine.VFX.Utility.VFXBinderBase  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.AI.OffMeshLink/get_startTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AI.OffMeshLink/set_startTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AI.OffMeshLink/get_endTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AI.OffMeshLink/set_endTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AnimationState/AddMixingTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AnimationState/RemoveMixingTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animator/get_hasTransformHierarchy_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animator/IsBoneTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AvatarMask/set_transformCount_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AvatarMask/AddTransformPath_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AvatarMask/RemoveTransformPath_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AvatarMask/SetTransformPath_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AvatarMask/SetTransformWeight_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.AnimationStream/InternalReadSceneTransformsDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.AnimationStream/InternalWriteSceneTransformsDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.TransformStreamHandle   BASE: System.ValueType
+  UnityEngine.Animations.TransformStreamHandle/GetPositionReadMaskInternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.TransformStreamHandle/GetRotationReadMaskInternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.TransformStreamHandle/GetScaleReadMaskInternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Animations.TransformSceneHandle   BASE: System.ValueType
+  UnityEngine.Animations.PropertySceneHandle/HasValidTransformDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AnimatorUtility/OptimizeTransformHierarchy_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.AnimatorUtility/DeoptimizeTransformHierarchy_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Cloth/ClearTransformMotion_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Renderer/get_staticBatchRootTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Renderer/set_staticBatchRootTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.TransformDispatchData   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.ObjectDispatcher/TransformTrackingType   BASE: System.Enum
+  UnityEngine.ObjectDispatcher/MethodInfoStoreGeneric_GetTransformChangesAndClear_Public_TransformDispatchData_TransformTrackingType_Allocator_0`1   BASE: System.Object
+  UnityEngine.ObjectDispatcher/MethodInfoStoreGeneric_EnableTransformTracking_Public_Void_TransformTrackingType_0`1   BASE: System.Object
+  UnityEngine.ObjectDispatcher/DisableTransformTrackingDelegate   BASE: System.MulticastDelegate
+  UnityEngine.ObjectDispatcher/DispatchTransformChangesAndClearDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Transform_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Transform_Vector3_Quaternion_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Int32_Transform_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Int32_Transform_Vector3_Quaternion_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Int32_Transform_Vector3_Quaternion_CancellationToken_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Int32_Transform_ReadOnlySpan_1_Vector3_ReadOnlySpan_1_Quaternion_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_InstantiateAsync_Public_Static_AsyncInstantiateOperation_1_T_T_Int32_Transform_ReadOnlySpan_1_Vector3_ReadOnlySpan_1_Quaternion_CancellationToken_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_Instantiate_Public_Static_T_T_Vector3_Quaternion_Transform_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_Instantiate_Public_Static_T_T_Transform_0`1   BASE: System.Object
+  UnityEngine.Object/MethodInfoStoreGeneric_Instantiate_Public_Static_T_T_Transform_Boolean_0`1   BASE: System.Object
+  UnityEngine.DrivenTransformProperties   BASE: System.Enum
+  UnityEngine.DrivenRectTransformTracker   BASE: System.ValueType
+  UnityEngine.RectTransform   BASE: UnityEngine.Transform  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.RectTransform/Axis   BASE: System.Enum
+  UnityEngine.RectTransform/ReapplyDrivenProperties   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.RectTransform/Edge   BASE: System.Enum
+  UnityEngine.RectTransform/get_drivenByObject_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.RectTransform/set_drivenByObject_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.RectTransform/get_drivenProperties_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.RectTransform/set_drivenProperties_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.RectTransform/get_sendChildDimensionsChange_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform   BASE: UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Transform/Enumerator   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Transform/GetLocalEulerAngles_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/SetLocalEulerAngles_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/SetLocalEulerHint_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/GetRotationOrderInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/SetRotationOrderInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/TransformDirectionsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/InverseTransformDirectionsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/TransformVectorsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/InverseTransformVectorsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/TransformPointsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/InverseTransformPointsInternal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/MoveAfterSibling_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/SendTransformChangedScale_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/RotateAroundLocal_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/GetChildCount_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/internal_getHierarchyCapacity_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/internal_setHierarchyCapacity_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/internal_getHierarchyCount_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/IsNonUniformScaleTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/SetConstrainProportionsScale_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Transform/IsConstrainProportionsScale_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.IJobParallelForTransform   BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Jobs.IJobParallelForTransformExtensions   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/TransformParallelForLoopStruct`1   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/TransformParallelForLoopStruct`1/TransformJobData   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/TransformParallelForLoopStruct`1/ExecuteJobFunction   BASE: Il2CppSystem.MulticastDelegate  ->  Il2CppSystem.Delegate  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/MethodInfoStoreGeneric_EarlyJobInit_Public_Static_Void_0`1   BASE: System.Object
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/MethodInfoStoreGeneric_GetReflectionData_Private_Static_IntPtr_0`1   BASE: System.Object
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/MethodInfoStoreGeneric_Schedule_Public_Static_JobHandle_T_TransformAccessArray_JobHandle_0`1   BASE: System.Object
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/MethodInfoStoreGeneric_ScheduleReadOnly_Public_Static_JobHandle_T_TransformAccessArray_Int32_JobHandle_0`1   BASE: System.Object
+  UnityEngine.Jobs.IJobParallelForTransformExtensions/MethodInfoStoreGeneric_RunReadOnly_Public_Static_Void_T_TransformAccessArray_0`1   BASE: System.Object
+  UnityEngine.Jobs.TransformAccess   BASE: System.ValueType
+  UnityEngine.Jobs.TransformAccess/SetLocalPositionAndRotation_InternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/GetPositionAndRotation_InternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/GetLocalPositionAndRotation_InternalDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/SetLocalScaleDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/GetWorldToLocalMatrixDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccessArray   BASE: System.ValueType
+  UnityEngine.Jobs.TransformAccessArray/SetTransformHandlesDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccessArray/GetCapacityDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccessArray/AddInstanceId_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.PlayerLoop.EarlyUpdate/UpdateCanvasRectTransform   BASE: System.ValueType
+  UnityEngine.PlayerLoop.EarlyUpdate/PhysicsResetInterpolatedTransformPosition   BASE: System.ValueType
+  UnityEngine.PlayerLoop.PostLateUpdate/UpdateRectTransform   BASE: System.ValueType
+  UnityEngine.PlayerLoop.PostLateUpdate/UpdateCanvasRectTransform   BASE: System.ValueType
+  UnityEngine.Rendering.RayTracingAccelerationStructure/UpdateInstanceTransform_Renderer_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.ImageEffectTransformsToLDR   BASE: System.Attribute
+  UnityEngine.U2D.SpriteRendererDataAccessExtensions/SetBoneTransformsArrayDelegate   BASE: System.MulticastDelegate
+  UnityEngine.U2D.SpriteRendererDataAccessExtensions/SetBoneTransforms_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Physics2D/set_autoSyncTransformsDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetBatchTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetTransformTarget_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetTransformObject_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetTransformObject_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetTransformWriteMode_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetTransformWriteMode_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsTransform_IsValid_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsTransform_TransformPoint_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsTransform_InverseTransformPoint_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsTransform_MultiplyTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsTransform_InverseMultiplyTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_SetTransformPlane_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_GetTransformPlane_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_SetTransformWriteMode_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_GetTransformWriteMode_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_SetTransformTweening_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_GetTransformTweening_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_ClearTransformWriteTweens_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_GetTransformWriteTweens_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_DrawTransformAxis_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsTransform   BASE: System.ValueType
+  UnityEngine.LowLevelPhysics2D.PhysicsBody/TransformWriteMode   BASE: System.Enum
+  UnityEngine.LowLevelPhysics2D.PhysicsBody/TransformWriteTween   BASE: System.ValueType
+  UnityEngine.LowLevelPhysics2D.PhysicsWorld/TransformWriteMode   BASE: System.Enum
+  UnityEngine.LowLevelPhysics2D.PhysicsWorld/TransformPlane   BASE: System.Enum
+  UnityEngine.LowLevelPhysics2D.PhysicsNativeMethods/FastWriteTransformsJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.LowLevelPhysics2D.PhysicsNativeMethods/Slow3DWriteTransformsJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.LowLevelPhysics2D.PhysicsNativeMethods/WriteTransformTweensJob   BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Rigidbody/PublishTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.ArticulationBody/PublishTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.LowLevelPhysics.ImmediateTransform   BASE: System.ValueType
+  UnityEngine.TerrainData/ComputeDetailInstanceTransforms_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.TerrainTools.BrushTransform   BASE: System.ValueType
+  UnityEngine.Tilemaps.Tilemap/GetTransformMatrix_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Tilemaps.Tilemap/SetTransformMatrix_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.UIElements.UIPainter2D/GetFillTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.UIElements.UIPainter2D/SetFillTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.UIElements.InlineStyleAccessPropertyBag/TransformOriginProperty   BASE: UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleTransformOriginProperty  ->  UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleProperty`1<UnityEngine.UIElements.StyleTransformOrigin>
+  UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleTransformOriginProperty   BASE: UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleProperty`1<UnityEngine.UIElements.StyleTransformOrigin>
+  UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/TransformOriginProperty   BASE: UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/ResolvedVector3Property  ->  UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/ResolvedStyleProperty`1<UnityEngine.Vector3>
+  UnityEngine.UIElements.TransformData   BASE: System.ValueType
+  UnityEngine.UIElements.StyleTransformOrigin   BASE: System.ValueType
+  UnityEngine.UIElements.TransformOrigin   BASE: System.ValueType
+  UnityEngine.UIElements.TransformOrigin/PropertyBag   BASE: Unity.Properties.ContainerPropertyBag`1<UnityEngine.UIElements.TransformOrigin>
+  UnityEngine.UIElements.TransformOrigin/PropertyBag/XProperty   BASE: Unity.Properties.Property`2<UnityEngine.UIElements.TransformOrigin,UnityEngine.UIElements.Length>
+  UnityEngine.UIElements.TransformOrigin/PropertyBag/YProperty   BASE: Unity.Properties.Property`2<UnityEngine.UIElements.TransformOrigin,UnityEngine.UIElements.Length>
+  UnityEngine.UIElements.TransformOrigin/PropertyBag/ZProperty   BASE: Unity.Properties.Property`2<UnityEngine.UIElements.TransformOrigin,System.Single>
+  UnityEngine.UIElements.TransformOriginOffset   BASE: System.Enum
+  UnityEngine.UIElements.StylePropertyAnimationSystem/ValuesTransformOrigin   BASE: UnityEngine.UIElements.StylePropertyAnimationSystem/Values`1<UnityEngine.UIElements.TransformOrigin>
+  UnityEngine.UIElements.TransformOriginField   BASE: UnityEngine.UIElements.BaseField`1<UnityEngine.UIElements.TransformOrigin>
+  UnityEngine.UIElements.TransformOriginField/UxmlSerializedData   BASE: UnityEngine.UIElements.BaseField`1/UxmlSerializedData<UnityEngine.UIElements.TransformOrigin>
+  UnityEngine.UIElements.ITransform   BASE: (none)
+  UnityEngine.UIElements.UIR.Transform3x4   BASE: System.ValueType
+  UnityEngine.RectTransformUtility   BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Canvas/get_updateRectTransformForStandalone_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Canvas/set_updateRectTransformForStandalone_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.Canvas/UpdateCanvasRectTransform_InjectedDelegate   BASE: System.MulticastDelegate
+  Unity.VectorGraphics.SVGAttribParser/AttribTransform   BASE: System.Enum
+  Unity.VectorGraphics.VectorUtils/<WorldTransformedSceneNodes>d__109   BASE: System.Object
+  UnityEngine.VFX.VFXSkinnedTransform   BASE: System.Enum
+  UnityEngine.XR.XRDisplaySubsystem/MarkTransformLateLatched_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.XR.XRMeshSubsystem/MeshTransformList   BASE: System.ValueType
+  UnityEngine.XR.XRMeshSubsystem/GetUpdatedMeshTransforms_InjectedDelegate   BASE: System.MulticastDelegate
+  UnityEngine.VFX.Extras.Vector3FromTransformAxis   BASE: UnityEngine.VFX.Extras.VFXEventAttributeSetup  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.VFX.Extras.Vector3FromTransformAxis/Axis   BASE: System.Enum
+
+==================================================================
+Q2: ITEM SIZE - types and members matching Size|Volume|Bulk|Large|Weight
+==================================================================
+  TYPE: UnityEngine.UIElements.BackgroundSize/PropertyBag/SizeTypeProperty   ENUM=False
+  TYPE: UnityEngine.UIElements.BackgroundSizeType   ENUM=True
+
+  --- SandSailorStudio.Inventory.ItemInfo members matching (?i)Size|Volume|Bulk|Weight ---
+  P: System.Int32 stackSize
+  [SSSGame.ItemInfo NOT FOUND]
+
+==================================================================
+TYPE: SandSailorStudio.Inventory.ItemInfo
+==================================================================
+  ASSEMBLY : SandSailorStudio
+  BASECHAIN: SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  INTERFACES: 
+  ---- PROPERTIES ----
+  P: System.Int32 id
+  P: System.UInt16 databaseIndex
+  P: SandSailorStudio.Inventory.ItemCategoryInfo category
+  P: System.Boolean unique
+  P: System.Int32 stackSize
+  P: System.Boolean showTier
+  P: System.Int32 tier
+  P: System.String localizedName
+  P: System.String localizedDescription
+  P: System.String localizedLore
+  P: UnityEngine.Sprite icon
+  P: UnityEngine.Sprite previewImage
+  P: SandSailorStudio.Utils.ColorTableConfig colors
+  P: UnityEngine.GameObject spawnObject
+  P: System.Single spawnHeight
+  P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> processes
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> components
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> attributes
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> networkedInventoryAttributes
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> _cachedComponentsTable
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> _cachedComponents
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> _cachedAttributes
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> s_itemInfoList
+  P: SandSailorStudio.Attributes.AttributeData _durabAttrData
+  P: SandSailorStudio.Attributes.AttributeData _decayRateAttrData
+  P: System.Boolean _localized
+  P: System.String Name
+  P: System.String Description
+  P: System.String Lore
+  P: System.Boolean Localized
+  ---- METHODS ----
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Configure() [virt,pub]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsTierRelevant() [virt,pub]
+  M: System.Boolean CanJoin(SandSailorStudio.Inventory.ItemInfo targetItemInfo) [virt,pub]
+  M: System.Boolean CanBeAcquired(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: SandSailorStudio.Attributes.AttributeData FindAttribute(System.Int32& attrId <<BY-REF>>) [virt,pub]
+  M: System.Int32 HasComponent(SandSailorStudio.Inventory.ItemInfo info, System.Int32& quantity <<BY-REF>>) [pub]
+  M: System.Int32 _HasComponentUncached(SandSailorStudio.Inventory.ItemInfo info, System.Int32& quantity <<BY-REF>>) [virt,pub]
+  M: System.Int32 HasComponent(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: System.Int32 _HasComponentUncached(SandSailorStudio.Inventory.IItemFilter itemFilter) [virt,pub]
+  M: SandSailorStudio.Inventory.IItemFilter GetItemFilter() [pub]
+  M: System.Void GetFullComponentList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> componentList) [pub]
+  M: System.Void _GetFullComponentUncached(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> componentList) [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetFullComponentList() [virt,pub]
+  M: UnityEngine.GameObject SpawnObject(SandSailorStudio.Inventory.ItemObjectSpawnContext& context <<BY-REF>>, System.Int32& quantity <<BY-REF>>, UnityEngine.Vector3& position <<BY-REF>>, UnityEngine.Quaternion& rotation <<BY-REF>>, UnityEngine.Vector3& scale <<BY-REF>>, UnityEngine.Transform parent, System.Boolean sampleTerrain) [virt,pub]
+  M: UnityEngine.GameObject SpawnObject(SandSailorStudio.Inventory.ItemObjectSpawnContext& context <<BY-REF>>, SandSailorStudio.Inventory.Item item, UnityEngine.Vector3& position <<BY-REF>>, UnityEngine.Quaternion& rotation <<BY-REF>>, UnityEngine.Vector3& scale <<BY-REF>>, UnityEngine.Transform parent, System.Boolean sampleTerrain) [virt,pub]
+  M: UnityEngine.GameObject _Spawn(UnityEngine.GameObject spawnable, SandSailorStudio.Inventory.ItemObjectSpawnContext context, UnityEngine.Vector3& position <<BY-REF>>, UnityEngine.Quaternion& rotation <<BY-REF>>, UnityEngine.Vector3& scale <<BY-REF>>, UnityEngine.Transform parent, SandSailorStudio.Inventory.Item item, System.Int32 itemQuantity, System.Boolean sampleTerrain) [pub]
+  M: System.String get_Name() [virt,pub]
+  M: System.String get_Description() [virt,pub]
+  M: System.String get_Lore() [virt,pub]
+  M: System.String Loc(System.String keyToken, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray interpStrings) [virt,pub]
+  M: System.String GetKey(System.String token) [virt,pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.String,System.String> GetLocalizationStrings() [virt,pub]
+  M: System.Boolean get_Localized() [virt,pub]
+  M: System.Void set_Localized(System.Boolean value) [virt,pub]
+  M: System.Boolean ContainerTypeFilter(SandSailorStudio.Inventory.ItemContainer container) [pub]
+  M: System.Boolean ContainerCapacityFilter(SandSailorStudio.Inventory.ItemContainer container) [pub]
+  M: System.Boolean ItemTypeFilter(SandSailorStudio.Inventory.Item item) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.String Loc(System.String keyToken, System.String[] interpStrings) [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Int32 get_id() [pub]
+  M: System.Void set_id(System.Int32 ) [pub]
+  M: System.UInt16 get_databaseIndex() [pub]
+  M: System.Void set_databaseIndex(System.UInt16 ) [pub]
+  M: SandSailorStudio.Inventory.ItemCategoryInfo get_category() [pub]
+  M: System.Void set_category(SandSailorStudio.Inventory.ItemCategoryInfo ) [pub]
+  M: System.Boolean get_unique() [pub]
+  M: System.Void set_unique(System.Boolean ) [pub]
+  M: System.Int32 get_stackSize() [pub]
+  M: System.Void set_stackSize(System.Int32 ) [pub]
+  M: System.Boolean get_showTier() [pub]
+  M: System.Void set_showTier(System.Boolean ) [pub]
+  M: System.Int32 get_tier() [pub]
+  M: System.Void set_tier(System.Int32 ) [pub]
+  M: System.String get_localizedName() [pub]
+  M: System.Void set_localizedName(System.String ) [pub]
+  M: System.String get_localizedDescription() [pub]
+  M: System.Void set_localizedDescription(System.String ) [pub]
+  M: System.String get_localizedLore() [pub]
+  M: System.Void set_localizedLore(System.String ) [pub]
+  M: UnityEngine.Sprite get_icon() [pub]
+  M: System.Void set_icon(UnityEngine.Sprite ) [pub]
+  M: UnityEngine.Sprite get_previewImage() [pub]
+  M: System.Void set_previewImage(UnityEngine.Sprite ) [pub]
+  M: SandSailorStudio.Utils.ColorTableConfig get_colors() [pub]
+  M: System.Void set_colors(SandSailorStudio.Utils.ColorTableConfig ) [pub]
+  M: UnityEngine.GameObject get_spawnObject() [pub]
+  M: System.Void set_spawnObject(UnityEngine.GameObject ) [pub]
+  M: System.Single get_spawnHeight() [pub]
+  M: System.Void set_spawnHeight(System.Single ) [pub]
+  M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> get_processes() [pub]
+  M: System.Void set_processes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> get_components() [pub]
+  M: System.Void set_components(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> get_attributes() [pub]
+  M: System.Void set_attributes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> get_networkedInventoryAttributes() [pub]
+  M: System.Void set_networkedInventoryAttributes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> get__cachedComponentsTable() [pub]
+  M: System.Void set__cachedComponentsTable(Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> get__cachedComponents() [pub]
+  M: System.Void set__cachedComponents(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> get__cachedAttributes() [pub]
+  M: System.Void set__cachedAttributes(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> get_s_itemInfoList() [static,pub]
+  M: System.Void set_s_itemInfoList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> ) [static,pub]
+  M: SandSailorStudio.Attributes.AttributeData get__durabAttrData() [pub]
+  M: System.Void set__durabAttrData(SandSailorStudio.Attributes.AttributeData ) [pub]
+  M: SandSailorStudio.Attributes.AttributeData get__decayRateAttrData() [pub]
+  M: System.Void set__decayRateAttrData(SandSailorStudio.Attributes.AttributeData ) [pub]
+  M: System.Boolean get__localized() [pub]
+  M: System.Void set__localized(System.Boolean ) [pub]
+
+==================================================================
+Q3: CONTAINER LIMITS - ItemContainer + container-type members matching
+    Size|Max|Accept|Allow|CanAdd|Capacity|Filter|Restrict
+==================================================================
+
+  --- SandSailorStudio.Inventory.ItemContainer ---
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  P: System.Int32 capacity
+  P: System.Boolean canAddItems
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetAcceptedItemTypes() [pub]
+  M: System.Boolean HasItem(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: System.Boolean HasItemSurplus(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: System.Int32 GetStackSize(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+  M: System.Int32 GetRemainingCapacity(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+  M: System.Int32 GetRemainingSlotFillCapacity(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+  M: System.Int32 GetItemCount(SandSailorStudio.Inventory.IItemFilter itemFilter, System.Boolean checkStackSizes) [pub]
+  M: System.Void RemoveAllItems(SandSailorStudio.Inventory.IItemFilter itemFilter, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Int32 GetItemsToList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> items, SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: SandSailorStudio.Inventory.Item FindItem(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+
+  --- SandSailorStudio.Inventory.ItemCollection ---
+  BASECHAIN: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  P: System.Boolean canAddItems
+  M: System.Int32 GetTotalRemainingCapacity(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Boolean includeHidden) [pub]
+  M: System.Int32 GetMaximumStorageCapacity(SandSailorStudio.Inventory.ItemInfo itemInfo, System.Boolean includeHidden) [pub]
+  M: System.Int32 GetTotalRemainingCapacity(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Void RemoveAllItems(SandSailorStudio.Inventory.IItemFilter itemFilter, System.Boolean includeHidden) [pub]
+  M: System.Void GetItemsList(SandSailorStudio.Inventory.IItemFilter itemFilter, Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> itemList, Il2CppSystem.Predicate`1<SandSailorStudio.Inventory.Item> predicate) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetItems(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: SandSailorStudio.Inventory.Item GetFirstItem(SandSailorStudio.Inventory.IItemFilter filter) [pub]
+  M: System.Int32 GetItemsQuantity(SandSailorStudio.Inventory.IItemFilter filter) [pub]
+  M: System.Void FillOwnedItemManifest(SandSailorStudio.Inventory.ItemManifest itemManifest, SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: System.Boolean HasItem(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> GetAllItems(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+
+  [SandSailorStudio.Inventory.ContainerType NOT FOUND]
+
+  --- SandSailorStudio.Inventory.ItemContainerType ---
+  BASECHAIN: UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  P: System.Boolean overrideStackSizes
+  P: System.Boolean overrideWithMaxSize
+  M: System.Int32 GetStackSize(SandSailorStudio.Inventory.ItemInfo itemInfo) [pub]
+  M: System.Int32 GetStackSize(SandSailorStudio.Inventory.ItemStorageClass storageClass) [pub]
+
+DONE

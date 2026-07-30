@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using BepInEx.Configuration;
+using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
 using SandSailorStudio.Inventory;
 using SSSGame;
@@ -76,6 +78,36 @@ internal static class CraftTransfer
     private static readonly Dictionary<string, int> _zeroMoveLogged = new();
     private static readonly Dictionary<string, int> _candidateDumpLogged = new();
 
+    // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 2): rate limiter for MoveContainerToAgent's new
+    // capacity-refused-move diagnostic, keyed by itemName so a single item type churning through
+    // many candidates cannot spam the log.
+    private static readonly Dictionary<string, int> _capacitySkipLogged = new();
+
+    // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): cached parse of Plugin.SkipStationClasses, same
+    // shape as StationStocker's own _skipClassCache/_skipClassRaw pair for SkipBlueprintClasses -
+    // rebuilt only when the raw config string actually changes, because IsSkippedStation's first
+    // entry point runs from TryReportAvailable, which villagers hit dozens of times a second.
+    private static HashSet<string>? _skipStationClassCache;
+    private static string _skipStationClassRaw = "";
+
+    // v0.10.1 (defect fix, TRANSFORM_STATION_PLAN.md Change 2): rate limiter for the new stationProbe
+    // diagnostic in IsSkippedStation(CraftingStation) below - keyed by station GameObject name (never
+    // an interop wrapper - project-wide gotcha), capped per station name so a single stuck station
+    // cannot spam the log.
+    private static readonly Dictionary<string, int> _stationProbeLogged = new();
+
+    // v0.10.1 (defect fix, TRANSFORM_STATION_PLAN.md Change 3): rate limiter for the fire-verification
+    // lines at TryReportAvailable's and HandleBeginCraftingSequence's silent IsSkippedStation early-
+    // returns - keyed by "site|stationClass" so each call site's own quota is independent.
+    // TryReportAvailable runs dozens of times a second per villager, so this must stay a small quota
+    // (in the style of VillagerAvailabilityRollup's own MaxRawLogsPerVillager), never one line per call.
+    private static readonly Dictionary<string, int> _standAsideLogged = new();
+
+    // v0.11.0 (TRANSFORM_STATION_PLAN.md Change 3): rate limiter for StockStation's new destinationProbe
+    // diagnostic - keyed by station name, capped at 1 ("emitted once per station") so a stuck station's
+    // hundred-cycle loop can't repeat it.
+    private static readonly Dictionary<string, int> _destinationProbeLogged = new();
+
     // Reentrancy flag (design point A/C). While true, TryReportAvailable must report VANILLA truth,
     // never fabricate __result=true - this is what makes the verify-call in
     // HandleBeginCraftingSequence an honest check of what was actually moved instead of an infinite
@@ -116,6 +148,13 @@ internal static class CraftTransfer
         // v0.9.2: string-keyed rate-limiter dictionaries, cleared alongside the ledger.
         _zeroMoveLogged.Clear();
         _candidateDumpLogged.Clear();
+        // v0.10.0: same reasoning for the capacity-skip rate limiter.
+        _capacitySkipLogged.Clear();
+        // v0.10.1: same reasoning for the two new defect-fix diagnostic rate limiters.
+        _stationProbeLogged.Clear();
+        _standAsideLogged.Clear();
+        // v0.11.0: same reasoning for the new destination-probe rate limiter.
+        _destinationProbeLogged.Clear();
     }
 
     // ---- Point A: called from Patches/GatePatches.cs CheckOwnedRequirementsPatch.Postfix. Only
@@ -141,6 +180,22 @@ internal static class CraftTransfer
             if (isPlayer && !SafeGet(Plugin.EnablePlayerPull, true)) return;
             if (isVillager && !SafeGet(Plugin.EnableForVillagers, true)) return;
             if (!IsHostOrSolo()) return;
+            // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): a physical-transform station (forge/
+            // sawhorses/dye bench) structurally cannot have its requirement satisfied from a bin -
+            // this is the widening that causes the idle-carpenter stall, so it matters most that it
+            // sits ahead of the manifest build below.
+            // v0.10.1 (Change 3): this early return used to be silent, making a working gate and an
+            // absent workload look identical in the log - now fire-verified via LogStandAside.
+            // v0.11.0 (Change 2): Plugin.StockTransformStationMaterials deliberately does NOT apply
+            // here. That toggle only lets the STOCKER top up a transform station's rack; reporting a
+            // transform recipe already satisfied is exactly the widening that stalled villagers
+            // entirely (TRANSFORM_STATION_PLAN.md), so this stand-aside stays unconditional regardless
+            // of the toggle's value.
+            if (IsSkippedStation(instance))
+            {
+                LogStandAside("TryReportAvailable", isVillager, instance);
+                return;
+            }
 
             var wanted = BuildWantedManifest(bp);
             if (wanted == null) return;
@@ -224,6 +279,18 @@ internal static class CraftTransfer
             if (isPlayer && !SafeGet(Plugin.EnablePlayerPull, true)) return true;
             if (isVillager && !SafeGet(Plugin.EnableForVillagers, true)) return true;
             if (!IsHostOrSolo()) return true;
+            // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): same physical-transform stand-aside as
+            // TryReportAvailable above - let vanilla run unmodified at these stations.
+            // v0.10.1 (Change 3): fire-verified via LogStandAside - was silent before.
+            // v0.11.0 (Change 2): Plugin.StockTransformStationMaterials deliberately does NOT apply
+            // here either, for the same reason as TryReportAvailable above - the craft-start pull must
+            // keep standing aside at these stations unconditionally, so a future reader does not "fix"
+            // this into consulting the stocker-only toggle.
+            if (IsSkippedStation(instance))
+            {
+                LogStandAside("HandleBeginCraftingSequence", isVillager, instance);
+                return true;
+            }
 
             isVillagerOuter = isVillager;
             IntPtr agentKey = AgentKey(agent);
@@ -503,6 +570,329 @@ internal static class CraftTransfer
         try { return instance.ItemInventory; } catch { return null; }
     }
 
+    // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): parses Plugin.SkipStationClasses the same way
+    // StationStocker.GetSkipClasses parses SkipBlueprintClasses - cached, re-parsed only when the
+    // raw config string changes.
+    private static HashSet<string> GetSkipStationClasses()
+    {
+        string raw = "";
+        try { raw = Plugin.SkipStationClasses?.Value ?? ""; } catch { }
+        if (_skipStationClassCache != null && raw == _skipStationClassRaw) return _skipStationClassCache;
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var part in raw.Split(','))
+        {
+            var t = part.Trim();
+            if (t.Length > 0) set.Add(t);
+        }
+        _skipStationClassRaw = raw;
+        _skipStationClassCache = set;
+        return set;
+    }
+
+    // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): true when `interaction` is, or derives from, one
+    // of the configured SkipStationClasses - a physical-transform station (AnvilInteraction/
+    // CarpenterInteraction sawhorses, DyeingInteraction dye bench by default) where an item is placed
+    // on the station and struck/dyed rather than drawn from a bin. Walks the native class PARENT
+    // chain (not just the leaf class), matching the DemandGraph.cs/TaskUnlockTracker.cs ancestor-walk
+    // idiom already used elsewhere in this repo, so CarpenterInteraction (-> AnvilInteraction ->
+    // CraftInteraction) matches on either name and any future subclass is caught automatically.
+    // Managed as/is casts lie for interop objects materialized under a base declared type (project-
+    // wide gotcha) - this reads the native class name instead of casting. Loop-guarded at 20 and
+    // wrapped in try/catch returning FALSE on any exception, so a probe failure fails OPEN (the mod
+    // behaves exactly as it did before this change - it still acts on the station).
+    internal static bool IsSkippedStation(CraftInteraction? interaction)
+    {
+        try
+        {
+            if (interaction == null) return false;
+            var names = GetSkipStationClasses();
+            if (names.Count == 0) return false;
+            if ((object)interaction is not Il2CppObjectBase baseObj) return false;
+
+            IntPtr walk;
+            try { walk = IL2CPP.il2cpp_object_get_class(baseObj.Pointer); } catch { return false; }
+
+            int depth = 0;
+            while (walk != IntPtr.Zero && depth < 20)
+            {
+                string? name = null;
+                try { name = Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(walk)); } catch { }
+                if (name != null && names.Contains(name)) return true;
+                try { walk = IL2CPP.il2cpp_class_get_parent(walk); } catch { break; }
+                depth++;
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // v0.10.1 (defect fix, TRANSFORM_STATION_PLAN.md Change 1): station overload for StationStocker's
+    // fetch-start path - SSSGame.CraftingStation carries no interaction property. v0.10.0's original
+    // implementation (a single go.GetComponent<CraftInteraction>() call on the station's own
+    // GameObject) never resolved anything: confirmed in-game 2026-07-29, a run against Workshop House
+    // carpenter stations (AnvilInteraction is the easiest possible match) logged this gate's SKIP line
+    // ZERO times while the older blueprint-class gate below it in StationStocker.cs logged 20x "SKIP
+    // blueprintClass=ForgingBlueprintInfo" - proof the single-GetComponent lookup came up empty every
+    // time, so the older gate always claimed the case first. Fixed by searching self, then every
+    // ancestor (transform.parent, depth-guarded at 10), then every descendant (breadth-first via
+    // transform.GetChild(i), node-guarded at 200 total) via ResolveStationInteractions below - the
+    // same "singular GetComponent<T>() per node, walked by hand" pattern MineRefreshMod/TreeRespawn's
+    // well-refill code already use, because the plural GetComponentsInChildren<T>(bool) and the
+    // non-generic GameObject.GetComponents(System.Type) are both missing through the interop
+    // trampoline in this game (project-wide gotcha). A base-typed singular GetComponent<T>() still
+    // returns derived instances, so this yields the CarpenterInteraction where one exists.
+    //
+    // v0.11.0 (defect fix, TRANSFORM_STATION_PLAN.md 2026-07-29 hypothesis): v0.10.1's resolver
+    // returned only the FIRST CraftInteraction it found and stopped searching. In-game evidence the
+    // SAME day showed Workshop House 2 (all carpenters, confirmed in-game to hold one hardwood log and
+    // one hardwood long stick at a time on its rack) logging stationProbe class=CraftInteraction
+    // foundWhere=descendant outcome=not-matched five times running, while the two OTHER sites
+    // (TryReportAvailable/HandleBeginCraftingSequence, which receive the interaction directly as a
+    // parameter) correctly saw CarpenterInteraction for the same building. The working hypothesis -
+    // that building holds MORE than one CraftInteraction component (ordinary sawhorses AND a plain
+    // crafting table), and the first-found search happened to return the wrong one - is what this
+    // fixes: ResolveStationInteractions now collects EVERY CraftInteraction in the searched hierarchy
+    // instead of stopping at the first. Selection rule: prefer an interaction whose class matches the
+    // configured SkipStationClasses set (a building containing a transform surface must be treated as
+    // a transform station); otherwise fall back to the first one found, exactly as before. Delegates
+    // to the interaction overload above UNCHANGED once selected - only the resolution changed here.
+    // Every outcome (matched / resolved-not-matched / unresolved / null) gets a rate-limited
+    // "[CFS] [CFS-SS] stationProbe" line via LogStationProbe, now reporting every interaction found
+    // (not just the selected one) so this hypothesis is provable or disprovable straight from the log.
+    internal static bool IsSkippedStation(SSSGame.CraftingStation? station)
+    {
+        string stationName = "?";
+        try
+        {
+            if (station == null)
+            {
+                LogStationProbe("?", "null", "?", "-", EmptyProbeDetail);
+                return false;
+            }
+
+            GameObject? go = null;
+            try { go = station.gameObject; } catch { }
+            if (go == null)
+            {
+                LogStationProbe(Plugin.NativeClassName(station), "null", "?", "-", EmptyProbeDetail);
+                return false;
+            }
+            stationName = go.name;
+
+            var candidates = ResolveStationInteractions(go);
+            if (candidates.Count == 0)
+            {
+                LogStationProbe(stationName, "unresolved", "?", "-", EmptyProbeDetail);
+                return false;
+            }
+
+            // Selection rule (TRANSFORM_STATION_PLAN.md 2026-07-29): prefer the first candidate whose
+            // class matches the skip set; a building containing a transform surface must be treated as
+            // a transform station even if a plain CraftInteraction elsewhere in the same hierarchy
+            // would otherwise have been picked first. Fall back to the first candidate found (the old
+            // behavior) when none match.
+            (CraftInteraction Interaction, string FoundWhere)? selected = null;
+            foreach (var c in candidates)
+            {
+                if (IsSkippedStation(c.Interaction)) { selected = c; break; }
+            }
+            selected ??= candidates[0];
+
+            string resolvedClass = Plugin.NativeClassName(selected.Value.Interaction);
+            bool skipped = IsSkippedStation(selected.Value.Interaction);
+
+            var detail = new List<(string Class, string FoundWhere)>(candidates.Count);
+            foreach (var c in candidates) detail.Add((Plugin.NativeClassName(c.Interaction), c.FoundWhere));
+
+            LogStationProbe(stationName, skipped ? "matched" : "not-matched", resolvedClass, selected.Value.FoundWhere, detail);
+            return skipped;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] IsSkippedStation(CraftingStation) error for station={stationName}: {ex}");
+            return false;
+        }
+    }
+
+    private static readonly List<(string Class, string FoundWhere)> EmptyProbeDetail = new();
+
+    // v0.11.0 (TRANSFORM_STATION_PLAN.md 2026-07-29 hypothesis, renamed+reworked from v0.10.1's
+    // singular ResolveStationInteraction): self -> ancestors -> descendants search for EVERY
+    // CraftInteraction in the hierarchy, per Change 1's specified order and guards - continues
+    // searching after a hit instead of returning on the first one, so a building with more than one
+    // CraftInteraction component (the working hypothesis for Workshop House 2's carpentry rack) has
+    // all of them reported, not just whichever happened to be found first. Ancestor walk is depth-
+    // guarded at 10 (transform.parent chains are shallow in practice); descendant walk is a breadth-
+    // first transform.GetChild(i) walk, node-guarded at 200 total nodes visited so a deep prefab cannot
+    // stall the search. Every per-node GetComponent/parent/childCount/GetChild call is individually
+    // wrapped so one bad node can't abort the rest of the walk. Returns an empty list if nothing turns
+    // up anywhere searched.
+    private static List<(CraftInteraction Interaction, string FoundWhere)> ResolveStationInteractions(GameObject go)
+    {
+        var found = new List<(CraftInteraction, string)>();
+
+        Transform? root = null;
+        try { root = go.transform; } catch { }
+        if (root == null) return found;
+
+        CraftInteraction? self = null;
+        try { self = root.GetComponent<CraftInteraction>(); } catch { self = null; }
+        if (self != null) found.Add((self, "self"));
+
+        Transform? cur = root;
+        int depth = 0;
+        while (depth < 10)
+        {
+            Transform? parent = null;
+            try { parent = cur?.parent; } catch { parent = null; }
+            if (parent == null) break;
+
+            CraftInteraction? ancestor = null;
+            try { ancestor = parent.GetComponent<CraftInteraction>(); } catch { ancestor = null; }
+            if (ancestor != null) found.Add((ancestor, "ancestor"));
+
+            cur = parent;
+            depth++;
+        }
+
+        var queue = new Queue<Transform>();
+        try
+        {
+            int childCount = root.childCount;
+            for (int i = 0; i < childCount; i++)
+            {
+                var child = root.GetChild(i);
+                if (child != null) queue.Enqueue(child);
+            }
+        }
+        catch { }
+
+        int visited = 0;
+        while (queue.Count > 0 && visited < 200)
+        {
+            var node = queue.Dequeue();
+            visited++;
+
+            CraftInteraction? descendant = null;
+            try { descendant = node.GetComponent<CraftInteraction>(); } catch { descendant = null; }
+            if (descendant != null) found.Add((descendant, "descendant"));
+
+            try
+            {
+                int childCount = node.childCount;
+                for (int i = 0; i < childCount; i++)
+                {
+                    var child = node.GetChild(i);
+                    if (child != null) queue.Enqueue(child);
+                }
+            }
+            catch { }
+        }
+
+        return found;
+    }
+
+    // v0.10.1 (defect fix, TRANSFORM_STATION_PLAN.md Change 2): one rate-limited line per station
+    // (capped at 5 per station name, matching this file's other diagnostic caps) reporting the
+    // outcome of IsSkippedStation(CraftingStation)'s resolution:
+    //   outcome=matched          - resolved, and the SELECTED interaction's class matched the skip set.
+    //   outcome=not-matched      - resolved, but the SELECTED interaction's class did not match; class/
+    //                               foundWhere are the selected interaction's native class name and
+    //                               where it was found (self/ancestor/descendant).
+    //   outcome=unresolved       - no CraftInteraction found anywhere in the searched hierarchy.
+    //   outcome=null             - the station or its GameObject was null.
+    // A silent pass is exactly what made v0.10.0's defect unreadable from the log, so every outcome
+    // gets a line, not just the skip case.
+    // v0.11.0 (TRANSFORM_STATION_PLAN.md 2026-07-29 hypothesis): gained `all`, the full list of every
+    // interaction ResolveStationInteractions found (native class + foundWhere for each), appended as
+    // count=N plus an "all=[...]" segment - this is what proves or disproves the multiple-interaction
+    // hypothesis directly from the log, since class/foundWhere above now describe only the SELECTED one.
+    private static void LogStationProbe(string stationName, string outcome, string resolvedClass, string foundWhere,
+        List<(string Class, string FoundWhere)> all)
+    {
+        if (!SafeGet(Plugin.TransferDiagnostics, true)) return;
+        try
+        {
+            _stationProbeLogged.TryGetValue(stationName, out int count);
+            if (count >= 5) return;
+            _stationProbeLogged[stationName] = count + 1;
+
+            string allStr = all.Count > 0
+                ? string.Join("; ", all.Select(a => $"{a.Class}@{a.FoundWhere}"))
+                : "-";
+            Plugin.Logger.LogInfo($"[CFS] [CFS-SS] stationProbe station={stationName} outcome={outcome} " +
+                $"class={resolvedClass} foundWhere={foundWhere} count={all.Count} all=[{allStr}]");
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] LogStationProbe error: {ex}");
+        }
+    }
+
+    // v0.10.1 (defect fix, TRANSFORM_STATION_PLAN.md Change 3): fire-verification for TryReportAvailable's
+    // and HandleBeginCraftingSequence's IsSkippedStation early-returns, which were previously silent -
+    // that made a working gate and an absent workload look identical in the log, which is why the
+    // v0.10.0 defect could not be attributed from the log alone. Rate-limited by "site|stationClass" -
+    // TryReportAvailable runs dozens of times a second per villager (ground truth 2026-07-21), so the
+    // quota here is small (3), in the style of VillagerAvailabilityRollup.MaxRawLogsPerVillager rather
+    // than a raw per-call line.
+    private static void LogStandAside(string site, bool isVillager, CraftInteraction? instance)
+    {
+        if (!SafeGet(Plugin.TransferDiagnostics, true)) return;
+        try
+        {
+            string stationClass = Plugin.NativeClassName(instance);
+            string key = site + "|" + stationClass;
+            _standAsideLogged.TryGetValue(key, out int count);
+            if (count >= 3) return;
+            _standAsideLogged[key] = count + 1;
+            string vtag = isVillager ? "[CFS] [CFS-V]" : "[CFS]";
+            Plugin.Logger.LogInfo($"{vtag} {site}: standing aside for physical-transform station " +
+                $"stationClass={stationClass} - letting vanilla run unmodified.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] LogStandAside error: {ex}");
+        }
+    }
+
+    // v0.11.0 (TRANSFORM_STATION_PLAN.md Change 3): one rate-limited line per station name (capped at
+    // 1 - "emitted once per station") reporting the destination StockStation is about to write into:
+    // the native class name of the collection returned by the station's GetInventory() (destColl IS
+    // that collection - see StationStocker.HandleFetchStateEnter's own GetInventory() call and
+    // CraftTransfer.SafeGetStationInventory's comment, both confirming CraftInteraction.ItemInventory
+    // and CraftingStation.GetInventory() are the same collection), its canAddItems value, and the
+    // remaining capacity it reports for the specific item about to be moved - read BEFORE the move, so
+    // this is ground truth about the destination, not a result of the move that just happened.
+    private static void LogDestinationProbe(ItemCollection destColl, ItemInfo info, string villagerName, string stationName)
+    {
+        if (!SafeGet(Plugin.TransferDiagnostics, true)) return;
+        try
+        {
+            _destinationProbeLogged.TryGetValue(stationName, out int count);
+            if (count >= 1) return;
+            _destinationProbeLogged[stationName] = count + 1;
+
+            string destClass = Plugin.NativeClassName(destColl);
+            bool canAdd = false;
+            try { canAdd = destColl.canAddItems; } catch { }
+            int remainingCapacity = -1;
+            try { remainingCapacity = destColl.GetTotalRemainingCapacity(info); } catch { }
+
+            Plugin.Logger.LogInfo($"[CFS] [CFS-SS] destinationProbe station={stationName} destClass={destClass} " +
+                $"canAddItems={canAdd} remainingCapacityFor='{SafeName(info)}'={remainingCapacity} " +
+                $"(villager={villagerName}).");
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] LogDestinationProbe error: {ex}");
+        }
+    }
+
     // wanted minus (agentInv union stationInv), per item. Shared by point A (read-only check against
     // the cached snapshot) and point C (the actual pull) - agent- and villager-agnostic, the "have"
     // union is computed the same way for both agent kinds.
@@ -614,6 +1004,13 @@ internal static class CraftTransfer
     {
         const string tag = "[CFS] [CFS-SS]";
         int itemsMoved = 0, qtyMoved = 0, stillShort = 0;
+
+        // v0.11.0 (TRANSFORM_STATION_PLAN.md Change 3): identifies the ACTUAL destination the stocker
+        // is about to write to, before any move for this station happens. The user visually confirmed
+        // a carpentry rack holds only one hardwood log and one hardwood long stick at a time, so this
+        // establishes whether the destination the mod sees really is that one-slot rack. Read against
+        // the first shortfall item (the one about to be attempted first).
+        if (shortfall.Count > 0) LogDestinationProbe(destColl, shortfall[0].info, villagerName, stationName);
 
         foreach (var (info, missingQty) in shortfall)
         {
@@ -763,7 +1160,36 @@ internal static class CraftTransfer
     // leave no trace in the log.
     private static int MoveContainerToAgent(ItemContainer source, ItemCollection destColl, ItemInfo info, int qty, out int removed)
     {
-        removed = RemoveFromContainer(source, info, qty);
+        removed = 0;
+
+        // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 2): ask the destination whether it can even take
+        // the item BEFORE touching the source - the prior remove-then-add-then-give-back sequence
+        // churned the source on every refusal and left no trace in the log, because the per-move log
+        // line below only ever fires on a nonzero move. Both reads share one try/catch: on exception,
+        // fall through to the existing behavior unclamped, so a probe failure never blocks a move that
+        // works today.
+        int clampedQty = qty;
+        try
+        {
+            if (!destColl.canAddItems)
+            {
+                LogCapacitySkip(info, "destination canAddItems=false");
+                return 0;
+            }
+            int remainingCapacity = destColl.GetTotalRemainingCapacity(info);
+            if (remainingCapacity <= 0)
+            {
+                LogCapacitySkip(info, "destination GetTotalRemainingCapacity<=0");
+                return 0;
+            }
+            if (remainingCapacity < clampedQty) clampedQty = remainingCapacity;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] MoveContainerToAgent capacity pre-check error: {ex} - falling through unclamped.");
+        }
+
+        removed = RemoveFromContainer(source, info, clampedQty);
         if (removed <= 0) return 0;
 
         int added = 0;
@@ -903,6 +1329,28 @@ internal static class CraftTransfer
     private static bool SafeGet(ConfigEntry<bool>? entry, bool fallback)
     {
         try { return entry?.Value ?? fallback; } catch { return fallback; }
+    }
+
+    // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 2): rate-limited diagnostic for MoveContainerToAgent's
+    // capacity pre-check - same idiom as StockStation's existing zero-move/candidate-dump diagnostics
+    // in this file, capped per item name (never an interop wrapper - project-wide gotcha) so one item
+    // type refusing repeatedly cannot spam the log.
+    private static void LogCapacitySkip(ItemInfo info, string reason)
+    {
+        if (!Plugin.TransferDiagnostics.Value) return;
+        try
+        {
+            string key = SafeName(info);
+            _capacitySkipLogged.TryGetValue(key, out int count);
+            if (count >= 5) return;
+            _capacitySkipLogged[key] = count + 1;
+            Plugin.Logger.LogInfo($"[CFS] MoveContainerToAgent SKIP: '{SafeName(info)}' - {reason} - " +
+                "move abandoned without touching the source.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] LogCapacitySkip error: {ex}");
+        }
     }
 
     private static string SafeName(ItemInfo? info)

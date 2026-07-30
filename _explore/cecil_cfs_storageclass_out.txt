@@ -1,0 +1,249 @@
+=== 1: types matching StorageClass ===
+  TYPE: SSSGame.CharacterItemContainerType/StorageClassAnimationSetup  ENUM=False  BASE=Il2CppSystem.Object
+     P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+     P: SSSGame.CharacterItemContainerType/CarryAnimationSetup animationSetup
+     F: System.IntPtr NativeFieldInfoPtr_storageClass
+     F: System.IntPtr NativeFieldInfoPtr_animationSetup
+     F: System.IntPtr NativeMethodInfoPtr__ctor_Public_Void_0
+  TYPE: SSSGame.StorageClassStackSlot  ENUM=False  BASE=SSSGame.ItemPrefabStackSlot
+     P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+     F: System.IntPtr NativeFieldInfoPtr_storageClass
+     F: System.IntPtr NativeMethodInfoPtr__OnItemAdded_Protected_Virtual_Void_ItemCollection_Item_Int32_ItemEventContext_0
+     F: System.IntPtr NativeMethodInfoPtr__OnItemRemoved_Protected_Virtual_Void_ItemCollection_Item_Int32_ItemEventContext_0
+     F: System.IntPtr NativeMethodInfoPtr__ctor_Public_Void_0
+  TYPE: SandSailorStudio.Inventory.ItemContainerType/StorageClassData  ENUM=False  BASE=Il2CppSystem.Object
+     P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+     P: System.Int32 stackSize
+     F: System.IntPtr NativeFieldInfoPtr_storageClass
+     F: System.IntPtr NativeFieldInfoPtr_stackSize
+     F: System.IntPtr NativeMethodInfoPtr__ctor_Public_Void_0
+  TYPE: SandSailorStudio.Inventory.ItemStorageClass  ENUM=False  BASE=UnityEngine.ScriptableObject
+     F: System.IntPtr NativeMethodInfoPtr__ctor_Public_Void_0
+
+=== 2: SandSailorStudio.Inventory.ItemInfo full member list ===
+  BASE: SandSailorStudio.Assets.AssetNode
+  --- FIELDS ---
+  F: System.IntPtr NativeFieldInfoPtr_id
+  F: System.IntPtr NativeFieldInfoPtr_databaseIndex
+  F: System.IntPtr NativeFieldInfoPtr_category
+  F: System.IntPtr NativeFieldInfoPtr_unique
+  F: System.IntPtr NativeFieldInfoPtr_stackSize
+  F: System.IntPtr NativeFieldInfoPtr_showTier
+  F: System.IntPtr NativeFieldInfoPtr_tier
+  F: System.IntPtr NativeFieldInfoPtr_localizedName
+  F: System.IntPtr NativeFieldInfoPtr_localizedDescription
+  F: System.IntPtr NativeFieldInfoPtr_localizedLore
+  F: System.IntPtr NativeFieldInfoPtr_icon
+  F: System.IntPtr NativeFieldInfoPtr_previewImage
+  F: System.IntPtr NativeFieldInfoPtr_colors
+  F: System.IntPtr NativeFieldInfoPtr_spawnObject
+  F: System.IntPtr NativeFieldInfoPtr_spawnHeight
+  F: System.IntPtr NativeFieldInfoPtr_storageClass
+  F: System.IntPtr NativeFieldInfoPtr_processes
+  F: System.IntPtr NativeFieldInfoPtr_components
+  F: System.IntPtr NativeFieldInfoPtr_attributes
+  F: System.IntPtr NativeFieldInfoPtr_networkedInventoryAttributes
+  F: System.IntPtr NativeFieldInfoPtr__cachedComponentsTable
+  F: System.IntPtr NativeFieldInfoPtr__cachedComponents
+  F: System.IntPtr NativeFieldInfoPtr__cachedAttributes
+  F: System.IntPtr NativeFieldInfoPtr_s_itemInfoList
+  F: System.IntPtr NativeFieldInfoPtr__durabAttrData
+  F: System.IntPtr NativeFieldInfoPtr__decayRateAttrData
+  F: System.IntPtr NativeFieldInfoPtr__localized
+  F: System.IntPtr NativeMethodInfoPtr_Configure_Public_Virtual_New_Void_0
+  F: System.IntPtr NativeMethodInfoPtr_CreateItem_Public_Virtual_New_Item_0
+  F: System.IntPtr NativeMethodInfoPtr_IsTierRelevant_Public_Virtual_New_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_CanJoin_Public_Virtual_New_Boolean_ItemInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_CanBeAcquired_Public_Virtual_New_Boolean_ItemCollection_0
+  F: System.IntPtr NativeMethodInfoPtr_FindAttribute_Public_Virtual_New_AttributeData_byref_Int32_0
+  F: System.IntPtr NativeMethodInfoPtr_HasComponent_Public_Int32_ItemInfo_byref_Int32_0
+  F: System.IntPtr NativeMethodInfoPtr__HasComponentUncached_Protected_Virtual_New_Int32_ItemInfo_byref_Int32_0
+  F: System.IntPtr NativeMethodInfoPtr_HasComponent_Public_Int32_IItemFilter_0
+  F: System.IntPtr NativeMethodInfoPtr__HasComponentUncached_Public_Virtual_New_Int32_IItemFilter_0
+  F: System.IntPtr NativeMethodInfoPtr_GetItemFilter_Public_IItemFilter_0
+  F: System.IntPtr NativeMethodInfoPtr_GetFullComponentList_Public_Void_List_1_ItemInfo_0
+  F: System.IntPtr NativeMethodInfoPtr__GetFullComponentUncached_Protected_Virtual_New_Void_List_1_ItemInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_GetFullComponentList_Public_Virtual_New_List_1_ItemInfo_0
+  F: System.IntPtr NativeMethodInfoPtr_SpawnObject_Public_Virtual_New_GameObject_byref_ItemObjectSpawnContext_byref_Int32_byref_Vector3_byref_Quaternion_byref_Vector3_Transform_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_SpawnObject_Public_Virtual_New_GameObject_byref_ItemObjectSpawnContext_Item_byref_Vector3_byref_Quaternion_byref_Vector3_Transform_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr__Spawn_Protected_GameObject_GameObject_ItemObjectSpawnContext_byref_Vector3_byref_Quaternion_byref_Vector3_Transform_Item_Int32_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_get_Name_Public_Virtual_New_get_String_0
+  F: System.IntPtr NativeMethodInfoPtr_get_Description_Public_Virtual_New_get_String_0
+  F: System.IntPtr NativeMethodInfoPtr_get_Lore_Public_Virtual_New_get_String_0
+  F: System.IntPtr NativeMethodInfoPtr_Loc_Public_Virtual_New_String_String_Il2CppStringArray_0
+  F: System.IntPtr NativeMethodInfoPtr_GetKey_Public_Virtual_New_String_String_0
+  F: System.IntPtr NativeMethodInfoPtr_GetLocalizationStrings_Public_Virtual_New_Dictionary_2_String_String_0
+  F: System.IntPtr NativeMethodInfoPtr_get_Localized_Public_Virtual_New_get_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_set_Localized_Public_Virtual_New_set_Void_Boolean_0
+  F: System.IntPtr NativeMethodInfoPtr_ContainerTypeFilter_Public_Boolean_ItemContainer_0
+  F: System.IntPtr NativeMethodInfoPtr_ContainerCapacityFilter_Public_Boolean_ItemContainer_0
+  F: System.IntPtr NativeMethodInfoPtr_ItemTypeFilter_Public_Boolean_Item_0
+  F: System.IntPtr NativeMethodInfoPtr__ctor_Public_Void_0
+  --- PROPERTIES ---
+  P: System.Int32 id
+  P: System.UInt16 databaseIndex
+  P: SandSailorStudio.Inventory.ItemCategoryInfo category
+  P: System.Boolean unique
+  P: System.Int32 stackSize
+  P: System.Boolean showTier
+  P: System.Int32 tier
+  P: System.String localizedName
+  P: System.String localizedDescription
+  P: System.String localizedLore
+  P: UnityEngine.Sprite icon
+  P: UnityEngine.Sprite previewImage
+  P: SandSailorStudio.Utils.ColorTableConfig colors
+  P: UnityEngine.GameObject spawnObject
+  P: System.Single spawnHeight
+  P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> processes
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> components
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> attributes
+  P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> networkedInventoryAttributes
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> _cachedComponentsTable
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> _cachedComponents
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> _cachedAttributes
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> s_itemInfoList
+  P: SandSailorStudio.Attributes.AttributeData _durabAttrData
+  P: SandSailorStudio.Attributes.AttributeData _decayRateAttrData
+  P: System.Boolean _localized
+  P: System.String Name
+  P: System.String Description
+  P: System.String Lore
+  P: System.Boolean Localized
+  --- METHODS ---
+  M: System.Void .cctor() [static,priv]
+  M: System.Void Configure() [virt,pub]
+  M: SandSailorStudio.Inventory.Item CreateItem() [virt,pub]
+  M: System.Boolean IsTierRelevant() [virt,pub]
+  M: System.Boolean CanJoin(SandSailorStudio.Inventory.ItemInfo targetItemInfo) [virt,pub]
+  M: System.Boolean CanBeAcquired(SandSailorStudio.Inventory.ItemCollection container) [virt,pub]
+  M: SandSailorStudio.Attributes.AttributeData FindAttribute(System.Int32& attrId) [virt,pub]
+  M: System.Int32 HasComponent(SandSailorStudio.Inventory.ItemInfo info, System.Int32& quantity) [pub]
+  M: System.Int32 _HasComponentUncached(SandSailorStudio.Inventory.ItemInfo info, System.Int32& quantity) [virt,pub]
+  M: System.Int32 HasComponent(SandSailorStudio.Inventory.IItemFilter itemFilter) [pub]
+  M: System.Int32 _HasComponentUncached(SandSailorStudio.Inventory.IItemFilter itemFilter) [virt,pub]
+  M: SandSailorStudio.Inventory.IItemFilter GetItemFilter() [pub]
+  M: System.Void GetFullComponentList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> componentList) [pub]
+  M: System.Void _GetFullComponentUncached(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> componentList) [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetFullComponentList() [virt,pub]
+  M: UnityEngine.GameObject SpawnObject(SandSailorStudio.Inventory.ItemObjectSpawnContext& context, System.Int32& quantity, UnityEngine.Vector3& position, UnityEngine.Quaternion& rotation, UnityEngine.Vector3& scale, UnityEngine.Transform parent, System.Boolean sampleTerrain) [virt,pub]
+  M: UnityEngine.GameObject SpawnObject(SandSailorStudio.Inventory.ItemObjectSpawnContext& context, SandSailorStudio.Inventory.Item item, UnityEngine.Vector3& position, UnityEngine.Quaternion& rotation, UnityEngine.Vector3& scale, UnityEngine.Transform parent, System.Boolean sampleTerrain) [virt,pub]
+  M: UnityEngine.GameObject _Spawn(UnityEngine.GameObject spawnable, SandSailorStudio.Inventory.ItemObjectSpawnContext context, UnityEngine.Vector3& position, UnityEngine.Quaternion& rotation, UnityEngine.Vector3& scale, UnityEngine.Transform parent, SandSailorStudio.Inventory.Item item, System.Int32 itemQuantity, System.Boolean sampleTerrain) [pub]
+  M: System.String get_Name() [virt,pub]
+  M: System.String get_Description() [virt,pub]
+  M: System.String get_Lore() [virt,pub]
+  M: System.String Loc(System.String keyToken, Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray interpStrings) [virt,pub]
+  M: System.String GetKey(System.String token) [virt,pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.String,System.String> GetLocalizationStrings() [virt,pub]
+  M: System.Boolean get_Localized() [virt,pub]
+  M: System.Void set_Localized(System.Boolean value) [virt,pub]
+  M: System.Boolean ContainerTypeFilter(SandSailorStudio.Inventory.ItemContainer container) [pub]
+  M: System.Boolean ContainerCapacityFilter(SandSailorStudio.Inventory.ItemContainer container) [pub]
+  M: System.Boolean ItemTypeFilter(SandSailorStudio.Inventory.Item item) [pub]
+  M: System.Void .ctor() [pub]
+  M: System.String Loc(System.String keyToken, System.String[] interpStrings) [virt,pub]
+  M: System.Void .ctor(System.IntPtr pointer) [pub]
+  M: System.Int32 get_id() [pub]
+  M: System.Void set_id(System.Int32 ) [pub]
+  M: System.UInt16 get_databaseIndex() [pub]
+  M: System.Void set_databaseIndex(System.UInt16 ) [pub]
+  M: SandSailorStudio.Inventory.ItemCategoryInfo get_category() [pub]
+  M: System.Void set_category(SandSailorStudio.Inventory.ItemCategoryInfo ) [pub]
+  M: System.Boolean get_unique() [pub]
+  M: System.Void set_unique(System.Boolean ) [pub]
+  M: System.Int32 get_stackSize() [pub]
+  M: System.Void set_stackSize(System.Int32 ) [pub]
+  M: System.Boolean get_showTier() [pub]
+  M: System.Void set_showTier(System.Boolean ) [pub]
+  M: System.Int32 get_tier() [pub]
+  M: System.Void set_tier(System.Int32 ) [pub]
+  M: System.String get_localizedName() [pub]
+  M: System.Void set_localizedName(System.String ) [pub]
+  M: System.String get_localizedDescription() [pub]
+  M: System.Void set_localizedDescription(System.String ) [pub]
+  M: System.String get_localizedLore() [pub]
+  M: System.Void set_localizedLore(System.String ) [pub]
+  M: UnityEngine.Sprite get_icon() [pub]
+  M: System.Void set_icon(UnityEngine.Sprite ) [pub]
+  M: UnityEngine.Sprite get_previewImage() [pub]
+  M: System.Void set_previewImage(UnityEngine.Sprite ) [pub]
+  M: SandSailorStudio.Utils.ColorTableConfig get_colors() [pub]
+  M: System.Void set_colors(SandSailorStudio.Utils.ColorTableConfig ) [pub]
+  M: UnityEngine.GameObject get_spawnObject() [pub]
+  M: System.Void set_spawnObject(UnityEngine.GameObject ) [pub]
+  M: System.Single get_spawnHeight() [pub]
+  M: System.Void set_spawnHeight(System.Single ) [pub]
+  M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> get_processes() [pub]
+  M: System.Void set_processes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemProcess> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> get_components() [pub]
+  M: System.Void set_components(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemInfoChance> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> get_attributes() [pub]
+  M: System.Void set_attributes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeData> ) [pub]
+  M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> get_networkedInventoryAttributes() [pub]
+  M: System.Void set_networkedInventoryAttributes(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Attributes.AttributeConfig> ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> get__cachedComponentsTable() [pub]
+  M: System.Void set__cachedComponentsTable(Il2CppSystem.Collections.Generic.Dictionary`2<SandSailorStudio.Inventory.ItemInfo,Il2CppSystem.ValueTuple`2<System.Int32,System.Int32>> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> get__cachedComponents() [pub]
+  M: System.Void set__cachedComponents(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> ) [pub]
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> get__cachedAttributes() [pub]
+  M: System.Void set__cachedAttributes(Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SandSailorStudio.Attributes.AttributeData> ) [pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> get_s_itemInfoList() [static,pub]
+  M: System.Void set_s_itemInfoList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> ) [static,pub]
+  M: SandSailorStudio.Attributes.AttributeData get__durabAttrData() [pub]
+  M: System.Void set__durabAttrData(SandSailorStudio.Attributes.AttributeData ) [pub]
+  M: SandSailorStudio.Attributes.AttributeData get__decayRateAttrData() [pub]
+  M: System.Void set__decayRateAttrData(SandSailorStudio.Attributes.AttributeData ) [pub]
+  M: System.Boolean get__localized() [pub]
+  M: System.Void set__localized(System.Boolean ) [pub]
+
+=== 3: members mentioning ItemStorageClass anywhere ===
+  SSSGame.CharacterInventory :: M: UnityEngine.Transform _GetDropLocationForStorageClass(SandSailorStudio.Inventory.ItemStorageClass storageClass, UnityEngine.Vector3& velocity) [pub]
+  SSSGame.CharacterInventory/DropLocation :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SSSGame.CharacterInventory/DropLocation :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SSSGame.CharacterInventory/DropLocation :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  SSSGame.CharacterItemContainerType :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CharacterItemContainerType/StorageClassAnimationSetup> overrideAnimationSetups
+  SSSGame.CharacterItemContainerType :: M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CharacterItemContainerType/StorageClassAnimationSetup> get_overrideAnimationSetups() [pub]
+  SSSGame.CharacterItemContainerType :: M: System.Void set_overrideAnimationSetups(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SSSGame.CharacterItemContainerType/StorageClassAnimationSetup> ) [pub]
+  SSSGame.CharacterItemContainerType/StorageClassAnimationSetup :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SSSGame.CharacterItemContainerType/StorageClassAnimationSetup :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SSSGame.CharacterItemContainerType/StorageClassAnimationSetup :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  SSSGame.ItemCharacterPrefabStackSlot :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SSSGame.ItemCharacterPrefabStackSlot :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SSSGame.ItemCharacterPrefabStackSlot :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  SSSGame.StorageClassStackSlot :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SSSGame.StorageClassStackSlot :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SSSGame.StorageClassStackSlot :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  SSSGame.AI.FSM.FSM_GatherAndHarvest :: P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> largeItemsStorageClasses
+  SSSGame.AI.FSM.FSM_GatherAndHarvest :: M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> get_largeItemsStorageClasses() [pub]
+  SSSGame.AI.FSM.FSM_GatherAndHarvest :: M: System.Void set_largeItemsStorageClasses(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> ) [pub]
+  SSSGame.AI.FSM.ItemClassFilter :: P: Il2CppSystem.Collections.Generic.HashSet`1<SandSailorStudio.Inventory.ItemStorageClass> _itemClassesHash
+  SSSGame.AI.FSM.ItemClassFilter :: M: System.Void AddItemClass(SandSailorStudio.Inventory.ItemStorageClass itemStorageClass) [pub]
+  SSSGame.AI.FSM.ItemClassFilter :: M: System.Void RemoveItemClass(SandSailorStudio.Inventory.ItemStorageClass itemStorageClass) [pub]
+  SSSGame.AI.FSM.ItemClassFilter :: M: Il2CppSystem.Collections.Generic.HashSet`1<SandSailorStudio.Inventory.ItemStorageClass> get__itemClassesHash() [pub]
+  SSSGame.AI.FSM.ItemClassFilter :: M: System.Void set__itemClassesHash(Il2CppSystem.Collections.Generic.HashSet`1<SandSailorStudio.Inventory.ItemStorageClass> ) [pub]
+  SSSGame.AI.FSM.FSM_MineGatherAndHarvest :: P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> largeItemsStorageClasses
+  SSSGame.AI.FSM.FSM_MineGatherAndHarvest :: M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> get_largeItemsStorageClasses() [pub]
+  SSSGame.AI.FSM.FSM_MineGatherAndHarvest :: M: System.Void set_largeItemsStorageClasses(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemStorageClass> ) [pub]
+  Il2CppSystem.Data.Common.DataStorage :: M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<Il2CppSystem.Type> get_s_storageClassType() [static,pub]
+  Il2CppSystem.Data.Common.DataStorage :: M: System.Void set_s_storageClassType(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<Il2CppSystem.Type> ) [static,pub]
+  SandSailorStudio.Inventory.ItemContainerType :: P: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemContainerType/StorageClassData> storageClasses
+  SandSailorStudio.Inventory.ItemContainerType :: M: System.Int32 GetStackSize(SandSailorStudio.Inventory.ItemStorageClass storageClass) [pub]
+  SandSailorStudio.Inventory.ItemContainerType :: M: System.Boolean _TryGetStorageClassData(SandSailorStudio.Inventory.ItemStorageClass itemStorageClass, SandSailorStudio.Inventory.ItemContainerType/StorageClassData& data) [pub]
+  SandSailorStudio.Inventory.ItemContainerType :: M: Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemContainerType/StorageClassData> get_storageClasses() [pub]
+  SandSailorStudio.Inventory.ItemContainerType :: M: System.Void set_storageClasses(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray`1<SandSailorStudio.Inventory.ItemContainerType/StorageClassData> ) [pub]
+  SandSailorStudio.Inventory.ItemContainerType/StorageClassData :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SandSailorStudio.Inventory.ItemContainerType/StorageClassData :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SandSailorStudio.Inventory.ItemContainerType/StorageClassData :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+  SandSailorStudio.Inventory.ItemInfo :: P: SandSailorStudio.Inventory.ItemStorageClass storageClass
+  SandSailorStudio.Inventory.ItemInfo :: M: SandSailorStudio.Inventory.ItemStorageClass get_storageClass() [pub]
+  SandSailorStudio.Inventory.ItemInfo :: M: System.Void set_storageClass(SandSailorStudio.Inventory.ItemStorageClass ) [pub]
+
+=== 4: every type deriving from CraftInteraction (direct or transitive) ===
+  SSSGame.AnvilInteraction
+  SSSGame.CarpenterInteraction  <<< derives from AnvilInteraction
+  SSSGame.DyeingInteraction
+
+DONE
