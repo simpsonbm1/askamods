@@ -1,9 +1,12 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.4)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.5)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
 
 **v1.3.5 — patches applied individually instead of through `PatchAll()` (confirmed working
-in-game 2026-07-30; does NOT resolve Makeway's crash)**
+in-game 2026-07-30, shipped to Nexus as the main download 2026-07-30)**
+Shipped as startup hardening, not as a proven fix — see the Makeway entry below for what actually
+cleared his crash. It is worth shipping regardless: a hook that cannot attach now skips itself and
+writes a line to the log instead of killing the game silently.
 `Plugin.Load` calls a guarded `ApplyPatch` helper once per target and never calls
 `harmony.PatchAll()`. Each target's game type is resolved through a lambda, which keeps the
 `typeof` inside a try/catch. The `[HarmonyPatch(typeof(...))]` attributes are gone from
@@ -131,12 +134,20 @@ and solved.
   awaiting feedback. Workaround: set `[General] ForceAllowRefresh = true`.
 - **goblinhood88** (2026-07-07, v1.3.1 — the version live 2026-06-29 → 07-10): "GAME WONT LOAD."
   The game fails to start whenever the mod is installed. Asked for the `.dll.off` isolation test
-  and `LogOutput.log`; never responded, bug closed. ⚠️ PENDING — no cause identified.
+  and `LogOutput.log`; never responded, bug closed. ⚠️ PENDING — no cause identified. Same symptom
+  as Makeway's report below, which resolved on a Windows reboot; if this reporter ever returns, a
+  reboot is the first thing to suggest.
 - **Makeway** (v1.3.4 and v1.3.5, logs supplied 2026-07-30): the game closes during plugin load,
   no window ever appears, and a fresh `Aska.exe` dump lands in `%LOCALAPPDATA%\CrashDumps`. Normal
   Steam branch, not beta. His v1.3.4 isolation test: the mod alone works, and adding
   `askaplus.bepinex.mod.dll` (Aska Plus 0.5.2) alone is enough to crash it.
-  ⚠️ NOT YET ROOT-CAUSED — the failing hook is named, the enforcing condition is not.
+  **RESOLVED ON HIS MACHINE 2026-07-30 BY A WINDOWS REBOOT, root cause never named.** In his
+  words: "The only thing I changed was restarting Windows. I didn't modify my mod setup or replace
+  any files after installing the v1.3.5 test build." He had already installed v1.3.5 when it
+  crashed, so the sequence is install, crash, reboot, five clean launches in a row with Aska Plus
+  and all his other mods present. **v1.3.5 did not fix this — the reboot did.** He believes the
+  test build fixed it; do not adopt that reading, because a fault a reboot clears is machine state
+  and can return.
 
 **The failing hook is `PlayerCharacter.Spawned` (confirmed from his v1.3.5 log, 2026-07-30).**
 v1.3.5 attaches its five hooks one at a time and logs each success, so his log names the stopping
@@ -157,8 +168,28 @@ before `harmony.PatchAll()`. That frame is the CLR materializing an attribute ob
 metadata. Two facts follow from v1.3.5 still dying. Attribute materialization is the site of the
 v1.3.4 crash but not the whole cause, since v1.3.5 carries no game-type tokens in attribute
 metadata at all. The per-attach try/catch does not intercept the v1.3.5 death either, so whatever
-fails inside that fourth attach is not a managed exception. `ErrorLog.log` for the v1.3.5 run has
-been requested and is the next piece of evidence owed.
+fails inside that fourth attach is not a managed exception.
+
+**What his crash dump says (2026-07-30).** He supplied `Aska.exe.98200.dmp` from
+`%LOCALAPPDATA%\CrashDumps`. The fault is exception code `0xC0000005`, an access violation
+**reading address `0x0000000000000003`** — a null pointer with a small offset — at
+`coreclr.dll+0xBB4BA`. The faulting module is the .NET runtime itself, not the game and not any
+mod, which is the same class of failure as the v1.3.4 `Internal CLR error`: the runtime
+dereferencing something that should never be null during type and reflection work. **The dump is
+truncated and carries no call stack** — its memory table declares 102,888,494 bytes across 16,677
+regions while the file is 18,610,902 bytes, and the faulting thread's stack sits at file offset
+92,858,973, past the end. So the function name behind that offset was never recovered.
+
+**The dump independently confirms both machines are identical.** His module list gives
+`GameAssembly.dll` built `2026-04-23 15:42:10`, `Aska.exe` built `2026-03-18 08:03:37` and
+`UnityPlayer.dll` built `2026-03-18 08:15:51`, all matching the dev desktop exactly, on the same
+Windows build `10.0.26200`. Game code, engine, launcher and OS are the same on both machines.
+
+**Standing verdict: not root-caused, and not a mod defect on the evidence available.** A null
+dereference inside the .NET runtime, on a machine identical to the dev desktop, cleared
+permanently by a reboot, points at transient machine state. Reopen only if a second reporter
+produces the same `coreclr.dll` access violation, in which case an untruncated dump with a stack
+is the thing to ask for.
 
 **The Aska Plus pairing does not reproduce (2026-07-30).** Aska Plus 0.5.2 was installed beside
 MineRefreshMod 1.3.4 on the dev desktop and the game started normally, logging
