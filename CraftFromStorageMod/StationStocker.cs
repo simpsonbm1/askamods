@@ -51,6 +51,10 @@ internal static class StationStocker
     // "[CFS] [CFS-SS] stationProbe" diagnostic (see CraftTransfer.cs) covering the SAME matched/
     // not-matched distinction this line used to report, plus the unresolved/null cases it never could.
 
+    // v0.12.0 (TRANSFORM_STATION_PLAN.md "The fix"): rate limiter for the new routeDecision
+    // diagnostic below, keyed by station name - same idiom as _stationProbeLogged in CraftTransfer.cs.
+    private static readonly Dictionary<string, int> _routeLogged = new();
+
     internal static void MarkAlive(string target)
     {
         try
@@ -74,6 +78,7 @@ internal static class StationStocker
         {
             _unresolvedBpClassLogged.Clear();
             _skipLogged.Clear();
+            _routeLogged.Clear();
         }
         catch (Exception ex)
         {
@@ -272,43 +277,21 @@ internal static class StationStocker
             string stationName = ResolveStationName(station);
             string stationObjName = ResolveStationObjectName(station); // v0.9.1
 
-            // v0.10.0 (TRANSFORM_STATION_PLAN.md Change 1): physical-transform station gate - an item
-            // placed on the station and struck/dyed rather than drawn from a bin (forge/sawhorses/dye
-            // bench by default), so stocking the station inventory does nothing useful. Checked BEFORE
-            // the blueprint-class gate below, since it's the cheaper test and doesn't need the
-            // quest/project/blueprint chain walk.
+            // v0.12.0 (TRANSFORM_STATION_PLAN.md "The fix" - defect fix): the recipe-family gate now
+            // runs BEFORE the station-level gate, not after. The recipe gate is per-UNIT by nature - a
+            // forging recipe means the anvil, an ordinary craft recipe means the table - while
+            // CraftTransfer.IsSkippedStation(CraftingStation) answers per BUILDING. One station object
+            // can own several work surfaces at once (confirmed in-game 2026-07-30: one station's own
+            // all=[CraftInteraction@descendant; AnvilInteraction@descendant; CarpenterInteraction@
+            // descendant; CarpenterInteraction@descendant]), so running the building-level test first
+            // denied toggle 1 to a villager working an ordinary table just because an add-on shares the
+            // same building. bpClass is resolved ONCE here (moved up, resolution logic unchanged) and
+            // reused by both this decision and Part 2's STOCKED line below.
             //
-            // v0.10.1 (defect fix): v0.10.0 resolved the interaction INLINE here via a single
-            // station.gameObject.GetComponent<CraftInteraction>() call and never found anything -
-            // confirmed in-game 2026-07-29 (20x "SKIP blueprintClass=ForgingBlueprintInfo" from the
-            // gate below, ZERO "SKIP stationClass=" lines, against a carpenter station where
-            // AnvilInteraction is the easiest possible match). The resolution now lives in
-            // CraftTransfer.IsSkippedStation(CraftingStation) itself, which walks self, every ancestor
-            // and every descendant instead of a single GetComponent call, and logs its own rate-
-            // limited "[CFS] [CFS-SS] stationProbe" outcome for every station it's asked about (see
-            // that method) - this call site no longer needs its own resolution or its own SKIP line.
-            //
-            // v0.11.0 (TRANSFORM_STATION_PLAN.md Change 2): this early return is now conditional on
-            // Plugin.StockTransformStationMaterials (default false). The user LIKES the stocker keeping
-            // a transform station's own rack topped up (confirmed in-game 2026-07-29: a carpentry rack
-            // holding one hardwood log and one hardwood long stick at a time refilled without the
-            // carpenter walking to a warehouse) and wants it kept, but behind a toggle defaulted OFF -
-            // so they can verify the toggle actually does something by switching it on. Scoped to the
-            // STOCKER ONLY: CraftTransfer.TryReportAvailable and HandleBeginCraftingSequence never
-            // consult this toggle and must keep standing aside unconditionally (see the comments at
-            // those two sites).
-            if (CraftTransfer.IsSkippedStation(station))
-            {
-                if (!SafeGetBool(Plugin.StockTransformStationMaterials, false)) return;
-
-                Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
-                    $"to stock physical-transform station villager={villagerName} station={stationName}.");
-            }
-
-            // v0.9.2: blueprint-class gate - metalworker/forge and other auxiliary-station recipes
-            // (dyeing, painting, study) don't craft from a station bin, so stocking the station
-            // inventory for them does nothing useful. bpClass is resolved ONCE here and reused by
-            // Part 2's STOCKED line below regardless of which branch this takes.
+            // The station test still earns its place as a fallback rather than being deleted: 170 of
+            // 336 stock attempts in the 2026-07-29 run could not resolve a recipe family at all, and
+            // those need SOME answer - the whole-building test is the only one left once the per-unit
+            // signal is unavailable.
             string bpClass = ResolveBlueprintClass(quest, station, out string bpFailReason);
             if (bpFailReason.Length > 0)
             {
@@ -319,17 +302,89 @@ internal static class StationStocker
                     Plugin.Logger.LogInfo($"[CFS] [CFS-SS] bpClass UNRESOLVED reason={bpFailReason} (stocking anyway - fail-open).");
                 }
             }
-            if (bpClass.Length > 0 && GetSkipClasses().Contains(bpClass))
+
+            bool proceed;
+            string route;
+            string routeDetail;
+
+            if (bpClass.Length > 0)
             {
-                string skipKey = bpClass + "|" + stationName;
-                _skipLogged.TryGetValue(skipKey, out int skipCount);
-                if (skipCount < 10)
+                route = "recipe";
+                routeDetail = bpClass;
+
+                if (GetSkipClasses().Contains(bpClass))
                 {
-                    _skipLogged[skipKey] = skipCount + 1;
-                    Plugin.Logger.LogInfo($"[CFS] [CFS-SS] SKIP blueprintClass={bpClass} villager={villagerName} station={stationName}");
+                    // Resolved to a transform family (e.g. ForgingBlueprintInfo) - this recipe means
+                    // the add-on unit, not the bin. Toggle 2 decides, same as it always has for the
+                    // station-level gate below.
+                    if (SafeGetBool(Plugin.StockTransformStationMaterials, false))
+                    {
+                        Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
+                            $"to stock physical-transform station villager={villagerName} station={stationName}.");
+                        proceed = true;
+                    }
+                    else
+                    {
+                        string skipKey = bpClass + "|" + stationName;
+                        _skipLogged.TryGetValue(skipKey, out int skipCount);
+                        if (skipCount < 10)
+                        {
+                            _skipLogged[skipKey] = skipCount + 1;
+                            Plugin.Logger.LogInfo($"[CFS] [CFS-SS] SKIP blueprintClass={bpClass} villager={villagerName} station={stationName}");
+                        }
+                        proceed = false;
+                    }
                 }
-                return;
+                else
+                {
+                    // Resolved to an ordinary family - toggle 1's table work. Proceed regardless of
+                    // what else the building contains; the station test is not consulted at all. This
+                    // is the actual fix: a resolvable ordinary recipe must never be denied because of
+                    // what else the building holds.
+                    proceed = true;
+                }
             }
+            else
+            {
+                // Family could not be resolved - fall back to the station test exactly as it behaved
+                // before v0.12.0, including the same toggle-2 consultation and override line. The
+                // stationProbe line CraftTransfer.IsSkippedStation(CraftingStation) emits is now only
+                // reached on this fallback path, which is correct - it's a whole-building answer,
+                // appropriate only once the per-unit signal is unavailable.
+                route = "station-fallback";
+                routeDetail = bpFailReason.Length > 0 ? bpFailReason : "unresolved";
+
+                if (CraftTransfer.IsSkippedStation(station))
+                {
+                    if (SafeGetBool(Plugin.StockTransformStationMaterials, false))
+                    {
+                        Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
+                            $"to stock physical-transform station villager={villagerName} station={stationName}.");
+                        proceed = true;
+                    }
+                    else
+                    {
+                        proceed = false;
+                    }
+                }
+                else
+                {
+                    proceed = true;
+                }
+            }
+
+            if (Plugin.TransferDiagnostics.Value)
+            {
+                _routeLogged.TryGetValue(stationName, out int routeCount);
+                if (routeCount < 5)
+                {
+                    _routeLogged[stationName] = routeCount + 1;
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-SS] routeDecision station={stationName} route={route} " +
+                        $"detail={routeDetail} outcome={(proceed ? "proceed" : "skip")}");
+                }
+            }
+
+            if (!proceed) return;
 
             // Step 7: CALL GetNeededSuppliesManifest(), never patch it - ItemManifest return type is
             // the inventory-family patch-crash risk this project avoids (FetchQuestSuppression.cs line

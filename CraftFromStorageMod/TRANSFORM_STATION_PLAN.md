@@ -8,11 +8,22 @@ work still to do.
 
 | Level | Who | Where |
 |---|---|---|
-| Default | player | workshop tables |
-| Toggle 1 | villagers too | workshop tables |
-| Toggle 2 (needs toggle 1) | villagers | workshop **add-on units** — the physical transforms |
+| Default | player | crafting tables |
+| Toggle 1 | villagers too | crafting tables, incl. the **armorsmith** |
+| Toggle 2 (needs toggle 1) | villagers | workshop **add-on units**, **bloomeries**, **coal makers** |
 
-A possible third layer covering bloomeries is undecided and out of scope here.
+Cooking and cheesemaking are deliberately excluded (user, 2026-07-30) — never a problem in play, and
+they have their own quest family, so leaving them out costs nothing and adds no special case.
+
+**Toggle 2 is two separate builds.** The workshop add-ons already run through the crafting-supplies
+fetch the mod hooks, so they need only the per-unit change below. Bloomeries and coal makers do NOT:
+they have their own supply quests and state machines — `FSM_FetchBloomerySupplies`,
+`FSM_FetchKilnSupplies`, `SSSGame.CoalmakerSupplyQuest` (Cecil 2026-07-30) — which the mod does not
+hook at all, so they need new hooks and their own test. That half is unstarted.
+
+The standalone `SSSGame.ForgeInteraction` is almost certainly the bloomery's own hearth rather than a
+loose forge building: `FSM_UseBloomeryAnvil` and `FSM_UseBloomeryBellows` both exist, so a bloomery
+carries its own anvil and bellows.
 
 **Do not touch the logic that decides what gets made when.** That is SupplyChainMod's job. Reporting a
 recipe craftable when storage covers it IS this mod's mechanism, so it cannot be narrowed to solve a
@@ -31,25 +42,33 @@ itself — `all=[CraftInteraction@descendant; AnvilInteraction@descendant; Carpe
 CarpenterInteraction@descendant]`. The mod picks one of those four and applies the answer to the whole
 building.
 
-## The fix — read the unit off the crafting job
+## The fix — let the RECIPE decide, and keep the station test only as a fallback
 
-`SSSGame.CraftingQuest/CraftingQuestData` carries `CraftInteraction _ci`, naming the exact unit a job
-will use (Cecil 2026-07-30). The stocker already walks the quest chain to resolve a recipe family, so
-this is a field read on a path it already follows, and it replaces the hierarchy search that caused the
-v0.10.0 and v0.10.1 defects.
+The recipe gate the mod already has is per-unit by nature: a forging recipe means the anvil, an
+ordinary craft recipe means the table. It was doing the right thing before the station gate was added
+in front of it. The station gate is the blunt one, and it currently runs FIRST and overrides a
+perfectly resolvable recipe answer.
 
-Gate on THAT unit rather than on the building. When it is a transform unit, consult toggle 2. When it is
-an ordinary table, proceed under toggle 1 regardless of what else the building contains.
+So the fix is an ordering change plus a fallback, not a new resolution mechanism:
 
-**Fallback when the job does not name a unit.** Ask the workshop instead: `CraftingStation` keeps
-`_craftingTables` (`List<CraftInteraction>`), `_anvils` (`List<AnvilInteraction>`) and
-`_studyInteractions` (`List<StudyInteraction>`) as separate typed lists, so membership in `_anvils` is a
-positive test for an add-on. `CraftInteraction.craftStationHost` navigates back the other way. Prefer
-the narrow positive test over inferring from `_craftingTables`, since a base-typed list may hold derived
-entries.
+1. Resolve the recipe family first. When it resolves to a transform family, consult toggle 2. When it
+   resolves to anything else, proceed under toggle 1 regardless of what else the building contains.
+2. Only when the family cannot be resolved, fall back to the station test as it behaves today.
+3. Log which of the two routes decided, so a run shows how often the fallback is reached.
 
-Keep the existing hierarchy walk only as a last resort, and log which of the three routes answered so a
-future run can show whether the fallbacks are ever reached.
+This uses only mechanisms already confirmed working in-game, and it needs no new hierarchy search.
+The fallback still answers per building, so an unresolvable recipe inside a workshop holding an add-on
+is still treated bluntly — acceptable, because it is strictly narrower than today.
+
+**Why the fallback matters.** 170 of 336 stock attempts in the 2026-07-29 run could not resolve a
+recipe family, which is exactly why the station test was added. Removing it outright would reopen the
+carpenter stall for those attempts.
+
+**Available if the fallback proves too coarse**, not needed for this change:
+`SSSGame.CraftingQuest/CraftingQuestData` carries `CraftInteraction _ci` naming the exact unit a job
+targets, and `CraftingStation` keeps `_craftingTables`, `_anvils` and `_studyInteractions` as separate
+typed lists so membership in `_anvils` is a positive test for an add-on. Prefer that narrow positive
+test over inferring "table" from `_craftingTables`, since a base-typed list may hold derived entries.
 
 ## Naming to land with this change
 

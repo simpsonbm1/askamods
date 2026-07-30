@@ -9,8 +9,9 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
 (villager half) IN PROGRESS — everything through v0.11.0 confirmed in-game 2026-07-30, including
-the transform-station gate in both toggle positions. Remaining work: that gate is per-BUILDING and
-must become per-UNIT (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus request
+the transform-station gate in both toggle positions. v0.12.0 makes that gate per-UNIT and is ⚠️ not
+yet run in-game. Bloomeries and coal makers are a separate, unstarted piece of toggle 2
+(CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus request
 from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
 docs/architecture.md → "Player crafting pipeline".
 

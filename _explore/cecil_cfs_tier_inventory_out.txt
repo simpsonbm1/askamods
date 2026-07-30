@@ -1,0 +1,789 @@
+==================================================================
+Q1/Q2: types matching the tier-2 and excluded-set keywords
+==================================================================
+  SandSailorStudio.Inventory.BloomBlockCoolingProcess
+      BASE: SSSGame.ForgeHeatingProcess  ->  SandSailorStudio.Inventory.ItemProcess  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Inventory.CookingProcess
+      BASE: SandSailorStudio.Inventory.ItemProcess  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ReturnBloomQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ReturnBloomQuest/ReturnBloomQuestDataData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationAnvilQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationAnvilQuest/AnvilQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationBellowsQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationBellowsQuest/BellowsQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.KilnkeeperQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.KilnkeeperQuest/KilnkeeperQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationSupplyQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationSupplyQuest/BloomstationSupplyQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationComplainQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationComplainQuest/BloomstationComplainQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationIdleQuest
+      BASE: SSSGame.BloomstationQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationIdleQuest/BloomstationIdleQuestData
+      BASE: SSSGame.BloomstationQuest/BloomstationQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BloomstationQuest/BloomstationQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerSupplyQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerSupplyQuest/CoalmakerSupplyQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerPyrekeeperQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerPyrekeeperQuest/CoalmakerPyrekeepQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerCargoQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerCargoQuest/CoalmakerCargoQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerComplainQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerComplainQuest/CoalmakerComplainQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerIdleQuest
+      BASE: SSSGame.AI.WorkstationIdleQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CoalmakerIdleQuest/CoalmakerIdleQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingQuest/CookingQuestData
+      BASE: SSSGame.CookingPlaceQuest/CookingPlaceQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingReturnQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingReturnQuest/CookingReturnQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStockpileQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStockpileQuest/CookingStockpileQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStockpileQuest/CookingStockpileQuestData/RemainingCapacityFilter
+      BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.OvercookingQuest
+      BASE: SSSGame.CookingPlaceQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.OvercookingQuest/OvercookingQuestData
+      BASE: SSSGame.CookingPlaceQuest/CookingPlaceQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingFirekeeperQuest
+      BASE: SSSGame.CookingPlaceQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingFirekeeperQuest/FirekeeperQuestData
+      BASE: SSSGame.CookingPlaceQuest/CookingPlaceQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingComplainQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingComplainQuest/CookingComplainQuestData
+      BASE: SSSGame.CookingPlaceQuest/CookingPlaceQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingPlaceQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingPlaceQuest/CookingPlaceQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ICookingFetchQuestData
+      BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringQuest
+      BASE: SSSGame.CraftingQuest  ->  SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringQuest/CuringQuestData
+      BASE: SSSGame.CraftingQuest/CraftingQuestData  ->  SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringCleanupQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringCleanupQuest/CuringCleanupQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringFirekeeperQuest
+      BASE: SSSGame.AI.WorkstationQuest  ->  SSSGame.AI.Quest  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringFirekeeperQuest/CuringFirekeeperQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Bloomstation
+      BASE: SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Bloomstation/SubstitutedPart
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharcoalStation
+      BASE: SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CharcoalStation/__c
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation
+      BASE: SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/CookingHouseStorageWrapper
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/StorageOutlet
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/CookingProject
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/CookingOutlet
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/__c__DisplayClass141_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/__c__DisplayClass89_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/__c__DisplayClass96_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingStation/__c__DisplayClass96_1
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ForgeInteraction
+      BASE: SSSGame.CookingInteraction  ->  SSSGame.StorageInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ForgeInteraction/__c__DisplayClass13_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.KilnInteraction
+      BASE: SSSGame.CookingInteraction  ->  SSSGame.StorageInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.KilnInteraction/CookedItemChecker
+      BASE: System.ValueType
+  SSSGame.PlayerCookingInteractionConfig
+      BASE: SSSGame.InteractionConfiguration`1<SSSGame.CookingInteraction>
+  SSSGame.PlayerCookingInteractionConfig/PlayerCookingInteractionSession
+      BASE: SSSGame.StorageInteractionSession  ->  SSSGame.InteractionSession  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PlayerForgeInteractionConfig
+      BASE: SSSGame.InteractionConfiguration`1<SSSGame.ForgeInteraction>
+  SSSGame.PlayerForgeInteractionConfig/PlayerForgeInteractionSession
+      BASE: SSSGame.StorageInteractionSession  ->  SSSGame.InteractionSession  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PlayerForgeInteractionConfig/PlayerForgeInteractionSession/__c__DisplayClass15_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PlayerKilnInteractionConfig
+      BASE: SSSGame.InteractionConfiguration`1<SSSGame.KilnInteraction>
+  SSSGame.PlayerKilnInteractionConfig/PlayerKilnInteractionSession
+      BASE: SSSGame.StorageInteractionSession  ->  SSSGame.InteractionSession  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingInteraction
+      BASE: SSSGame.StorageInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingInteraction/__c__DisplayClass41_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingInteraction/__c__DisplayClass41_0/MethodInfoStoreGeneric_Method_Internal_Boolean_T_PDM_0`1
+      BASE: System.Object
+  SSSGame.CookingInteraction/__c__DisplayClass46_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingRecipeInfo
+      BASE: SandSailorStudio.Inventory.BlueprintInfo  ->  SandSailorStudio.Inventory.ItemInfo  ->  SandSailorStudio.Assets.AssetNode  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CrockpotRecipeInfo/CookingRecipeRequirementType
+      BASE: System.Enum
+  SSSGame.CrockpotRecipeInfo/CookingRecipeRequirement
+      BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CookingRecipe
+      BASE: SandSailorStudio.Inventory.Blueprint  ->  SandSailorStudio.Inventory.Item  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.ForgeHeatingProcess
+      BASE: SandSailorStudio.Inventory.ItemProcess  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CuringOutlet
+      BASE: SSSGame.AI.StructureTaskDispatcher  ->  SSSGame.AI.TaskDispatcher  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkBloomStation
+      BASE: SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkBloomStation/NetworkTask>
+  SSSGame.Network.NetworkBloomStation/NetworkTask
+      BASE: System.ValueType
+  SSSGame.Network.NetworkCookingStation
+      BASE: SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+  SSSGame.Network.NetworkCookingStation/NetworkTask
+      BASE: System.ValueType
+  SSSGame.Network.NetworkCookingStation_24
+      BASE: SSSGame.Network.NetworkCookingStation  ->  SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+  SSSGame.Network.NetworkCookingStation_32
+      BASE: SSSGame.Network.NetworkCookingStation  ->  SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+  SSSGame.Network.NetworkCookingStation_4
+      BASE: SSSGame.Network.NetworkCookingStation  ->  SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+  SSSGame.Network.NetworkCookingStation_9
+      BASE: SSSGame.Network.NetworkCookingStation  ->  SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkCookingStation/NetworkTask>
+  SSSGame.Deeds.CookingRecipeData
+      BASE: Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Deeds.CookedCondition
+      BASE: SSSGame.Deeds.DeedCondition  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Deeds.CrockpotCookedCondition
+      BASE: SSSGame.Deeds.DeedCondition  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.CookingMenu
+      BASE: SSSGame.UI.StorageMenu  ->  SSSGame.UI.ContextMenu  ->  SandSailorStudio.UI.Menu  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.CookingMenu/CookingMenuParameters
+      BASE: SSSGame.UI.StorageMenu/StorageMenuParameters  ->  SandSailorStudio.UI.MenuParameters  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.KilnMenu
+      BASE: SSSGame.UI.StorageMenu  ->  SSSGame.UI.ContextMenu  ->  SandSailorStudio.UI.Menu  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.WorkstationIdleQuest/CookingStationIdleQuestData
+      BASE: SSSGame.AI.WorkstationQuest/WorkstationQuestData  ->  SSSGame.AI.QuestData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CollectBloomBlock
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CollectBloomBlock/CollectStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_CollectBloomBlock/CollectData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CommitToBloomeryWork
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_Kilnkeep
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_Kilnkeep/KilnkeepStatus
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_Kilnkeep/IgnitionData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_RemoveBloomBlock
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_RemoveBloomBlock/BellowsStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_RemoveBloomBlock/RemoveData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBloomResults
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBloomResults/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBloomResults/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_UseBloomeryAnvil
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_UseBloomeryAnvil/AnvilStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_UseBloomeryAnvil/AnvilData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_UseBloomeryBellows
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_UseBloomeryBellows/BellowsStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_UseBloomeryBellows/BellowsData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData/__c__DisplayClass13_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_GrabOvercookingItem
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_GrabOvercookingItem/RetrieveStatus
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_GrabOvercookingItem/RetrieveData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingResults
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingResults/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingResults/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/ReturnData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/__c__DisplayClass8_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetCookingPlacePosition
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CuringFirekeep
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CuringFirekeep/FirekeepStatus
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_CuringFirekeep/FirekeepData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CuringFirekeep/__c__DisplayClass13_0
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringParts
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringParts/FetchPartsData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringParts/FetchDyePartsStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_FetchCuringResults
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringResults/FetchData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringResults/FetchStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_ReturnCuringParts
+      BASE: SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCuringParts/ReturnPartsData
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnCuringParts/ReturnStage
+      BASE: System.Enum
+  SSSGame.AI.FSM.FSM_KilnIsSupplied
+      BASE: SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_KilnStartedBurning
+      BASE: SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_KilnkeepNeedsRestart
+      BASE: SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CanStartCooking
+      BASE: SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_HasOvercookingItem
+      BASE: SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Steamworks.HTTPCookieContainerHandle
+      BASE: System.ValueType
+  SandSailorStudio.Inventory.BloomBlockGeometry
+      BASE: SandSailorStudio.Inventory.ItemGeometry  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Inventory.BloomBlockGeometry/SlagFace
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SandSailorStudio.Inventory.BloomBlockGeometry/Face
+      BASE: System.Enum
+  Unity.Services.Analytics.Internal.IAnalyticsForgetter
+      BASE: Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Analytics.Internal.AnalyticsForgetter
+      BASE: Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.Services.Analytics.Internal.AnalyticsForgetter/DataDeletionStatus
+      BASE: System.Enum
+  Unity.Collections.LowLevel.Unsafe.UnsafeUtility/MethodInfoStoreGeneric_GetReasonForGenericListNonBlittable_Internal_Static_String_0`1
+      BASE: System.Object
+  Unity.Audio.DSPGraphInternal/Internal_RemoveNodeEventHandlerDelegate
+      BASE: System.MulticastDelegate
+
+==================================================================
+Q1b: every type deriving from SSSGame.Interaction (the full station roster)
+==================================================================
+  SSSGame.BuildInteraction
+  SSSGame.PaintInteraction
+  SSSGame.ProxyRepairInteraction
+  SSSGame.RepairInteraction
+  SSSGame.VillagerSupplyInteraction
+  SSSGame.AnvilInteraction  [CraftInteraction family]
+  SSSGame.BellowsInteraction
+  SSSGame.CarpenterInteraction  [CraftInteraction family]  [AnvilInteraction family]
+  SSSGame.CraftInteraction
+  SSSGame.CrockpotInteraction
+  SSSGame.DyeingInteraction  [CraftInteraction family]
+  SSSGame.ForgeInteraction
+  SSSGame.KilnInteraction
+  SSSGame.TroughInteraction
+  SSSGame.ActivationInteraction
+  SSSGame.CartInteraction
+  SSSGame.CharacterCustomizationInteraction
+  SSSGame.CommandInteraction
+  SSSGame.CreatureInteraction
+  SSSGame.DiningInteraction
+  SSSGame.DoorInteraction
+  SSSGame.FarmCropInteraction
+  SSSGame.HealInteraction
+  SSSGame.RefuelableInteraction
+  SSSGame.LadderInteraction
+  SSSGame.MultiInteractionProxy
+  SSSGame.PenInteraction
+  SSSGame.PetInteraction
+  SSSGame.PlayerInteraction
+  SSSGame.PottyInteraction
+  SSSGame.PrayInteraction
+  SSSGame.ProxyActivatableInteraction
+  SSSGame.RestInteraction
+  SSSGame.RowingInteraction
+  SSSGame.SimpleInteraction
+  SSSGame.StowCreatureInteraction
+  SSSGame.StructureInteraction
+  SSSGame.StudyInteraction
+  SSSGame.TerraformingFieldInteraction
+  SSSGame.TerraformingSplineInteraction
+  SSSGame.TootInteraction
+  SSSGame.VillagerInteraction
+  SSSGame.WorkstationInteraction
+  SSSGame.CavePillarInteraction
+  SSSGame.CaveWallInteraction
+  SSSGame.CookingInteraction
+  SSSGame.DigInteraction
+  SSSGame.FireInteraction
+  SSSGame.RefuelInteraction
+  SSSGame.FishingInteraction
+  SSSGame.GatherInteraction
+  SSSGame.HarvestInteraction
+  SSSGame.NestInteraction
+  SSSGame.PickupInteraction
+  SSSGame.StorageInteraction
+  SSSGame.Water.AnchorInteraction
+  SSSGame.Water.BattleshipInteraction
+  SSSGame.Water.BoatInteraction
+  SSSGame.Water.EmbarkInteraction
+  SSSGame.Water.HoldFastInteraction
+  SSSGame.Water.PickupCreatureInteraction
+  SSSGame.Water.RideCreatureInteraction
+  SSSGame.Water.RudderInteraction
+  SSSGame.Water.SailInteraction
+  SSSGame.Water.TowInteraction
+  SSSGame.Combat.TrapInteraction
+
+==================================================================
+Q3: members matching Inventory|Manifest|Supply|Needed|Fuel|Input|Add on
+    the tier-2 candidate types found above
+==================================================================
+
+  --- SSSGame.KilnkeeperQuest/KilnkeeperQuestData ---
+  P: System.Boolean _noFuel
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _itemManifestQEvData
+  M: System.Void ComplainNoTool(System.Boolean complain, SandSailorStudio.Inventory.ItemCategoryInfo toolCategory) [pub]
+  M: System.Void ComplainNoResources(System.Boolean complain, SandSailorStudio.Inventory.ItemManifest itemManifest) [pub]
+  M: System.Void ComplainNoFuel(System.Boolean complain) [pub]
+  M: System.Void ComplainNoCarryCapacity(System.Boolean complain, SandSailorStudio.Inventory.ItemManifest manifest) [pub]
+
+  --- SSSGame.CoalmakerSupplyQuest ---
+  P: SandSailorStudio.Inventory.ItemManifest _GlobalPromiseManifest_k__BackingField
+  P: SandSailorStudio.Inventory.ItemManifest GlobalPromiseManifest
+
+  --- SSSGame.CoalmakerSupplyQuest/CoalmakerSupplyQuestData ---
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _qItemManifestEvData_CarryCapacity
+  P: System.Boolean _noFuel
+  P: SSSGame.CoalmakerSupplyQuest Quest
+  M: System.Void ComplainNoFuel(System.Boolean complain) [pub]
+  M: System.Void ComplainNoCarryCapacity(System.Boolean complain, SandSailorStudio.Inventory.ItemManifest manifest) [pub]
+
+  --- SSSGame.CoalmakerCargoQuest/CoalmakerCargoQuestData ---
+  P: SSSGame.AI.QuestEventData`1<SandSailorStudio.Inventory.ItemManifest> _qItemManifestEvData_CarryCapacity
+  M: System.Void ComplainNoCarryCapacity(System.Boolean complain, SandSailorStudio.Inventory.ItemManifest manifest) [pub]
+
+  --- SSSGame.CoalmakerComplainQuest/CoalmakerComplainQuestData ---
+  P: SSSGame.AI.GenericMessageComplaint _noFuelComplaint
+  P: SSSGame.AI.ItemManifestComplaint _noCarryCapacityComplaint
+
+  --- SSSGame.CharcoalStation ---
+  P: SSSGame.AI.FSM.vFSMBehaviour supplyBehaviour
+  P: System.Boolean canManageFuelPriorities
+  P: SSSGame.CoalmakerSupplyQuest _supplyQuest
+  P: SSSGame.AI.CleanupInventoryQuest _cleanupQuest
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> _storageSuppies
+  P: Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> _villagersWhitelist
+  M: SSSGame.StorageSupply FindStorageSupply(Il2CppSystem.Predicate`1<SSSGame.StorageSupply> predicate) [pub]
+  M: SandSailorStudio.Inventory.ItemCollection GetInventory() [virt,pub]
+  M: System.Boolean IsFuelNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: System.Boolean IsItemNeededByVillager(SandSailorStudio.Inventory.ItemInfo itemInfo, SSSGame.Villager villager) [virt,pub]
+  M: SandSailorStudio.Inventory.ItemManifest GetItemManifest() [virt,pub]
+  M: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> GetFilterItemList(System.Int32 taskId) [virt,pub]
+
+  --- SSSGame.KilnInteraction ---
+  P: System.Single c_fuelRecoveryRate
+  P: SandSailorStudio.Inventory.ItemContainerComponent bloomBlockContainer
+  P: SSSGame.ContainerInfo bloomBlockInfo
+  P: UnityEngine.Vector2 fuelBurnRate
+  P: UnityEngine.AnimationCurve fuelRatioToPower
+  P: SandSailorStudio.Attributes.Attribute _fuelBurnRateAttr
+  P: SandSailorStudio.Attributes.VariableAttribute _fuelVAttr
+  P: System.Single _fuelCaloricMass
+  P: System.Single _fuelCaloricPower
+  M: System.Int32 PopulateOreList(Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.Item> oreList) [pub]
+  M: System.Int32 GetFuelCount() [pub]
+  M: System.Boolean _IsFuelPredicate(SandSailorStudio.Inventory.Item item) [static,pub]
+  M: System.Boolean _IsOrePredicate(SandSailorStudio.Inventory.Item item) [static,pub]
+  M: System.Void _Container_OnItemAdded(SandSailorStudio.Inventory.Item item, System.Int32 count) [virt,pub]
+  M: System.Void _Container_OnItemRemoved(SandSailorStudio.Inventory.Item item, System.Int32 count) [virt,pub]
+  M: System.Void _Fire_OnFuelRatioChanged(System.Single obj) [pub]
+  M: System.Void _BloomContainer_OnItemRemovedStart(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+  M: System.Void _BloomContainer_OnItemAddedStart(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+
+  --- SSSGame.KilnInteraction/CookedItemChecker ---
+  M: System.Boolean CheckCooked(SandSailorStudio.Inventory.Item item) [pub]
+
+  --- SSSGame.PlayerKilnInteractionConfig ---
+  P: SSSGame.InputContext.Context inputContext
+  M: Il2CppSystem.Collections.Generic.Dictionary`2<System.String,System.String> GetLocalizationStrings() [virt,pub]
+
+  --- SSSGame.PlayerKilnInteractionConfig/PlayerKilnInteractionSession ---
+  M: System.Void _OnInput(UnityEngine.InputSystem.InputAction/CallbackContext obj) [pub]
+  M: System.Void _StorageInteraction_OnChange(SandSailorStudio.Inventory.Item arg1, System.Int32 arg2) [pub]
+  M: System.Void _Anvil_OnInvChanged(SandSailorStudio.Inventory.ItemCollection inventory, SandSailorStudio.Inventory.Item item, System.Int32 count, SandSailorStudio.Inventory.ItemEventContext context) [pub]
+
+  --- SSSGame.AI.FSM.FSM_FetchBloomerySupplies/FetchData ---
+  P: SandSailorStudio.Inventory.ItemManifest finderManifest
+  P: SandSailorStudio.Inventory.ItemManifest bloomFinderManifest
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest maxCarryCapacityManifest
+  M: System.Boolean Check(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+
+  --- SSSGame.AI.FSM.FSM_FetchKilnSupplies/FetchData ---
+  P: SandSailorStudio.Inventory.ItemManifest finderManifest
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest maxCarryCapacityManifest
+  M: System.Boolean Check(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+
+  --- SSSGame.AI.FSM.FSM_ReturnBloomerySupplies/ReturnData ---
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+
+  --- SSSGame.AI.FSM.FSM_ReturnKilnSupplies/ReturnData ---
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+
+  --- SSSGame.AI.FSM.FSM_FetchCoalmakerCargo ---
+  M: System.Boolean _EmptyStorageSupplyPredicate(SSSGame.StorageSupply storageSupply) [pub]
+
+  --- SSSGame.AI.FSM.FSM_FetchCoalmakerCargo/FetchData ---
+  P: SandSailorStudio.Inventory.IItemFilter coalItemFilter
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest maxCarryCapacityManifest
+
+  --- SSSGame.AI.FSM.FSM_FetchCoalmakerFuel ---
+  M: System.Void _PrepareWorldItemInstance(SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData actionData, SSSGame.WorldItemInstance wii) [pub]
+  M: System.Void _PrepareStorageInteraction(SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData actionData, SSSGame.StorageInteraction storageIntr) [pub]
+  M: System.Void _PrepareGatherInteraction(SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData actionData, SSSGame.GatherInteraction gatherInteraction) [pub]
+
+  --- SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData ---
+  P: SandSailorStudio.Inventory.ItemContainerComponent containerComponent
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+  P: SandSailorStudio.Inventory.ItemManifest maxCarryCapacityManifest
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,System.Int32> _maxTierTable
+  M: System.Boolean Check(SandSailorStudio.Inventory.ItemInfo itemInfo) [virt,pub]
+
+  --- SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData/__c__DisplayClass13_0 ---
+  M: System.Boolean _ValidateDescriptor_b__0(SandSailorStudio.Inventory.Item itm) [pub]
+
+  --- SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo ---
+  M: System.Boolean _EmptyStorageSupplyPredicate(SSSGame.StorageSupply storageSupply) [pub]
+
+  --- SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo/ReturnData ---
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+
+  --- SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel/ReturnData ---
+  P: SandSailorStudio.Inventory.ItemManifest localPromiseManifest
+
+==================================================================
+Q3b: SSSGame.CraftingStation - EVERY List/collection-typed member
+==================================================================
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/CraftingProject> craftingProjects
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftingStation/StudyProject> studyProjects
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CraftInteraction> _craftingTables
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StorageSupply> _storageSupplies
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.StudyInteraction> _studyInteractions
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.StorageSupply,SSSGame.CraftingStation/OutputStorageWrapper> _storageWrappers
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.AnvilInteraction> _anvils
+  P: Il2CppSystem.Collections.Generic.List`1<SSSGame.CuringOutlet> _curingOutlets
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<System.Int32,SSSGame.CraftBlueprint> _knownBlueprints
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,Il2CppSystem.Collections.Generic.List`1<SSSGame.AI.Quest>> _outsourcedQuests
+  P: Il2CppSystem.Collections.Generic.Dictionary`2<SSSGame.AI.ITaskDispatcher,SandSailorStudio.Inventory.ItemContainer> _outsourcedBlueprints
+  P: Il2CppSystem.Collections.Generic.List`1<SandSailorStudio.Inventory.ItemInfo> s_itemList
+  P: Il2CppSystem.Collections.Generic.HashSet`1<System.Int32> _villagersWhitelist
+
+==================================================================
+Q4: FSM state types matching Fetch|Deliver|Supply|Haul|Refuel|Load|Feed|Stock
+==================================================================
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies/FetchData
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies/FetchData
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnBloomResults
+  SSSGame.AI.FSM.FSM_ReturnBloomResults/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnBloomResults/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnBloomerySupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnKilnSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_FetchBuildingSupplies
+  SSSGame.AI.FSM.FSM_FetchBuildingSupplies/FetchSuppliesData
+  SSSGame.AI.FSM.FSM_FetchBuildingSupplies/RemainingSuppliesItemFilter
+  SSSGame.AI.FSM.FSM_FetchBuildingSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchPaintSupplies
+  SSSGame.AI.FSM.FSM_FetchPaintSupplies/FetchSuppliesData
+  SSSGame.AI.FSM.FSM_FetchPaintSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchRepairSupplies
+  SSSGame.AI.FSM.FSM_FetchRepairSupplies/FetchSuppliesData
+  SSSGame.AI.FSM.FSM_FetchRepairSupplies/RemainingSuppliesItemFilter
+  SSSGame.AI.FSM.FSM_FetchRepairSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchSupplies
+  SSSGame.AI.FSM.FSM_FetchSupplies/FetchSuppliesData
+  SSSGame.AI.FSM.FSM_FetchSupplies/RemainingSuppliesItemFilter
+  SSSGame.AI.FSM.FSM_FetchSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnBuildingSupplies
+  SSSGame.AI.FSM.FSM_ReturnBuildingSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnBuildingSupplies/ReturnSuppliesData
+  SSSGame.AI.FSM.FSM_ReturnRepairSupplies
+  SSSGame.AI.FSM.FSM_ReturnRepairSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnRepairSupplies/ReturnSuppliesData
+  SSSGame.AI.FSM.FSM_ReturnSupplies
+  SSSGame.AI.FSM.FSM_ReturnSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnSupplies/ReturnSuppliesData
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo/FetchData
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo/FetchStage
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchData/__c__DisplayClass13_0
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerCargo/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCoalmakerFuel/ReturnStage
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile/FetchData
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile/FetchStage
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies/FetchData
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnCookingResults
+  SSSGame.AI.FSM.FSM_ReturnCookingResults/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCookingResults/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCookingStockpile/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCookingSupplies/__c__DisplayClass8_0
+  SSSGame.AI.FSM.FSM_CleanupCrockpot/ReturnStage
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies/FetchData
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies/__c__DisplayClass16_0
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies/__c__DisplayClass16_1
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies/__c__DisplayClass16_2
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCrockpotSupplies/__c__DisplayClass8_0
+  SSSGame.AI.FSM.FSM_FindClothes/FetchData
+  SSSGame.AI.FSM.FSM_FindClothes/FetchData/FilterMode
+  SSSGame.AI.FSM.FSM_FindClothes/FetchStage
+  SSSGame.AI.FSM.FSM_PaintEquipment/FetchData
+  SSSGame.AI.FSM.FSM_FetchHomeStockpile
+  SSSGame.AI.FSM.FSM_FetchHomeStockpile/FetchData
+  SSSGame.AI.FSM.FSM_FetchHomeStockpile/StockpileStage
+  SSSGame.AI.FSM.FSM_FetchKennelFood
+  SSSGame.AI.FSM.FSM_FetchKennelFood/OwnedDecompositionBehaviour
+  SSSGame.AI.FSM.FSM_FetchKennelFood/FoundItemDecompositionBehaviour
+  SSSGame.AI.FSM.FSM_FetchKennelFood/FetchData
+  SSSGame.AI.FSM.FSM_FetchKennelFood/FetchStage
+  SSSGame.AI.FSM.FSM_GatherSmilk/FetchData
+  SSSGame.AI.FSM.FSM_GatherSmilk/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnSlaughterResults
+  SSSGame.AI.FSM.FSM_ReturnSlaughterResults/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnSlaughterResults/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnSmilk
+  SSSGame.AI.FSM.FSM_ReturnSmilk/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnSmilk/ReturnStage
+  SSSGame.AI.FSM.FSM_TradeRouteFetch
+  SSSGame.AI.FSM.FSM_TradeRouteFetch/TradeState
+  SSSGame.AI.FSM.FSM_TradeRouteFetch/ActionData
+  SSSGame.AI.FSM.FSM_TradeRouteReturn
+  SSSGame.AI.FSM.FSM_TradeRouteReturn/ActionData
+  SSSGame.AI.FSM.FSM_TradeRouteReturn/TradeState
+  SSSGame.AI.FSM.FSM_PetFindFood/FetchData
+  SSSGame.AI.FSM.FSM_PetFindFood/FetchStage
+  SSSGame.AI.FSM.FSM_Fetch
+  SSSGame.AI.FSM.FSM_Fetch/GatherData
+  SSSGame.AI.FSM.FSM_Fetch/GatherStage
+  SSSGame.AI.FSM.FSM_FetchAnvilResults
+  SSSGame.AI.FSM.FSM_FetchAnvilResults/FetchAnvilData
+  SSSGame.AI.FSM.FSM_FetchAnvilResults/FetchAnvilStage
+  SSSGame.AI.FSM.FSM_FetchBoatCargo
+  SSSGame.AI.FSM.FSM_FetchBoatCargo/ActionData
+  SSSGame.AI.FSM.FSM_FetchBoatCargo/GatherStage
+  SSSGame.AI.FSM.FSM_FetchCraftingSupplies
+  SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchData
+  SSSGame.AI.FSM.FSM_FetchCraftingSupplies/FetchStage
+  SSSGame.AI.FSM.FSM_FetchCuringParts
+  SSSGame.AI.FSM.FSM_FetchCuringParts/FetchPartsData
+  SSSGame.AI.FSM.FSM_FetchCuringParts/FetchDyePartsStage
+  SSSGame.AI.FSM.FSM_FetchCuringResults
+  SSSGame.AI.FSM.FSM_FetchCuringResults/FetchData
+  SSSGame.AI.FSM.FSM_FetchCuringResults/FetchStage
+  SSSGame.AI.FSM.FSM_FetchDyeParts
+  SSSGame.AI.FSM.FSM_FetchDyeParts/FetchPartsData
+  SSSGame.AI.FSM.FSM_FetchDyeParts/FetchDyePartsStage
+  SSSGame.AI.FSM.FSM_FetchDyeParts/__c__DisplayClass11_0
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies/FetchDyeData
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies/FetchDyeingSuppliesStage
+  SSSGame.AI.FSM.FSM_FetchExpeditionSupplies
+  SSSGame.AI.FSM.FSM_FetchExpeditionSupplies/ActionData
+  SSSGame.AI.FSM.FSM_FetchExpeditionSupplies/GatherStage
+  SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem
+  SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem/FindItemStage
+  SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem/ActionData
+  SSSGame.AI.FSM.FSM_FetchSaplings
+  SSSGame.AI.FSM.FSM_FetchSaplings/ActionData
+  SSSGame.AI.FSM.FSM_FetchSaplings/FarmingStage
+  SSSGame.AI.FSM.FSM_FetchTroughContents
+  SSSGame.AI.FSM.FSM_FetchTroughContents/FetchData
+  SSSGame.AI.FSM.FSM_FetchTroughContents/FetchAnvilStage
+  SSSGame.AI.FSM.FSM_FetchWaterForTrough
+  SSSGame.AI.FSM.FSM_FetchWaterForTrough/FetchData
+  SSSGame.AI.FSM.FSM_FetchWaterForTrough/FetchStage
+  SSSGame.AI.FSM.FSM_PrepareForWork/FetchData
+  SSSGame.AI.FSM.FSM_PrepareForWork/FetchStage
+  SSSGame.AI.FSM.FSM_ReturnBoatCargo
+  SSSGame.AI.FSM.FSM_ReturnBoatCargo/ActionData
+  SSSGame.AI.FSM.FSM_ReturnBoatCargo/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCraftingResults
+  SSSGame.AI.FSM.FSM_ReturnCraftingResults/NonNeededResultFilter
+  SSSGame.AI.FSM.FSM_ReturnCraftingResults/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCraftingResults/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies/__c__DisplayClass8_0
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies/__c__DisplayClass8_1
+  SSSGame.AI.FSM.FSM_ReturnCraftingSupplies/__c__DisplayClass8_2
+  SSSGame.AI.FSM.FSM_ReturnCuringParts
+  SSSGame.AI.FSM.FSM_ReturnCuringParts/ReturnPartsData
+  SSSGame.AI.FSM.FSM_ReturnCuringParts/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnExpeditionSupplies
+  SSSGame.AI.FSM.FSM_ReturnExpeditionSupplies/ActionData
+  SSSGame.AI.FSM.FSM_ReturnExpeditionSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnFarmingResult
+  SSSGame.AI.FSM.FSM_ReturnFarmingResult/GatherData
+  SSSGame.AI.FSM.FSM_ReturnFarmingResult/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnHarborButcherResults
+  SSSGame.AI.FSM.FSM_ReturnHarborButcherResults/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnHarborButcherResults/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnHarvest
+  SSSGame.AI.FSM.FSM_ReturnHarvest/GatherData
+  SSSGame.AI.FSM.FSM_ReturnHarvest/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies/GatherData
+  SSSGame.AI.FSM.FSM_ReturnStorageSupplies/ReturnStage
+  SSSGame.AI.FSM.FSM_ReturnWaterToTrough
+  SSSGame.AI.FSM.FSM_ReturnWaterToTrough/ReturnData
+  SSSGame.AI.FSM.FSM_ReturnWaterToTrough/ReturnStage
+  SSSGame.AI.FSM.FSM_CheckVillageHasLoadoutItem
+
+DONE
