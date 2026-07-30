@@ -170,15 +170,19 @@ run. Both runs load Aska Plus first and inject its four mono types (`GrassTool`,
 so the substitute-injection path is not it. `BepInEx 6.0.0-be.755`, `Unity 6000.3.12f1` and
 `.NET 6.0.7` are identical across the two machines, so the loader stack is not it.
 
-**The game executable build is the one confirmed difference.** The date in BepInEx's preloader
-header is `Aska.exe`'s last-write time — verified locally, where the header reads
-`BepInEx 6.0.0-be.755 - Aska (6/15/2026 8:53:18 PM)` and `Aska.exe` LastWriteTime is
-`6/15/2026 8:53:18 PM`. Makeway's header reads `BepInEx 6.0.0-be.755 - Aska (27-04-2026
-14:51:25)`, roughly seven weeks older. This mod's patch attributes name `CavesManager`,
-`Character` and `PlayerCharacter` through `typeof`, resolved against interop assemblies generated
-from whatever `GameAssembly.dll` the machine has, so a type that moved between those two builds is
-the leading candidate for what `PlayerCharacter` resolution hits on his machine. ⚠️ UNVERIFIED —
-it does not account for his v1.3.4 isolation test reporting the mod fine on its own.
+**Both machines run identical game code — game-build skew is ruled out (2026-07-30).** The two
+logs show different dates in BepInEx's preloader header: the dev desktop reads
+`BepInEx 6.0.0-be.755 - Aska (6/15/2026 8:53:18 PM)` and Makeway's reads
+`BepInEx 6.0.0-be.755 - Aska (27-04-2026 14:51:25)`. **That date is the file's last-write time,
+which is when Steam wrote it to disk, NOT the game's build date.** The desktop's `Aska.exe`
+LastWriteTime is `6/15/2026 8:53:18 PM`, matching its header exactly, while the PE link timestamp
+inside `GameAssembly.dll` on the same install is `2026-04-23 15:42:10` UTC. Steam's news API
+(`api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=1898300`) lists `April 23rd Hotfix`,
+dated April 23 2026, as the newest entry with nothing after it. So a June 15 install delivered the
+April 23 build, and Makeway's April 27 install postdates that same hotfix by four days. Both
+machines therefore run the April 23 build, their interop assemblies are generated from the same
+`GameAssembly.dll`, and `PlayerCharacter` exists identically on both. Any explanation resting on a
+type that moved between game builds is dead.
 
 **Exposure beyond this mod.** Nine other mods in this repo hook `PlayerCharacter.Spawned` and
 `PlayerCharacter.Despawned` exactly the same way: CraftFromStorageMod, DenRespawnMod,

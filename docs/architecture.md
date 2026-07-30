@@ -156,7 +156,7 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   inside unmanaged attribute-blob parsing (`CustomAttribute._CreateCaObject`). A failure there
   surfaces as `Fatal error. Internal CLR error. (0x80131506)`, which kills the process with no
   managed exception and nothing a try/catch can intercept. Reported by a Nexus user against
-  MineRefreshMod 1.3.4 on a 2026-04-27 game build; does NOT reproduce on a 2026-06-15 build.
+  MineRefreshMod 1.3.4; does NOT reproduce on the dev desktop, which runs the same game build.
   **Pattern that makes the failure legible** (MineRefreshMod v1.3.5): drop `PatchAll()`, drop the
   `[HarmonyPatch(typeof(...))]` attributes so the assembly carries no game-type tokens in attribute
   metadata, and call `harmony.Patch()` once per target inside a try/catch, resolving each target
@@ -168,6 +168,17 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   ⚠️ The crash is NOT yet root-caused — the enforcing condition is still unnamed. Every other mod
   in this repo still uses `PatchAll()`, and nine of them hook the same `PlayerCharacter` methods.
   Full evidence: [`docs/mods/mine-refresh.md`](mods/mine-refresh.md).
+- **The date in BepInEx's preloader header is an INSTALL date, not a game build date** (confirmed
+  2026-07-30). The header line `BepInEx 6.0.0-be.755 - Aska (<date>)` prints `Aska.exe`'s
+  last-write time, i.e. when Steam wrote the file. Two reporters with different header dates can be
+  running identical game code. **To read the real build**, take the PE link timestamp of
+  `GameAssembly.dll` (bytes at `e_lfanew + 8`, a Unix epoch seconds value) — on the dev desktop
+  that is `2026-04-23 15:42:10` UTC against a `6/15/2026` last-write time. Cross-check against
+  Steam's own news feed, which needs no auth and no browser:
+  `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=1898300`. ⚠️ **steamdb.info
+  cannot be used** — plain fetches get HTTP 403, and opening it in the Browser pane hard-crashed
+  the Claude desktop app twice on BENSDESKTOP, badly enough that Windows offered to repair the app.
+  Use the Steam news API instead.
 
 ---
 
