@@ -1,0 +1,185 @@
+=== UI types whose name mentions Workstation / Task / Villager ===
+  SSSGame.UI.WorkstationInteractionConfig : InteractionConfiguration`1
+  SSSGame.UI.FarmCropTaskPanel : MonoBehaviour
+  SSSGame.UI.ResolutionTaskPanel : TaskPanel
+  SSSGame.UI.TaskPanel : MonoBehaviour
+  SSSGame.UI.WorkstationEquipmentColorTabPage : TabPage
+  SSSGame.UI.WorkstationTutorialPrompt : TutorialPrompt
+  SSSGame.UI.WorkstationMenu : WidgetMenu
+  SSSGame.UI.WorkstationMenuAdditional : WorkstationMenu
+
+=== SSSGame.UI.WorkstationMenu members ===
+  base=SSSGame.UI.WidgetMenu
+    M Void add_OnVillagerSelected(Action`1)
+    M Void remove_OnVillagerSelected(Action`1)
+    M Void OnSetup(MenuParameters)
+    M Boolean IsBusyClosing()
+    M Void OnActivate()
+    M Void _OnPlayerPartyChanged(IWorkstation)
+    M Void _OnStructureOutpostDataChanged(IOutpostDataHolder)
+    M Void OnDeactivate()
+    M Boolean CheckResumeSession(Interaction)
+    M Void PlayOpenSound()
+    M Void PlayCloseSound()
+    M Void OnClosed()
+    M Void CleanupOutpostColor()
+    M Void _SaveCreatePageDropdownPreferences()
+    M Void _OnCurrentWorkstationChanged(IWorkstation)
+    M Void ResumeInteractionSession(InteractionSession)
+    M Void _OnCurrentWorkstationAddTask(IWorkstation, WorkstationTaskData)
+    M Void _OnCurrentWorkstationRemoveTask(IWorkstation, WorkstationTaskData)
+    M Void SuspendSession()
+    M Void SetUpStructurePage()
+    M Void SetupPages()
+    M Void _OnHarvestAreaElementChanged(Int32, Boolean)
+    M Void _SaveHarvestAreaTypeChanges()
+    M Void _RefreshAddTaskButtonVisibility()
+    M Void _HandleInvalidOverlay()
+    M Int32 _CompareVehicleVillagers(Villager, Villager)
+    M Int32 _CompareLoadoutVillagers(Villager, Villager)
+    M Int32 _CompareMilitiaVillagers(Villager, Villager)
+    M Void _CleanupVehicles()
+    M Void _CleanupMilitia()
+    M Void RefreshVehicles()
+    M Void RefreshLoadouts(Boolean)
+    M Void _OnLoadoutChanged(LoadoutSelectionPanel)
+    M Void _CleanupOutpostColor(Boolean)
+    M Void _CleanupLoadouts(Boolean)
+    M Void _OnVehicleSelected(VehicleSelectionPanel)
+    M Void BtnCreateTradeRoute()
+    M Void BtnCreatePatrolRoute()
+    M Void _PrepareMilitiaPageVisuals()
+    M Int32 _compareMilita(Villager, Villager)
+    M Void _onMilitiaVillagerPanelCreated(VillagerPanel)
+    M Int32 _GetMilitiaAssignState(VillagerPanel)
+    M Void _RefreshMilitiaCounter()
+    M Void _PrepareVehiclesPageVisuals()
+    M Void _PrepareLoadoutsPageVisuals()
+    M Void _PreparePartyPageVisuals()
+    M Void _RefreshPartyCounter()
+    M Void _OnPartyVillagerPanelCreated(VillagerPanel)
+    M Void _PrepareStoragePageVisuals()
+    M Void _PrepareExpeditionPageVisuals()
+    M Void _PrepareTaskPageVisuals()
+    M Void _PrepareEquipmentColorPageVisuals()
+    M Void _StartStructureRenaming()
+    M Void _SaveCurrentTaskPreset()
+    M Void _LoadTaskPreset(Boolean)
+    M Void SaveCurrentTaskPreset(Structure)
+    M Void LoadTaskPreset(Structure, Boolean)
+    M Void _OnSaveCurrentTasksPreset()
+    M Void _OnLoadTasksPreset()
+    M Void _OnTasksPresetEntryDeleted(SelectActionMenu, SelectActionMenuEntry)
+    M Boolean _ValidateSelectedTasksPresetEntry(SelectActionMenuEntry)
+    M Void _onTasksPresetLoadConfirmed(ConfirmActionMenu)
+    M Void _OnAllTasksQuantitiesChanged(Int32)
+    M Void _OnHousingPointsChanged(Single)
+    M Void _OnDefencePointsChanged(Single)
+    M Void _OnExteriorHousingPointsChanged(Single)
+    M Void _SetupOutpostLabel(Structure)
+    M Void RefreshScorePointsLabel(RectTransform, Int32)
+    M Void RefreshOutpostSelectionDropdown()
+    M Void _PrepareAssignPageVisuals()
+    M Void OnPopulationModified(Villager)
+    M Void RefreshAssignPageVisibility()
+    M Void RefreshVillagerPanelsAssignButton()
+    M Void RefreshAssignVillagers()
+    M Void RefreshAssignedVillagerCount()
+    M Void ConfirmOutpostColorSelect()
+    M Void _onVillagerPanelSet(VillagerPanel)
+    M Void HandleVillager(Villager)
+    M Void _CleanupVillagerPanels()
+    M Void _PrepareWhitelistPageVisuals()
+    M Boolean _IsDismantled(Structure)
+    M Int32 _compareByWhitelist(Villager, Villager)
+    M Void _OnWhitelistAllToggleChanged(Boolean)
+    M Void _CleanupWhitelist()
+    M Void _OnWhitelistDataReceived()
+    M Void _OnVillagerWhitelistPanelCreated(VillagerPanel)
+    M Void _OnVillagerWhitelistPanelRefreshed(VillagerPanel)
+    M Int32 _GetWhitelistAssignedState(VillagerPanel)
+    M Void _OnVillagerWhitelistClicked(VillagerPanel)
+    M Boolean _VillagerWhitelistPredicate(Villager)
+    M Void SetAllWhiteList(Boolean)
+    M Void RefreshWhitelist()
+    M String _GetNoTaskMessageForWorkstation(IWorkstation)
+    M Void _CreateTaskPanels()
+    M Int32 _TaskPanelItemInfoComparison(TaskDataPanel, TaskDataPanel)
+    M Void _UpdateWorkstationTasks(Boolean)
+    M Boolean AddTaskDataToWorkstation(WorkstationTaskData)
+    M Void RemoveTaskFromWorkstation(WorkstationTaskData)
+    M Void IncreaseAllTasksPriorities()
+    M Void DecreaseAllTasksPriorities()
+    M Void _AdjustAllPriorities(Int32)
+    M Void CreateTaskDataPanel(WorkstationTaskData)
+    M Void IncreaseTaskPriority(TaskDataPanel)
+    M Void DecreaseTaskPriority(TaskDataPanel)
+    M Void OnTaskPanelsReorder(Int32, Int32, Int32)
+    M Boolean _DisplayVillagersFilter(Villager)
+    M Void _onChildStructureRemoved(Structure)
+    M Void OnStoragePageShowEvent()
+    M Structure GetStructure()
+    M Boolean TryFindScoreManager(Int32, StructureScoreManager&)
+    M IWorkstation GetWorkstation()
+    M WorkstationMenuParameters GetMenuParameters()
+    M List`1 GetVillagers()
+    M Void Dismantle()
+    M Void _FinishSession()
+    M Void _OnClosed_b__132_0(ConfirmActionMenu)
+    M Void _OnClosed_b__132_1(ConfirmActionMenu)
+    M Void _OnClosed_b__132_2(ConfirmActionMenu)
+    M Void __StartStructureRenaming_b__173_0(ConfirmActionMenu)
+    M Void __SaveCurrentTaskPreset_b__174_0(ConfirmActionMenu)
+    M Boolean Method_Internal_Static_Boolean_Structure_PDM_0(Structure)
+    M Boolean _RefreshAssignVillagers_b__194_2(Villager)
+    M Void __PrepareWhitelistPageVisuals_b__200_0()
+    M Void __PrepareWhitelistPageVisuals_b__200_1()
+    M Void _Dismantle_b__234_0()
+
+=== Any UI type mentioning VillagersInCharge in a member name ===
+  SSSGame.Network.NetworkBuildstation._UpdateTaskVillagersInChargeFromMask(WorkstationTaskData, NetworkArray`1&)
+  SSSGame.Network.NetworkBuildstation.OnTaskVillagersInChargeChanged(WorkstationTaskData)
+  SSSGame.Network.NetworkBuildstation.Rpc_ChangeTaskVillagersInCharge(Int32, Il2CppStructArray`1)
+  SSSGame.Network.NetworkWorkstation`1.OnTaskVillagersInChargeChanged(WorkstationTaskData)
+  SSSGame.Network.NetworkWorkstation`1.Rpc_ChangeTaskVillagersInCharge(Int32, Il2CppStructArray`1)
+  SSSGame.Network.INetworkWorkstation.OnTaskVillagersInChargeChanged(WorkstationTaskData)
+  SSSGame.AI.WorkstationTaskData.get_VillagersInCharge()
+  SSSGame.AI.WorkstationTaskData.set_VillagersInCharge(List`1)
+  SSSGame.Network.NetworkBuildstation/NetworkTask.get_VillagersInCharge()
+
+=== Menus / tab pages referencing Farm or Forestry ===
+  SSSGame.UI.FarmCropPainterPanel : MonoBehaviour
+  SSSGame.UI.FarmCropTaskPanel : MonoBehaviour
+  SSSGame.UI.ForestryPainterPanel : FarmCropPainterPanel
+  SSSGame.UI.SeedChoicePanel : MonoBehaviour
+  SSSGame.UI.FarmCropCellTabPage : TabPage
+  SSSGame.UI.SeedSelectMenu : ConfirmActionMenu
+
+=== ForestryStation members (does it add its own task UI?) ===
+  P NetworkBool __NetNoNewHoles
+  P vFSMBehaviour forestryBehaviour
+  P ContainerInfo holeInfo
+  P StructureTemplate markerTemplateForComplaint
+  P ForesterPlantQuest _plantingQuest
+  P Boolean _noNewHoles
+  P String c_noNewHoles
+  P Changed`1 field_CompilerControlled_Static_Changed_1_ForestryStation_0
+  P ChangedDelegate`1 field_CompilerControlled_Static_ChangedDelegate_1_ForestryStation_0
+  P NetworkBehaviourCallbacks`1 field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_ForestryStation_0
+  P Boolean DontMakeNewHoles
+  P NetworkBool _NetNoNewHoles
+  M Void Awake()
+  M Void Spawned()
+  M Void Despawned(NetworkRunner, Boolean)
+  M String GetName()
+  M Boolean AddTaskDispatcher(ITaskDispatcher)
+  M Boolean SetTaskAgent(ITaskAgent)
+  M Boolean ReleaseTaskAgent(ITaskAgent)
+  M FarmingOutlet GetForestryOutlet(Int32&)
+  M Void _OnNoNewHolesChanged()
+  M Void Rpc_ChangeNoNewHoles(Boolean)
+  M Void _OnNetNoNewHolesChanged(Changed`1)
+  M DataObject SerializeTaskData(DataObject)
+  M Boolean DeserializeTaskData(DataObject)
+  M Void CopyBackingFieldsToState(Boolean)
+  M Void CopyStateToBackingFields()

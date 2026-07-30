@@ -1,10 +1,13 @@
 # Mod 18: ZeroTaskWorkersMod — newly assigned workers inherit zero tasks
 
-**Status: COMPLETE v1.0.0 — confirmed in-game 2026-07-06**
+**Status: COMPLETE v1.1.0 — core confirmed in-game 2026-07-06; the v1.1.0 farming exemption is
+⚠️ FIX ATTEMPTED, not yet confirmed**
 
 When a villager is assigned to a workstation, they inherit ZERO of the station's tasks by default.
 All task choices are manually enabled per-villager via the station's checkboxes. Fired/unassigned
 villagers still auto-join the Buildstation, preserving access to building and firekeeping work.
+Farms and forestry huts are exempt, because they are the one station family with no per-villager
+task checkboxes to opt back in with.
 
 ## Problem & approach
 
@@ -40,14 +43,19 @@ Full subsystem facts: `docs/architecture.md` → "Workstation task assignment (M
      postfixes (+ `DeserializeTaskDataForRecreation`) BEFORE the logging gate, so an unseen value
      means "deserialize hasn't run yet" = "don't block".
   3. **Authority gate:** `HasStateAuthority` (compiles directly on `Workstation`; host-only, co-op safe)
-  4. **Buildstation exemption:** identify by NATIVE class name (not managed cast — interop casts lie;
-     use `IL2CPP.il2cpp_object_get_class` + `il2cpp_class_get_name`). Exemption covers
-     `Buildstation`, `BoatBuildingStation`, `HarboringStation` (the station family). Reason:
-     unassigned villagers auto-transfer here (Remove → Add(Buildstation)), so blocking this
-     prevents build/firekeep workers from losing their tasks.
+  4. **Station-family exemptions**, identified by NATIVE class name (not managed cast — interop
+     casts lie; use `IL2CPP.il2cpp_object_get_class` + `il2cpp_class_get_name`). Two families:
+     - `Buildstation`, `BoatBuildingStation`, `HarboringStation` — unassigned villagers
+       auto-transfer here (Remove → Add(Buildstation)), so blocking this would cost build/firekeep
+       workers their tasks.
+     - `FarmingStation`, `ForestryStation` — the only stations with no per-villager task UI, so a
+       block here can never be undone by the player. Both strings are required: `ForestryStation`
+       derives from `FarmingStation` but reports its own native class name. See the farming section
+       below for the evidence.
   5. **Config name match (only if `ApplyToAllBuildings=false`):** case-insensitive substring match
-     of `_structure.GetName()` against each entry in `BuildingNameList` (semicolon-separated).
-     Allows per-station opt-in/opt-out.
+     of `_structure.GetName()` against each entry in `BuildingNameList` (COMMA-separated —
+     `Patches.cs` splits on `,`). It is an INCLUDE list: only listed buildings are blocked, so
+     there is no way to express "all buildings EXCEPT X".
 
 - **Postfixes on deserialization methods:** stamp `LastDeserializeAt = now` so grace window
   knows the deserialize has run (gated before the logging line, not after).
@@ -61,9 +69,43 @@ Full subsystem facts: `docs/architecture.md` → "Workstation task assignment (M
 | Key | Default | Meaning |
 |---|---|---|
 | `ApplyToAllBuildings` | `true` | Apply to all workstations (if false, filter by `BuildingNameList`) |
-| `BuildingNameList` | `` (empty) | Semicolon-separated substring list; only used when `ApplyToAllBuildings=false` |
+| `BuildingNameList` | `` (empty) | Comma-separated substring INCLUDE list; only used when `ApplyToAllBuildings=false` |
 | `LoadGraceSeconds` | `10` | Grace window duration (seconds after world load to skip blocking) |
 | `LogTaskEvents` | `false` (since v1.0.0) | Per-villager block events + summary (was `true` in v0.1.0–v0.2.1) |
+
+## Farms and forestry huts are exempt (v1.1.0) — they have no per-villager task UI
+
+⚠️ FIX ATTEMPTED in v1.1.0, not yet confirmed in-game. Reported by Nexus user impiousmessiah
+2026-07-29 ("my farmers are stuck in idle, and will not work"). The causal link — empty
+`VillagersInCharge` meaning the farming quest never dispatches — rests on that report, because the
+interop assembly carries signatures only and no method bodies. The structure that makes it possible
+is Cecil-confirmed 2026-07-30:
+
+- `SSSGame.FarmingStation : SSSGame.Workstation` with **no own `_CanAddVillagerToTaskData`**, so
+  the base-`Workstation` prefix above fires for farms. `SSSGame.ForestryStation : FarmingStation`
+  inherits the same exposure.
+- Farm tasks are `SSSGame.AI.FarmingStationTaskData : WorkstationTaskData` — one per painted crop
+  cell, ctor `(seedsConfiguration, List<Villager> villagers, removable, FarmCrop, cellIndex)` — so
+  they carry `VillagersInCharge` exactly like every other station's tasks.
+- **The per-villager toggle UI does not exist for farms.** Every other station renders task rows as
+  `SSSGame.UI.TaskDataPanel`, which owns the toggles (`_villagersDiv`, `_villagersDisplayer`,
+  `_selectAllVillagersButton`, `_onVillagerToggleValueChanged(VillagerPanel, Boolean)`). A farm
+  renders `SSSGame.UI.FarmCropTaskPanel` instead, whose entire member set is
+  `currentSeedIcon` / `previousSeedIcon` / `notSeededIcon` / `HostPanel` / `TileIndex` — a crop-grid
+  tile, no villager members at all. Farm tasks are authored by
+  `FarmCropPainterPanel.CreateTaskDatas(Boolean)` from the paint grid.
+- A farm's villager control is instead the **whitelist**: `FarmingStation` implements
+  `SSSGame.IWhitelistingSite` (`IsWhitelisted`, `Rpc_ChangeWhitelistedVillager`,
+  `WhitelistNewVillagers`), surfaced by `WorkstationMenu._PrepareWhitelistPageVisuals`. That grants
+  access to the station; it is not a per-task assignment.
+
+Net effect: block inheritance at a farm and the crop tasks' `VillagersInCharge` stays empty with no
+UI path to refill it. Exempting costs nothing, because farm work is not per-villager specializable
+in vanilla either — every farmer works whatever crops are painted on the grid.
+
+Workaround for anyone still on v1.0.1: set `ApplyToAllBuildings=false` and list the
+buildings that SHOULD be affected in `BuildingNameList` — it is an include list, so farms simply go
+unlisted.
 
 ## Known residuals (harmless, self-correcting)
 
@@ -85,6 +127,7 @@ Full subsystem facts: `docs/architecture.md` → "Workstation task assignment (M
 | v0.2.1 | 2026-07-06 | Grace fix: never block before first-observed deserialize |
 | v1.0.0 | 2026-07-06 | Ship: diagnostics flipped to `false` default; confirmed in-game 2026-07-06 (hire → zero inherited tasks; manual opt-in works; fired villager returns to builder pool) |
 | v1.0.1 | 2026-07-07 | `Update()` gated to 1 Hz — was calling `FindAnyObjectByType<BlueprintConditionsDatabase>()` every frame for the world gate |
+| v1.1.0 | 2026-07-30 | Exempt `FarmingStation` + `ForestryStation`; ⚠️ pending in-game confirmation |
 
 ## Tested in-game (2026-07-06)
 

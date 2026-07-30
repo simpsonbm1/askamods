@@ -37,9 +37,27 @@ namespace ZeroTaskWorkersMod
                 // c. Authority.
                 try { if (!ws.HasStateAuthority) return false; } catch { return false; }
 
-                // d. Buildstation-family exemption (unassigning auto-transfers here; never block it).
+                // d. Station-family exemptions, by NATIVE class name (managed casts lie in interop).
                 string nativeClass = NativeClassNameOf(ws);
+
+                // d1. Buildstation family: unassigning auto-transfers here, so blocking it would
+                //     cost unassigned villagers their build/firekeep work.
                 if (nativeClass == "Buildstation" || nativeClass == "BoatBuildingStation" || nativeClass == "HarboringStation")
+                    return false;
+
+                // d2. Farming family (FarmingStation + its ForestryStation subclass): these are the
+                //     only stations with NO per-villager task UI, so a block here is unrecoverable
+                //     for the player. Every other station renders its task rows as
+                //     SSSGame.UI.TaskDataPanel, which owns the per-villager toggles; a farm renders
+                //     SSSGame.UI.FarmCropTaskPanel, a crop-grid tile with no villager controls at
+                //     all (its whole member set is currentSeedIcon/previousSeedIcon/notSeededIcon/
+                //     HostPanel/TileIndex). The farm's only villager control is the IWhitelistingSite
+                //     whitelist, which grants station access rather than assigning a task, so it
+                //     cannot re-enable what we blocked. Exempting costs nothing: farm work is not
+                //     per-villager specializable in vanilla either. Nexus report 2026-07-29
+                //     ("my farmers are stuck in idle, and will not work"); see
+                //     docs/mods/zero-task-workers.md.
+                if (nativeClass == "FarmingStation" || nativeClass == "ForestryStation")
                     return false;
 
                 // e. Name match.

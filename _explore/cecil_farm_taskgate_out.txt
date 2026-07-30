@@ -1,0 +1,197 @@
+=== Types whose name contains Farm ===
+  SSSGame.FarmGridCellState : System.Enum
+  SSSGame.FarmGridCellData : Il2CppSystem.Object
+  SSSGame.FarmCropGrid : SSSGame.DynamicPlacementGrid
+  SSSGame.FarmCropGridRenderer : UnityEngine.MonoBehaviour
+  SSSGame.FarmCrop : Fusion.NetworkBehaviour
+  SSSGame.FarmingConfig : UnityEngine.ScriptableObject
+  SSSGame.FarmingOutlet : SSSGame.AI.StructureTaskDispatcher
+  SSSGame.FarmingStation : SSSGame.Workstation
+  SSSGame.PlayerFarmCropInteractionConfig : SSSGame.InteractionConfiguration`1<SSSGame.FarmCropInteraction>
+  SSSGame.VillagerFarmCropInteractionConfig : SSSGame.InteractionConfiguration`1<SSSGame.FarmCropInteraction>
+  SSSGame.FarmCropSessionFunction : System.Enum
+  SSSGame.FarmCropInteraction : SSSGame.Interaction
+  SSSGame.Network.NetworkFarmCellInteractable : SSSGame.Network.NetworkInteractable`1<SSSGame.Network.FarmCellIdentity>
+  SSSGame.Network.FarmCellIdentity : System.ValueType
+  SSSGame.Network.NetworkFarmingStation : SSSGame.Network.NetworkWorkstation`1<SSSGame.Network.NetworkFarmingStation/NetworkTask>
+  SSSGame.Network.NetworkFarmingStation_48 : SSSGame.Network.NetworkFarmingStation
+  SSSGame.Network.NetworkFarmingStation_64 : SSSGame.Network.NetworkFarmingStation
+  SSSGame.Deeds.FarmActivityData : System.ValueType
+  SSSGame.Deeds.FarmActivityCondition : SSSGame.Deeds.DeedCondition
+  SSSGame.UI.FarmCropPainterPanel : UnityEngine.MonoBehaviour
+  SSSGame.UI.FarmCropTaskPanel : UnityEngine.MonoBehaviour
+  SSSGame.UI.FarmCropCellTabPage : SandSailorStudio.UI.TabPage
+  SSSGame.AI.FarmingStationTaskData : SSSGame.AI.WorkstationTaskData
+  SSSGame.AI.FarmingStationComplainQuest : SSSGame.AI.WorkstationQuest
+  SSSGame.AI.FarmingQuestTill : SSSGame.AI.FarmingCropQuest
+  SSSGame.AI.FarmingQuestPlant : SSSGame.AI.FarmingCropQuest
+  SSSGame.AI.FarmingQuestGather : SSSGame.AI.FarmingCropQuest
+  SSSGame.AI.FarmingCropQuest : SSSGame.AI.WorkstationQuest
+  SSSGame.AI.FSM.FSM_FarmGather : SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_FarmPlantAndCare : SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_FarmTilling : SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_ReturnFarmingResult : SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.PlayerFarmCropInteractionConfig/FarmCropInteractionSession : SSSGame.InteractionSession
+  SSSGame.VillagerFarmCropInteractionConfig/VillagerFarmCropInteractionSession : SSSGame.InteractionSession
+  SSSGame.AI.FarmingStationComplainQuest/FarmingStationComplainData : SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.FarmingQuestTill/FarmingQuestTillData : SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.FarmingQuestPlant/FarmingQuestPlantData : SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.FarmingQuestGather/FarmingQuestGatherData : SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.WorkstationIdleQuest/FarmingStationIdleQuestData : SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.FSM.FSM_FarmGather/FarmingData : Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_FarmGather/FarmingStage : System.Enum
+  SSSGame.AI.FSM.FSM_FarmPlantAndCare/FarmingData : Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_FarmPlantAndCare/FarmingStage : System.Enum
+  SSSGame.AI.FSM.FSM_FarmTilling/FarmingData : Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_FarmTilling/FarmingStage : System.Enum
+  SSSGame.AI.FSM.FSM_FetchSaplings/FarmingStage : System.Enum
+  SSSGame.AI.FSM.FSM_MakeHoleForSaplings/FarmingStage : System.Enum
+  SSSGame.AI.FSM.FSM_PlantSaplings/FarmingStage : System.Enum
+
+=== Ancestry chain for candidate station types ===
+  SSSGame.FarmingStation  ->  SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  (Fusion.NetworkBehaviour)
+  SSSGame.AnimalPen  ->  SSSGame.Kennel  ->  SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  (Fusion.NetworkBehaviour)
+  SSSGame.CraftingStation  ->  SSSGame.Workstation  ->  SSSGame.Network.NetworkComponent  ->  (Fusion.NetworkBehaviour)
+
+=== FarmingStation members ===
+  P List`1 _StorageSupplies_k__BackingField
+  P Structure _OwnerStructure_k__BackingField
+  P Boolean _WhitelistNewVillagers_k__BackingField
+  P Action OnWhitelistDataReceived
+  P StructureContainer structureContainer
+  P Int32 farmingOutletsLimit
+  P vFSMBehaviour idleBehaviour
+  P vFSMBehaviour complainBehaviour
+  P vFSMBehaviour findNeededItemsBehaviour
+  P vFSMBehaviour cleanupInventoryBehaviour
+  P ItemTableConfig plantableConfig
+  P ItemInfoList composts
+  P CleanupInventoryQuest _cleanupInventoryQuest
+  P WorkstationIdleQuest _idleQuest
+  P FarmingStationComplainQuest _complaintQuest
+  P FindHarvestingToolsQuest _findNeededItemsQuest
+  P Boolean _registeredToTaskManager
+  P ItemManifest _storageLayoutManifest
+  P List`1 _farmingOutlets
+  P InventoryComponent _inventoryComponent
+  P NetworkPreviewAddonsContainer previewAddonsContainer
+  P HashSet`1 _villagersWhitelist
+  P Boolean _whitelistAllVillagers
+  P Boolean _whitelistDataReceived
+  P String c_taskDataArrayKey
+  P String c_taskQuantityKey
+  P String c_taskPriorityKey
+  P String c_itemInfoKey
+  P String c_childCropId
+  P String c_cellIndexKey
+  P String c_taskVillagersKey
+  P String c_whitelistAll
+  P String c_whitelistedVillagers
+  P String c_seedsConfigurationKey
+  P String c_patch1Key
+  P Changed`1 field_CompilerControlled_Static_Changed_1_FarmingStation_0
+  P ChangedDelegate`1 field_CompilerControlled_Static_ChangedDelegate_1_FarmingStation_0
+  P NetworkBehaviourCallbacks`1 field_CompilerControlled_Static_NetworkBehaviourCallbacks_1_FarmingStation_0
+  P List`1 FarmingOutlets
+  P List`1 StorageSupplies
+  P Structure OwnerStructure
+  P Boolean WhitelistNewVillagers
+  P Boolean WhitelistedAllVillagers
+  P Boolean WhitelistDataReceived
+  P Boolean ShowWhitelistedVillagers
+  P Int32 FarmingOutletsCount
+  P ItemManifest StorageLayoutManifest
+  P InventoryComponent Inventory
+  P Boolean IsMobile
+  M Void .cctor()
+  M virtual Void add_OnWhitelistDataReceived(Action value)
+  M virtual Void remove_OnWhitelistDataReceived(Action value)
+  M virtual Void Awake()
+  M virtual Void Start()
+  M virtual ItemCollection GetInventory()
+  M virtual Void Despawned(NetworkRunner runner, Boolean hasState)
+  M virtual String GetName()
+  M virtual Boolean AddTaskDispatcher(ITaskDispatcher td)
+  M virtual Void RemoveTaskDispatcher(ITaskDispatcher td)
+  M virtual Boolean SetTaskAgent(ITaskAgent agent)
+  M virtual Boolean ReleaseTaskAgent(ITaskAgent agent)
+  M virtual Void CreateTaskDispatcherData(ITaskDispatcher td)
+  M virtual Void RemoveTaskDispatcherData(ITaskDispatcher td)
+  M Boolean TryGetTaskSeedForCell(FarmCrop farmCrop, Int32 seasonIndex, Int32 cellIndex, ItemInfo& seedInfo)
+  M Boolean TryGetTaskDataForCellIndex(FarmCrop farmCrop, Int32 cellIndex, FarmingStationTaskData& task)
+  M Boolean CanBuildMoreFarms()
+  M virtual Void AddTaskData(WorkstationTaskData data)
+  M virtual Void RemoveTaskData(WorkstationTaskData data)
+  M virtual Boolean IsItemNeededByVillager(ItemInfo itemInfo, Villager villager)
+  M Void _RefreshStorageLayout()
+  M virtual Void RequestWhitelistData()
+  M Void SetWhitelistedVillager(Villager villager, Boolean& whitelist)
+  M virtual Boolean IsShownAsWhitelisted(Villager villager)
+  M virtual Boolean IsWhitelisted(Villager villager)
+  M Void Rpc_ChangeWhitelistAllState(Boolean whitelistAll)
+  M Void Rpc_ChangeWhitelistedVillager(Int32 id, Boolean state)
+  M Void Rpc_RequestWhitelistData(PlayerRef player)
+  M Void Rpc_ReceiveWhitelistData(PlayerRef target, Il2CppStructArray`1 bytes)
+  M virtual Boolean Deserialize(DataObject source)
+  M virtual DataObject Serialize(DataObject destination)
+  M virtual DataObject SerializeTaskData(DataObject destination)
+  M virtual Boolean DeserializeTaskData(DataObject source)
+  M virtual Void Initialize(Structure ownerStructure)
+  M Void _Structure_OnActivate(Structure obj)
+  M Void _OnStructureDeath(Structure obj)
+  M virtual Void OnBeforeDismantle(Structure ownerStructure)
+  M virtual Transform GetTransform()
+  M virtual ItemManifest GetItemManifest()
+  M virtual StorageInteraction FindStorageInteraction(Func`2 predicate)
+  M Void .ctor()
+  M virtual Void SSSGame_IWhitelistingSite_SetWhitelistedVillager(Villager villager, Boolean& whitelist)
+  M Void _Rpc_RequestWhitelistData_b__76_0(BinaryWriter writer)
+  M Void _Rpc_ReceiveWhitelistData_b__77_0(BinaryReader reader)
+  M virtual Void CopyBackingFieldsToState(Boolean )
+  M virtual Void CopyStateToBackingFields()
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_0(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_1(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_2(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void Method_Protected_Static_Void_NetworkBehaviour_ptr_SimulationMessage_PDM_3(NetworkBehaviour behaviour, SimulationMessage* message)
+  M Void .ctor(IntPtr pointer)
+
+=== Who READS VillagersInCharge ===
+  SSSGame.Network.NetworkBloomStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkBoatBuildingStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkBuildstation..cctor  ->  System.IntPtr SSSGame.Network.NetworkBuildstation::NativeMethodInfoPtr__UpdateTaskVillagersInChargeFromMask_Private_Void_WorkstationTaskData_byref_NetworkArray_1_BitSet256_0
+  SSSGame.Network.NetworkBuildstation._UpdateTaskVillagersInChargeFromMask  ->  System.IntPtr SSSGame.Network.NetworkBuildstation::NativeMethodInfoPtr__UpdateTaskVillagersInChargeFromMask_Private_Void_WorkstationTaskData_byref_NetworkArray_1_BitSet256_0
+  SSSGame.Network.NetworkBuildstation.OnTaskVillagersInChargeChanged  ->  System.IntPtr SSSGame.Network.NetworkBuildstation::NativeMethodInfoPtr_OnTaskVillagersInChargeChanged_Public_Virtual_Void_WorkstationTaskData_0
+  SSSGame.Network.NetworkBuildstation.Rpc_ChangeTaskVillagersInCharge  ->  System.IntPtr SSSGame.Network.NetworkBuildstation::NativeMethodInfoPtr_Rpc_ChangeTaskVillagersInCharge_Private_Void_Int32_Il2CppStructArray_1_BitSet256_0
+  SSSGame.Network.NetworkBuildstation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkCompositeResourceStorage._HostUpdateNetworkTasksFromTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkCompositeResourceStorage._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkCookingStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkCraftingStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkFarmingStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkFilterTask`1._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkFishingStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkForester._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkMarketplace._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkPatrolStation._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkSimpleResourceStorage._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkSlaughterTask._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.NetworkWorkstation`1..cctor  ->  System.IntPtr SSSGame.Network.NetworkWorkstation`1<TaskType>::NativeMethodInfoPtr_OnTaskVillagersInChargeChanged_Public_Virtual_New_Void_WorkstationTaskData_0
+  SSSGame.Network.NetworkWorkstation`1.OnTaskVillagersInChargeChanged  ->  System.IntPtr SSSGame.Network.NetworkWorkstation`1<TaskType>::NativeMethodInfoPtr_OnTaskVillagersInChargeChanged_Public_Virtual_New_Void_WorkstationTaskData_0
+  SSSGame.Network.NetworkWorkstation`1.Rpc_ChangeTaskVillagersInCharge  ->  System.IntPtr SSSGame.Network.NetworkWorkstation`1<TaskType>::NativeMethodInfoPtr_Rpc_ChangeTaskVillagersInCharge_Private_Void_Int32_Il2CppStructArray_1_NetworkId_0
+  SSSGame.Network.NetworkWorkstation`1._HostUpdateTask  ->  villagersInChargeMask
+  SSSGame.Network.INetworkWorkstation..cctor  ->  System.IntPtr SSSGame.Network.INetworkWorkstation::NativeMethodInfoPtr_OnTaskVillagersInChargeChanged_Public_Abstract_Virtual_New_Void_WorkstationTaskData_0
+  SSSGame.Network.INetworkWorkstation.OnTaskVillagersInChargeChanged  ->  System.IntPtr SSSGame.Network.INetworkWorkstation::NativeMethodInfoPtr_OnTaskVillagersInChargeChanged_Public_Abstract_Virtual_New_Void_WorkstationTaskData_0
+  SSSGame.AI.WorkstationTaskData..cctor  ->  VillagersInCharge
+  SSSGame.AI.WorkstationTaskData.get_VillagersInCharge  ->  System.IntPtr SSSGame.AI.WorkstationTaskData::NativeFieldInfoPtr_VillagersInCharge
+  SSSGame.AI.WorkstationTaskData.set_VillagersInCharge  ->  System.IntPtr SSSGame.AI.WorkstationTaskData::NativeFieldInfoPtr_VillagersInCharge
+  SSSGame.Network.NetworkBoatBuildingStation/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkBuildstation/NetworkTask..cctor  ->  _VillagersInCharge
+  SSSGame.Network.NetworkBuildstation/NetworkTask.get_VillagersInCharge  ->  System.IntPtr SSSGame.Network.NetworkBuildstation/NetworkTask::NativeMethodInfoPtr_get_VillagersInCharge_Public_get_NetworkArray_1_BitSet256_0
+  SSSGame.Network.NetworkCookingStation/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkCraftingStation/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkFishingStation/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkMarketplace/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkPatrolStation/NetworkTaskBuffer..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkSimpleResourceStorage/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkSlaughterTask/NetworkTask..cctor  ->  villagersInCharge
+  SSSGame.Network.NetworkTaskContainer/Task..cctor  ->  villagersInCharge

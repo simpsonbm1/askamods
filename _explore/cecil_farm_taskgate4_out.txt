@@ -1,0 +1,328 @@
+=== SSSGame.UI.TaskDataPanel : UnityEngine.MonoBehaviour ===
+  P String c_ToggleKey
+  P String c_TabDetailsKey
+  P Boolean _updateTaskDinamically
+  P Boolean listenForTaskDataChanges
+  P TMP_Text messagesLabel
+  P ItemThumbnailPanel _previewPanel
+  P ItemThumbnailPanel _iconPanel
+  P GameObject _quantityDiv
+  P IncreaseDecreasePanel _quantityControlPanel
+  P TMP_Text _quantityDivTitle
+  P Int32 _taskVillagersLimit
+  P Boolean _showOnlyTaskVillagers
+  P GameObject _villagersDiv
+  P VillagerPooledListController _villagersDisplayer
+  P ToggleGroup _villagersToggleGroup
+  P GameObject _advancedVillagerControls
+  P Button _selectAllVillagersButton
+  P Button _deselectAllVillagersButton
+  P IconTextPairComponent _outOfViewportVillagersPanel
+  P TMP_Text _noWorkersWarningText
+  P GameObject _colorPage
+  P Image DyeIcon
+  P ToggleSelectionPanel _colorsToggleSelection
+  P GameObject _materialsDiv
+  P ItemThumbnailPanel _materialItemPrefab
+  P ItemDetailsPanel _materialDetailsPanel
+  P IconTextPairComponent _itemTablePanelPrefab
+  P ArrayPaintPanel _schedulePanel
+  P ToggleSelectionPanel _scheduleBrushSelector
+  P ColorTableConfig _scheduleBrushColors
+  P ArrayPaintPanel _filterItemsPriorityPanel
+  P GameObject refurbishOptionGroup
+  P Toggle refurbishOptionButton
+  P Int32 _maxAllowedPatrolPoints
+  P GameObject _patrolDiv
+  P Button _patrolRouteAdd
+  P GameObject _patrolRoutePrefab
+  P InputFieldHelper _patrolNameInputField
+  P TMP_Text _patrolRouteMessageText
+  P TMP_Text _patrolPointCountText
+  P String _patrolRouteTimeExceededMessage
+  P String _defaultPatrolRouteName
+  P IncreaseDecreasePanel _priorityAdjustmentPanel
+  P TMP_Text _priorityLabel
+  P GameObject _tradeDiv
+  P Image _tradeRoutePreview_From
+  P Image tradeRoutePreview_To
+  P TMP_Text _tradeRouteName_From
+  P TMP_Text _tradeRouteName_To
+  P Button _tradeRouteButton_From
+  P Button _tradeRouteButton_To
+  P SelectActionMenu _marketSelectActionMenuOverride
+  P ToggleSelectionPanel _tradeItemSelectionPanel
+  P GameObject _cartDiv
+  P VehicleSelectionPanel _vehicleSelectionPanel
+  P RectTransform _inventoryPreviewPage
+  P TMP_Text _inventoryName
+  P TMP_Text _inventoryDescription
+  P Il2CppReferenceArray`1 _containerTypeProviders
+  P RectTransform _chooseItemPanel
+  P Button _chooseItemButton
+  P TMP_Text _additionalDescriptionText
+  P TMP_Text _knowledgeProgressText
+  P GameObject _taskItemPrefab
+  P Color _bgStudyTaskColor
+  P Image _bgImage
+  P Action`1 OnTaskValidityChanged
+  P Boolean _DontUpdateNetwork_k__BackingField
+  P WorkstationTaskData _currentTaskData
+  P IWorkstation _currentWorkstation
+  P Boolean _currentTaskAvailability
+  P DyeingBlueprintInfo _dyeingBpInfo
+  P SelectWheelMenuParams _selectWheelParamsCache
+  P List`1 _lockedFromCurrentTask
+  P List`1 _selectedForTaskVillagers
+  P List`1 _villagersDisplayedCache
+  P Int32 _selectedDyeIndex
+  P ItemInfo _selectedItemInfo
+  P List`1 _filterItemsPriorities
+  P List`1 _initialfilterItemsPriorities
+  P List`1 _patrolPoints
+  P List`1 _patrolPanels
+  P List`1 _spawnedObjects
+  P String _villagersLockedReason
+  P ResourceStorage _fromStorage
+  P ResourceStorage _toStorage
+  P ItemInfoQuantity _tradeQuantity
+  P ItemCollection _tradeInventory
+  P ItemManifest _undoManifest
+  P ItemManifest _previousCartManifset
+  P List`1 _tradeItems
+  P NetworkKnowledgeManager _knowledgeManager
+  P Boolean _ignoreFilterPanelRefresh
+  P Boolean _filterPanelDirty
+  P Boolean _isDataDirty
+  P IncreaseDecreasePanel PriorityAdjustmentPanel
+  P IncreaseDecreasePanel QuantityPanel
+  P Boolean DontUpdateNetwork
+  M Void add_OnTaskValidityChanged(Action`1 value)
+  M Void remove_OnTaskValidityChanged(Action`1 value)
+  M WorkstationTaskData GetCurrentTaskData()
+  M Void SetCurrentTask(WorkstationTaskData task, IWorkstation workstation)
+  M Void SetPanelForDataCreation(ItemInfo item, IWorkstation workstation)
+  M Void SaveCurrentTask(Boolean checkDirty)
+  M Boolean CreateTaskDataFromPanel(WorkstationTaskData& newData)
+  M Void OnTaskDataAddedToWorkstation(WorkstationTaskData taskData)
+  M Void Start()
+  M Void Update()
+  M Void OnDestroy()
+  M Void _ResetPersistentData()
+  M Void _OnTaskDataChanged()
+  M Void _UpdateCurrentTaskDataQuantity()
+  M Void _UpdateCurrentFilterTask()
+  M Void _SetSpecificTaskDetails(WorkstationTaskData taskData)
+  M Void _SetPriority(WorkstationTaskData taskData)
+  M Boolean _CheckTaskItemAvailability(ItemInfo item)
+  M Void _AddMessage(String& text)
+  M Void _ClearMessages()
+  M Void _SetItemPanel(ItemInfo info)
+  M Void _SetQuantity(WorkstationTaskData task, ItemInfo item)
+  M Void _onQuantityChanged(Int32 value)
+  M Void _SetVillagers(WorkstationTaskData task)
+  M Void _onVillagerPanelCreated(VillagerPanel vp)
+  M Void _onVillagerPanelBinded(VillagerPanel vp, Int32 index)
+  M Void _onVillagerToggleValueChanged(VillagerPanel vp, Boolean value)
+  M Void _RefreshLockedFromTaskVillagers(WorkstationTaskData currentTask)
+  M Void _SetAllVillagerPanelsState(Boolean state)
+  M Void _RefreshMaterials()
+  M Void _RefreshColorOptions(WorkstationTaskData currentTask, ItemInfo item)
+  M Void _OnColorToggleSelectionChanged(Int32 value)
+  M Void _OnColorToggleInstanceSet(Toggle toggle, Int32 optionIndex)
+  M Void _RefreshSchedule(WorkstationTaskData taskData)
+  M Void _onSchedulePanelValueChanged(Int32 index, Boolean firstTimeSetup)
+  M Void _OnScheduleBrushToggleSelectionChanged(Int32 value)
+  M Void _RefreshFilterItemPriority(WorkstationTaskData task)
+  M Void _OnFilterItemsReorderComplete(Int32 startIndex, Int32 endIndex, Int32 siblingOffset)
+  M Void _onFilterItemPriorityValueChanged(Int32 index, Boolean firstTimeSetup)
+  M Void _OnFilterPanelDirty()
+  M Void _SetRefurbishPanel(WorkstationTaskData taskData, ItemInfo item)
+  M Void _SetPatrolRoute(WorkstationTaskData taskData)
+  M Void _RefreshPatrolPointsVisuals()
+  M Void _RefreshPatrolPointPanelsOrder()
+  M Void _OnPatrolPointsReorder(Int32 startIndex, Int32 endIndex)
+  M Void _OnPatrolPointsDragReorder(Int32 startIndex, Int32 endIndex, Int32 siblingOffset)
+  M Void _RemovePatrolPoint(PatrolPoint pp)
+  M Void _UpdatePatrolPointCount()
+  M Void _SelectAddPatrolPoint()
+  M Void _ConfirmAddPatrolPoint(ConfirmActionMenu menu)
+  M String GetPatrolRouteName(Int32 taskId)
+  M Void _SetTradeRoute(WorkstationTaskData data)
+  M Void _SelectAgent(VehicleSelectionPanel vehicleSelectionPanel)
+  M Void _SelectVehicle(VehicleSelectionPanel vehicleSelectionPanel)
+  M Void _RefreshTradeRouteVisuals()
+  M Void _RefreshTradeItemSelectionPanel()
+  M Void _OnTradeItemSelectionChanged(Int32 value)
+  M Void _InitializeVehicleInventory(IVehicle vehicle)
+  M Void _OnTradeItemPanelClicked(ItemThumbnailPanel obj)
+  M Void _SetTradeItem(ItemInfo tradeItem)
+  M Void _RefreshTradeItemPanel()
+  M Void _SelectTradeFrom()
+  M Void _SelectTradeTo()
+  M Void _SelectTradeItem()
+  M Void _OnConfirmTradeTo(ConfirmActionMenu menu)
+  M Void _OnConfirmTradeFrom(ConfirmActionMenu menu)
+  M Void _OnPreselectTradeItem(ConfirmActionMenu menu, SelectActionMenuEntry entry)
+  M Void _OnTradeItemQuantityChange(ConfirmActionMenu menu, SelectActionMenuEntry entry)
+  M Void _OnCancelTradeItem(ConfirmActionMenu menu)
+  M Void _OnConfirmTradeItem(ConfirmActionMenu menu)
+  M Void _SendTaskAvailabilityEvent(Boolean status)
+  M Int32 _EntriesSort(SelectActionMenuEntry a, SelectActionMenuEntry b)
+  M Int32 _ItemEntriesSort(SelectActionMenuEntry a, SelectActionMenuEntry b)
+  M Void ScaleUpEffect(Boolean value)
+  M Void OnCustomAction1(CustomActionEventData eventData)
+  M Void OnCustomAction2(CustomActionEventData eventData)
+  M Void _Start_b__110_0()
+  M Void _Start_b__110_1()
+  M Void __SetAllVillagerPanelsState_b__130_0(VillagerPanel vp)
+
+=== SSSGame.UI.FarmCropTaskPanel : UnityEngine.MonoBehaviour ===
+  P FarmCropPainterPanel _HostPanel_k__BackingField
+  P Int32 _TileIndex_k__BackingField
+  P Image currentSeedIcon
+  P Image previousSeedIcon
+  P Image notSeededIcon
+  P Boolean _panelSet
+  P FarmCropPainterPanel HostPanel
+  P Int32 TileIndex
+  M Void Set(FarmCropPainterPanel hostPanel, Int32 tileIndex)
+  M Void Refresh()
+  M Void OnPointerClick(PointerEventData eventData)
+  M Void OnSubmit(BaseEventData eventData)
+  M Void OnCustomAction1(CustomActionEventData eventData)
+  M Void OnSelect(BaseEventData eventData)
+  M Void OnDeselect(BaseEventData eventData)
+
+=== SSSGame.UI.FarmCropCellTabPage : SandSailorStudio.UI.TabPage ===
+  P PlayerFarmCropInteractionConfig farmInteractionConfig
+  P InteractSlot_Text cellBarsSlot
+  P InteractSlot_Text stateInfoSlot
+  P IconTextPairComponent taskDataInfo
+  M Void Show(Boolean value, TabButton button)
+
+=== SSSGame.UI.VillagerPanel : UnityEngine.MonoBehaviour ===
+  P VillagerPortraitPanel portraitPanel
+  P Image _portraitImageFallback
+  P TextMeshProUGUI _nameLabelFallback
+  P ProgressBar healthBar
+  P ProgressBar warmthBar
+  P ProgressBar foodBar
+  P ProgressBar waterBar
+  P ProgressBar restBar
+  P ProgressBar lifetimeBar
+  P TweenAnimator sufferingTween
+  P TextMeshProUGUI descriptionLabel
+  P TextMeshProUGUI outpostLabel
+  P TextMeshProUGUI WorkStationLabel
+  P TextMeshProUGUI HomesteadLabel
+  P TextMeshProUGUI ScheduleLabel
+  P TaskPanel settlementTaskPanel
+  P ResolutionTaskPanel resolutionTaskPanel
+  P List`1 villagerModifiersWidget
+  P List`1 villagerAttributesWidgets
+  P TextMeshProUGUI StatusText
+  P TextMeshProUGUI happinessLabel
+  P Slider happinessSlider
+  P TextMeshProUGUI happinessValueLabel
+  P ProgressBar happinessBar
+  P TextMeshProUGUI happinessDetails
+  P Toggle showDetailedHappinessToggle
+  P ProgressBar happinessCapBar
+  P RectTransform happinessDivider
+  P Boolean sortProficienciesByWorkstation
+  P IconTextPairComponent asignagePanel
+  P TextMeshProUGUI assignUnavailableLabel
+  P List`1 assignStateColorTargets
+  P ColorTableConfig assignStateColors
+  P Image FrameImage
+  P SpriteList frames
+  P VillagerSchedulePanel schedulePanel
+  P Toggle muteIconToggle
+  P Toggle soloIconToggle
+  P Boolean ignoreIndividualExpandState
+  P DropdownElement extendedInfoDropdown
+  P GameObject invalidOverlay
+  P IconTextPairComponent allowedWorkstationItemTemplate
+  P Villager _v
+  P Pet _p
+  P IWorkstation _workstation
+  P VariableAttribute _hp
+  P VariableAttribute _happiness
+  P VariableAttribute _warmth
+  P VariableAttribute _food
+  P VariableAttribute _water
+  P VariableAttribute _rest
+  P VariableAttribute _lifetime
+  P List`1 _vProperies
+  P VillagerHappiness _vHappiness
+  P VillagerListController _ListControllerContext_k__BackingField
+  P Boolean _ForceAssignageButtonActive_k__BackingField
+  P Boolean _canSubscribe
+  P Func`2 _getAssignedStateOverride
+  P String _assignTextOverride
+  P String _dismissTextOverride
+  P String _invalidationReasonText
+  P Boolean _validState
+  P List`1 s_structureTemplates
+  P VillagerListController ListControllerContext
+  P Boolean ForceAssignageButtonActive
+  M Void Awake()
+  M Void OnEnable()
+  M Void OnDestroy()
+  M Void Set(Pet p)
+  M Void Set(Villager v, IWorkstation workstation)
+  M Void SetValidState(Boolean state, String reason)
+  M Boolean GetValidState(String& reason)
+  M Void RefreshOutpostLabel()
+  M Void _SubscribePanels(Boolean value)
+  M Void _OnVillagerNameChanged(String obj)
+  M Void _SetSurvivalPanelsActive()
+  M Void _OnHomesteadOutpostDataChanged(IOutpostDataHolder obj)
+  M Void _OnSufferingChange()
+  M Void _OnExtendedDropdownValueChanged(Boolean value)
+  M Void HandleMarkerFlagChanged(ObjectiveMarkerFlags flag, Boolean value)
+  M Void _RefreshHappinessDetails()
+  M Void _RefreshAllowedWorkstations()
+  M Void OpenVillagerMenu(Int32 openIndex)
+  M Void _OnBehaviorTypeChanged(ScheduleType obj)
+  M Void _OnVillagerHomesteadChanged(Homestead obj)
+  M Void _OnComplainChange()
+  M IWorkstation GetWorkStation()
+  M Void _OnVillagerWorkstationChanged(IWorkstation obj)
+  M Void HandleAsignageButton()
+  M Void SetAssignButtonOverrides(Func`2 getAssignedStateOverride, String assignText, String dismissText)
+  M Void CleanupPet()
+  M Void Cleanup()
+  M Void _RefreshDividerPosition()
+  M Void RefreshStatusMessage()
+  M Void _OnVillagerQuestChanged(Quest quest)
+  M Void _OnVillagerTaskChanged(ITaskAgent agent)
+  M Void _OnVillagerHPChanged()
+  M Void _OnVillagerHappinessChanged()
+  M Void _OnVillagerWarmthChanged()
+  M Void _OnVillagerFoodChanged()
+  M Void _OnVillagerWaterChanged()
+  M Void _OnVillagerRestChanged()
+  M Void _OnVillagerLifetimeChanged()
+  M Villager GetVillager()
+  M Void SetAssignColorTargets(Int32 idx)
+  M Void OnCustomAction1(CustomActionEventData eventData)
+  M Void OnCustomAction2(CustomActionEventData eventData)
+  M Void _Set_b__73_0(Boolean obj)
+  M Void _Set_b__73_1(Boolean obj)
+  M Void _Set_b__73_2(Boolean obj)
+  M Boolean _HandleAsignageButton_b__92_0(ITaskAgent ag)
+
+=== Types named *TaskDataPanel* or *VillagerPanel* ===
+  SSSGame.UI.TaskDataPanel : MonoBehaviour
+  SSSGame.UI.VillagerPanel : MonoBehaviour
+  SSSGame.UI.VillagersListDisplayer/__CreateVillagerPanels_d__30 : ValueType
+
+=== Every method taking (Villager, WorkstationTaskData) or similar pairing ===
+  SSSGame.Workstation._CanAddVillagerToTaskData(Villager, WorkstationTaskData)
+  SSSGame.Workstation._OnBeforeRemoveFromTaskData(Villager, WorkstationTaskData)
+  SSSGame.Buildstation._CanAddVillagerToTaskData(Villager, WorkstationTaskData)
+  SSSGame.Marketplace._OnBeforeRemoveFromTaskData(Villager, WorkstationTaskData)
+  SSSGame.Marketplace._CanAddVillagerToTaskData(Villager, WorkstationTaskData)
+  SSSGame.ResourceStorage._CanAddVillagerToTaskData(Villager, WorkstationTaskData)

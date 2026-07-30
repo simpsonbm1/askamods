@@ -1,0 +1,115 @@
+=== ALL direct + indirect subclasses of SSSGame.Workstation ===
+  SSSGame.AnimalPen   base=Kennel  ownCanAdd=0  ifaces=
+  SSSGame.Bloomstation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.BoatBuildingStation   base=Buildstation  ownCanAdd=0  ifaces=
+  SSSGame.BrewingStation   base=CookingStation  ownCanAdd=0  ifaces=
+  SSSGame.Buildstation   base=Workstation  ownCanAdd=1  ifaces=
+  SSSGame.CampBuildingStation   base=BoatBuildingStation  ownCanAdd=0  ifaces=
+  SSSGame.CaveResourceStorage   base=ResourceStorage  ownCanAdd=0  ifaces=
+  SSSGame.CharcoalStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.CookingStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.CraftingStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.DefensiveStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.DiningStation   base=ResourceStorage  ownCanAdd=0  ifaces=
+  SSSGame.FarmingStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.FishingStation   base=ResourceStorage  ownCanAdd=0  ifaces=
+  SSSGame.ForestryStation   base=FarmingStation  ownCanAdd=0  ifaces=
+  SSSGame.HarboringStation   base=BoatBuildingStation  ownCanAdd=0  ifaces=
+  SSSGame.HealingStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.HuntingStation   base=ResourceStorage  ownCanAdd=0  ifaces=
+  SSSGame.Kennel   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.Marketplace   base=Workstation  ownCanAdd=1  ifaces=
+  SSSGame.PatrolStation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.Praystation   base=Workstation  ownCanAdd=0  ifaces=
+  SSSGame.ResourceStorage   base=Workstation  ownCanAdd=1  ifaces=
+  SSSGame.VehicleResourceStorage   base=ResourceStorage  ownCanAdd=0  ifaces=
+  SSSGame.Workstation   base=NetworkComponent  ownCanAdd=1  ifaces=
+
+=== Implementers of IWhitelistingSite ===
+
+=== IWhitelistingSite members ===
+  --- SSSGame.IWhitelistingSite ---
+    Void .cctor()
+    Void add_OnWhitelistDataReceived(Action value)
+    Void remove_OnWhitelistDataReceived(Action value)
+    Boolean get_WhitelistDataReceived()
+    Boolean get_ShowWhitelistedVillagers()
+    Boolean get_WhitelistedAllVillagers()
+    Void set_WhitelistedAllVillagers(Boolean value)
+    Boolean get_WhitelistNewVillagers()
+    Void set_WhitelistNewVillagers(Boolean value)
+    Void SetWhitelistedVillager(Villager villager, Boolean& whitelist)
+    Boolean IsWhitelisted(Villager villager)
+    Boolean IsShownAsWhitelisted(Villager villager)
+    Void RequestWhitelistData()
+    Void .ctor(IntPtr pointer)
+
+=== FarmingStationTaskData members ===
+  P FarmCrop farmCrop
+  P Int32 cellIndex
+  P Il2CppReferenceArray`1 seedsConfiguration
+  M Void .cctor()
+  M Void .ctor(Il2CppReferenceArray`1 seedsConfiguration, List`1 villagers, Boolean removable, FarmCrop farmCrop, Int32 cellIndex)
+  M Boolean CheckDispatcher(ITaskDispatcher td)
+  M ItemInfo GetTaskSeedForCurrentSeason()
+  M ItemInfo GetTaskSeedForPreviousSeason()
+  M Void .ctor(IntPtr pointer)
+
+=== WorkstationTaskData members (for VillagersInCharge shape) ===
+  P SandSailorStudio.Inventory.ItemInfoQuantity itemInfoQuantity
+  P Il2CppSystem.Collections.Generic.List`1<SSSGame.Villager> VillagersInCharge
+  P System.Int32 priority
+  P System.Boolean isRemovable
+  P System.Boolean shouldUpdateFromNetwork
+  P System.Boolean pinnedTask
+  P Il2CppSystem.Action onDataChanged
+  M Void .cctor()
+  M Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers, Boolean removable)
+  M Void .ctor(ItemInfo info, Int32 quantity, List`1 villagers)
+  M Void .ctor(Int32 quantity, List`1 villagers)
+  M Void .ctor(List`1 villagers)
+  M Void .ctor()
+  M Void SetPriority(Int32 value)
+  M Boolean CheckDispatcher(ITaskDispatcher td)
+  M Boolean ShouldBeHidden()
+  M Vector2Int GetQuantityRange()
+  M Void .ctor(IntPtr pointer)
+
+=== UI panels that might show per-villager task toggles ===
+  --- SSSGame.UI.FarmCropTaskPanel : UnityEngine.MonoBehaviour ---
+    M Void Set(FarmCropPainterPanel, Int32)
+    M Void Refresh()
+    M Void OnPointerClick(PointerEventData)
+    M Void OnSubmit(BaseEventData)
+    M Void OnCustomAction1(CustomActionEventData)
+    M Void OnSelect(BaseEventData)
+    M Void OnDeselect(BaseEventData)
+  --- SSSGame.UI.FarmCropCellTabPage : SandSailorStudio.UI.TabPage ---
+    M Void Show(Boolean, TabButton)
+  --- SSSGame.UI.FarmCropPainterPanel : UnityEngine.MonoBehaviour ---
+    M Void Awake()
+    M Void OnDestroy()
+    M Void Initialize()
+    M Boolean TryGetPaintedData(Int32, Int32, Int32&)
+    M ItemInfo PaintDataToItemInfo(Int32)
+    M Void _onClearPreviousValueChanged(Boolean)
+    M Void OnBrushChanged(Int32)
+    M Void _OnSeasonPanelChanged(Int32)
+    M Void SetPanel(FarmingOutlet)
+    M Void SetupGridLayoutGroup(Int32, Int32)
+    M Void _createButtons(Int32)
+    M Void Paint(Int32)
+    M Void ClearPaint(Int32)
+    M Void _UpdateButtonDisplay(Int32)
+    M Void TryHoldPaint(Int32)
+    M Void _OnCreateTasksButtonClicked()
+    M Boolean HasUnsavedChanges()
+    M Void CreateTaskDatas(Boolean)
+    M Void RefreshDistributionWidget()
+    M Void OnSeedPanelClick()
+    M Void OnSeasonPanelClick()
+    M Boolean __createButtons_b__42_0(WorkstationTaskData)
+    M Void __OnCreateTasksButtonClicked_b__47_0(ConfirmActionMenu)
+
+=== Types with 'Whitelist' in the name (UI included) ===
+  SSSGame.IWhitelistingSite : Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
