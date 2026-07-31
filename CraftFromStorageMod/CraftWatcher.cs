@@ -259,6 +259,10 @@ public class CraftWatcher : MonoBehaviour
         // interop wrappers held) so a stale run's counts don't survive into the next world session.
         try { StationStocker.ClearWorldState(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] StationStocker.ClearWorldState error: {ex}"); }
+        // v0.15.0: bloomery/kiln supply-fetch diagnostic spike rate-limiter dictionaries (string/int
+        // only, no interop wrappers held) - same reasoning as StationStocker.ClearWorldState above.
+        try { BloomeryTrace.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BloomeryTrace.ClearWorldState error: {ex}"); }
 
         // Don't let a stale abort banner survive into the next world.
         _guiMessage = "";

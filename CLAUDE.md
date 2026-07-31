@@ -282,7 +282,7 @@ askamods/
                                 (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.14.1 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.16.0 —
                                 Phase 1 (player half) complete, confirmed in-game 2026-07-20,
                                 host/solo only; Phase 2 (villager half) working well as of the
                                 2026-07-31 run (per-item transform gate, one-craft-per-fetch

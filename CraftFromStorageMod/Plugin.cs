@@ -97,6 +97,11 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TraceStorageWhitelist = null!;
     internal static ConfigEntry<int> MaxWhitelistLogsPerCycle = null!;
 
+    // v0.15.0 idea-17 next-feature groundwork - READ-ONLY bloomery/kiln supply-fetch diagnostic
+    // spike (BloomeryTrace.cs / Patches/BloomeryFetchPatches.cs). See that file's header for the
+    // three questions it answers ahead of extending toggle 2 to deliver ore/coal into a bloomery.
+    internal static ConfigEntry<bool> EnableBloomeryTrace = null!;
+
     // --- live state ---
     internal static PlayerCharacter? LocalPlayer;
 
@@ -220,7 +225,7 @@ public class Plugin : BasePlugin
 
         BlacklistContainerTypes = Config.Bind(
             "Transfer", "BlacklistContainerTypes",
-            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1",
+            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1,Storage_SmallItems_L1",
             "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
             "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
             "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead. v0.9.3: " +
@@ -228,7 +233,12 @@ public class Plugin : BasePlugin
             "so draining them only shuffles blooms between metalworkers (confirmed in-game 2026-07-28). " +
             "v0.14.1: Storage_MediumItems_L1 is the medium materials bin at workshop tables and co-located " +
             "stations (confirmed in-game 2026-07-30); it is excluded so one workshop's staged materials are " +
-            "never drained to feed another station, and so those staged items stop inflating availability counts.");
+            "never drained to feed another station, and so those staged items stop inflating availability counts. " +
+            "v0.16.0: Storage_SmallItems_L1 is the small items bin at workshop tables (census-confirmed " +
+            "2026-07-31; also used by farms). KNOWN ACCEPTED LIMIT: Storage_SmallItems_L1 is ALSO the " +
+            "bloomery bloom-output slot's container type, so this blacklist entry means the mod cannot pull " +
+            "finished blooms out of a bloomery (user accepted 2026-07-31 to keep the change small - see " +
+            "docs/mods/craft-from-storage.md).");
 
         TransferDiagnostics = Config.Bind(
             "Transfer", "TransferDiagnostics", true,
@@ -344,6 +354,15 @@ public class Plugin : BasePlugin
             "Caps how many DISTINCT storage sites get a logged line per villager per fetch/use cycle " +
             "under TraceStorageWhitelist, to avoid log spam from a villager re-probing the same sites - " +
             "every call is still COUNTED toward the CYCLE SUMMARY totals regardless of this cap.");
+
+        EnableBloomeryTrace = Config.Bind(
+            "Probe", "EnableBloomeryTrace", true,
+            "v0.15.0: read-only bloomery/kiln supply-fetch diagnostic for the toggle-2 bloomery " +
+            "feature; observation only, never writes game state. Postfix-logs " +
+            "FSM_FetchBloomerySupplies/FSM_FetchKilnSupplies OnStateEnter/OnStateExit, dumping the " +
+            "quest-data class, the ore/coal/bloom slot containers, the kiln recipe/container " +
+            "manifests, and a part-substitution probe off a FindAnyObjectByType<Bloomstation> " +
+            "instance. See BloomeryTrace.cs / Patches/BloomeryFetchPatches.cs.");
 
         ClassInjector.RegisterTypeInIl2Cpp<StorageCensus>();
         ClassInjector.RegisterTypeInIl2Cpp<CraftWatcher>();
@@ -486,6 +505,45 @@ public class Plugin : BasePlugin
             Logger.LogInfo($"[CFS] {offFlag} - CrafterFetchQuest/CrafterSpecificFetchQuest GetPriority suppression patches NOT applied.");
         }
 
+        // v0.15.0: bloomery/kiln supply-fetch diagnostic spike (Patches/BloomeryFetchPatches.cs).
+        // READ-ONLY - see BloomeryTrace.cs's header comment. Four patches attached individually
+        // (not PatchAll on the whole file) so a per-patch try/catch and its own load-time log line
+        // exist for each, matching StationStockPatches.cs / VillagerFetchPatches.cs's style.
+        if (EnableBloomeryTrace.Value)
+        {
+            try
+            {
+                harmony.PatchAll(typeof(Patches.FetchBloomerySuppliesEnterPatch));
+                Logger.LogInfo("[CFS] [CFS-BLM] attached FetchBloomerySuppliesEnterPatch (FSM_FetchBloomerySupplies.OnStateEnter).");
+            }
+            catch (Exception ex) { Logger.LogError($"[CFS] [CFS-BLM] failed to attach FetchBloomerySuppliesEnterPatch: {ex}"); }
+
+            try
+            {
+                harmony.PatchAll(typeof(Patches.FetchBloomerySuppliesExitPatch));
+                Logger.LogInfo("[CFS] [CFS-BLM] attached FetchBloomerySuppliesExitPatch (FSM_FetchBloomerySupplies.OnStateExit).");
+            }
+            catch (Exception ex) { Logger.LogError($"[CFS] [CFS-BLM] failed to attach FetchBloomerySuppliesExitPatch: {ex}"); }
+
+            try
+            {
+                harmony.PatchAll(typeof(Patches.FetchKilnSuppliesEnterPatch));
+                Logger.LogInfo("[CFS] [CFS-BLM] attached FetchKilnSuppliesEnterPatch (FSM_FetchKilnSupplies.OnStateEnter).");
+            }
+            catch (Exception ex) { Logger.LogError($"[CFS] [CFS-BLM] failed to attach FetchKilnSuppliesEnterPatch: {ex}"); }
+
+            try
+            {
+                harmony.PatchAll(typeof(Patches.FetchKilnSuppliesExitPatch));
+                Logger.LogInfo("[CFS] [CFS-BLM] attached FetchKilnSuppliesExitPatch (FSM_FetchKilnSupplies.OnStateExit).");
+            }
+            catch (Exception ex) { Logger.LogError($"[CFS] [CFS-BLM] failed to attach FetchKilnSuppliesExitPatch: {ex}"); }
+        }
+        else
+        {
+            Logger.LogInfo("[CFS] EnableBloomeryTrace=false - bloomery/kiln fetch FSM trace patches NOT applied.");
+        }
+
         // v0.9.0 Phase 2c: stock the crafting station directly from settlement storage the moment a
         // villager's fetch quest STARTS (FSM_FetchCraftingSupplies.OnStateEnter), so the walk becomes
         // unnecessary through vanilla's own scheduling rather than by suppressing it. See
@@ -514,7 +572,9 @@ public class Plugin : BasePlugin
             $"FetchQuestSuppressedPriority={FetchQuestSuppressedPriority.Value} (see [CFS-FQ] log lines). " +
             $"Phase 2c station stocker: StockStationOnFetch={StockStationOnFetch.Value} (see [CFS-SS] log lines). " +
             $"StockTransformStationMaterials={StockTransformStationMaterials.Value} (stocker-only override, default " +
-            $"false, for a physical-transform station's own rack - see TRANSFORM_STATION_PLAN.md).");
+            $"false, for a physical-transform station's own rack - see TRANSFORM_STATION_PLAN.md). " +
+            $"v0.15.0 bloomery/kiln supply-fetch spike: EnableBloomeryTrace={EnableBloomeryTrace.Value} " +
+            $"(read-only observation - see [CFS-BLM] log lines).");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide

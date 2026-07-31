@@ -8,15 +8,14 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) working well — v0.14.1 is the current build, run in-game 2026-07-31 with good
-results: villagers markedly more effective, crafting-table counts no longer inflated
-(count-doubling fix user-confirmed in-game 2026-07-31). Per-item transform gate working, one-craft
-stocking rule working, snapshot dedupe working, and zero ZERO-MOVE lines or capacity refusals. The
-173 zero-move stocking events are the known vanilla Heavy Pelt loop at Workshop House 4 (third
-consecutive run, not a defect). Phase 2 still IN PROGRESS — Bloomeries/coal makers still the
-unstarted piece of toggle 2 (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus
-request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
-docs/architecture.md → "Player crafting pipeline".
+(villager half) in progress — v0.16.0 is the current build, bloomery delivery (toggle 2) first
+run 2026-07-31 verified good (stocking in correct slots, kilns reached supplied, zero errors);
+one config-only protection (kiln container blacklist) ⚠️ untested. Coal makers backburnered by
+user ruling 2026-07-31. All prior Phase 2 features confirmed: per-item transform gate working,
+one-craft stocking rule working, snapshot dedupe working, zero ZERO-MOVE lines or capacity
+refusals; 173 zero-move stocking events = known vanilla Heavy Pelt loop (third consecutive run,
+not a defect).** Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
+→ idea 17. Subsystem facts: docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
 Crafting at a station pulls missing ingredients from any non-blacklisted settlement storage into
@@ -68,10 +67,12 @@ Blacklist defaults:
   `Storage_MediumItems_L1` (medium materials bin at workshop tables and co-located stations,
   confirmed 2026-07-30), `Storage_SmallItems_L1` (small items bin, capacity 20, used by
   workshops AND farms — census-confirmed 2026-07-31; farms' small bins are therefore also
-  excluded as pull sources). It is belt-and-braces only — user-confirmed 2026-07-20 that armor
-  racks hold finished products and no ASKA recipe consumes finished gear as an input, so the
-  racks are not a real drain risk. Note `Storage_SmallItems_L1` is in the live cfg on the laptop
-  but ⚠️ NOT yet in the Plugin.cs bind default — owed in the next build.
+  excluded as pull sources), `Storage_SmallItems_Kiln` (kiln loading container; blacklisted so
+  one bloomery cannot drain another's loaded kiln; live-cfg only until the next build, ⚠️
+  untested). It is belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold
+  finished products and no ASKA recipe consumes finished gear as an input, so the racks are
+  not a real drain risk. Note `Storage_SmallItems_L1` and `Storage_SmallItems_Kiln` are in the
+  live cfg on the laptop but ⚠️ NOT yet in the Plugin.cs bind default — owed in the next build.
 - **`Transfer/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
   These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
   stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
@@ -372,6 +373,42 @@ plan=<src> planQty=<n> aggQty=<n>`; `planQty` far below `aggQty` at a busy works
 fix operating. User ruling 2026-07-30: no capacity-headroom reserve — it only shrinks the
 working bin; the one-craft cap is the chosen mechanism.
 
+**Bloomery delivery (v0.15.0 spike + v0.16.0, toggle 2)** — Spike run results (v0.15.0,
+2026-07-31): the bloomery supply fetch (`FSM_FetchBloomerySupplies`) always carries quest data
+`BloomstationSupplyQuestData` (51/51); the kiln-tending fetch (`FSM_FetchKilnSupplies`)
+always carries `KilnkeeperQuestData` (132/132) and belongs to the bloomery's own kilnkeeper,
+not the charcoal maker. Zero `CoalmakerSupplyQuestData` in 183 fetches — the charcoal maker's
+supply path uses neither FSM (its hook discovery is backburnered, user 2026-07-31). All three
+bloomery slots (ore/coal/bloom) are `Storage_SmallItems_L1` capacity 15. `GetKilnRecipeManifest()`
+= `'Iron Ore'x5 + 'Coal'x20`; `_kilnContainerManifest` = `'Coal'x20`. The game's own
+substitution confirms `'Iron Ore' -> 'Metal Scraps'` (`TryGetPartSubstitute`, 6/6 probes).
+
+How v0.16.0 works: `BloomeryTrace.TryStockBloomery`, called from both OnStateEnter postfixes.
+Resolution is guess-free: quest data rewrapped as `BloomstationQuest/BloomstationQuestData`
+(base of both observed classes) → `.Quest` → `.bloomstation`, so the correct bloomery is
+found even with several. Wanted = kiln recipe manifest; shortfall netted against
+`GetInventory()` counting the substitute's stock too; delivery via the existing no-ledger
+`CraftTransfer.StockStation` (blacklist + capacity pre-check apply); a second pass pulls the
+substitute for any remainder. Gates: `EnableForVillagers` + `StockStationOnFetch` + toggle 2 +
+host/solo. 5-second per-station cooldown (the kiln hook fires very often). Success marker:
+the unconditional `[CFS] [CFS-BLM] BLOOMERY STOCKED ...` line with pass-split
+`subItemsMoved`/`subQtyMoved` fields; a post-stock slot dump shows where items landed.
+
+First run (v0.16.0, 2026-07-31, log-verified): 34 stocking events, 15 with qtyMoved>0 including
+full `qtyMoved=5 stillShort=0` deliveries at both bloomeries; 10 events used the scraps
+substitute pass; deliveries land in the ORE slot (post-stock dump: `slot=ore ...
+first='Iron Orex2'`) and the bloom output slot stayed empty in every dump; warehouse sourcing
+worked (4 Iron Ore moves from Improved Warehouse 3); `kilnSupplied` flipped True at both
+bloomeries, which never happened pre-feature; zero errors, zero capacity refusals. User observed
+bloomeries receiving ore in groups of 5 into ore storage.
+
+Defect found and patched in config: 28 of the run's pulls drained `Storage_SmallItems_Kiln` —
+the kiln's internal loading container, a FOURTH container type not on the blacklist (the slot
+blacklist held: zero L1/MediumItems candidates all run). 17 were self-shuffles, 11 drained a
+NEIGHBORING bloomery's loaded kiln. `Storage_SmallItems_Kiln` was added to
+`Transfer/BlacklistContainerTypes` in the live laptop cfg 2026-07-31. ⚠️ Untested, and NOT yet
+in the Plugin.cs bind default — owed in the next build.
+
 ## Dead-ends and traps
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
   the `GetStructures()` walk.
@@ -493,6 +530,14 @@ working bin; the one-craft cap is the chosen mechanism.
   source removal from a refused destination add.
 
 ## Version history
+- **v0.16.0** — bloomery delivery behind toggle 2 (`TryStockBloomery`; recipe-manifest
+  shortfall, scraps-substitute second pass, 5 s cooldown; `Storage_SmallItems_L1` folded into
+  the blacklist bind default). First run 2026-07-31 verified: correct-slot delivery, kilns
+  reached supplied, zero errors; exposed the kiln-container drain patched in config (⚠️
+  untested).
+- **v0.15.0** — read-only bloomery/kiln fetch spike (`[CFS-BLM]`, `Probe/EnableBloomeryTrace`).
+  Run 2026-07-31: identified both quest-data classes, slot types, recipe manifest, and the
+  ore→scraps substitution.
 - **v0.14.1** — snapshot dedupe by container identity, delivery plan capped by the fetch request
   (`plan=aggregate-nooverlap` fallback), `Storage_MediumItems_L1` added to the source-blacklist
   default. Run in-game 2026-07-31: all mechanisms verified, count-doubling fix user-confirmed.
