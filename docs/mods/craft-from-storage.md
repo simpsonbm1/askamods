@@ -7,14 +7,8 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) in progress — v0.16.0 is the current build, bloomery delivery (toggle 2) first
-run 2026-07-31 verified good (stocking in correct slots, kilns reached supplied, zero errors);
-one config-only protection (kiln container blacklist) ⚠️ untested. Coal makers backburnered by
-user ruling 2026-07-31. All prior Phase 2 features confirmed: per-item transform gate working,
-one-craft stocking rule working, snapshot dedupe working, zero ZERO-MOVE lines or capacity
-refusals; 173 zero-move stocking events = known vanilla Heavy Pelt loop (third consecutive run,
-not a defect).** Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
+**Status: COMPLETE v1.0.0, confirmed in-game 2026-07-31, host/solo only, pending Nexus upload.**
+Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
 → idea 17. Subsystem facts: docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
@@ -68,11 +62,11 @@ Blacklist defaults:
   confirmed 2026-07-30), `Storage_SmallItems_L1` (small items bin, capacity 20, used by
   workshops AND farms — census-confirmed 2026-07-31; farms' small bins are therefore also
   excluded as pull sources), `Storage_SmallItems_Kiln` (kiln loading container; blacklisted so
-  one bloomery cannot drain another's loaded kiln; live-cfg only until the next build, ⚠️
-  untested). It is belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold
-  finished products and no ASKA recipe consumes finished gear as an input, so the racks are
-  not a real drain risk. Note `Storage_SmallItems_L1` and `Storage_SmallItems_Kiln` are in the
-  live cfg on the laptop but ⚠️ NOT yet in the Plugin.cs bind default — owed in the next build.
+  one bloomery cannot drain another's loaded kiln — soak-confirmed effective 2026-07-31). All
+  entries including the kiln one are in the Plugin.cs bind default as of v1.0.0. The armor-rack
+  entries are belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold finished
+  products and no ASKA recipe consumes finished gear as an input, so the racks are not a real
+  drain risk.
 - **`Transfer/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
   These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
   stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
@@ -405,9 +399,11 @@ bloomeries receiving ore in groups of 5 into ore storage.
 Defect found and patched in config: 28 of the run's pulls drained `Storage_SmallItems_Kiln` —
 the kiln's internal loading container, a FOURTH container type not on the blacklist (the slot
 blacklist held: zero L1/MediumItems candidates all run). 17 were self-shuffles, 11 drained a
-NEIGHBORING bloomery's loaded kiln. `Storage_SmallItems_Kiln` was added to
-`Transfer/BlacklistContainerTypes` in the live laptop cfg 2026-07-31. ⚠️ Untested, and NOT yet
-in the Plugin.cs bind default — owed in the next build.
+NEIGHBORING bloomery's loaded kiln. `Storage_SmallItems_Kiln` is in the Plugin.cs bind default
+as of v1.0.0, and a desktop soak run on 2026-07-31 confirmed the blacklist holds — the
+container name appeared exactly once in the whole session log and only as another mod's
+capacity survey line, never as a pull source, while bloomeries were still fed from warehouse
+stock.
 
 ## Dead-ends and traps
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
@@ -530,6 +526,20 @@ in the Plugin.cs bind default — owed in the next build.
   source removal from a refused destination add.
 
 ## Version history
+- **v1.0.0** — release: all twelve diagnostic logging defaults flipped to false (six Trace-section
+  flags, EnableCraftWatcher, TransferDiagnostics, UiDiagnostics, EnableVillagerFetchTrace,
+  TraceStorageWhitelist, EnableBloomeryTrace); feature toggles unchanged, StockTransformStationMaterials
+  ships default false. `Storage_SmallItems_Kiln` folded into BlacklistContainerTypes bind default.
+  EnableBloomeryTrace decoupled from delivery feature: four bloomery/kiln FSM patches attach when
+  flag OR (EnableForVillagers AND StockStationOnFetch) is true; flag gates only diagnostic logging
+  in BloomeryTrace.cs. Defect fixed: OnStateEnter patches opened with early `return` on trace flag —
+  with new false default would skip TryStockBloomery delivery entirely — guard now wraps trace call
+  only. Second defect fixed: `[CFS-SS] STOCKED` summary line logs unconditionally when qtyMoved>0;
+  zero-move lines sit behind TransferDiagnostics (desktop 2026-07-31, 128 total [CFS] log lines
+  vs. 1,218 before fix, 19 STOCKED lines all with qtyMoved>0, 2 BLOOMERY STOCKED with warehouse
+  sourcing, zero errors). Soak run (desktop 2026-07-31, v0.16.0): kiln blacklist held, bloomeries
+  reached supplied, zero errors, villagers did not walk up to crafting tables and leave — the
+  walk-away question is closed.
 - **v0.16.0** — bloomery delivery behind toggle 2 (`TryStockBloomery`; recipe-manifest
   shortfall, scraps-substitute second pass, 5 s cooldown; `Storage_SmallItems_L1` folded into
   the blacklist bind default). First run 2026-07-31 verified: correct-slot delivery, kilns

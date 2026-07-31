@@ -24,8 +24,10 @@ internal static class FetchBloomerySuppliesEnterPatch
     {
         try
         {
-            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, true)) return;
-            BloomeryTrace.HandleFetchEnter(__instance, fsmBehaviour, "bloomery");
+            // Guard ONLY the trace call - a `return` here would also skip the v0.16.0 delivery
+            // call below, which must run whether or not the trace flag is on.
+            if (VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false))
+                BloomeryTrace.HandleFetchEnter(__instance, fsmBehaviour, "bloomery");
         }
         catch (Exception ex)
         {
@@ -52,7 +54,7 @@ internal static class FetchBloomerySuppliesExitPatch
     {
         try
         {
-            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, true)) return;
+            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false)) return;
             BloomeryTrace.HandleFetchExit(__instance, fsmBehaviour, "bloomery");
         }
         catch (Exception ex)
@@ -69,8 +71,10 @@ internal static class FetchKilnSuppliesEnterPatch
     {
         try
         {
-            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, true)) return;
-            BloomeryTrace.HandleFetchEnter(__instance, fsmBehaviour, "kiln");
+            // Guard ONLY the trace call - a `return` here would also skip the v0.16.0 delivery
+            // call below, which must run whether or not the trace flag is on.
+            if (VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false))
+                BloomeryTrace.HandleFetchEnter(__instance, fsmBehaviour, "kiln");
         }
         catch (Exception ex)
         {
@@ -97,7 +101,7 @@ internal static class FetchKilnSuppliesExitPatch
     {
         try
         {
-            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, true)) return;
+            if (!VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false)) return;
             BloomeryTrace.HandleFetchExit(__instance, fsmBehaviour, "kiln");
         }
         catch (Exception ex)

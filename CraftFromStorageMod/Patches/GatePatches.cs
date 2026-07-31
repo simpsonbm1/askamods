@@ -49,6 +49,10 @@ internal static class GateLog
 
     internal static void LogBeginCraftingSequence(string typeName, CraftInteraction instance, InteractionSession session)
     {
+        // v1.0.0: gated on TraceBeginCraftingSequence (default true) - this patch itself stays
+        // applied regardless of the flag (OR'd with EnablePlayerPull/EnableForVillagers in Plugin.cs),
+        // so the flag must gate this log line directly rather than patch application.
+        if (!VillagerFetchTrace.SafeGetBool(Plugin.TraceBeginCraftingSequence, true)) return;
         string sessionClass = Plugin.NativeClassName(session);
         bool useAgentInv = false;
         try { useAgentInv = instance.useAgentInventory; } catch { }
@@ -125,12 +129,19 @@ internal static class GateRollup
     {
         try
         {
-            long elapsedMs = Math.Max(1, _lastCallMs);
-            double callsPerSec = _totalCalls / (elapsedMs / 1000.0);
-            string agentBreakdown = string.Join(", ", _perAgentCounts.Select(kv => $"{kv.Key}={kv.Value}"));
-            Plugin.Logger.LogInfo($"[CFS] GATE rollup: {_totalCalls} calls in {elapsedMs}ms ({callsPerSec:F1}/s) " +
-                $"agents=[{agentBreakdown}] distinctBlueprints={_distinctBlueprints.Count} true={_trueCount} " +
-                $"false={_falseCount} innerManifestChecks={_innerManifestChecks}");
+            // v1.0.0: gated on TraceCheckOwnedRequirements (default true) - CheckOwnedRequirementsPatch
+            // itself stays applied regardless of the flag (OR'd with EnablePlayerPull/EnableForVillagers
+            // in Plugin.cs), so the flag must gate this rollup log line directly. Counters still reset
+            // in the `finally` block below either way.
+            if (VillagerFetchTrace.SafeGetBool(Plugin.TraceCheckOwnedRequirements, true))
+            {
+                long elapsedMs = Math.Max(1, _lastCallMs);
+                double callsPerSec = _totalCalls / (elapsedMs / 1000.0);
+                string agentBreakdown = string.Join(", ", _perAgentCounts.Select(kv => $"{kv.Key}={kv.Value}"));
+                Plugin.Logger.LogInfo($"[CFS] GATE rollup: {_totalCalls} calls in {elapsedMs}ms ({callsPerSec:F1}/s) " +
+                    $"agents=[{agentBreakdown}] distinctBlueprints={_distinctBlueprints.Count} true={_trueCount} " +
+                    $"false={_falseCount} innerManifestChecks={_innerManifestChecks}");
+            }
         }
         catch (Exception ex)
         {

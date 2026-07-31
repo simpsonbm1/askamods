@@ -111,35 +111,35 @@ public class Plugin : BasePlugin
         Cfg = Config;
 
         TraceCheckOwnedRequirements = Config.Bind(
-            "Trace", "TraceCheckOwnedRequirements", true,
+            "Trace", "TraceCheckOwnedRequirements", false,
             "Postfix-log CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent). This target is " +
             "public but NON-virtual, so it may have been inlined by the IL2CPP AOT compiler and this patch may " +
             "silently never fire - that is itself a key Phase 0 finding. Logs agent native class, blueprint name, and __result.");
 
         TraceCheckOwnedBlueprintManifest = Config.Bind(
-            "Trace", "TraceCheckOwnedBlueprintManifest", true,
+            "Trace", "TraceCheckOwnedBlueprintManifest", false,
             "HIGHEST RISK patch. Its target takes an ItemManifest parameter; inventory-family parameter types " +
             "have caused native crashes at plugin load in this game. If the game hard-crashes on startup with " +
             "this mod installed, set this to false FIRST.");
 
         TraceBeginCraftingSequence = Config.Bind(
-            "Trace", "TraceBeginCraftingSequence", true,
+            "Trace", "TraceBeginCraftingSequence", false,
             "Prefix-log BeginCraftingSequence(InteractionSession) on CraftInteraction, AnvilInteraction, and " +
             "DyeingInteraction (each declares its own override - all three are patched together under this flag). " +
             "Logs which type fired, the session's native class name (reveals player vs villager session), and useAgentInventory.");
 
         TraceOnCraftingSuccess = Config.Bind(
-            "Trace", "TraceOnCraftingSuccess", true,
+            "Trace", "TraceOnCraftingSuccess", false,
             "Prefix AND Postfix snapshot of the station's ItemInventory around _OnCraftingSuccess(IInteractionAgent) " +
             "on CraftInteraction and DyeingInteraction (both patched together under this flag) - shows where " +
             "ingredient consumption actually happens (PRE vs POST totals + per-item breakdown).");
 
         TraceActivateBlueprint = Config.Bind(
-            "Trace", "TraceActivateBlueprint", true,
+            "Trace", "TraceActivateBlueprint", false,
             "Postfix-log CraftInteraction.ActivateBlueprint(CraftBlueprint) - blueprint name + __result.");
 
         TraceRecipeListUI = Config.Bind(
-            "Trace", "TraceRecipeListUI", true,
+            "Trace", "TraceRecipeListUI", false,
             "Postfix-log SSSGame.UI.CreateItemsTabPage.Show(bool, TabButton) - AvailableBlueprints/UnavailableBlueprints " +
             "counts at recipe-list-open time (may be null/empty at this point, which is itself informative).");
 
@@ -150,7 +150,7 @@ public class Plugin : BasePlugin
             "to ALSO emit the old one-line-per-call logging on top of the rollup - noisy, diagnostic-only.");
 
         EnableCraftWatcher = Config.Bind(
-            "Watch", "EnableCraftWatcher", true,
+            "Watch", "EnableCraftWatcher", false,
             "Master switch for the v0.2.0 delta watcher (CraftWatcher.cs). While armed it samples every candidate " +
             "ingredient ItemCollection (agent inventory, station inventory/blueprint inventory, workstation stock, " +
             "crafting-agent inventory) every PollIntervalSeconds and logs only what changed - this is what resolves " +
@@ -225,7 +225,7 @@ public class Plugin : BasePlugin
 
         BlacklistContainerTypes = Config.Bind(
             "Transfer", "BlacklistContainerTypes",
-            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1,Storage_SmallItems_L1",
+            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1,Storage_SmallItems_L1,Storage_SmallItems_Kiln",
             "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
             "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
             "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead. v0.9.3: " +
@@ -241,10 +241,10 @@ public class Plugin : BasePlugin
             "docs/mods/craft-from-storage.md).");
 
         TransferDiagnostics = Config.Bind(
-            "Transfer", "TransferDiagnostics", true,
+            "Transfer", "TransferDiagnostics", false,
             "Verbose per-pull/per-sweep-back logging (SettlementStock rebuild summaries, PullShortfall per-item " +
-            "lines, HandleCraftingSuccess sweep-back totals). Unverified feature, defaults true per project " +
-            "convention - flip false once Phase 1 is confirmed working in-game.");
+            "lines, HandleCraftingSuccess sweep-back totals). Diagnostic logging only; defaults false at ship - " +
+            "enable for troubleshooting.");
 
         FetchQuestSuppressedPriority = Config.Bind(
             "Transfer", "FetchQuestSuppressedPriority", -1000.0f,
@@ -318,12 +318,12 @@ public class Plugin : BasePlugin
             "Set false to leave the vanilla-only have/need display alone.");
 
         UiDiagnostics = Config.Bind(
-            "UI", "UiDiagnostics", true,
+            "UI", "UiDiagnostics", false,
             "Verbose logging for the settlement-stock requirement-UI feature: which of _UpdateAvailablility/" +
             "_UpdateAvailabilityStatus actually fires (AOT inlining risk), raw availability.text plus panel " +
             "scoping evidence (parent native class, checkAvailability) for the first ~10 panels seen, and " +
-            "rate-limited (first 5) per-item-type rewrite/unparsed-text lines. Defaults true per project " +
-            "convention - flip false once the feature is confirmed working in-game.");
+            "rate-limited (first 5) per-item-type rewrite/unparsed-text lines. Diagnostic logging only; " +
+            "defaults false at ship - enable for troubleshooting.");
 
         UiPollSeconds = Config.Bind(
             "UI", "UiPollSeconds", 0.2f,
@@ -335,15 +335,15 @@ public class Plugin : BasePlugin
             "crafting menu is open.");
 
         EnableVillagerFetchTrace = Config.Bind(
-            "Probe", "EnableVillagerFetchTrace", true,
+            "Probe", "EnableVillagerFetchTrace", false,
             "v0.6.0 Phase 2a MASTER SWITCH: READ-ONLY villager-fetch diagnostic spike. Postfix-logs " +
             "FSM_FetchCraftingSupplies.OnStateEnter/OnStateExit, FSM_UseCraftingStation.OnStateEnter " +
             "(the per-villager CYCLE SUMMARY verdict=DIRECT|TOURED line), and " +
             "FSM_ReturnCraftingSupplies.OnStateEnter. Never writes game state - observation only. " +
-            "Defaults true per project convention (unverified diagnostic mod).");
+            "Diagnostic logging only; defaults false at ship - enable for troubleshooting.");
 
         TraceStorageWhitelist = Config.Bind(
-            "Probe", "TraceStorageWhitelist", true,
+            "Probe", "TraceStorageWhitelist", false,
             "v0.6.0 Phase 2a: postfix-logs CrafterFetchQuestData.IsWhitelistedByStorage(IResourceStorageSite) " +
             "- the OTHER candidate lever (a storage whitelist rather than a fetch-reach restriction). " +
             "Logs the probed site name and the allowed/denied verdict, rate-limited by " +
@@ -356,13 +356,16 @@ public class Plugin : BasePlugin
             "every call is still COUNTED toward the CYCLE SUMMARY totals regardless of this cap.");
 
         EnableBloomeryTrace = Config.Bind(
-            "Probe", "EnableBloomeryTrace", true,
-            "v0.15.0: read-only bloomery/kiln supply-fetch diagnostic for the toggle-2 bloomery " +
-            "feature; observation only, never writes game state. Postfix-logs " +
-            "FSM_FetchBloomerySupplies/FSM_FetchKilnSupplies OnStateEnter/OnStateExit, dumping the " +
-            "quest-data class, the ore/coal/bloom slot containers, the kiln recipe/container " +
-            "manifests, and a part-substitution probe off a FindAnyObjectByType<Bloomstation> " +
-            "instance. See BloomeryTrace.cs / Patches/BloomeryFetchPatches.cs.");
+            "Probe", "EnableBloomeryTrace", false,
+            "v1.0.0: gates ONLY the diagnostic logging in BloomeryTrace.cs (fetchEnter/fetchExit lines, " +
+            "the quest-data class dump, the ore/coal/bloom slot dumps, the kiln recipe/container " +
+            "manifest dumps, and the part-substitution probe off a FindAnyObjectByType<Bloomstation> " +
+            "instance) - it no longer gates the bloomery/kiln delivery feature itself. The four " +
+            "FSM_FetchBloomerySupplies/FSM_FetchKilnSupplies patches now attach whenever this flag OR " +
+            "(EnableForVillagers AND StockStationOnFetch) is true, so the delivery feature (still also " +
+            "gated by StockTransformStationMaterials) works with this left at its default false. Set " +
+            "true to also get the read-only diagnostic trace. See BloomeryTrace.cs / " +
+            "Patches/BloomeryFetchPatches.cs.");
 
         ClassInjector.RegisterTypeInIl2Cpp<StorageCensus>();
         ClassInjector.RegisterTypeInIl2Cpp<CraftWatcher>();
@@ -506,10 +509,15 @@ public class Plugin : BasePlugin
         }
 
         // v0.15.0: bloomery/kiln supply-fetch diagnostic spike (Patches/BloomeryFetchPatches.cs).
-        // READ-ONLY - see BloomeryTrace.cs's header comment. Four patches attached individually
-        // (not PatchAll on the whole file) so a per-patch try/catch and its own load-time log line
-        // exist for each, matching StationStockPatches.cs / VillagerFetchPatches.cs's style.
-        if (EnableBloomeryTrace.Value)
+        // v1.0.0: these four patches also carry the bloomery/kiln delivery feature (BloomeryTrace.
+        // TryStockBloomery, called from both OnStateEnter postfixes) - EnableBloomeryTrace alone can no
+        // longer gate patch application, or the delivery feature would be unreachable whenever a user
+        // leaves the (now-default-false) diagnostic flag off. Attach whenever EITHER the diagnostic
+        // flag OR the delivery feature's own master switches want it - same "trace flag OR master
+        // switch" reasoning as the Trace/EnablePlayerPull dual-purpose patches above. Four patches
+        // attached individually (not PatchAll on the whole file) so a per-patch try/catch and its own
+        // load-time log line exist for each, matching StationStockPatches.cs / VillagerFetchPatches.cs's style.
+        if (EnableBloomeryTrace.Value || (EnableForVillagers.Value && StockStationOnFetch.Value))
         {
             try
             {
@@ -541,7 +549,7 @@ public class Plugin : BasePlugin
         }
         else
         {
-            Logger.LogInfo("[CFS] EnableBloomeryTrace=false - bloomery/kiln fetch FSM trace patches NOT applied.");
+            Logger.LogInfo("[CFS] EnableBloomeryTrace=false, EnableForVillagers=false or StockStationOnFetch=false - bloomery/kiln fetch FSM patches NOT applied.");
         }
 
         // v0.9.0 Phase 2c: stock the crafting station directly from settlement storage the moment a

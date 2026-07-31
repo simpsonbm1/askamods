@@ -108,9 +108,12 @@ internal static class BloomeryTrace
             QuestData? qd = null;
             try { qd = instance.GetQuestData(fsmBehaviour); } catch { }
 
+            bool traceOn = VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false);
+
             if (qd == null)
             {
-                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchEnter site={site} villager={villagerName} qd=null");
+                if (traceOn)
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchEnter site={site} villager={villagerName} qd=null");
             }
             else
             {
@@ -119,8 +122,11 @@ internal static class BloomeryTrace
                 // (managed as/is casts lie for interop objects materialized under a base declared
                 // type - project-wide gotcha - so an unverified rewrap risks a native crash no
                 // try/catch can stop, not just a bad read).
-                string qdClass = Plugin.NativeClassName(qd);
-                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchEnter site={site} villager={villagerName} qdClass={qdClass}");
+                if (traceOn)
+                {
+                    string qdClass = Plugin.NativeClassName(qd);
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchEnter site={site} villager={villagerName} qdClass={qdClass}");
+                }
             }
 
             // Resolve the Bloomstation a guess-free way: FindAnyObjectByType<T>() (singular - the
@@ -154,8 +160,11 @@ internal static class BloomeryTrace
             if (exits >= 10) return;
             _exitsLoggedPerSite[site] = exits + 1;
 
-            string villagerName = VillagerFetchTrace.SafeVillagerName(fsmBehaviour);
-            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchExit site={site} villager={villagerName}");
+            if (VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false))
+            {
+                string villagerName = VillagerFetchTrace.SafeVillagerName(fsmBehaviour);
+                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] fetchExit site={site} villager={villagerName}");
+            }
         }
         catch (Exception ex)
         {
@@ -346,16 +355,20 @@ internal static class BloomeryTrace
     }
 
     // Every read individually try/catch'd - "?" on failure, never lets one bad read abort the rest of
-    // the dump.
+    // the dump. v1.0.0: every trace LogInfo below is gated on EnableBloomeryTrace (default false at
+    // ship) - this dump is diagnostic output only, never part of TryStockBloomery's actual delivery.
     private static void DumpBloomstation(Bloomstation b, string site)
     {
+        bool traceOn = VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false);
+
         string stationName = "?";
         try { stationName = b.GetName() ?? "?"; } catch { }
 
         bool kilnSupplied = false;
         try { kilnSupplied = b.KilnIsSupplied; } catch { }
 
-        Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] station name={stationName} kilnSupplied={kilnSupplied}");
+        if (traceOn)
+            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] station name={stationName} kilnSupplied={kilnSupplied}");
 
         DumpSlot(b, "ore", SafeGetOreStorage(b));
         DumpSlot(b, "coal", SafeGetCoalStorage(b));
@@ -382,8 +395,11 @@ internal static class BloomeryTrace
                 try
                 {
                     bool result = b.TryGetPartSubstitute(first, out ItemInfo sub);
-                    string subName = result ? SafeItemName(sub) : "none";
-                    Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] substitute for '{firstName}' -> '{subName}' (result={result})");
+                    if (traceOn)
+                    {
+                        string subName = result ? SafeItemName(sub) : "none";
+                        Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] substitute for '{firstName}' -> '{subName}' (result={result})");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -419,9 +435,12 @@ internal static class BloomeryTrace
     // shape SettlementStock.Rebuild uses.
     private static void DumpSlot(Bloomstation b, string slotName, StorageInteraction? interaction)
     {
+        bool traceOn = VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false);
+
         if (interaction == null)
         {
-            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType=? capacity=? items=? distinct=? first='?'");
+            if (traceOn)
+                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType=? capacity=? items=? distinct=? first='?'");
             return;
         }
 
@@ -438,7 +457,8 @@ internal static class BloomeryTrace
 
         if (container == null)
         {
-            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType=? capacity=? items=? distinct=? first='?'");
+            if (traceOn)
+                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType=? capacity=? items=? distinct=? first='?'");
             return;
         }
 
@@ -487,23 +507,29 @@ internal static class BloomeryTrace
             Plugin.Logger.LogError($"[CFS] [CFS-BLM] DumpSlot item walk error (slot={slotName}): {ex}");
         }
 
-        Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType={typeName} capacity={capacity} " +
-            $"items={total} distinct={distinct} first='{first}'");
+        if (traceOn)
+            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] slot={slotName} containerType={typeName} capacity={capacity} " +
+                $"items={total} distinct={distinct} first='{first}'");
     }
 
     private static void LogManifest(string label, ItemManifest? manifest)
     {
+        bool traceOn = VillagerFetchTrace.SafeGetBool(Plugin.EnableBloomeryTrace, false);
         try
         {
             if (manifest == null)
             {
-                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] {label} n=0: (null)");
+                if (traceOn)
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] {label} n=0: (null)");
                 return;
             }
 
             var entries = CraftTransfer.EnumerateManifest(manifest);
-            string listing = string.Join(" + ", entries.Take(8).Select(e => $"'{SafeItemName(e.info)}'x{e.qty}"));
-            Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] {label} n={entries.Count}: {listing}");
+            if (traceOn)
+            {
+                string listing = string.Join(" + ", entries.Take(8).Select(e => $"'{SafeItemName(e.info)}'x{e.qty}"));
+                Plugin.Logger.LogInfo($"[CFS] [CFS-BLM] {label} n={entries.Count}: {listing}");
+            }
         }
         catch (Exception ex)
         {

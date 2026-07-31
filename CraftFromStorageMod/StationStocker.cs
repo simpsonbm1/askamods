@@ -718,11 +718,15 @@ internal static class StationStocker
             // Step 11.
             var (itemsMoved, qtyMoved, stillShort) = CraftTransfer.StockStation(shortfall, stationInv, villagerName, stationName);
 
-            // Step 12: one unconditional summary line - this is the run's success metric, not behind
-            // TransferDiagnostics. v0.9.2 appends bpClass so a run's worth of STOCKED lines tells us,
-            // in one grep, whether ordinary crafting-table recipes report CraftBlueprintInfo or
+            // Step 12: summary line. A line that MOVED something logs unconditionally - it is the
+            // feature's audit trail (v1.0.0: a fresh-defaults run logged 782 of these in minutes,
+            // nearly all qtyMoved=0 no-ops, so zero-move lines now sit behind TransferDiagnostics).
+            // v0.9.2 appends bpClass so a run's worth of STOCKED lines tells us, in one grep,
+            // whether ordinary crafting-table recipes report CraftBlueprintInfo or
             // WorkshopBlueprintInfo (currently unknown) - "?" when the resolution chain came up empty.
             // v0.9.3 appends stationType (purely diagnostic, see ResolveStationType's own comment).
+            if (qtyMoved == 0 && !VillagerFetchTrace.SafeGetBool(Plugin.TransferDiagnostics, false))
+                return;
             Plugin.Logger.LogInfo($"[CFS] [CFS-SS] STOCKED villager={villagerName} station={stationName} " +
                 $"stationObj={stationObjName} wanted={pairs.Count} short={shortfall.Count} itemsMoved={itemsMoved} " +
                 $"qtyMoved={qtyMoved} stillShort={stillShort} bpClass={(bpClass.Length > 0 ? bpClass : "?")} " +
