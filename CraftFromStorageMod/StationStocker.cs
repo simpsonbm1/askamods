@@ -22,8 +22,8 @@ namespace CraftFromStorageMod;
 // starts (FSM_FetchCraftingSupplies.OnStateEnter) and teleports the materials she was about to fetch
 // from settlement storage directly into the crafting station's inventory - so the walk becomes
 // unnecessary through vanilla's own scheduling path rather than by fighting it. The v0.8.0 lever is
-// retired behind Plugin.SuppressFetchQuestPriority (default false), not deleted - see Plugin.cs Load()
-// and FetchQuestSuppression.cs for that history.
+// retired: its config lever was removed from the config surface entirely (not deleted from the code) -
+// see FetchQuestSuppression.cs for that history.
 //
 // All log lines here carry the "[CFS-SS]" tag (on top of the mod-wide "[CFS]" tag), distinct from both
 // the v0.6.0 read-only "[CFS-P2]" spike and the v0.7.x/v0.8.0 "[CFS-V]"/"[CFS-FQ]" tags, so this

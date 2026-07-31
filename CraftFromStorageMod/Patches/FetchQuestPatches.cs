@@ -24,8 +24,9 @@ namespace CraftFromStorageMod.Patches;
 // FetchQuestSuppression.HandleGetPriority dispatches correctly for whichever concrete type owns the
 // patched GetPriority that called it.
 //
-// Patch application is gated in Plugin.cs Load() on EnableForVillagers alone (the only config flag
-// this feature answers to) - matching this mod's established per-flag harmony.PatchAll() convention.
+// Neither patch class below is attached from Plugin.cs Load() any more - the lever was removed from
+// the config surface (see FetchQuestSuppression.cs header). Both classes stay in the tree unattached;
+// reattaching requires code, not a config edit.
 [HarmonyPatch(typeof(CrafterFetchQuest), nameof(CrafterFetchQuest.GetPriority))]
 internal static class CrafterFetchQuestGetPriorityPatch
 {

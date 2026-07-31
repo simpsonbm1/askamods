@@ -72,31 +72,16 @@ public class StorageCensus : MonoBehaviour
         }
         Plugin.Logger.LogInfo($"[CFS] Census: settlement resolved via {via}.");
 
-        // -- Settlement.QuerySettlementResources() - HANGS THE GAME. Default OFF. --
+        // -- Settlement.QuerySettlementResources() - HANGS THE GAME. Never called. --
         // v0.1.1 froze the main thread here (confirmed in-game 2026-07-20: Windows logged AppHangB1,
         // NOT an access violation - no crash dump, no managed exception; the log ends on the
         // "settlement resolved" line immediately above). A managed try/catch cannot rescue a hang.
         // This primitive was only ever SIGNATURE-confirmed (interop dump 2026-06-21), never called
         // in-game by any mod in this repo. The per-structure walk below is the proven replacement.
-        // Left behind an opt-in flag purely to discriminate WHICH call hangs, if we ever care: the
-        // three markers below bracket QuerySettlementResources() and GetTotalQuantity() separately,
-        // so the last surviving log line names the exact call that froze.
-        if (Plugin.CensusTryQuerySettlementResources.Value)
-        {
-            Plugin.Logger.LogWarning("[CFS] Census: about to call QuerySettlementResources() - THIS HUNG THE GAME in v0.1.1.");
-            try
-            {
-                ItemManifest? resources = settlement.QuerySettlementResources();
-                Plugin.Logger.LogInfo("[CFS] Census: QuerySettlementResources() RETURNED - about to call GetTotalQuantity().");
-                int total = resources != null ? resources.GetTotalQuantity() : -1;
-                Plugin.Logger.LogInfo($"[CFS] Census: GetTotalQuantity() RETURNED = {total}.");
-            }
-            catch (Exception ex) { Plugin.Logger.LogError($"[CFS] Census: QuerySettlementResources error: {ex}"); }
-        }
-        else
-        {
-            Plugin.Logger.LogInfo("[CFS] Census: QuerySettlementResources SKIPPED (hangs the game - see CensusTryQuerySettlementResources).");
-        }
+        // The former opt-in re-attempt flag was removed from the config surface (user ruling: options
+        // whose own description warns they can break the game must not exist) - the census now always
+        // uses the GetStructures() walk below, with no way to re-arm the hanging call short of editing
+        // this source.
 
         // -- Per-structure storage census via GetStructures() - the PROVEN enumeration. --
         // GetStructures() is confirmed in-game by four mods in this repo (SupplyChainMod StationWalker,

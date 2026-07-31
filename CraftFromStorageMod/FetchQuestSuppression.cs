@@ -10,6 +10,11 @@ using SSSGame.AI.FSM;
 
 namespace CraftFromStorageMod;
 
+// This lever (formerly SuppressFetchQuestPriority/FetchQuestSuppressedPriority) was removed from the
+// config surface: enabling it stalls villager crafting entirely (confirmed in-game 2026-07-27). The
+// GetPriority suppression patches in Patches/FetchQuestPatches.cs are no longer attached from
+// Plugin.cs, so this file's logic never runs - reattaching it requires code, not a config edit.
+//
 // v0.8.0 (idea-17 Phase 2b): shared logic for Patches/FetchQuestPatches.cs. The v0.7.0/v0.7.1
 // villager availability widening (Point A, CraftTransfer.TryReportAvailable) did NOT stop the
 // villager's supply walk - confirmed in-game 2026-07-21 (gate widened 5619 times, the test villager
@@ -176,7 +181,9 @@ internal static class FetchQuestSuppression
 
                 if (covered)
                 {
-                    suppressedTo = Plugin.FetchQuestSuppressedPriority.Value;
+                    // Former config value (the suppression lever), hardcoded now that it is removed
+                    // from the config surface (this method is unreachable - see file header).
+                    suppressedTo = -1000.0f;
                     __result = suppressedTo;
                     suppressed = true;
                 }

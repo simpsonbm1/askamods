@@ -47,7 +47,6 @@ public class Plugin : BasePlugin
 
     // --- config: Trace (all default true - unverified diagnostic mod, project rule) ---
     internal static ConfigEntry<bool> TraceCheckOwnedRequirements = null!;
-    internal static ConfigEntry<bool> TraceCheckOwnedBlueprintManifest = null!;
     internal static ConfigEntry<bool> TraceBeginCraftingSequence = null!;
     internal static ConfigEntry<bool> TraceOnCraftingSuccess = null!;
     internal static ConfigEntry<bool> TraceActivateBlueprint = null!;
@@ -62,7 +61,6 @@ public class Plugin : BasePlugin
 
     // --- config: Census ---
     internal static ConfigEntry<string> CensusHotkey = null!;
-    internal static ConfigEntry<bool> CensusTryQuerySettlementResources = null!;
     internal static ConfigEntry<bool> IncludeEquipmentProbe = null!;
     internal static ConfigEntry<bool> IncludeWorkstationStock = null!;
 
@@ -74,10 +72,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> SnapshotTtlSeconds = null!;
     internal static ConfigEntry<string> BlacklistContainerTypes = null!;
     internal static ConfigEntry<bool> TransferDiagnostics = null!;
-    internal static ConfigEntry<float> FetchQuestSuppressedPriority = null!;
     internal static ConfigEntry<bool> StockStationOnFetch = null!;
     internal static ConfigEntry<string> SkipBlueprintClasses = null!;
-    internal static ConfigEntry<bool> SuppressFetchQuestPriority = null!;
     internal static ConfigEntry<string> SkipStationClasses = null!;
     internal static ConfigEntry<bool> StockTransformStationMaterials = null!;
 
@@ -110,97 +106,16 @@ public class Plugin : BasePlugin
         Logger = base.Log;
         Cfg = Config;
 
-        TraceCheckOwnedRequirements = Config.Bind(
-            "Trace", "TraceCheckOwnedRequirements", false,
-            "Postfix-log CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent). This target is " +
-            "public but NON-virtual, so it may have been inlined by the IL2CPP AOT compiler and this patch may " +
-            "silently never fire - that is itself a key Phase 0 finding. Logs agent native class, blueprint name, and __result.");
-
-        TraceCheckOwnedBlueprintManifest = Config.Bind(
-            "Trace", "TraceCheckOwnedBlueprintManifest", false,
-            "HIGHEST RISK patch. Its target takes an ItemManifest parameter; inventory-family parameter types " +
-            "have caused native crashes at plugin load in this game. If the game hard-crashes on startup with " +
-            "this mod installed, set this to false FIRST.");
-
-        TraceBeginCraftingSequence = Config.Bind(
-            "Trace", "TraceBeginCraftingSequence", false,
-            "Prefix-log BeginCraftingSequence(InteractionSession) on CraftInteraction, AnvilInteraction, and " +
-            "DyeingInteraction (each declares its own override - all three are patched together under this flag). " +
-            "Logs which type fired, the session's native class name (reveals player vs villager session), and useAgentInventory.");
-
-        TraceOnCraftingSuccess = Config.Bind(
-            "Trace", "TraceOnCraftingSuccess", false,
-            "Prefix AND Postfix snapshot of the station's ItemInventory around _OnCraftingSuccess(IInteractionAgent) " +
-            "on CraftInteraction and DyeingInteraction (both patched together under this flag) - shows where " +
-            "ingredient consumption actually happens (PRE vs POST totals + per-item breakdown).");
-
-        TraceActivateBlueprint = Config.Bind(
-            "Trace", "TraceActivateBlueprint", false,
-            "Postfix-log CraftInteraction.ActivateBlueprint(CraftBlueprint) - blueprint name + __result.");
-
-        TraceRecipeListUI = Config.Bind(
-            "Trace", "TraceRecipeListUI", false,
-            "Postfix-log SSSGame.UI.CreateItemsTabPage.Show(bool, TabButton) - AvailableBlueprints/UnavailableBlueprints " +
-            "counts at recipe-list-open time (may be null/empty at this point, which is itself informative).");
-
-        VerboseGateLogging = Config.Bind(
-            "Trace", "VerboseGateLogging", false,
-            "v0.2.0: CheckOwnedRequirements / _CheckOwnedBlueprintManifest fire ~96x per recipe-menu-open, so by " +
-            "default they only feed a periodic [CFS] GATE rollup summary (see GatePatches.cs GateRollup). Set true " +
-            "to ALSO emit the old one-line-per-call logging on top of the rollup - noisy, diagnostic-only.");
-
-        EnableCraftWatcher = Config.Bind(
-            "Watch", "EnableCraftWatcher", false,
-            "Master switch for the v0.2.0 delta watcher (CraftWatcher.cs). While armed it samples every candidate " +
-            "ingredient ItemCollection (agent inventory, station inventory/blueprint inventory, workstation stock, " +
-            "crafting-agent inventory) every PollIntervalSeconds and logs only what changed - this is what resolves " +
-            "the 'where does crafting actually consume ingredients' blocker that _OnCraftingSuccess snapshots could not.");
-
-        WatchWindowSeconds = Config.Bind(
-            "Watch", "WatchWindowSeconds", 20f,
-            "How long (seconds) after BeginCraftingSequence the CraftWatcher keeps sampling before disarming and " +
-            "emitting its [CFS] WATCH SUMMARY line. A single craft should complete well inside the default 20s.");
-
-        PollIntervalSeconds = Config.Bind(
-            "Watch", "PollIntervalSeconds", 0.1f,
-            "CraftWatcher sampling cadence (seconds) while armed. Lower = finer-grained timing at the cost of more " +
-            "frequent snapshot work; only changed slots are ever logged, so a lower value does not spam the log.");
-
-        CensusHotkey = Config.Bind(
-            "Census", "CensusHotkey", "F12",
-            "Hotkey (a Unity KeyCode name, parsed via Enum.TryParse<KeyCode>) that dumps a read-only settlement " +
-            "storage census to the log: per-structure container contents and a settlement-wide item total. " +
-            "F6-F11 are taken by other mods in this repo - do not change the default.");
-
-        CensusTryQuerySettlementResources = Config.Bind(
-            "Census", "CensusTryQuerySettlementResources", false,
-            "LEAVE THIS FALSE. Settlement.QuerySettlementResources() FROZE the game when the census called it " +
-            "(confirmed in-game 2026-07-20, v0.1.1: Windows logged AppHangB1 - a hang, not a crash; no managed " +
-            "exception is possible and try/catch cannot rescue it). The census now uses the proven per-structure " +
-            "GetStructures() walk instead. Setting this true re-attempts the hanging call, bracketed by log " +
-            "markers that isolate whether QuerySettlementResources() or GetTotalQuantity() is the one that hangs.");
-
-        IncludeEquipmentProbe = Config.Bind(
-            "Census", "IncludeEquipmentProbe", true,
-            "v0.2.0: per-container structural equip-slot probe (walk up for an EquipmentManager, compare its " +
-            "equipPoints' ItemContainer by pointer) so armor racks / character slots are tagged and excluded from " +
-            "the settlement-wide grand total instead of relying on a container-type name blacklist.");
-
-        IncludeWorkstationStock = Config.Bind(
-            "Census", "IncludeWorkstationStock", true,
-            "v0.2.0: per-structure Workstation.GetInventory()/GetItemsNeededFromSettlement() line - the fix for " +
-            "the v0.1.2 limitation where crafting stations reported a decorative CharacterFlask container instead " +
-            "of their real stock, and evidence for the villager-fetch question (idea-17 Phase 1).");
-
+        // ==== [1. Features] - user-facing master switches, bound first so they lead the cfg file. ====
         EnablePlayerPull = Config.Bind(
-            "Transfer", "EnablePlayerPull", true,
+            "1. Features", "EnablePlayerPull", true,
             "v0.3.0 Phase 1 MASTER SWITCH: when the PLAYER is missing ingredients at a crafting station, pull them " +
             "just-in-time from any non-blacklisted settlement storage container into the player's inventory, then " +
             "sweep unconsumed leftovers back afterward. Independent of EnableForVillagers - either toggle can be " +
             "on alone. Set false to fully disable the player half and fall back to vanilla craft-gating behavior.");
 
         EnableForVillagers = Config.Bind(
-            "Transfer", "EnableForVillagers", true,
+            "1. Features", "EnableForVillagers", false,
             "v0.7.0 Phase 2 MASTER SWITCH: when a VILLAGER is missing ingredients at a crafting station, pull them " +
             "just-in-time from any non-blacklisted settlement storage container into the STATION's own inventory " +
             "(NOT the villager's carried inventory - ground truth confirmed in-game 2026-07-21: villager craft " +
@@ -209,22 +124,44 @@ public class Plugin : BasePlugin
             "whether this actually suppresses the villager's vanilla supply-fetch trip (FSM_FetchCraftingSupplies) " +
             "or whether that trip is scheduled off the station's own supply manifests independently - compare the " +
             "'[CFS-V]' tagged pull/verify/sweep lines this feature emits against the v0.6.0 spike's " +
-            "'[CFS-P2] CYCLE SUMMARY verdict=DIRECT|TOURED' line to check. Defaults true per project convention " +
-            "(the user is testing this immediately).");
+            "'[CFS-P2] CYCLE SUMMARY verdict=DIRECT|TOURED' line to check. Defaults false so a fresh install " +
+            "affects only the player; enable to let villager crafters draw on settlement storage too.");
 
+        StockTransformStationMaterials = Config.Bind(
+            "1. Features", "StockTransformStationMaterials", false,
+            "v0.11.0 (TRANSFORM_STATION_PLAN.md): when true, the villager station stocker DOES deliver " +
+            "materials into a physical-transform station's own material rack, even though the mod " +
+            "otherwise stands aside at those stations. Confirmed in-game 2026-07-29 that this keeps a " +
+            "carpenter's rack topped up one item at a time so she never walks to a warehouse for a log " +
+            "or a long stick. Defaults false because it is the mod acting at a station it is otherwise " +
+            "told to leave alone. Has NO effect on the craft-availability check, which always stands " +
+            "aside at these stations - reporting a transform recipe already satisfied is what stalled " +
+            "villagers entirely.");
+
+        ShowSettlementStockInUI = Config.Bind(
+            "1. Features", "ShowSettlementStockInUI", true,
+            "v0.4.0 MASTER SWITCH: fold settlement-stock quantities into the crafting menu's per-ingredient " +
+            "have/need display (ItemThumbnailPanel.availability) so a row reads e.g. '3/1' - settlement stock " +
+            "counted as if owned - instead of the vanilla-only count the gate already looks past. Nets out the " +
+            "active station's own inventory so it is never double-counted (that inventory is included in both " +
+            "vanilla's own count AND the settlement-wide snapshot). Purely additive - never writes game state, " +
+            "only rewrites displayed TMP text; the pull/verify/sweep-back logic in CraftTransfer.cs is untouched. " +
+            "Set false to leave the vanilla-only have/need display alone.");
+
+        // ==== [2. Tuning] - values that shape already-enabled behavior. ====
         SweepBackLeftovers = Config.Bind(
-            "Transfer", "SweepBackLeftovers", true,
+            "2. Tuning", "SweepBackLeftovers", true,
             "After a successful craft, return unconsumed pulled items to the settlement containers they came from. " +
             "Setting false leaves pulled leftovers in the player's inventory instead (never swept back).");
 
         SnapshotTtlSeconds = Config.Bind(
-            "Transfer", "SnapshotTtlSeconds", 5.0f,
+            "2. Tuning", "SnapshotTtlSeconds", 5.0f,
             "How long (seconds) the cached settlement stock snapshot (SettlementStock.cs) is trusted before the " +
             "next read re-walks the settlement's structures/containers. The snapshot is also invalidated " +
             "immediately after any pull or sweep-back, regardless of this TTL.");
 
         BlacklistContainerTypes = Config.Bind(
-            "Transfer", "BlacklistContainerTypes",
+            "2. Tuning", "BlacklistContainerTypes",
             "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1,Storage_SmallItems_L1,Storage_SmallItems_Kiln",
             "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
             "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
@@ -240,35 +177,8 @@ public class Plugin : BasePlugin
             "finished blooms out of a bloomery (user accepted 2026-07-31 to keep the change small - see " +
             "docs/mods/craft-from-storage.md).");
 
-        TransferDiagnostics = Config.Bind(
-            "Transfer", "TransferDiagnostics", false,
-            "Verbose per-pull/per-sweep-back logging (SettlementStock rebuild summaries, PullShortfall per-item " +
-            "lines, HandleCraftingSuccess sweep-back totals). Diagnostic logging only; defaults false at ship - " +
-            "enable for troubleshooting.");
-
-        FetchQuestSuppressedPriority = Config.Bind(
-            "Transfer", "FetchQuestSuppressedPriority", -1000.0f,
-            "v0.8.0 Phase 2b: GetPriority(QuestData) score assigned to a villager's CrafterFetchQuest/" +
-            "CrafterSpecificFetchQuest when settlement storage already covers the quest's ENTIRE " +
-            "needed-supplies manifest (GetNeededSuppliesManifest()) - the goal is to make the AI scheduler " +
-            "skip the fetch quest so the villager crafts immediately instead of walking off to gather " +
-            "materials the mod can pull just-in-time anyway (v0.7.0 Point C). It is NOT yet confirmed " +
-            "whether a lower value actually suppresses quest selection in this game, or what scale " +
-            "'priority' runs on - see the rate-limited '[CFS] [CFS-FQ] PRIORITY OBSERVE' / 'PRIORITY rollup' " +
-            "log lines this feature emits for the vanilla values actually observed in-game. Editable without " +
-            "a rebuild if the value needs retuning. Only takes effect when EnableForVillagers=true.");
-
-        StockStationOnFetch = Config.Bind(
-            "Transfer", "StockStationOnFetch", true,
-            "v0.9.0 Phase 2c: when a villager's crafting fetch quest STARTS (FSM_FetchCraftingSupplies." +
-            "OnStateEnter), move the items she was about to fetch from settlement storage directly into " +
-            "the crafting station's inventory, deleting the supply walk. This inverts the v0.8.0 approach: " +
-            "instead of suppressing the fetch quest so it never fires, let vanilla choose it as intended " +
-            "and intercept it at its start. Watch the '[CFS-SS]' log lines. Defaults true per project " +
-            "convention (the user is testing this immediately).");
-
         SkipBlueprintClasses = Config.Bind(
-            "Transfer", "SkipBlueprintClasses",
+            "2. Tuning", "SkipBlueprintClasses",
             "ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo",
             "v0.9.2: comma-separated NATIVE class names of blueprint families the villager station-stocker " +
             "NEVER stocks. These craft at auxiliary stations (forge, dye/paint bench, study) rather than from " +
@@ -278,7 +188,7 @@ public class Plugin : BasePlugin
             "StockStationOnFetch=true.");
 
         SkipStationClasses = Config.Bind(
-            "Transfer", "SkipStationClasses",
+            "2. Tuning", "SkipStationClasses",
             "AnvilInteraction,CarpenterInteraction,DyeingInteraction",
             "v0.10.0 (TRANSFORM_STATION_PLAN.md): comma-separated NATIVE class names of station " +
             "interaction types the mod never acts on, because they are physical transforms where an " +
@@ -286,47 +196,17 @@ public class Plugin : BasePlugin
             "interaction's own native class name AND every ancestor class name, so a future subclass " +
             "is caught automatically. Empty disables the test.");
 
-        StockTransformStationMaterials = Config.Bind(
-            "Transfer", "StockTransformStationMaterials", false,
-            "v0.11.0 (TRANSFORM_STATION_PLAN.md): when true, the villager station stocker DOES deliver " +
-            "materials into a physical-transform station's own material rack, even though the mod " +
-            "otherwise stands aside at those stations. Confirmed in-game 2026-07-29 that this keeps a " +
-            "carpenter's rack topped up one item at a time so she never walks to a warehouse for a log " +
-            "or a long stick. Defaults false because it is the mod acting at a station it is otherwise " +
-            "told to leave alone. Has NO effect on the craft-availability check, which always stands " +
-            "aside at these stations - reporting a transform recipe already satisfied is what stalled " +
-            "villagers entirely.");
-
-        SuppressFetchQuestPriority = Config.Bind(
-            "Transfer", "SuppressFetchQuestPriority", false,
-            "RETIRED v0.8.0 lever (formerly the sole gate for the CrafterFetchQuest/CrafterSpecificFetchQuest " +
-            "GetPriority suppression patches). Defaults OFF because it starves the v0.9.0 stocker: " +
-            "suppressing the fetch quest's priority stops FSM_FetchCraftingSupplies.OnStateEnter from ever " +
-            "firing, which is the hook StockStationOnFetch depends on. Confirmed in-game 2026-07-27 to " +
-            "stall villager crafting entirely when enabled (704 of 708 cycles logged verdict=DIRECT " +
-            "fetchEnters=0, but all 708 cycles logged modPulls=0 - the villager stopped walking but nothing " +
-            "was ever crafted). Set true only to re-test the old lever in isolation.");
-
-        ShowSettlementStockInUI = Config.Bind(
-            "UI", "ShowSettlementStockInUI", true,
-            "v0.4.0 MASTER SWITCH: fold settlement-stock quantities into the crafting menu's per-ingredient " +
-            "have/need display (ItemThumbnailPanel.availability) so a row reads e.g. '3/1' - settlement stock " +
-            "counted as if owned - instead of the vanilla-only count the gate already looks past. Nets out the " +
-            "active station's own inventory so it is never double-counted (that inventory is included in both " +
-            "vanilla's own count AND the settlement-wide snapshot). Purely additive - never writes game state, " +
-            "only rewrites displayed TMP text; the pull/verify/sweep-back logic in CraftTransfer.cs is untouched. " +
-            "Set false to leave the vanilla-only have/need display alone.");
-
-        UiDiagnostics = Config.Bind(
-            "UI", "UiDiagnostics", false,
-            "Verbose logging for the settlement-stock requirement-UI feature: which of _UpdateAvailablility/" +
-            "_UpdateAvailabilityStatus actually fires (AOT inlining risk), raw availability.text plus panel " +
-            "scoping evidence (parent native class, checkAvailability) for the first ~10 panels seen, and " +
-            "rate-limited (first 5) per-item-type rewrite/unparsed-text lines. Diagnostic logging only; " +
-            "defaults false at ship - enable for troubleshooting.");
+        StockStationOnFetch = Config.Bind(
+            "2. Tuning", "StockStationOnFetch", true,
+            "v0.9.0 Phase 2c: when a villager's crafting fetch quest STARTS (FSM_FetchCraftingSupplies." +
+            "OnStateEnter), move the items she was about to fetch from settlement storage directly into " +
+            "the crafting station's inventory, deleting the supply walk. This inverts the v0.8.0 approach: " +
+            "instead of suppressing the fetch quest so it never fires, let vanilla choose it as intended " +
+            "and intercept it at its start. Only takes effect when EnableForVillagers=true. Set false " +
+            "to let villagers make their vanilla supply walks even with villager crafting enabled.");
 
         UiPollSeconds = Config.Bind(
-            "UI", "UiPollSeconds", 0.2f,
+            "2. Tuning", "UiPollSeconds", 0.2f,
             "v0.5.0: polling interval (seconds) for the settlement-stock requirement-UI feature (CraftUiPoller.cs). " +
             "Replaces the old postfix-time rewrite - in-game evidence showed the ItemThumbnailPanel postfixes run " +
             "BEFORE vanilla writes the real have/need text (count.text is still the prefab placeholder '99' at " +
@@ -334,29 +214,23 @@ public class Plugin : BasePlugin
             "re-reads and, if needed, rewrites each visible requirement row on this interval instead, while a " +
             "crafting menu is open.");
 
-        EnableVillagerFetchTrace = Config.Bind(
-            "Probe", "EnableVillagerFetchTrace", false,
-            "v0.6.0 Phase 2a MASTER SWITCH: READ-ONLY villager-fetch diagnostic spike. Postfix-logs " +
-            "FSM_FetchCraftingSupplies.OnStateEnter/OnStateExit, FSM_UseCraftingStation.OnStateEnter " +
-            "(the per-villager CYCLE SUMMARY verdict=DIRECT|TOURED line), and " +
-            "FSM_ReturnCraftingSupplies.OnStateEnter. Never writes game state - observation only. " +
-            "Diagnostic logging only; defaults false at ship - enable for troubleshooting.");
+        // ==== [3. Diagnostics] - verbose/read-only logging, off by default at ship. ====
+        TransferDiagnostics = Config.Bind(
+            "3. Diagnostics", "TransferDiagnostics", false,
+            "Verbose per-pull/per-sweep-back logging (SettlementStock rebuild summaries, PullShortfall per-item " +
+            "lines, HandleCraftingSuccess sweep-back totals). Diagnostic logging only; defaults false at ship - " +
+            "enable for troubleshooting.");
 
-        TraceStorageWhitelist = Config.Bind(
-            "Probe", "TraceStorageWhitelist", false,
-            "v0.6.0 Phase 2a: postfix-logs CrafterFetchQuestData.IsWhitelistedByStorage(IResourceStorageSite) " +
-            "- the OTHER candidate lever (a storage whitelist rather than a fetch-reach restriction). " +
-            "Logs the probed site name and the allowed/denied verdict, rate-limited by " +
-            "MaxWhitelistLogsPerCycle. Never writes game state - observation only.");
-
-        MaxWhitelistLogsPerCycle = Config.Bind(
-            "Probe", "MaxWhitelistLogsPerCycle", 40,
-            "Caps how many DISTINCT storage sites get a logged line per villager per fetch/use cycle " +
-            "under TraceStorageWhitelist, to avoid log spam from a villager re-probing the same sites - " +
-            "every call is still COUNTED toward the CYCLE SUMMARY totals regardless of this cap.");
+        UiDiagnostics = Config.Bind(
+            "3. Diagnostics", "UiDiagnostics", false,
+            "Verbose logging for the settlement-stock requirement-UI feature: which of _UpdateAvailablility/" +
+            "_UpdateAvailabilityStatus actually fires (AOT inlining risk), raw availability.text plus panel " +
+            "scoping evidence (parent native class, checkAvailability) for the first ~10 panels seen, and " +
+            "rate-limited (first 5) per-item-type rewrite/unparsed-text lines. Diagnostic logging only; " +
+            "defaults false at ship - enable for troubleshooting.");
 
         EnableBloomeryTrace = Config.Bind(
-            "Probe", "EnableBloomeryTrace", false,
+            "3. Diagnostics", "EnableBloomeryTrace", false,
             "v1.0.0: gates ONLY the diagnostic logging in BloomeryTrace.cs (fetchEnter/fetchExit lines, " +
             "the quest-data class dump, the ore/coal/bloom slot dumps, the kiln recipe/container " +
             "manifest dumps, and the part-substitution probe off a FindAnyObjectByType<Bloomstation> " +
@@ -366,6 +240,95 @@ public class Plugin : BasePlugin
             "gated by StockTransformStationMaterials) works with this left at its default false. Set " +
             "true to also get the read-only diagnostic trace. See BloomeryTrace.cs / " +
             "Patches/BloomeryFetchPatches.cs.");
+
+        EnableVillagerFetchTrace = Config.Bind(
+            "3. Diagnostics", "EnableVillagerFetchTrace", false,
+            "v0.6.0 Phase 2a MASTER SWITCH: READ-ONLY villager-fetch diagnostic spike. Postfix-logs " +
+            "FSM_FetchCraftingSupplies.OnStateEnter/OnStateExit, FSM_UseCraftingStation.OnStateEnter " +
+            "(the per-villager CYCLE SUMMARY verdict=DIRECT|TOURED line), and " +
+            "FSM_ReturnCraftingSupplies.OnStateEnter. Never writes game state - observation only. " +
+            "Diagnostic logging only; defaults false at ship - enable for troubleshooting.");
+
+        TraceStorageWhitelist = Config.Bind(
+            "3. Diagnostics", "TraceStorageWhitelist", false,
+            "v0.6.0 Phase 2a: postfix-logs CrafterFetchQuestData.IsWhitelistedByStorage(IResourceStorageSite) " +
+            "- the OTHER candidate lever (a storage whitelist rather than a fetch-reach restriction). " +
+            "Logs the probed site name and the allowed/denied verdict, rate-limited by " +
+            "MaxWhitelistLogsPerCycle. Never writes game state - observation only.");
+
+        MaxWhitelistLogsPerCycle = Config.Bind(
+            "3. Diagnostics", "MaxWhitelistLogsPerCycle", 40,
+            "Caps how many DISTINCT storage sites get a logged line per villager per fetch/use cycle " +
+            "under TraceStorageWhitelist, to avoid log spam from a villager re-probing the same sites - " +
+            "every call is still COUNTED toward the CYCLE SUMMARY totals regardless of this cap.");
+
+        EnableCraftWatcher = Config.Bind(
+            "3. Diagnostics", "EnableCraftWatcher", false,
+            "Master switch for the v0.2.0 delta watcher (CraftWatcher.cs). While armed it samples every candidate " +
+            "ingredient ItemCollection (agent inventory, station inventory/blueprint inventory, workstation stock, " +
+            "crafting-agent inventory) every PollIntervalSeconds and logs only what changed - this is what resolves " +
+            "the 'where does crafting actually consume ingredients' blocker that _OnCraftingSuccess snapshots could not.");
+
+        WatchWindowSeconds = Config.Bind(
+            "3. Diagnostics", "WatchWindowSeconds", 20f,
+            "How long (seconds) after BeginCraftingSequence the CraftWatcher keeps sampling before disarming and " +
+            "emitting its [CFS] WATCH SUMMARY line. A single craft should complete well inside the default 20s.");
+
+        PollIntervalSeconds = Config.Bind(
+            "3. Diagnostics", "PollIntervalSeconds", 0.1f,
+            "CraftWatcher sampling cadence (seconds) while armed. Lower = finer-grained timing at the cost of more " +
+            "frequent snapshot work; only changed slots are ever logged, so a lower value does not spam the log.");
+
+        TraceCheckOwnedRequirements = Config.Bind(
+            "3. Diagnostics", "TraceCheckOwnedRequirements", false,
+            "Postfix-log CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent). This target is " +
+            "public but NON-virtual, so it may have been inlined by the IL2CPP AOT compiler and this patch may " +
+            "silently never fire - that is itself a key Phase 0 finding. Logs agent native class, blueprint name, and __result.");
+
+        TraceBeginCraftingSequence = Config.Bind(
+            "3. Diagnostics", "TraceBeginCraftingSequence", false,
+            "Prefix-log BeginCraftingSequence(InteractionSession) on CraftInteraction, AnvilInteraction, and " +
+            "DyeingInteraction (each declares its own override - all three are patched together under this flag). " +
+            "Logs which type fired, the session's native class name (reveals player vs villager session), and useAgentInventory.");
+
+        TraceOnCraftingSuccess = Config.Bind(
+            "3. Diagnostics", "TraceOnCraftingSuccess", false,
+            "Prefix AND Postfix snapshot of the station's ItemInventory around _OnCraftingSuccess(IInteractionAgent) " +
+            "on CraftInteraction and DyeingInteraction (both patched together under this flag) - shows where " +
+            "ingredient consumption actually happens (PRE vs POST totals + per-item breakdown).");
+
+        TraceActivateBlueprint = Config.Bind(
+            "3. Diagnostics", "TraceActivateBlueprint", false,
+            "Postfix-log CraftInteraction.ActivateBlueprint(CraftBlueprint) - blueprint name + __result.");
+
+        TraceRecipeListUI = Config.Bind(
+            "3. Diagnostics", "TraceRecipeListUI", false,
+            "Postfix-log SSSGame.UI.CreateItemsTabPage.Show(bool, TabButton) - AvailableBlueprints/UnavailableBlueprints " +
+            "counts at recipe-list-open time (may be null/empty at this point, which is itself informative).");
+
+        VerboseGateLogging = Config.Bind(
+            "3. Diagnostics", "VerboseGateLogging", false,
+            "v0.2.0: CheckOwnedRequirements / _CheckOwnedBlueprintManifest fire ~96x per recipe-menu-open, so by " +
+            "default they only feed a periodic [CFS] GATE rollup summary (see GatePatches.cs GateRollup). Set true " +
+            "to ALSO emit the old one-line-per-call logging on top of the rollup - noisy, diagnostic-only.");
+
+        CensusHotkey = Config.Bind(
+            "3. Diagnostics", "CensusHotkey", "F12",
+            "Hotkey (a Unity KeyCode name, parsed via Enum.TryParse<KeyCode>) that dumps a read-only settlement " +
+            "storage census to the log: per-structure container contents and a settlement-wide item total. " +
+            "F6-F11 are taken by other mods in this repo - do not change the default.");
+
+        IncludeEquipmentProbe = Config.Bind(
+            "3. Diagnostics", "IncludeEquipmentProbe", true,
+            "v0.2.0: per-container structural equip-slot probe (walk up for an EquipmentManager, compare its " +
+            "equipPoints' ItemContainer by pointer) so armor racks / character slots are tagged and excluded from " +
+            "the settlement-wide grand total instead of relying on a container-type name blacklist.");
+
+        IncludeWorkstationStock = Config.Bind(
+            "3. Diagnostics", "IncludeWorkstationStock", true,
+            "v0.2.0: per-structure Workstation.GetInventory()/GetItemsNeededFromSettlement() line - the fix for " +
+            "the v0.1.2 limitation where crafting stations reported a decorative CharacterFlask container instead " +
+            "of their real stock, and evidence for the villager-fetch question (idea-17 Phase 1).");
 
         ClassInjector.RegisterTypeInIl2Cpp<StorageCensus>();
         ClassInjector.RegisterTypeInIl2Cpp<CraftWatcher>();
@@ -386,11 +349,10 @@ public class Plugin : BasePlugin
         harmony.PatchAll(typeof(Patches.PlayerSpawnedPatch));
         harmony.PatchAll(typeof(Patches.PlayerDespawnedPatch));
 
-        // Per-patch config gating (NOT harmony.PatchAll() bare): TraceCheckOwnedBlueprintManifest is a
-        // known native-crash risk (inventory-family ItemManifest parameter on the target method). If it
-        // crashes the game at plugin load, the user must be able to disable JUST that patch by editing
-        // the config file without a rebuild (rebuilds are expensive here - Smart App Control).
-        // v0.3.0: CheckOwnedRequirementsPatch now also carries Phase 1's availability check (design
+        // Per-patch config gating (NOT harmony.PatchAll() bare): some target methods carry known
+        // native-crash risk (inventory-family parameter types), so the user must be able to disable
+        // JUST that patch by editing the config file without a rebuild (rebuilds are expensive here -
+        // Smart App Control). v0.3.0: CheckOwnedRequirementsPatch now also carries Phase 1's availability check (design
         // point A), so it must apply whenever EITHER the old trace flag OR either master switch
         // wants it - otherwise setting TraceCheckOwnedRequirements=false while leaving
         // EnablePlayerPull/EnableForVillagers=true would silently disable the "master switch" it
@@ -402,11 +364,6 @@ public class Plugin : BasePlugin
             harmony.PatchAll(typeof(Patches.CheckOwnedRequirementsPatch));
         else
             Logger.LogInfo("[CFS] TraceCheckOwnedRequirements=false, EnablePlayerPull=false and EnableForVillagers=false - CheckOwnedRequirements patch NOT applied.");
-
-        if (TraceCheckOwnedBlueprintManifest.Value)
-            harmony.PatchAll(typeof(Patches.CheckOwnedBlueprintManifestPatch));
-        else
-            Logger.LogInfo("[CFS] TraceCheckOwnedBlueprintManifest=false - _CheckOwnedBlueprintManifest patch NOT applied.");
 
         // v0.3.0: these three BeginCraftingSequence patches now also carry Phase 1's actual pull
         // (design point C) - same "trace flag OR master switch" reasoning as CheckOwnedRequirements
@@ -488,25 +445,10 @@ public class Plugin : BasePlugin
         else
             Logger.LogInfo("[CFS] TraceStorageWhitelist=false - IsWhitelistedByStorage patch NOT applied.");
 
-        // v0.8.0 Phase 2b (RETIRED lever, v0.9.0): suppress the villager fetch-quest priority when
-        // settlement storage already covers its whole needed-supplies manifest, so the v0.7.0
-        // just-in-time pull (Point C) can supply the villager at craft time instead of her walking off
-        // first. Confirmed in-game 2026-07-27 to stall villager crafting entirely (verdict=DIRECT on
-        // 704/708 cycles, but modPulls=0 on all 708 - the walk stopped but nothing was ever crafted,
-        // because suppressing the fetch quest also stops FSM_FetchCraftingSupplies.OnStateEnter from
-        // ever firing, which v0.9.0's StockStationOnFetch depends on). Now gated on EnableForVillagers
-        // AND the new SuppressFetchQuestPriority flag (default false) rather than EnableForVillagers
-        // alone. See FetchQuestSuppression.cs / Patches/FetchQuestPatches.cs.
-        if (EnableForVillagers.Value && SuppressFetchQuestPriority.Value)
-        {
-            harmony.PatchAll(typeof(Patches.CrafterFetchQuestGetPriorityPatch));
-            harmony.PatchAll(typeof(Patches.CrafterSpecificFetchQuestGetPriorityPatch));
-        }
-        else
-        {
-            string offFlag = !EnableForVillagers.Value ? "EnableForVillagers=false" : "SuppressFetchQuestPriority=false";
-            Logger.LogInfo($"[CFS] {offFlag} - CrafterFetchQuest/CrafterSpecificFetchQuest GetPriority suppression patches NOT applied.");
-        }
+        // v0.8.0 Phase 2b (RETIRED lever, removed from the config surface entirely): the
+        // CrafterFetchQuest/CrafterSpecificFetchQuest GetPriority suppression patches are no longer
+        // attached from here - confirmed in-game 2026-07-27 to stall villager crafting entirely. See
+        // FetchQuestSuppression.cs for the full evidence and why the patches stay in the tree unattached.
 
         // v0.15.0: bloomery/kiln supply-fetch diagnostic spike (Patches/BloomeryFetchPatches.cs).
         // v1.0.0: these four patches also carry the bloomery/kiln delivery feature (BloomeryTrace.
@@ -566,23 +508,10 @@ public class Plugin : BasePlugin
             Logger.LogInfo($"[CFS] {offFlag} - FetchCraftingSuppliesStockPatch (station stocker) NOT applied.");
         }
 
-        Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Storage-pull: " +
+        Logger.LogInfo($"[CFS] CraftFromStorageMod v{MyPluginInfo.PLUGIN_VERSION} loaded. " +
             $"EnablePlayerPull={EnablePlayerPull.Value} EnableForVillagers={EnableForVillagers.Value} " +
-            $"SweepBackLeftovers={SweepBackLeftovers.Value} SnapshotTtlSeconds={SnapshotTtlSeconds.Value} " +
-            $"(Phase 2: villager pulls land in the STATION's inventory, not the villager's own - see [CFS-V] tagged lines). " +
-            $"CraftWatcher diagnostics still active (EnableCraftWatcher={EnableCraftWatcher.Value}). " +
-            $"CensusHotkey='{CensusHotkey.Value}'. ShowSettlementStockInUI={ShowSettlementStockInUI.Value} " +
-            $"UiPollSeconds={UiPollSeconds.Value} (requirement-UI have/need combined display via polling). " +
-            $"Phase 2a villager-fetch spike: EnableVillagerFetchTrace={EnableVillagerFetchTrace.Value} " +
-            $"TraceStorageWhitelist={TraceStorageWhitelist.Value} MaxWhitelistLogsPerCycle={MaxWhitelistLogsPerCycle.Value} " +
-            $"(read-only observation of the villager-fetch FSM chain - see [CFS-P2] log lines, correlate against [CFS-V]). " +
-            $"Phase 2b fetch-quest priority suppression (RETIRED lever): SuppressFetchQuestPriority={SuppressFetchQuestPriority.Value}, " +
-            $"FetchQuestSuppressedPriority={FetchQuestSuppressedPriority.Value} (see [CFS-FQ] log lines). " +
-            $"Phase 2c station stocker: StockStationOnFetch={StockStationOnFetch.Value} (see [CFS-SS] log lines). " +
-            $"StockTransformStationMaterials={StockTransformStationMaterials.Value} (stocker-only override, default " +
-            $"false, for a physical-transform station's own rack - see TRANSFORM_STATION_PLAN.md). " +
-            $"v0.15.0 bloomery/kiln supply-fetch spike: EnableBloomeryTrace={EnableBloomeryTrace.Value} " +
-            $"(read-only observation - see [CFS-BLM] log lines).");
+            $"StockTransformStationMaterials={StockTransformStationMaterials.Value} " +
+            $"ShowSettlementStockInUI={ShowSettlementStockInUI.Value} StockStationOnFetch={StockStationOnFetch.Value}.");
     }
 
     // Managed casts LIE for interop objects materialized under a base declared type (project-wide

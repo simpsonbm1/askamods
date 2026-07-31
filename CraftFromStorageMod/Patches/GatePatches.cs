@@ -319,8 +319,8 @@ internal static class CheckOwnedRequirementsPatch
 // ---- 2. _CheckOwnedBlueprintManifest (protected virtual - HIGHEST RISK: ItemManifest param on the
 //          real target). Patched BY NAME ONLY, and the Postfix deliberately does NOT declare the
 //          ItemManifest parameter (minimizes early il2cpp class-init exposure of the inventory-family
-//          type). If this patch hard-crashes plugin load, set TraceCheckOwnedBlueprintManifest=false
-//          in the config FIRST. ----
+//          type). Its config lever was removed from the config surface entirely, so this patch
+//          class is never attached from Plugin.cs Load(). ----
 [HarmonyPatch(typeof(CraftInteraction), "_CheckOwnedBlueprintManifest")]
 internal static class CheckOwnedBlueprintManifestPatch
 {

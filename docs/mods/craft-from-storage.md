@@ -39,24 +39,49 @@ somewhere vanilla already looks, then lets vanilla consume normally.
    `have` number to `vanillaHave + max(0, settlementQty − activeStationQty)`.
 
 ## Config
+### [1. Features]
 | Key | Default | Notes |
 |---|---|---|
-| `Transfer/EnablePlayerPull` | `true` | Master switch for the whole Phase 1 behavior |
-| `Transfer/SweepBackLeftovers` | `true` | Return unconsumed pulled items to their sources |
-| `Transfer/SnapshotTtlSeconds` | `5.0` | Settlement stock snapshot cache lifetime |
-| `Transfer/BlacklistContainerTypes` | see below | Never-drain source containers, by type name |
-| `Transfer/SkipBlueprintClasses` | see below | Never-stock auxiliary-station recipes, by class |
-| `Transfer/TransferDiagnostics` | `true` | Per-pull / per-sweep logging |
-| `Transfer/StockStationOnFetch` | `true` | v0.9.0 station stocker (Phase 2c) |
-| `Transfer/SuppressFetchQuestPriority` | `false` | Retired v0.8.0 lever, kept behind flag |
-| `UI/ShowSettlementStockInUI` | `true` | Master switch for the requirement-count rewrite |
-| `UI/UiPollSeconds` | `0.2` | Poll tick; also the observed UI update latency |
-| `UI/UiDiagnostics` | `true` | Scoping, hierarchy-dump and rewrite logging |
-| `Census/CensusHotkey` | `F12` | Read-only settlement storage census dump |
-| `Census/CensusTryQuerySettlementResources` | `false` | **Leave false** — that call hangs the game |
+| `EnablePlayerPull` | `true` | Master switch for the whole Phase 1 behavior |
+| `EnableForVillagers` | `false` | Villager crafters draw on settlement storage (fresh installs player-only) |
+| `StockTransformStationMaterials` | `false` | Extend stocking to workshop add-on units (physical transforms) |
+| `ShowSettlementStockInUI` | `true` | Master switch for the requirement-count rewrite |
 
-Blacklist defaults:
-- **`Transfer/BlacklistContainerTypes`:** `CharacterFlask`, `CharacterBuilder`, `ArmorRack*`
+### [2. Tuning]
+| Key | Default | Notes |
+|---|---|---|
+| `SweepBackLeftovers` | `true` | Return unconsumed pulled items to their sources |
+| `SnapshotTtlSeconds` | `5.0` | Settlement stock snapshot cache lifetime |
+| `StockStationOnFetch` | `true` | Stock stations on villager fetch-start (Phase 2c) |
+| `UiPollSeconds` | `0.2` | UI poller tick; also observed update latency |
+| `BlacklistContainerTypes` | see below | Never-drain source containers, by type name |
+| `SkipBlueprintClasses` | see below | Never-stock auxiliary-station recipes, by class |
+| `SkipStationClasses` | see below | Station classes never receive deliveries |
+
+### [3. Diagnostics]
+| Key | Default | Notes |
+|---|---|---|
+| `TransferDiagnostics` | `false` | Per-pull / per-sweep logging, incl. zero-move stock lines |
+| `UiDiagnostics` | `false` | Requirement-UI scoping and rewrite logging |
+| `EnableBloomeryTrace` | `false` | Bloomery/kiln fetch trace + slot/manifest dumps |
+| `EnableVillagerFetchTrace` | `false` | Villager fetch/craft cycle tracing (`[CFS-P2]`) |
+| `TraceStorageWhitelist` | `false` | Villager fetch storage-whitelist probe logging |
+| `MaxWhitelistLogsPerCycle` | `40` | Distinct-site log cap per villager fetch cycle |
+| `EnableCraftWatcher` | `false` | Ingredient-collection delta watcher (arms per craft) |
+| `WatchWindowSeconds` | `20` | Watcher sampling window after craft start |
+| `PollIntervalSeconds` | `0.1` | Watcher sampling cadence while armed |
+| `TraceCheckOwnedRequirements` | `false` | Availability-gate trace + rollup summary line |
+| `TraceBeginCraftingSequence` | `false` | Per-craft `BeginCraftingSequence` log line |
+| `TraceOnCraftingSuccess` | `false` | Station-inventory snapshots around craft success |
+| `TraceActivateBlueprint` | `false` | Blueprint-activation log line |
+| `TraceRecipeListUI` | `false` | Recipe-list-open blueprint counts |
+| `VerboseGateLogging` | `false` | Per-call gate logging on top of the rollup |
+| `CensusHotkey` | `F12` | Read-only settlement storage census dump |
+| `IncludeEquipmentProbe` | `true` | Scan equipment containers in census |
+| `IncludeWorkstationStock` | `true` | Include station bins in census |
+
+### Blacklist defaults:
+- **`2. Tuning/BlacklistContainerTypes`:** `CharacterFlask`, `CharacterBuilder`, `ArmorRack*`
   family, `Storage_Core`, `Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`,
   `Storage_MediumItems_L1` (medium materials bin at workshop tables and co-located stations,
   confirmed 2026-07-30), `Storage_SmallItems_L1` (small items bin, capacity 20, used by
@@ -67,7 +92,7 @@ Blacklist defaults:
   entries are belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold finished
   products and no ASKA recipe consumes finished gear as an input, so the racks are not a real
   drain risk.
-- **`Transfer/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
+- **`2. Tuning/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
   These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
   stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
   listing a subclass can never catch its parent. User chose this five-entry default on
@@ -75,6 +100,21 @@ Blacklist defaults:
 
 **Configuration gotcha:** Changing a bind's default does NOT rewrite an existing `.cfg` file.
 A deployed machine needs its config edited by hand for a new entry to take effect.
+
+### Removed settings (v1.0.0)
+Three settings were removed from the config surface and hardcoded off to prevent game
+breakage (per user ruling 2026-07-31: config options whose own description warns they
+can break the game must not exist):
+- **`CensusTryQuerySettlementResources`** — the underlying call hangs the game
+  (`AppHangB1`). Settlement storage is now read via `GetStructures()` walk.
+- **`SuppressFetchQuestPriority` / `FetchQuestSuppressedPriority`** — enabling
+  suppression stalls villager crafting entirely (confirmed in-game 2026-07-27). The
+  patch code remains in the tree but is never attached.
+- **`TraceCheckOwnedBlueprintManifest`** — a crash-risk trace patch that was never
+  attached live. Code remains; logging never enabled.
+
+Re-enabling any of these requires a code change; they are NOT configurable. This blocks
+accidental game-breaking tuning at the cost of a manual code edit for deep investigation.
 
 ## Phase 2 — the villager half (in progress)
 Villager crafts run the **same pipeline** as the player's (confirmed in-game 2026-07-21):
@@ -303,7 +343,7 @@ interactions sit on descendant objects, the v0.10.0 lookup checking only the
 station's own GameObject found nothing; v0.10.1 replaced it with a walk over
 the station itself, its ancestors to depth 10, then descendants to 200 nodes.
 
-Config and confirmed behaviour: `Transfer/StockTransformStationMaterials` is
+Config and confirmed behaviour: `1. Features/StockTransformStationMaterials` is
 a bool defaulting to false, read in exactly one place, the station stocker.
 The two availability paths never consult it and always stand aside at
 transform stations, because reporting a transform recipe already satisfied
@@ -526,20 +566,27 @@ stock.
   source removal from a refused destination add.
 
 ## Version history
-- **v1.0.0** — release: all twelve diagnostic logging defaults flipped to false (six Trace-section
-  flags, EnableCraftWatcher, TransferDiagnostics, UiDiagnostics, EnableVillagerFetchTrace,
-  TraceStorageWhitelist, EnableBloomeryTrace); feature toggles unchanged, StockTransformStationMaterials
-  ships default false. `Storage_SmallItems_Kiln` folded into BlacklistContainerTypes bind default.
-  EnableBloomeryTrace decoupled from delivery feature: four bloomery/kiln FSM patches attach when
-  flag OR (EnableForVillagers AND StockStationOnFetch) is true; flag gates only diagnostic logging
-  in BloomeryTrace.cs. Defect fixed: OnStateEnter patches opened with early `return` on trace flag —
-  with new false default would skip TryStockBloomery delivery entirely — guard now wraps trace call
-  only. Second defect fixed: `[CFS-SS] STOCKED` summary line logs unconditionally when qtyMoved>0;
-  zero-move lines sit behind TransferDiagnostics (desktop 2026-07-31, 128 total [CFS] log lines
-  vs. 1,218 before fix, 19 STOCKED lines all with qtyMoved>0, 2 BLOOMERY STOCKED with warehouse
-  sourcing, zero errors). Soak run (desktop 2026-07-31, v0.16.0): kiln blacklist held, bloomeries
-  reached supplied, zero errors, villagers did not walk up to crafting tables and leave — the
-  walk-away question is closed.
+- **v1.0.0** — release: config restructured into three numbered sections ([1. Features],
+  [2. Tuning], [3. Diagnostics]) so feature toggles lead the file; `EnableForVillagers`
+  default flipped to false (fresh installs player-only per user decision 2026-07-31);
+  three unsafe settings removed from config surface and hardcoded off
+  (`CensusTryQuerySettlementResources`, `SuppressFetchQuestPriority` /
+  `FetchQuestSuppressedPriority`, `TraceCheckOwnedBlueprintManifest`) — re-enabling
+  requires code changes; all diagnostic defaults flipped to false (eighteen flags:
+  Trace-family, EnableCraftWatcher, TransferDiagnostics, UiDiagnostics,
+  EnableVillagerFetchTrace, TraceStorageWhitelist, EnableBloomeryTrace);
+  `Storage_SmallItems_Kiln` folded into `2. Tuning/BlacklistContainerTypes` bind default.
+  EnableBloomeryTrace decoupled from delivery feature: four bloomery/kiln FSM patches
+  attach when flag OR (EnableForVillagers AND StockStationOnFetch) is true; flag gates
+  only diagnostic logging in BloomeryTrace.cs. Defect fixed: OnStateEnter patches opened
+  with early `return` on trace flag — with new false default would skip TryStockBloomery
+  delivery entirely — guard now wraps trace call only. Second defect fixed:
+  `[CFS-SS] STOCKED` summary line logs unconditionally when qtyMoved>0; zero-move lines
+  sit behind TransferDiagnostics (desktop 2026-07-31, 128 total [CFS] log lines vs. 1,218
+  before fix, 19 STOCKED lines all with qtyMoved>0, 2 BLOOMERY STOCKED with warehouse
+  sourcing, zero errors). Soak run (desktop 2026-07-31, v0.16.0): kiln blacklist held,
+  bloomeries reached supplied, zero errors, villagers did not walk up to crafting tables
+  and leave — the walk-away question is closed.
 - **v0.16.0** — bloomery delivery behind toggle 2 (`TryStockBloomery`; recipe-manifest
   shortfall, scraps-substitute second pass, 5 s cooldown; `Storage_SmallItems_L1` folded into
   the blacklist bind default). First run 2026-07-31 verified: correct-slot delivery, kilns
