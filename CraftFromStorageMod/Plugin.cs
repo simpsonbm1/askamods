@@ -220,12 +220,15 @@ public class Plugin : BasePlugin
 
         BlacklistContainerTypes = Config.Bind(
             "Transfer", "BlacklistContainerTypes",
-            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall",
+            "CharacterFlask,CharacterBuilder,ArmorRackHead,ArmorRackChest,ArmorRackLegs,ArmorRackGloves,ArmorRackBoots,ArmorRackShoulders,ArmorRackCape,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse,Storage_HotItemsSmall,Storage_MediumItems_L1",
             "Comma-separated container TYPE asset names (ItemContainer.containerType.name) that are NEVER drained " +
             "as a storage-pull source. The v0.2.0 structural EquipPoint probe (Census IncludeEquipmentProbe) " +
             "tagged 0 of 651 containers in-game, so Phase 1 uses this name-based blacklist instead. v0.9.3: " +
             "hot items (e.g. 'Hot Iron Bloom') are refused by a destination station inventory even when empty, " +
-            "so draining them only shuffles blooms between metalworkers (confirmed in-game 2026-07-28).");
+            "so draining them only shuffles blooms between metalworkers (confirmed in-game 2026-07-28). " +
+            "v0.14.1: Storage_MediumItems_L1 is the medium materials bin at workshop tables and co-located " +
+            "stations (confirmed in-game 2026-07-30); it is excluded so one workshop's staged materials are " +
+            "never drained to feed another station, and so those staged items stop inflating availability counts.");
 
         TransferDiagnostics = Config.Bind(
             "Transfer", "TransferDiagnostics", true,

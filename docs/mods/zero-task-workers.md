@@ -1,7 +1,6 @@
 # Mod 18: ZeroTaskWorkersMod — newly assigned workers inherit zero tasks
 
-**Status: COMPLETE v1.1.0 — core confirmed in-game 2026-07-06; the v1.1.0 farming exemption is
-⚠️ FIX ATTEMPTED, not yet confirmed**
+**Status: COMPLETE v1.1.0 — all features confirmed in-game 2026-07-30 (core v1.0.0 on 2026-07-06, farm/forestry exemption v1.1.0 on 2026-07-30)**
 
 When a villager is assigned to a workstation, they inherit ZERO of the station's tasks by default.
 All task choices are manually enabled per-villager via the station's checkboxes. Fired/unassigned
@@ -75,11 +74,15 @@ Full subsystem facts: `docs/architecture.md` → "Workstation task assignment (M
 
 ## Farms and forestry huts are exempt (v1.1.0) — they have no per-villager task UI
 
-⚠️ FIX ATTEMPTED in v1.1.0, not yet confirmed in-game. Reported by Nexus user impiousmessiah
-2026-07-29 ("my farmers are stuck in idle, and will not work"). The causal link — empty
-`VillagersInCharge` meaning the farming quest never dispatches — rests on that report, because the
-interop assembly carries signatures only and no method bodies. The structure that makes it possible
-is Cecil-confirmed 2026-07-30:
+Confirmed in-game 2026-07-30: newly assigned worker to a farming station does not inherit tasks
+(block fired: `[ZTW] BLOCKED inheritance villager='Njal' task=CraftingStationTaskData(
+item='Large Crude Iron Battle Axe') structure='Workshop House 5'`; 10 such lines all Njal at
+Workshop House 5; user confirmed her task checkboxes were unticked in-game). Farm assignment
+still goes through (`SetTaskAgent(Workstation) result=True station=FarmingStation structure=
+'Farm'`). Reported by Nexus user impiousmessiah 2026-07-29 ("my farmers are stuck in idle, and will
+not work"). The causal link — empty `VillagersInCharge` meaning the farming quest never dispatches
+— was a reasonable inference; the v1.1.0 fix exempts farms so that link is now impossible. The
+structure that makes this possible is Cecil-confirmed 2026-07-30:
 
 - `SSSGame.FarmingStation : SSSGame.Workstation` with **no own `_CanAddVillagerToTaskData`**, so
   the base-`Workstation` prefix above fires for farms. `SSSGame.ForestryStation : FarmingStation`
@@ -127,7 +130,7 @@ unlisted.
 | v0.2.1 | 2026-07-06 | Grace fix: never block before first-observed deserialize |
 | v1.0.0 | 2026-07-06 | Ship: diagnostics flipped to `false` default; confirmed in-game 2026-07-06 (hire → zero inherited tasks; manual opt-in works; fired villager returns to builder pool) |
 | v1.0.1 | 2026-07-07 | `Update()` gated to 1 Hz — was calling `FindAnyObjectByType<BlueprintConditionsDatabase>()` every frame for the world gate |
-| v1.1.0 | 2026-07-30 | Exempt `FarmingStation` + `ForestryStation`; ⚠️ pending in-game confirmation |
+| v1.1.0 | 2026-07-30 | Exempt `FarmingStation` + `ForestryStation`; confirmed in-game 2026-07-30 |
 
 ## Tested in-game (2026-07-06)
 

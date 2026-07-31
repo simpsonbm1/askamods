@@ -8,11 +8,14 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
 **Status: Phase 1 (player half) feature-complete, confirmed in-game 2026-07-20 (v0.5.1). Phase 2
-(villager half) IN PROGRESS — everything through v0.11.0 confirmed in-game 2026-07-30, including
-the transform-station gate in both toggle positions. v0.12.0 makes that gate per-UNIT and is ⚠️ not
-yet run in-game. Bloomeries and coal makers are a separate, unstarted piece of toggle 2
-(CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus request
-from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
+(villager half) working well — v0.14.1 is the current build, run in-game 2026-07-31 with good
+results: villagers markedly more effective, crafting-table counts no longer inflated
+(count-doubling fix user-confirmed in-game 2026-07-31). Per-item transform gate working, one-craft
+stocking rule working, snapshot dedupe working, and zero ZERO-MOVE lines or capacity refusals. The
+173 zero-move stocking events are the known vanilla Heavy Pelt loop at Workshop House 4 (third
+consecutive run, not a defect). Phase 2 still IN PROGRESS — Bloomeries/coal makers still the
+unstarted piece of toggle 2 (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md).** Origin: Nexus
+request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
 docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
@@ -61,9 +64,14 @@ somewhere vanilla already looks, then lets vanilla consume normally.
 
 Blacklist defaults:
 - **`Transfer/BlacklistContainerTypes`:** `CharacterFlask`, `CharacterBuilder`, `ArmorRack*`
-  family, `Storage_Core`, `Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`. It is
-  belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold finished products and
-  no ASKA recipe consumes finished gear as an input, so the racks are not a real drain risk.
+  family, `Storage_Core`, `Storage_DecorationsTop`, `Storage_SmallItems_Outhouse`,
+  `Storage_MediumItems_L1` (medium materials bin at workshop tables and co-located stations,
+  confirmed 2026-07-30), `Storage_SmallItems_L1` (small items bin, capacity 20, used by
+  workshops AND farms — census-confirmed 2026-07-31; farms' small bins are therefore also
+  excluded as pull sources). It is belt-and-braces only — user-confirmed 2026-07-20 that armor
+  racks hold finished products and no ASKA recipe consumes finished gear as an input, so the
+  racks are not a real drain risk. Note `Storage_SmallItems_L1` is in the live cfg on the laptop
+  but ⚠️ NOT yet in the Plugin.cs bind default — owed in the next build.
 - **`Transfer/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
   These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
   stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
@@ -195,6 +203,82 @@ postfixes on `FSM_FetchCraftingSupplies.OnStateEnter`/`.OnStateExit`,
 verdict=DIRECT|TOURED … modPulls=<n>` line is the success metric. **Baselines to beat (villager
 Alva): TOURED at 46.1 s / 21.3 s (v0.6.0) and 42.7 / 45.3 / 20.2 / 28.8 s (v0.7.1).**
 
+**v0.12.0 run result (confirmed in-game 2026-07-30):** Recipe-first ordering works. A forging
+recipe is identified and refused per-recipe, logged as `[CFS] [CFS-SS] SKIP blueprintClass=
+ForgingBlueprintInfo villager=Jonte station=Workshop House 2`. Metalworkers and carpenters
+fetch their materials by hand (intended behaviour with toggle off). The armorsmith is served by
+toggle 1 and reports an ordinary recipe class: `[CFS] [CFS-SS] routeDecision station=Improved
+Armorsmith 2 route=recipe detail=WorkshopBlueprintInfo outcome=proceed`. The user watched leg
+armor crafted from settlement storage; the earlier concern about armorsmith reporting
+`ForgingBlueprintInfo` did not hold. A defect was found in the station-fallback path: when the
+fallback cannot resolve a single recipe family, it skips the whole fetch. A workshop running
+several recipe families makes that happen: `[CFS] [CFS-SS] routeDecision station=Workshop House
+2 route=station-fallback detail=fallbackAmbiguous:3 outcome=skip`. The user observed villagers
+thrashing at workshop crafting tables, told a recipe was craftable while materials never
+arrived. **Reading caveat:** `routeDecision` lines are rate-limited to five per station name, so
+log counts are a positional sample, never frequency. Counter-example showing the recipe route
+working: `[CFS] [CFS-SS] STOCKED villager=Gro station=Workshop House 2 wanted=5 short=4
+itemsMoved=4 qtyMoved=36 stillShort=0 bpClass=CraftBlueprintInfo`. Zero `[CFS]` exceptions
+across the whole log.
+
+**v0.13.1 run result (confirmed in-game 2026-07-30):** The per-item filter worked as
+designed. Only two item names were ever denied all run, `Hardwood Long Stick` and
+`Hardwood Log`, across 15 DENIED ITEM lines, all at Workshop House 2. The `route=per-item`
+decision fired at both problem workshops, all `outcome=proceed`, e.g. `routeDecision
+station=Workshop House 2 route=per-item detail=ordinary=9 transform=7 denied=2
+outcome=proceed`. Wood Shafts were never denied and flowed normally: five StockStation
+moves delivered 41 shafts from `Improved Warehouse 3`, e.g. `StockStation: -4 'Wood Shaft'
+from Improved Warehouse 3@(131.54, 48.82, 434.47) -> station (villager=Alaric
+station=Workshop House 2, still need 0).` Completed crafts consumed them (a battle-axe
+success watch mark shows `Wood Shaft 28->24`). Hardwood still moved by hand — station watch
+deltas show `Hardwood Long Stick 0->1` arrivals and `1->0` consumption — so the toggle split
+(deny transform INPUTS, deliver transform OUTPUTS) is coherent and the carpenters were not
+starved. Zero `[CFS]` exceptions.
+
+The run exposed a QUANTITY defect, the reason for v0.14.0: the stocker delivered the fetch
+quest's aggregate manifest covering every queued craft. At Workshop House 5 one fetch moved
+105 items (`STOCKED villager=Svend station=Workshop House 5 wanted=6 short=6 itemsMoved=4
+qtyMoved=105 stillShort=48`), filling the bin to hard capacity. The next needed part was
+then refused entry: `MoveContainerToAgent SKIP: 'Large Iron Axe Head' - destination
+GetTotalRemainingCapacity<=0`, with `settlementCandidates=4`. The one axe that completed
+consumed the single head already in the bin (`Large Iron Axe Head 1->0`); after that
+villagers cycled at the table (observed in-game as thrashing) because heads could not enter
+the full bin. This was the first run in which the v0.10.0 capacity pre-check ever refused a
+move. Root cause of the difference from vanilla: vanilla delivers one villager carry-load
+per trip so a bin cannot saturate instantly; the stocker teleported the entire aggregate need
+in one tick, in list order.
+
+**v0.14.0 run result (confirmed in-game 2026-07-30):** Run 2026-07-30 (late), loaded v0.14.0, zero
+`[CFS]` errors. The one-craft cadence worked — deliveries arrived as small repeated packets (a
+villager's sequence: fetch enter, `STOCKED ... itemsMoved=3 qtyMoved=9`, fetch exit, repeating
+with 10 and 9). The bin-capacity lockout from v0.13.1 shrank to one early 5-line cluster. Three
+residual causes were separated: (1) axe production limited by genuinely scarce Large Iron Axe
+Heads, which are forged at the hand-fed metalworker — intended behaviour with toggle 2 off, not a
+defect; (2) workshops drained each other's staged bins — evidenced by `ZERO-MOVE: 'Large Iron Axe
+Head' from Workshop House 5 ... (villager=Alaric station=Workshop House 2)`, one workshop's fetch
+pulling from another workshop's own bin; (3) the shared-fetch plan could deliver far more than the
+game requested — `plan=projects planQty=80 aggQty=1`.
+
+**v0.14.1 run result (confirmed in-game 2026-07-31):** Run 2026-07-31, loaded v0.14.1, zero
+`[CFS]` errors (the ~56 TypeLoadException warnings in that log are HarmonyX UnityEngine.CoreModule
+noise, not this mod). All three v0.14.1 mechanisms verified: the snapshot dedupe skipped 119
+duplicate container listings on every one of 41 rebuilds; zero `planQty > aggQty` cases across 186
+STOCKED lines (`plan=recipe` 95 / `plan=projects` 88 / `plan=aggregate-nooverlap` 3); zero
+capacity refusals, zero ZERO-MOVE lines, zero duplicate candidate pairs, zero
+`Storage_MediumItems_L1` pull sources. User-confirmed in-game: table counts no longer inflated,
+villagers more effective. The 173 zero-move stocking events are the known vanilla Heavy Pelt loop
+at Workshop House 4 (173 of 174 SHORT lines, all `settlementCandidates=0`; the remaining one is a
+single Iron Hammer Head) — third consecutive run, not a defect.
+
+The v0.14.0 and v0.14.1 runs revealed the root cause of the count-doubling defect from v0.13.1:
+the settlement snapshot walk listed the same physical container once per structure reaching it.
+Candidate dumps showed pairs at identical world positions with identical quantities under two
+structure names: `Improved Warehouse 4` / `Broken Metal Parts` at (140.70, 47.50, 436.06), and
+`Workshop House 5` / `Improved Metalworker` at (170.72, 42.97, 446.73). Roughly half of all
+listings were duplicates (119 of ~253), doubling every count shown to the player and fed to the
+villager availability check (user saw 6 axe heads when 3 existed). Confirmed in-game 2026-07-30,
+fixed by the v0.14.1 dedupe.
+
 **Physical-transform station gate (v0.10.0+)** — Villagers at a carpenter
 station stood idle instead of working. Confirmed in-game 2026-07-29 by
 running with `EnableForVillagers=false`: carpenters worked normally without
@@ -274,6 +358,19 @@ the v0.10.0 gates returned silently, which made a working gate and an absent
 workload indistinguishable in the log. Also record that the capacity
 pre-check added in v0.10.0, which asks a destination how much it can accept
 before touching the source, has never refused a move in any run so far.
+
+**v0.14.0 quantity rule** — `StationStocker.BuildOneCraftPlan` replaces the aggregate
+manifest as the primary quantity source. A project-specific fetch (`CrafterSpecificFetchQuest`)
+gets one craft's worth of its own recipe, resolved through craftingProject → craftingQuest →
+`Blueprint` → `FillPartsManifest` (the same call the Phase 1 player path has always used) —
+logged `plan=recipe`. The shared fetch gets one craft's worth per non-transform project on
+the station, merged by item name with quantities summed — logged `plan=projects`.
+Transform-family projects are included only when `Transfer/StockTransformStationMaterials`
+is true. When no plan resolves at all, the aggregate manifest is the fallback, logged
+`plan=aggregate` — fail-open preserved. The `STOCKED` line now ends `denied=<n>
+plan=<src> planQty=<n> aggQty=<n>`; `planQty` far below `aggQty` at a busy workshop is the
+fix operating. User ruling 2026-07-30: no capacity-headroom reserve — it only shrinks the
+working bin; the one-craft cap is the chosen mechanism.
 
 ## Dead-ends and traps
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
@@ -357,6 +454,26 @@ before touching the source, has never refused a move in any run so far.
   consumed five per craft while rope and fibers were already stocked — is unconfirmed. A baseline
   run with `EnableForVillagers=false` would settle it; the user decided on 2026-07-29 to ship
   fixes first and skip that baseline.
+- **Work unit not reachable from fetch hook (Cecil 2026-07-30).** `SSSGame.CraftingQuest/
+  CraftingQuestData` carries a `CraftInteraction _ci` property naming the exact work unit a
+  crafting job targets, but the station stocker cannot reach it. The stocker hooks
+  `FSM_FetchCraftingSupplies.OnStateEnter`, where the quest data is `CrafterFetchQuestData`,
+  whose complete property list is `fetchData`, `returnData`, `_cfQuest`, `_qItmManEvData`,
+  `_qEvData`, `_noStorageSpace`, `_noPartsFound`, `_noCarryCapacity` and `Quest`. There is no
+  link from it to the craft quest, to `CraftingQuestData`, or to any `CraftInteraction`. This
+  is not merely a missing link: a workshop shares one fetch quest across all of its concurrent
+  projects, so at fetch time there is no single work unit to name. Any per-unit gate on the
+  fetch path must therefore decide per ITEM, not per quest. The plan file
+  `CraftFromStorageMod/TRANSFORM_STATION_PLAN.md` previously listed reading `_ci` as the
+  available next step; the per-item filter in v0.13.0 was built instead because of this
+  constraint. Scope this dead-end to the `_ci` link only — it does NOT mean the fetch path
+  cannot identify a work unit at all. Two untried primitives remain, both Cecil-confirmed
+  2026-07-30 and neither instrumented live: `CraftingStation._anvils` is a
+  `List<AnvilInteraction>`, a positive membership list of the add-on units, and
+  `AnvilInteraction.KnowsAnvilProcessForThisItem(ItemInfo, BlueprintInfo&)` is a public method
+  answering whether a given anvil makes a given item. Together they are a per-unit test keyed on
+  the item rather than on the recipe class, and they are the first thing to try if the v0.13.0
+  per-item filter proves too coarse.
 
 ## Known limits
 - **Host/solo only** (`IsHostOrSolo()` gates the availability, pull and sweep paths); non-host
@@ -376,6 +493,29 @@ before touching the source, has never refused a move in any run so far.
   source removal from a refused destination add.
 
 ## Version history
+- **v0.14.1** — snapshot dedupe by container identity, delivery plan capped by the fetch request
+  (`plan=aggregate-nooverlap` fallback), `Storage_MediumItems_L1` added to the source-blacklist
+  default. Run in-game 2026-07-31: all mechanisms verified, count-doubling fix user-confirmed.
+- **v0.14.0** — one-craft-per-fetch quantity rule (`BuildOneCraftPlan`; `plan=`/`planQty=`/`aggQty=`
+  fields on STOCKED). Routing, denial filter and StockStation untouched. Run in-game 2026-07-30:
+  cadence confirmed, exposed the over-delivery and bin-stealing defects fixed in v0.14.1.
+- **v0.13.1** — made `BuildDeniedItemNames` reset both of its out-parameter counts when
+  its outer catch fires. Without the reset, a classification abandoned partway could report
+  a nonzero project count alongside an empty denied set, which would send the caller down
+  the per-item route with nothing to deny and stock transform units while the toggle was
+  off. Run in-game 2026-07-30; per-item filter confirmed working; quantity defect found.
+- **v0.13.0** — replaced the station-fallback path's whole-quest skip with a per-item
+  filter. When the blueprint class cannot be resolved from the quest and the transform
+  toggle is off, the mod now walks the station's own `craftingProjects`, classifies each
+  project's parts as transform or ordinary by its blueprint class, and denies only those
+  item names wanted exclusively by transform projects. An item wanted by both a transform
+  project and an ordinary project is never denied, so the ordinary table's need wins. The
+  whole-building `IsSkippedStation` test survives only for stations where no project at all
+  could be read. The recipe route for a `CrafterSpecificFetchQuest` is unchanged, and the
+  transform toggle set to ON keeps its previously confirmed behaviour unchanged. New
+  diagnostics: a `route=per-item` value on the `routeDecision` line with an
+  `ordinary=`/`transform=`/`denied=` detail, a rate-limited `DENIED ITEM` line, and a
+  `denied=` field appended to the `STOCKED` summary line. Run in-game 2026-07-30.
 - **v0.11.0** — added `Transfer/StockTransformStationMaterials` (default false, stocker
   only) plus the `stationProbe` per-surface listing and the `destinationProbe` line.
   Confirmed in-game 2026-07-30 in both positions.

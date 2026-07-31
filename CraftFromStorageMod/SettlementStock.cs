@@ -166,6 +166,9 @@ internal static class SettlementStock
 
             int containerEntries = 0;
             int skippedBlacklisted = 0;
+            var seenContainerPtrs = new HashSet<IntPtr>();
+            var seenContainerKeys = new HashSet<string>(StringComparer.Ordinal);
+            int skippedDuplicates = 0;
 
             foreach (var st in structures)
             {
@@ -188,6 +191,25 @@ internal static class SettlementStock
 
                     Vector3 pos = default;
                     try { pos = icc.transform.position; } catch { }
+
+                    // v0.14.1: same physical container is listed once per structure that reaches it
+                    // (confirmed in-game 2026-07-30: identical world position + quantity under two
+                    // structure names), doubling every downstream count. Dedupe by native pointer
+                    // first (the boxing idiom this project uses for interop pointer reads - see
+                    // CLAUDE.md's interop notes), falling back to a position+type key if the pointer
+                    // can't be read. Both sets are locals scoped to this single Rebuild call, so this
+                    // does not violate the project's no-caching-interop-wrappers rule.
+                    IntPtr cptr = IntPtr.Zero;
+                    try { if ((object)container is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase b) cptr = b.Pointer; } catch { }
+                    if (cptr != IntPtr.Zero)
+                    {
+                        if (!seenContainerPtrs.Add(cptr)) { skippedDuplicates++; continue; }
+                    }
+                    else
+                    {
+                        string key = pos.x.ToString("F2") + "," + pos.y.ToString("F2") + "," + pos.z.ToString("F2") + "|" + typeName;
+                        if (!seenContainerKeys.Add(key)) { skippedDuplicates++; continue; }
+                    }
 
                     // Per-item running totals for THIS container (a container can hold several
                     // stacks of the same item across different slots) - same bounded-indexer walk
@@ -244,7 +266,8 @@ internal static class SettlementStock
 
             if (Plugin.TransferDiagnostics.Value)
                 Plugin.Logger.LogInfo($"[CFS] SettlementStock rebuilt: {_byItemId.Count} distinct item type(s), " +
-                    $"{containerEntries} container-entr(y/ies), {skippedBlacklisted} blacklisted container(s) skipped.");
+                    $"{containerEntries} container-entr(y/ies), {skippedBlacklisted} blacklisted container(s) skipped, " +
+                    $"{skippedDuplicates} duplicate container listing(s) skipped.");
         }
         catch (Exception ex)
         {

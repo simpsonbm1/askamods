@@ -55,6 +55,10 @@ internal static class StationStocker
     // diagnostic below, keyed by station name - same idiom as _stationProbeLogged in CraftTransfer.cs.
     private static readonly Dictionary<string, int> _routeLogged = new();
 
+    // v0.13.0: rate limiter for the per-item DENIED ITEM diagnostic below, keyed by
+    // "itemName|station" - same idiom as _skipLogged above.
+    private static readonly Dictionary<string, int> _deniedItemLogged = new();
+
     internal static void MarkAlive(string target)
     {
         try
@@ -79,6 +83,7 @@ internal static class StationStocker
             _unresolvedBpClassLogged.Clear();
             _skipLogged.Clear();
             _routeLogged.Clear();
+            _deniedItemLogged.Clear();
         }
         catch (Exception ex)
         {
@@ -217,6 +222,216 @@ internal static class StationStocker
         }
     }
 
+    // v0.13.0: per-ITEM denial set for the station-fallback path (TRANSFORM_STATION_PLAN.md follow-up
+    // defect fix). ResolveBlueprintClassViaStation's whole-station agree/ambiguous test denies the
+    // ENTIRE fetch the moment a workshop's shared quest can't resolve to one blueprint class - which
+    // wrongly starves an ordinary table sharing a building with a transform unit whenever their
+    // projects disagree (confirmed in-game 2026-07-30: routeDecision station=Workshop House 2
+    // route=station-fallback detail=fallbackAmbiguous:3 outcome=skip). This walks the SAME
+    // craftingProjects list but keeps ordinary-project and transform-project item names separate, so
+    // only items wanted EXCLUSIVELY by a transform project get denied - an item any ordinary project
+    // also wants is never withheld. Every interop read is its own try/catch; the outer catch fails
+    // open (empty set = deny nothing), matching this mod's fail-open rule throughout.
+    private static HashSet<string> BuildDeniedItemNames(CraftingStation station, out int ordinaryProjects, out int transformProjects)
+    {
+        ordinaryProjects = 0;
+        transformProjects = 0;
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            Il2CppSystem.Collections.Generic.List<CraftingStation.CraftingProject>? projects = null;
+            try { projects = station.craftingProjects; } catch { }
+            if (projects == null || projects.Count == 0) return result;
+
+            var transformNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var ordinaryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var skipClasses = GetSkipClasses();
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                CraftingStation.CraftingProject? project = null;
+                try { project = projects[i]; } catch { }
+                if (project == null) continue;
+
+                CraftingQuest? craftingQuest = null;
+                try { craftingQuest = project.craftingQuest; } catch { }
+                if (craftingQuest == null) continue;
+
+                BlueprintInfo? bpInfo = null;
+                try { bpInfo = craftingQuest.BlueprintInfo; } catch { }
+                if (bpInfo == null) continue;
+                string bpClass = Plugin.NativeClassName(bpInfo);
+
+                ItemManifest? manifest = null;
+                try { manifest = craftingQuest.TotalPartsManifest; } catch { }
+                if (manifest == null)
+                {
+                    try { manifest = craftingQuest._partsManifest; } catch { }
+                }
+                if (manifest == null) continue;
+
+                var pairs = CraftTransfer.EnumerateManifest(manifest);
+
+                bool isTransform = skipClasses.Contains(bpClass);
+                if (isTransform)
+                {
+                    transformProjects++;
+                    foreach (var (info, _) in pairs) transformNames.Add(SafeName(info));
+                }
+                else
+                {
+                    ordinaryProjects++;
+                    foreach (var (info, _) in pairs) ordinaryNames.Add(SafeName(info));
+                }
+            }
+
+            transformNames.ExceptWith(ordinaryNames);
+            return transformNames;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] BuildDeniedItemNames error: {ex}");
+            // Reset both counts so a partially-built classification can never be reported as a
+            // usable one. A nonzero count alongside an empty denied set would send the caller
+            // down the per-item route with nothing to deny, silently stocking transform units
+            // while toggle 2 is off. Zeroing here routes that case to the whole-building test.
+            ordinaryProjects = 0;
+            transformProjects = 0;
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    // Same shape CraftTransfer.SafeName uses (that one is private to its own file, so this is a
+    // duplicate rather than a shared helper).
+    private static string SafeName(ItemInfo? info)
+    {
+        if (info == null) return "?";
+        try { return info.Name ?? "?"; } catch { return "?"; }
+    }
+
+    // v0.14.0: builds the "one craft's worth" wanted list for a single fetch, replacing
+    // quest.GetNeededSuppliesManifest()'s AGGREGATE manifest (every queued craft at the station) as
+    // HandleFetchStateEnter's primary quantity source. Confirmed in-game 2026-07-30 that stocking the
+    // aggregate at one workshop moved 105 items in one shot, filled the bin to hard capacity, and then
+    // refused the ONE part (Large Iron Axe Head) the active recipe actually needed - villagers looped
+    // at the table while the part sat in warehouses. The routing/denial logic in HandleFetchStateEnter
+    // (recipe/per-item/station-fallback, deniedItems) is untouched by this method; only the QUANTITY
+    // fed into the shortfall loop changes. Returns null (with planSource explaining why) whenever no
+    // plan could be built at all - the caller falls back to the aggregate manifest exactly as before,
+    // preserving this mod's fail-open rule.
+    private static List<(ItemInfo info, int qty)>? BuildOneCraftPlan(
+        CrafterFetchQuest quest, CraftingStation station, out string planSource)
+    {
+        planSource = "none";
+        try
+        {
+            // Branch A: the quest is project-specific - same CrafterSpecificFetchQuest rewrap chain
+            // ResolveBlueprintClass uses above (Step 1-5), just reading .Blueprint (parts) instead of
+            // .BlueprintInfo (classification only) at the end. Any null link along the way falls
+            // through to Branch B below rather than returning - unlike ResolveBlueprintClass, an
+            // unresolved project-specific quest still has the station-wide fallback available here.
+            string questClass = Plugin.NativeClassName(quest);
+            if (questClass == "CrafterSpecificFetchQuest")
+            {
+                IntPtr ptr = VillagerFetchTrace.SafePointer(quest);
+                if (ptr != IntPtr.Zero)
+                {
+                    CrafterSpecificFetchQuest? specific = null;
+                    try { specific = new CrafterSpecificFetchQuest(ptr); } catch { }
+
+                    CraftingStation.CraftingProject? project = null;
+                    if (specific != null) { try { project = specific.craftingProject; } catch { } }
+
+                    CraftingQuest? craftingQuest = null;
+                    if (project != null) { try { craftingQuest = project.craftingQuest; } catch { } }
+
+                    Blueprint? bp = null;
+                    if (craftingQuest != null) { try { bp = craftingQuest.Blueprint; } catch { } }
+
+                    if (bp != null)
+                    {
+                        ItemManifest? m = new ItemManifest();
+                        try { bp.FillPartsManifest(m); } catch { m = null; }
+
+                        if (m != null)
+                        {
+                            var recipePairs = CraftTransfer.EnumerateManifest(m);
+                            if (recipePairs.Count > 0)
+                            {
+                                planSource = "recipe";
+                                return recipePairs;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Branch B: walk the station's own projects, merging one craft's worth from each included
+            // project. Same classify-by-BlueprintInfo test HandleFetchStateEnter's routing block uses
+            // above (GetSkipClasses / StockTransformStationMaterials).
+            Il2CppSystem.Collections.Generic.List<CraftingStation.CraftingProject>? projects = null;
+            try { projects = station.craftingProjects; } catch { }
+            if (projects == null || projects.Count == 0) { planSource = "none"; return null; }
+
+            var skipClasses = GetSkipClasses();
+            bool stockTransform = SafeGetBool(Plugin.StockTransformStationMaterials, false);
+            var merged = new Dictionary<string, (ItemInfo info, int qty)>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                CraftingStation.CraftingProject? project = null;
+                try { project = projects[i]; } catch { }
+                if (project == null) continue;
+
+                CraftingQuest? craftingQuest = null;
+                try { craftingQuest = project.craftingQuest; } catch { }
+                if (craftingQuest == null) continue;
+
+                BlueprintInfo? bpInfo = null;
+                try { bpInfo = craftingQuest.BlueprintInfo; } catch { }
+                if (bpInfo == null) continue;
+                string bpClass = Plugin.NativeClassName(bpInfo);
+
+                // Skip-listed (transform-family) project: include only if toggle 2 is on. Any other
+                // class: always include.
+                if (skipClasses.Contains(bpClass) && !stockTransform) continue;
+
+                Blueprint? bp = null;
+                try { bp = craftingQuest.Blueprint; } catch { }
+                if (bp == null) continue;
+
+                ItemManifest? m = new ItemManifest();
+                try { bp.FillPartsManifest(m); } catch { m = null; }
+                if (m == null) continue;
+
+                var projectPairs = CraftTransfer.EnumerateManifest(m);
+                foreach (var (info, qty) in projectPairs)
+                {
+                    string key = SafeName(info);
+                    if (merged.TryGetValue(key, out var existing))
+                        merged[key] = (existing.info, existing.qty + qty);
+                    else
+                        merged[key] = (info, qty);
+                }
+            }
+
+            if (merged.Count > 0)
+            {
+                planSource = "projects";
+                return new List<(ItemInfo info, int qty)>(merged.Values);
+            }
+
+            planSource = "none";
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-SS] BuildOneCraftPlan error: {ex}");
+            planSource = "error";
+            return null;
+        }
+    }
+
     // v0.9.3: diagnostic-only - returns station.CraftingType.ToString() so one run's worth of STOCKED
     // lines reveals the enum's actual values, since a station-kind test may later replace the
     // blueprint-class gate entirely (see the file header + Plugin.cs SkipBlueprintClasses comment).
@@ -306,6 +521,7 @@ internal static class StationStocker
             bool proceed;
             string route;
             string routeDetail;
+            HashSet<string> deniedItems = new(StringComparer.OrdinalIgnoreCase);
 
             if (bpClass.Length > 0)
             {
@@ -346,30 +562,39 @@ internal static class StationStocker
             }
             else
             {
-                // Family could not be resolved - fall back to the station test exactly as it behaved
-                // before v0.12.0, including the same toggle-2 consultation and override line. The
-                // stationProbe line CraftTransfer.IsSkippedStation(CraftingStation) emits is now only
-                // reached on this fallback path, which is correct - it's a whole-building answer,
-                // appropriate only once the per-unit signal is unavailable.
-                route = "station-fallback";
-                routeDetail = bpFailReason.Length > 0 ? bpFailReason : "unresolved";
-
-                if (CraftTransfer.IsSkippedStation(station))
+                // Family could not be resolved for the shared quest as a whole - v0.13.0 decides per
+                // ITEM instead of per building whenever the station's own projects can be read at all
+                // (BuildDeniedItemNames), which is what actually fixes the ordinary-table starvation:
+                // a workshop's shared fetch quest no longer denies materials wanted by BOTH an ordinary
+                // project and a transform project just because the two disagree on blueprint class.
+                if (SafeGetBool(Plugin.StockTransformStationMaterials, false))
                 {
-                    if (SafeGetBool(Plugin.StockTransformStationMaterials, false))
-                    {
-                        Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
-                            $"to stock physical-transform station villager={villagerName} station={stationName}.");
-                        proceed = true;
-                    }
-                    else
-                    {
-                        proceed = false;
-                    }
+                    proceed = true;
+                    route = "station-fallback";
+                    routeDetail = bpFailReason.Length > 0 ? bpFailReason : "unresolved";
+                    Plugin.Logger.LogInfo($"[CFS] [CFS-SS] StockTransformStationMaterials=true - proceeding " +
+                        $"to stock physical-transform station villager={villagerName} station={stationName}.");
                 }
                 else
                 {
-                    proceed = true;
+                    var denied = BuildDeniedItemNames(station, out int ordinaryProjects, out int transformProjects);
+                    if (ordinaryProjects + transformProjects > 0)
+                    {
+                        proceed = true;
+                        route = "per-item";
+                        deniedItems = denied;
+                        routeDetail = $"ordinary={ordinaryProjects} transform={transformProjects} denied={deniedItems.Count}";
+                    }
+                    else
+                    {
+                        // Nothing at the station could be read - fall back to today's whole-building
+                        // behavior exactly, which is correct: it's the only signal left once the
+                        // per-item one is unavailable. The stationProbe line
+                        // CraftTransfer.IsSkippedStation(CraftingStation) emits is only reached here.
+                        route = "station-fallback";
+                        routeDetail = bpFailReason.Length > 0 ? bpFailReason : "unresolved";
+                        proceed = !CraftTransfer.IsSkippedStation(station);
+                    }
                 }
             }
 
@@ -393,9 +618,63 @@ internal static class StationStocker
             try { manifest = quest.GetNeededSuppliesManifest(); }
             catch (Exception ex) { Plugin.Logger.LogError($"[CFS] [CFS-SS] GetNeededSuppliesManifest error: {ex}"); return; }
 
-            // Step 8.
-            var pairs = CraftTransfer.EnumerateManifest(manifest);
-            if (pairs.Count == 0) return;
+            // Step 8: the AGGREGATE manifest (every queued craft at the station) - kept as the fallback
+            // quantity source and as the aggQty diagnostic below; no longer the primary source fed into
+            // Step 10's shortfall loop (see BuildOneCraftPlan's v0.14.0 header comment).
+            var aggregatePairs = CraftTransfer.EnumerateManifest(manifest);
+            if (aggregatePairs.Count == 0) return;
+
+            // v0.14.0: one craft's worth per project, replacing the aggregate as the DEFAULT quantity
+            // fed into the shortfall loop below (confirmed in-game 2026-07-30 that the aggregate
+            // over-stocks a bin to hard capacity and then starves the one part the active recipe
+            // needs). Falls back to the aggregate whenever no plan could be built at all.
+            var plan = BuildOneCraftPlan(quest, station, out string planSource);
+            List<(ItemInfo info, int qty)> pairs;
+            if (plan != null && plan.Count > 0)
+            {
+                // v0.14.1: cap the plan by the game's own fetch request (aggregatePairs) - confirmed
+                // in-game 2026-07-30 that an uncapped plan delivered up to 80 of an item when the
+                // fetch manifest asked for 1 (plan=projects planQty=80 aggQty=1). The plan must never
+                // deliver an item the fetch manifest didn't request, nor more than one craft's worth.
+                var aggByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (info, qty) in aggregatePairs)
+                {
+                    string name = SafeName(info);
+                    aggByName.TryGetValue(name, out int existingQty);
+                    aggByName[name] = existingQty + qty;
+                }
+
+                var filteredPlan = new List<(ItemInfo info, int qty)>();
+                foreach (var (info, qty) in plan)
+                {
+                    string name = SafeName(info);
+                    if (!aggByName.TryGetValue(name, out int cap)) continue;
+                    int cappedQty = Math.Min(qty, cap);
+                    if (cappedQty <= 0) continue;
+                    filteredPlan.Add((info, cappedQty));
+                }
+
+                if (filteredPlan.Count > 0)
+                {
+                    pairs = filteredPlan;
+                }
+                else
+                {
+                    // The game asked only for things the plan doesn't cover - vanilla's request is
+                    // then the safer guide. The deniedItems filter in the Step 10 loop below still
+                    // guards the hardwood items on this path.
+                    pairs = aggregatePairs;
+                    planSource = "aggregate-nooverlap";
+                }
+            }
+            else
+            {
+                pairs = aggregatePairs;
+                planSource = "aggregate";
+            }
+
+            int planQty = 0; foreach (var (_, qty) in pairs) planQty += qty;
+            int aggQty = 0; foreach (var (_, qty) in aggregatePairs) aggQty += qty;
 
             // Step 9.
             ItemCollection? stationInv = null;
@@ -404,9 +683,31 @@ internal static class StationStocker
 
             // Step 10: shortfall against the STATION inventory only (not the villager's own inventory -
             // she hasn't picked anything up yet, this fires the moment the fetch quest STARTS).
+            // v0.13.0: items denied by the per-item route (deniedItems, populated only on the
+            // per-item route above) are skipped here rather than folded into the shortfall - they are
+            // wanted exclusively by a transform project and toggle 2 is off.
             var shortfall = new List<(ItemInfo info, int missing)>();
+            int deniedSkipped = 0;
             foreach (var (info, qty) in pairs)
             {
+                string itemName = SafeName(info);
+                if (deniedItems.Contains(itemName))
+                {
+                    deniedSkipped++;
+                    if (Plugin.TransferDiagnostics.Value)
+                    {
+                        string deniedKey = itemName + "|" + stationName;
+                        _deniedItemLogged.TryGetValue(deniedKey, out int deniedCount);
+                        if (deniedCount < 5)
+                        {
+                            _deniedItemLogged[deniedKey] = deniedCount + 1;
+                            Plugin.Logger.LogInfo($"[CFS] [CFS-SS] DENIED ITEM '{itemName}' station={stationName} " +
+                                $"villager={villagerName} - wanted only by a transform project and toggle 2 is off.");
+                        }
+                    }
+                    continue;
+                }
+
                 int have = 0;
                 try { have = stationInv.GetItemQuantity(info); } catch { }
                 int missing = qty - have;
@@ -425,7 +726,8 @@ internal static class StationStocker
             Plugin.Logger.LogInfo($"[CFS] [CFS-SS] STOCKED villager={villagerName} station={stationName} " +
                 $"stationObj={stationObjName} wanted={pairs.Count} short={shortfall.Count} itemsMoved={itemsMoved} " +
                 $"qtyMoved={qtyMoved} stillShort={stillShort} bpClass={(bpClass.Length > 0 ? bpClass : "?")} " +
-                $"stationType={ResolveStationType(station)}");
+                $"stationType={ResolveStationType(station)} denied={deniedSkipped} " +
+                $"plan={planSource} planQty={planQty} aggQty={aggQty}");
         }
         catch (Exception ex)
         {

@@ -1381,6 +1381,14 @@ plain kind. To reach a blueprint for the plain kind go through the station inste
 projects and a plain `CrafterFetchQuest` gives no way to tell which project it belongs to, so
 attribution is only safe when every project on the station resolves to the same blueprint class.
 
+**Fetch-side quest data structure constraint (Cecil 2026-07-30):** The fetch-side quest data
+(`CrafterFetchQuestData`) carries no link to the craft job or to a work unit. `CraftInteraction _ci`
+exists only on `CraftingQuestData` on the craft side, not on the fetch data. Additionally, one
+fetch quest serves all concurrent projects on a workshop, so at fetch time there is no single work
+unit to name. Any per-unit gate on the fetch path must therefore decide per ITEM, not per quest
+(recorded in CraftFromStorageMod, where the per-item deny-list was built instead of trying to read
+`_ci` off unavailable fetch data).
+
 **Crafting-menu requirement rows — the `have/need` UI (confirmed in-game 2026-07-20,
 CraftFromStorageMod v0.4.x–v0.5.1):**
 - The row is `SSSGame.UI.ItemThumbnailPanel`; its number is the TMP at

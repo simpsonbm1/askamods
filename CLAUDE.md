@@ -282,13 +282,11 @@ askamods/
                                 (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.12.0 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [WIP v0.14.1 —
                                 Phase 1 (player half) complete, confirmed in-game 2026-07-20,
-                                host/solo only; Phase 2 (villager half) in progress — everything
-                                through v0.11.0 confirmed in-game 2026-07-30, incl. the
-                                physical-transform station gate (AnvilInteraction ancestry) in both
-                                positions of Transfer/StockTransformStationMaterials; next: make
-                                that gate per-UNIT not per-BUILDING
+                                host/solo only; Phase 2 (villager half) working well as of the
+                                2026-07-31 run (per-item transform gate, one-craft-per-fetch
+                                stocking, snapshot dedupe); next: bloomeries/coal makers for toggle 2
                                 (CraftFromStorageMod/TRANSFORM_STATION_PLAN.md); diagnostics still
                                 default true — docs/mods/craft-from-storage.md, NEW_MOD_IDEAS_PLAN.md
                                 idea 17]
