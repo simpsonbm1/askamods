@@ -285,7 +285,7 @@ askamods/
   CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.0.0 —
                                 Phase 1 (player) + Phase 2 (villager incl. bloomery/kiln delivery)
                                 confirmed in-game 2026-07-31, host/solo only, diagnostics default
-                                false, pending Nexus upload — docs/mods/craft-from-storage.md]
+                                false — docs/mods/craft-from-storage.md]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
                                 identity beside translated display strings, to retarget the
                                 locale-gated mods; F5 in-world [DEV TOOL v0.4.0, NOT for Nexus —

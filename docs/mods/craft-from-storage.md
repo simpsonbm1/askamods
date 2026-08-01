@@ -7,7 +7,7 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: COMPLETE v1.0.0, confirmed in-game 2026-07-31, host/solo only, pending Nexus upload.**
+**Status: COMPLETE v1.0.0, confirmed in-game 2026-07-31, host/solo only, published on Nexus.**
 Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
 → idea 17. Subsystem facts: docs/architecture.md → "Player crafting pipeline".
 
