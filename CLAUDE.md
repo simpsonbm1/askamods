@@ -270,7 +270,7 @@ askamods/
   TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.1 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items [COMPLETE v1.2.1 — docs/mods/ground-item-vacuum.md]
-  FishFilletMod/             ← Mod 20: Shift+RMB fillets fish directly in the inventory [COMPLETE v1.2.0, locale-safe — docs/mods/fish-fillet.md]
+  FishFilletMod/             ← Mod 20: Shift+RMB (rebindable) fillets fish directly in the inventory [COMPLETE v1.5.0, locale-safe, confirmed in-game 2026-08-01 — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated dens + PopulationSpawner force-respawn [COMPLETE v1.4.4 — v1.3.0 locale den-key + German auto-revive test ⚠️ pending — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
   SummonTimerMod/            ← Mod 23: remove Eye of Odin villager-summon wait timer [COMPLETE v0.1.0, local-only, NOT for Nexus — docs/mods/summon-timer.md]
