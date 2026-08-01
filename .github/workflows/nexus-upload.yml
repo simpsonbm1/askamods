@@ -39,6 +39,7 @@ on:
           - OuthouseComposterMod
           - VillagerAmmoMod
           - NoNeedsMod
+          - CraftFromStorageMod
       version:
         description: Version string (e.g. 1.1.0)
         type: string
@@ -88,6 +89,7 @@ jobs:
             OuthouseComposterMod)    file_id=7651913 ;;   # Outhouse Composter
             VillagerAmmoMod)         file_id=7651994 ;;   # Unlimited Arrows for Villagers
             NoNeedsMod)              file_id=7657799 ;;   # Max All Needs
+            CraftFromStorageMod)     file_id=7741917 ;;   # Craft From Storage
             *) echo "::error::Unknown mod '${{ inputs.mod }}'"; exit 1 ;;
           esac
           dll="${{ inputs.mod }}/${{ inputs.mod }}.dll"
