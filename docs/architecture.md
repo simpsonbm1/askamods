@@ -2811,6 +2811,63 @@ state for the drag preview).
     `IsPlayer && HasAuthority` from the registry. **Do NOT patch its Fusion state-sync methods**
     (`CopyBackingFieldsToState`/`CopyStateToBackingFields`) — this **hangs the game at load** (confirmed
     the hard way). Same rule applies to any `NetworkBehaviour`'s Copy*State methods, not just SpellsManager.
+*   **`SSSGame.StreamingTerrainVS` is a plain `UnityEngine.MonoBehaviour` with a public non-virtual
+    `Awake()`, and a Harmony postfix on it is a safe way to build a registry of streamed terrain
+    chunks.** Confirmed in-game 2026-08-05: 36 chunks registered in a loaded world, no exceptions.
+*   **API chain for reading whether ground has been terraformed**: The game keeps a
+    per-cell heightmap-modified flag in `SSSGame.TerraformingMap` and persists it via
+    `TerrainDataHandler.WriteTerraformingData` / `ReadTerraformingData`. Reading a
+    sample: `WorldDataManager.OpenData(worldX, worldZ, DataAccessMode)` returns a
+    `WorldTileData`; `TerrainDataHandler.GetTerraformingData(tileData,
+    DataAccessMode)` returns the `TerraformingMap`; then
+    `TerraformingMap.GetData(int x, int y, out int flags)` followed by the static
+    `TerraformingMap.IsHeightmapModified(flags)`. Sibling static readers on the same
+    flags integer are `IsClearVegetationSet(flags)` and `GetTerrainType(flags)`. The
+    instance method `IsTileDirtyAt(int x, int y)` returns a bool directly. (confirmed
+    in-game 2026-08-05)
+*   **TerrainLevelerMod's bulldozer DOES set the heightmap-modified flag**, confirmed
+    in-game 2026-08-05 (TerraformAuditMod v0.3.0). Evidence: on an otherwise untouched
+    terrain chunk the whole-chunk scan read `modified=121 of total=66049`, and the
+    modified samples' world bounding box was `min=(82.67704,513.49414) max=(87.657585,
+    518.47473)` — a roughly 5 m square centred exactly where the player stood when they
+    bulldozed. The sample under the player read `rawFlags=13 heightmapModified=True
+    clearVegetationSet=True terrainType=DIRT`, against `rawFlags=0
+    heightmapModified=False clearVegetationSet=False terrainType=NATURAL` on untouched
+    ground. Both terrain-leveling routes in play — the vanilla hoe and TerrainLevelerMod's
+    bulldozer — set the same per-cell heightmap-modified flag, so a mod that wants to detect
+    terraformed ground needs only this one signal and does not need to distinguish the two.
+*   **The vanilla terraforming hoe DOES set the heightmap-modified flag**, confirmed in-game
+    2026-08-05 (TerraformAuditMod v0.3.0). Evidence came from two independent before/after pairs
+    taken at two locations on the SAME terrain chunk, so the counts are directly comparable. At the
+    first spot the whole-chunk modified count went from `modified=16454 of total=66049` before
+    hoeing to `modified=16671` after, a rise of 217 samples. At the second spot it went from
+    `modified=16671` to `modified=16833`, a rise of 162 samples. In both pairs the sample under
+    the player read `rawFlags=0 heightmapModified=False clearVegetationSet=False terrainType=NATURAL`
+    before and `rawFlags=13 heightmapModified=True clearVegetationSet=True terrainType=DIRT` after,
+    with all nine samples of the surrounding 3x3 patch flipping the same way. The modified-sample
+    bounding box also grew to enclose the second spot, from a maximum z of `479.62646` to
+    `510.50583`.
+*   The working access route to a chunk's `TerraformingMap` is the host `TerrainChunk`'s
+    `DataHandler`, with the tile from `StreamingTerrainVS.GetTileData()`, then
+    `TerrainDataHandler.GetTerraformingData(tile, DataAccessMode.FETCH)`. This succeeded
+    on 3 of 4 probe presses. The chunk's own `_terraformingMap` property read null on all
+    4. `WorldDataManager.OpenData` also returned null on the one press where it was
+    reached. Confirmed in-game 2026-08-05.
+*   A terrain chunk covers a 128 m square and its `TerraformingMap.Resolution` is 257,
+    so samples sit 0.5 m apart — fine enough to test an individual gatherable's position.
+    Companion values on the same map are `_cellResolution=4` and
+    `_samplesPerCell=64`. Confirmed in-game 2026-08-05.
+*   `TerraformingMap.IsTileDirtyAt(x, y)` is NOT a terraformed-ground test. It read
+    `tileDirty=False` on all 9 samples of a 3x3 patch where `IsHeightmapModified` read
+    `True` for all 9. Use `GetData` plus the static `IsHeightmapModified` instead.
+    Confirmed in-game 2026-08-05.
+*   The map resolve can return null for a chunk the player is standing on. One press on a
+    freshly reached chunk had all three routes return null; a later press on that same
+    chunk, after bulldozing, resolved a map through the host `TerrainChunk` route. Two
+    explanations remain open — the game may allocate a chunk's `TerraformingMap` lazily
+    on first terraforming, or the tile data may simply not have been resident yet. Either
+    way, any consumer must treat an unresolvable map as "no terraforming information"
+    and fail open rather than erroring. Confirmed in-game 2026-08-05.
 *   **The real drag/resize pipeline** (relevant any time a mod needs to intercept a `DynamicDimensions`-
     style drag): `DynamicDimensionsPlacement.gridSize` (`Vector3Int`) →
     `DynamicDimensionBuilding.SetDimensions(float tileSize, Vector3Int GridSize, bool forceSet)` →
@@ -2854,6 +2911,21 @@ state for the drag preview).
     symptom on a Fusion `NetworkBehaviour`-backed structure.
 
 ### Dead ends (don't retry)
+*   **Harmony-patching `SSSGame.StreamingTerrainVS.Init()` breaks terrain streaming and world load.**
+    A postfix on it produced 4,542 copies of `System.NullReferenceException` in one session, every one
+    with the stack frame `at DMD<SSSGame.StreamingTerrainVS::Init>(StreamingTerrainVS this)`. The
+    errors began immediately after `Chainloader startup complete` and continued to the end of the
+    session. The `DMD<...>` frame is Harmony's generated replacement method, so the fault is inside
+    the patched method rather than in the postfix body — the postfix body was wrapped in a try/catch
+    that logs, and no such log line ever appeared. Confirmed in-game 2026-08-05 (TerraformAuditMod
+    v0.1.0). Use `StreamingTerrainVS.Awake()` instead, which is safe (see confirmed facts).
+    (dead end confirmed 2026-08-05)
+*   **`SSSGame.StreamingTerrainVS._terraformingMap` reads null at runtime on a live, streamed-in
+    terrain chunk in a loaded world.** Four separate reads at two different world positions all
+    logged `Chosen chunk's _terraformingMap is null`, on a run where 36 terrain chunks were
+    registered and chunk selection succeeded. This is another instance of the project's "interop
+    link-properties can lie at runtime" rule — reach the terraforming data by another route.
+    Confirmed in-game 2026-08-05 (TerraformAuditMod v0.2.0). (dead end confirmed 2026-08-05)
 *   **`DynamicDimensionsPlacementTool.firstMarker` is NOT a reliable drag anchor.** In practice it can sit
     hundreds of meters from the live `_marker` throughout an entire drag (observed ~580m offset, static,
     confirmed via diagnostic logs). Any tether/clamp built by measuring `firstMarker`-to-`_marker`
