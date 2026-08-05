@@ -23,6 +23,10 @@ public class DayTracker : MonoBehaviour
     private const float WellRefillInterval = 30f;
     private static DateTime _lastOverdueDiagLog = DateTime.MinValue;
     private static DateTime _lastWeatherWarn = DateTime.MinValue;
+    // Separate throttle for the terraform-check-deferred summary (v1.8.0) — 30s per the spec, wider
+    // than the 5s tree/gather overdue-but-unserviceable throttle above since this fires only for
+    // resources the player deliberately configured to stop respawning on leveled ground.
+    private static DateTime _lastTerraformUnknownDiagLog = DateTime.MinValue;
 
     // When this world first got serviced (weather+world resolved) — the clock for the structure-load grace
     // below. Reset per world in ClearTransientState. Structures/colliders load a beat after the world, so
@@ -412,6 +416,7 @@ public class DayTracker : MonoBehaviour
         var gatherSw = Stopwatch.StartNew(); // v1.6.1 — attribution split from the overall service stopwatch
         var toRemoveGather = new List<string>();
         int gatherDueIndex = 0;
+        List<string>? terraformUnknown = Plugin.TerraformDiagnostics.Value ? new List<string>() : null;
         foreach (var kvp in Plugin.PendingGatherRespawns)
         {
             string posKey = kvp.Key;
@@ -433,6 +438,35 @@ public class DayTracker : MonoBehaviour
 
             int gatherDueIdx = gatherDueIndex++;
             if (gatherDueIdx < _gatherDueSkip || gatherDueIdx >= _gatherDueSkip + DueSliceSize) continue;
+
+            // Respawn-on-terraformed-ground gate (v1.8.0, gather nodes only — trees are out of
+            // scope). Fast path: when this resource is configured to always respawn (the default
+            // for every entry), do nothing at all — no query, no cost, exactly as fast as before
+            // this feature existed.
+            if (!Plugin.GetRespawnOnTerraformed(itemName))
+            {
+                ParsePosKey(posKey, out float tx, out float tz);
+                var terraformState = TerraformQuery.Query(tx, tz);
+                if (terraformState == TerraformQuery.TerraformState.Terraformed)
+                {
+                    // Suppressed — this is a user-visible behaviour change, so it logs
+                    // unconditionally (not gated behind TerraformDiagnostics).
+                    toRemoveGather.Add(posKey);
+                    _lastHandlerAttempt.Remove(posKey);
+                    Plugin.Logger.LogInfo(
+                        $"[TreeRespawnMod] Gather resource \"{itemName}\" at {posKey}: respawn suppressed — ground has been terraformed.");
+                    continue;
+                }
+                if (terraformState == TerraformQuery.TerraformState.Unknown)
+                {
+                    // Defer rather than fail open: failing open here would respawn exactly the node
+                    // the player asked to suppress, on any tick the terrain chunk isn't loaded.
+                    // Deferring costs nothing — the entry stays pending and is retried later.
+                    terraformUnknown?.Add($"{posKey}({itemName})");
+                    continue;
+                }
+                // Natural → fall through to the normal respawn path below, unchanged.
+            }
 
             bool haveWid = Plugin.GatherWid.TryGetValue(posKey, out var wid);
             Plugin.ActiveInstances.TryGetValue(posKey, out var inst);
@@ -547,6 +581,18 @@ public class DayTracker : MonoBehaviour
             if (overdueGatherNotLoaded!.Count > 0)
                 Plugin.Logger.LogInfo(
                     $"[TreeRespawnMod] [diag] overdue-but-unserviceable (gather): {overdueGatherNotLoaded.Count} — {string.Join(", ", overdueGatherNotLoaded.Take(5))}");
+        }
+
+        // Throttled (~30s) summary of terraform-checks deferred because the terrain data wasn't
+        // resolvable yet (TerraformState.Unknown) — separate from the 5s overdue-but-unserviceable
+        // throttle above since this only fires for resources the player configured to stop
+        // respawning on leveled ground.
+        if (terraformUnknown != null && terraformUnknown.Count > 0
+            && (DateTime.UtcNow - _lastTerraformUnknownDiagLog).TotalSeconds >= 30)
+        {
+            _lastTerraformUnknownDiagLog = DateTime.UtcNow;
+            Plugin.Logger.LogInfo(
+                $"[TreeRespawnMod] [diag] terraform-check deferred (chunk not resolvable yet): {terraformUnknown.Count} — {string.Join(", ", terraformUnknown.Take(5))}");
         }
 
         bool anyChanges = toRemove.Count > 0 || toRemoveGather.Count > 0;

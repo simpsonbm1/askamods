@@ -1,10 +1,11 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.7.1)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.8.0)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries,
 etc.) after configurable in-game days — plus a configurable refill rate for **constructed wells**
-(Water Well / Rain Collector), year-round rain-independent **mushrooms**, and **woodcutter stump
-protection**. This file describes the mod as it exists at v1.6.1; version history is compressed
-into the appendix. Deep investigation history: `docs/archive/TREERESPAWN_HANDOFF.md`.
+(Water Well / Rain Collector), year-round rain-independent **mushrooms**, **woodcutter stump
+protection**, and **per-resource control of respawn on terraformed ground**. This file describes
+the mod as it exists at v1.8.0; version history is compressed into the appendix. Deep
+investigation history: `docs/archive/TREERESPAWN_HANDOFF.md`.
 
 **Game subsystems:** [Resource / Tree System](../architecture.md#resource--tree-system) and
 [Gather / Press-to-Collect System](../architecture.md#gather--press-to-collect-system) — both carry
@@ -186,6 +187,76 @@ Config: `BlockRespawnUnderStructures` (true), `StructureBlockMargin` (float, def
 Confirmed in-game 2026-07-07: workshop/house trees stayed down (silent re-cut, zero new log
 lines), forest trees respawned normally; save held exactly the expected 12 blocked positions.
 
+## Respawn control on terraformed ground (`[RespawnOnTerraformedGround]` — confirmed
+in-game 2026-08-05)
+
+The config section is `[RespawnOnTerraformedGround]`. It carries one boolean per resource using
+the same keys and the same order as the existing `[GatherRespawn]` section — `Thatch`, `Berries`,
+`Stick`, `Fiber`, `Small Stone`, `Mussels`, `Feathers`, `Carrot`, `Cabbage`, `Onion`, `Garlic`,
+`Beetroot`, `Mushroom`, `Water` — plus a `Default` fallback for unlisted resources. Every entry
+defaults to `true`, meaning the resource still respawns everywhere, so an all-defaults config
+reproduces the previous behaviour exactly. Setting an entry to `false` stops that resource
+returning on terraformed ground. Matching is the same case-insensitive substring scheme
+`GetGatherThreshold` uses, via a sibling method `GetRespawnOnTerraformed`.
+
+Scope is gather nodes only. Trees are deliberately excluded — a removed stump already stops
+regrowth and the structure-footprint block covers buildings.
+
+The mechanism is `TerraformQuery.cs`, built on the same pattern as `StructureQuery.cs`. A
+Harmony postfix on `StreamingTerrainVS.Awake()` builds a registry of streamed terrain chunks.
+A query finds the chunk whose `_terrainRect` contains the position, resolves the
+`TerraformingMap` through the host `TerrainChunk`'s `DataHandler` with the tile from
+`StreamingTerrainVS.GetTileData()`, converts the world position to a sample index, and reads
+`GetData` plus the static `IsHeightmapModified`. Samples sit 0.5 m apart. Both the vanilla
+terraforming hoe and TerrainLevelerMod's bulldozer set this same flag, so the check covers both
+and never distinguishes them. Because it reads the game's own persisted record, ground leveled
+before the feature existed counts too. Full API detail and the evidence behind it live in
+`docs/architecture.md` under Terrain / Terraforming System.
+
+The query returns three values, not two: terraformed, natural, or unknown. Unknown covers a
+position no streamed chunk contains, a map that will not resolve, and any read that throws.
+
+The servicing rule sits in the gather loop in `DayTracker.cs`, after the due-check and before
+the expensive live-instance work, preserving the file's cheap-tests-first ordering. When a
+resource is configured `true` the query never runs at all, so the default path costs nothing.
+When configured `false`: a terraformed result drops the entry from the pending queue and logs
+one unconditional line naming the resource and position; a natural result falls through to the
+normal respawn path; an unknown result defers the entry to a later tick without respawning or
+dropping it.
+
+Unknown defers rather than allowing the respawn because failing open would respawn exactly the
+node the player asked to suppress, on any tick where the terrain chunk happened not to be
+loaded. Deferring is free because the entry stays queued and is retried.
+
+Only positive answers are cached. A natural or unknown result is never cached, because ground
+can be terraformed later in the same session and a cached natural reading would blind the check
+permanently. The cache and the chunk registry are both cleared on world switch, from the same
+two call sites in `Plugin.cs` that already clear the structure-footprint cache.
+
+Config `TerraformDiagnostics` (bool, default `true`) gates a throttled summary of deferred
+entries. The suppression line itself always logs regardless, because a suppressed respawn is a
+user-visible behaviour change that must be explainable from the log.
+
+**Confirmation (in-game 2026-08-05):** a single berry bush at world position
+`152.9:43.1:443.0` was observed across four log events in one session with `Berries =
+false` configured: harvested (logged `Gather resource "Item_Food_BiomeBerries"
+exhausted (data sync) at 152.9:43.1:443.0. Will respawn in 0.02 days.`), respawned
+after elapsed time (logged `Gather resource "Item_Food_BiomeBerries" at 152.9:43.1:443.0
+respawned (0.02 days elapsed).`), harvested again (same exhausted log line), and after
+the ground under it was terraformed, logged `Gather resource "Item_Food_BiomeBerries"
+at 152.9:43.1:443.0: respawn suppressed — ground has been terraformed.` without
+returning. The same node respawning before terraforming and being suppressed after it is
+the control and test in one node.
+
+A second berry bush at `401.2:36.1:572.3` was suppressed early in the same session from
+a pending entry carried over in the per-world save file, on ground terraformed before
+this feature existed. Its log line named the resource `"Berries"` (translated display
+name) while the first bush's lines named it `"Item_Food_BiomeBerries"` (invariant asset
+name), confirming that the feature applies to ground leveled before it was installed and
+that config-key matching works against both display name and asset name, maintaining
+locale-safety. Zero exceptions and zero interop trampoline errors logged. The terrain-chunk
+capture logged its first-fire line.
+
 ## Woodcutter stump protection (confirmed in-game 2026-06-26)
 
 Woodcutters harvest leftover stumps for firewood, destroying the instance and cancelling the
@@ -280,6 +351,12 @@ not this query — still works, still cancels the respawn.
 - **Methodology:** a save+reload "closure test" masks stale-pointer failure modes (reload
   refreshes every live pointer) — the original Issues C/D were wrongly closed this way. Test
   mid-session streaming (walk away/back) before believing a stale-pointer fix.
+- **`StreamingTerrainVS.Init()` must never be Harmony-patched** — it breaks world load. Use
+  `Awake()` instead.
+- **`StreamingTerrainVS._terraformingMap` reads null on a live chunk** — reach the map through
+  the host `TerrainChunk`'s `DataHandler` instead.
+- **`TerraformingMap.IsTileDirtyAt` is not a terraformed-ground test** — must not be substituted
+  for `IsHeightmapModified`.
 
 ## Version history (compressed)
 
@@ -300,3 +377,6 @@ not this query — still works, still cancels the respawn.
 | v1.6.0–v1.6.1 | 2026-07-12 | Perf hardening: cheap-first + 8/tick slicing, WellRefill on 30 s cadence, ServiceInterval 3 s (⚠️ pending in-game confirmation). |
 | v1.7.0 (2026-07-21) | Mushroom availability gate now matches invariant asset name (`Item_Food_BiomeMushroom*`) + translated display name, enabling year-round mushroom availability in every language; confirmed in-game in German. |
 | v1.7.1 (2026-07-21) | Per-item gather-respawn rate override (`GetGatherThreshold`) now keys on invariant asset name + translated yield name (dual matching); well-refill "Water" filter now matches invariant asset name (`Item_Elements_NaturalWaterCollector1`) + translated name, enabling locale-safe identification in every language. ⚠️ pending in-game confirmation. |
+| v1.8.0 (2026-08-05) | Per-gatherable respawn-on-terraformed-ground switch,
+`[RespawnOnTerraformedGround]`, defaults all true so behaviour is unchanged until a
+player opts in; confirmed in-game 2026-08-05. |

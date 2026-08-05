@@ -43,6 +43,8 @@ public class Plugin : BasePlugin
     public static ConfigEntry<bool> MushroomIgnoreSeason { get; private set; } = null!;
     internal static ConfigEntry<string> MushroomItemNames = null!;
     private static ConfigEntry<float> _gatherDefaultDays = null!;
+    private static ConfigEntry<bool> _respawnOnTerraformedDefault = null!;
+    internal static ConfigEntry<bool> TerraformDiagnostics = null!;
 
     // Key: world position string — genuinely unique, stable across saves.
     // UniqueId is NOT globally unique (it's a per-buffer index; every chunk restarts at 0).
@@ -63,6 +65,11 @@ public class Plugin : BasePlugin
 
     // Populated at startup from per-resource Config.Bind calls. Key is substring to match (case-insensitive).
     internal static readonly Dictionary<string, float> GatherOverridesMap =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    // Populated at startup from per-resource RespawnOnTerraformedGround Config.Bind calls. Key is
+    // substring to match (case-insensitive), same shape as GatherOverridesMap.
+    internal static readonly Dictionary<string, bool> RespawnOnTerraformedMap =
         new(StringComparer.OrdinalIgnoreCase);
 
     // Position → live instance, populated by BiomeInstancePatch as the world loads.
@@ -302,6 +309,52 @@ public class Plugin : BasePlugin
         // (Harvest_Stone4) are Fusion scene objects with no mod-reachable respawn path.
         // See STONE_RESPAWN_HANDOFF.md for the full investigation and why it was abandoned.
 
+        // ── Respawn on terraformed ground (v1.8.0) ──────────────────────────────────────────────
+        // Gather nodes only (trees are out of scope). true (default) = this resource keeps
+        // respawning everywhere, exactly like before this feature existed. false = it stops coming
+        // back on ground that has been leveled — with either the vanilla terraforming hoe or
+        // TerrainLevelerMod's Bulldozer Field square. Leveling done before installing this feature
+        // counts too, because the check reads the game's own per-cell terrain record, not anything
+        // this mod tracks itself. See TerraformQuery.cs for the read mechanism.
+        const string ts = "RespawnOnTerraformedGround";
+        _respawnOnTerraformedDefault = Config.Bind(ts, "Default", true,
+            "Whether any gather resource NOT explicitly listed below still respawns on terraformed " +
+            "ground (fallback only). Does not affect the named entries below — each of those always " +
+            "uses its own value no matter what this is set to.");
+
+        void BindTerraform(string itemName, string description)
+        {
+            var e = Config.Bind(ts, itemName, true, description);
+            RespawnOnTerraformedMap[itemName] = e.Value;
+        }
+
+        const string tSuffix = " true (default) = keeps respawning everywhere, exactly like before " +
+            "this feature existed. false = stops it coming back on ground that has been leveled with " +
+            "either the terraforming hoe or the Bulldozer Field (TerrainLevelerMod) — leveling done " +
+            "before installing this feature counts too, since this reads the game's own terrain record.";
+        BindTerraform("Thatch",      "Reeds." + tSuffix);
+        BindTerraform("Berries",     "Berry Bush." + tSuffix);
+        BindTerraform("Stick",       "Dwarf Spruce." + tSuffix);
+        BindTerraform("Fiber",       "Flax Bush." + tSuffix);
+        BindTerraform("Small Stone", "Small Stone on ground." + tSuffix);
+        BindTerraform("Mussels",     "Mussels on rocks." + tSuffix);
+        BindTerraform("Feathers",    "Fallen Bird's Nest feathers." + tSuffix);
+        BindTerraform("Carrot",      "Carrot." + tSuffix);
+        BindTerraform("Cabbage",     "Cabbage." + tSuffix);
+        BindTerraform("Onion",       "Onion." + tSuffix);
+        BindTerraform("Garlic",      "Garlic." + tSuffix);
+        BindTerraform("Beetroot",    "Beetroot." + tSuffix);
+        BindTerraform("Mushroom",    "Mushrooms (substring also covers Gray/Grey Mushrooms and Yellow Mushrooms)." + tSuffix);
+        BindTerraform("Water",       "Natural Water Collector." + tSuffix);
+
+        TerraformDiagnostics = Config.Bind(ts, "TerraformDiagnostics", true,
+            "Verbose logging for the terraformed-ground check: a throttled (~30s) aggregate summary " +
+            "of entries deferred because the terrain data wasn't resolvable yet. Suppressed respawns " +
+            "themselves always log regardless of this setting — a suppressed respawn is a " +
+            "user-visible behaviour change and must be explainable from the log. Defaults to ON like " +
+            "every new diagnostic in this mod, so the config entry exists without needing to boot the " +
+            "game first; safe to turn off once the feature is confirmed working.");
+
         // The pending-respawn save file is per-world (keyed by StorageManager.ActiveSessionID) and is
         // selected only once a world loads — DayTracker calls PollWorldId until it resolves. So
         // singleplayer and co-op worlds never share or cross-contaminate respawn state (world
@@ -384,6 +437,16 @@ public class Plugin : BasePlugin
             if (itemName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
                 return kvp.Value;
         return _gatherDefaultDays.Value;
+    }
+
+    // Whether this gathered item should still respawn on terraformed ground. Checks per-resource
+    // entries first (substring match, same shape as GetGatherThreshold), falls back to Default.
+    internal static bool GetRespawnOnTerraformed(string itemName)
+    {
+        foreach (var kvp in RespawnOnTerraformedMap)
+            if (itemName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
+                return kvp.Value;
+        return _respawnOnTerraformedDefault.Value;
     }
 
     // Every call site that needs the host-authoritative weather/time singleton used to repeat
@@ -469,6 +532,7 @@ public class Plugin : BasePlugin
         LiveHarvestInteractions.Clear();
         Biomes = null;
         StructureQuery.ClearCache();
+        TerraformQuery.ClearCache();
         DayTracker.ClearTransientState();
         CurrentWorldId = null;
         _saveFilePath = null;
@@ -495,6 +559,7 @@ public class Plugin : BasePlugin
             LiveHarvestInteractions.Clear();
             Biomes = null;
             StructureQuery.ClearCache();
+            TerraformQuery.ClearCache();
             DayTracker.ClearTransientState(); // handler-retry cooldowns — posKeys collide across worlds
         }
 

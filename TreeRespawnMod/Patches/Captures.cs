@@ -1,3 +1,4 @@
+using System;
 using HarmonyLib;
 using SSSGame;
 
@@ -102,5 +103,19 @@ internal static class GatherInteractionSetWorldInstancePatch
             Registration.TryRegisterGather(bi, posKey, itemName, "catch-up");
         }
         catch { }
+    }
+}
+
+// StreamingTerrainVS is a plain MonoBehaviour with a PUBLIC non-virtual Awake() — safe to postfix
+// under this project's interop rules (unlike StreamingTerrainVS.Init(), which must NEVER be
+// patched — see TerraformQuery.cs). This is the only enumeration of "currently streamed terrain"
+// available, and TerraformQuery.Query needs it to answer the RespawnOnTerraformedGround check.
+[HarmonyPatch(typeof(StreamingTerrainVS), nameof(StreamingTerrainVS.Awake))]
+internal static class StreamingTerrainVSAwakePatch
+{
+    static void Postfix(StreamingTerrainVS __instance)
+    {
+        try { TerraformQuery.RegisterChunk(__instance); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[TreeRespawnMod] StreamingTerrainVS.Awake postfix error: {ex}"); }
     }
 }
