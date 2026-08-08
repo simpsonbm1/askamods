@@ -1,0 +1,6 @@
+# Compliance manifest - docs that bind work in this project (read by compliance-gate.ps1;
+# one path per line, relative to project root). Drafted 2026-08-08, pending user review.
+# Handoffs are state, not rules - they stay out. Global CLAUDE.md is included automatically.
+CLAUDE.md
+docs\architecture.md
+docs\agent-delegation.md
