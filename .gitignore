@@ -23,3 +23,6 @@ SESSION_HANDOFF.md
 
 # Doc-hygiene guard block log (local audit trail, surfaced by .githooks/pre-commit)
 .claude/doc-hygiene-blocks.log
+
+# Machine-local Claude Code settings (per-machine permission grants; shared grants belong in .claude/settings.json)
+.claude/settings.local.json
