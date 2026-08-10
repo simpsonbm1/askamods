@@ -271,13 +271,14 @@ askamods/
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [radius sweep
-                                COMPLETE + published; whole-map mode WIP at repo v1.9.2,
-                                UNCOMMITTED — do not publish. v1.8.0 restricts it to records
-                                whose source prefab carries DynamicItemObject, confirmed
-                                in-game 2026-08-10 (445 excluded, 0 undetermined; closed the
-                                IncludeCorpses gap too). Jotun Blood cannot be told apart by
-                                prefab, so v1.9.0 ships ExcludeItems defaulting to it (user
-                                ruling 2026-08-10) — docs/mods/ground-item-vacuum.md]
+                                COMPLETE; whole-map mode PUBLISHED at v1.9.2 (Nexus
+                                2026-08-10, replacing the long-published 1.1.3). It restricts
+                                removal to records whose source prefab carries
+                                DynamicItemObject, confirmed in-game 2026-08-10 (445 excluded,
+                                0 undetermined). Jotun Blood cannot be told apart by prefab, so
+                                ExcludeItems defaults to it (user ruling 2026-08-10). The corpse
+                                sweep is DELETED — do not reinstate it
+                                — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB (rebindable) fillets fish directly in the inventory [COMPLETE v1.5.0, locale-safe, confirmed in-game 2026-08-01 — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated dens + PopulationSpawner force-respawn [COMPLETE v1.4.4 — v1.3.0 locale den-key + German auto-revive test ⚠️ pending — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]

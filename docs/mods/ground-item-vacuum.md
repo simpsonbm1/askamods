@@ -1,13 +1,13 @@
 # Mod 19: GroundItemVacuumMod — on Nexus as "Ground Item Vacuum Cleaner"
 
-> **Status 2026-08-10.** Repo v1.9.1, published to Nexus on the user's instruction. The previous
-> published version was **1.1.3**, in which `VacuumEntireWorld` skipped the `Radius` test against
-> the mod's own tracked-item set only — that set holds items with a spawned GameObject, so the
-> option cleared just the loaded area around the player despite its name. v1.9.1 replaces it with
-> the whole-map data-layer walk described below. The dropped-item filter is confirmed in-game at
-> v1.8.0. `Jotun Blood` is spared by a shipped `ExcludeItems` default rather than by code (user
-> ruling 2026-08-10); that default is ⚠️ pending — not yet run in-game. The corpse sweep has been
-> REMOVED — see the dead-end below.
+> **Status 2026-08-10.** Repo and Nexus both at **v1.9.2**, published on the user's instruction.
+> The version it replaced on Nexus was **1.1.3**, in which `VacuumEntireWorld` skipped the
+> `Radius` test against the mod's own tracked-item set only — that set holds items with a spawned
+> GameObject, so the option cleared just the loaded area around the player despite its name.
+> v1.9.2 replaces it with the whole-map data-layer walk described below. The dropped-item filter
+> is confirmed in-game at v1.8.0. `Jotun Blood` is spared by a shipped `ExcludeItems` default
+> rather than by code (user ruling 2026-08-10); that default is ⚠️ pending — not yet run in-game.
+> The corpse sweep is REMOVED — see the REMOVED section below.
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey or timer. Confirmed in-game 2026-07-07: removes debris cleanly with only a
