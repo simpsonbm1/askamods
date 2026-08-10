@@ -50,7 +50,14 @@
     -SelfTest     Built-in test suite (synthesized events + fixtures). Exit 1 on any failure.
 #>
 [CmdletBinding()]
-param([switch]$SelfTest, [string]$Scan)
+param(
+    [switch]$SelfTest,
+    [string]$Scan,
+    # Explicit repo root. Overrides $env:CLAUDE_PROJECT_DIR. The self-test passes fixtures this
+    # way on purpose: relying on env inheritance made the suite pass under one shell and fail
+    # under another, which is a test that lies rather than a gate that works.
+    [string]$ProjectRoot
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -126,6 +133,20 @@ function Get-DocHits {
     return $hits
 }
 
+function Resolve-Root {
+    # One place, so hook mode and -Scan can never disagree about which repo they are looking at.
+    # PUBLISH_GATE_ROOT wins: it is the self-test's channel for pointing a child process at a
+    # fixture. It must NOT be an argument - passing extra params to `powershell -File` alongside
+    # -RedirectStandardInput breaks the child's stdin read ("Invalid JSON primitive"), which
+    # silently turned every block test into a fail-open pass. It must NOT be CLAUDE_PROJECT_DIR
+    # either: that is ambient under the Bash tool and pointed the child at the real repo, which is
+    # what made this suite pass under one shell and fail under another.
+    if ($env:PUBLISH_GATE_ROOT) { return $env:PUBLISH_GATE_ROOT }
+    if ($ProjectRoot) { return $ProjectRoot }
+    if ($env:CLAUDE_PROJECT_DIR) { return $env:CLAUDE_PROJECT_DIR }
+    return (Get-Location).Path
+}
+
 function Resolve-ModDocPath {
     # GroundItemVacuumMod -> docs/mods/ground-item-vacuum.md (kebab of the name minus the Mod suffix).
     param([string]$Root, [string]$ModName)
@@ -145,7 +166,7 @@ function Resolve-ModDocPath {
 # -Scan: audit one mod on demand.
 # ---------------------------------------------------------------------------------------------
 if ($Scan) {
-    $root = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } else { (Get-Location).Path }
+    $root = Resolve-Root
     $modDir = Join-Path $root $Scan
     # @() wrapping is load-bearing: PowerShell unrolls an empty array to $null, and .Count on
     # $null throws under StrictMode - which would make -Scan crash on exactly the clean mods it
@@ -180,13 +201,15 @@ if ($SelfTest) {
         $err = Join-Path $tmp ('err-' + [guid]::NewGuid().ToString('N') + '.txt')
         $inp = Join-Path $tmp ('in-'  + [guid]::NewGuid().ToString('N') + '.json')
         Set-Content -LiteralPath $inp -Value $Json -Encoding utf8
-        $old = $env:CLAUDE_PROJECT_DIR
-        $env:CLAUDE_PROJECT_DIR = $ProjDir
+        # Point the child at the fixture through PUBLISH_GATE_ROOT, not an argument and not
+        # CLAUDE_PROJECT_DIR. See Resolve-Root for why both of those were wrong.
+        $old = $env:PUBLISH_GATE_ROOT
+        $env:PUBLISH_GATE_ROOT = $ProjDir
         try {
             $p = Start-Process -FilePath 'powershell.exe' `
                     -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $me + '"')) `
                     -RedirectStandardInput $inp -RedirectStandardError $err -NoNewWindow -Wait -PassThru
-        } finally { $env:CLAUDE_PROJECT_DIR = $old }
+        } finally { $env:PUBLISH_GATE_ROOT = $old }
         $stderr = ''
         if (Test-Path $err) { $stderr = Get-Content -LiteralPath $err -Raw -Encoding UTF8 }
         return @{ Code = $p.ExitCode; Err = "$stderr" }
@@ -283,14 +306,21 @@ public class P {
     # 7. Malformed stdin fails open.
     Check 'malformed event fails open (exit 0)' ((Invoke-Gate 'not json at all' $proj).Code -eq 0)
 
-    # 8. -Scan mode agrees with the hook.
-    $env:CLAUDE_PROJECT_DIR = $proj
+    # 8. -Scan mode agrees with the hook. -ProjectRoot is safe here: no stdin is redirected.
+    $null = & powershell -NoProfile -ExecutionPolicy Bypass -File $me -ProjectRoot $proj -Scan 'DirtyMod' 2>&1
+    Check '-Scan exits 1 on a dirty mod' ($LASTEXITCODE -eq 1)
+    $null = & powershell -NoProfile -ExecutionPolicy Bypass -File $me -ProjectRoot $proj -Scan 'CleanMod' 2>&1
+    Check '-Scan exits 0 on a clean mod' ($LASTEXITCODE -eq 0)
+
+    # 9. Shell independence. An ambient CLAUDE_PROJECT_DIR must not drag the child back to the
+    #    real repo - that is the bug that made this suite pass under the PowerShell tool and fail
+    #    under the Bash tool, reporting fail-opens as passes.
+    $stale = $env:CLAUDE_PROJECT_DIR
+    $env:CLAUDE_PROJECT_DIR = 'C:\definitely\not\the\fixture'
     try {
-        $null = & powershell -NoProfile -ExecutionPolicy Bypass -File $me -Scan 'DirtyMod' 2>&1
-        Check '-Scan exits 1 on a dirty mod' ($LASTEXITCODE -eq 1)
-        $null = & powershell -NoProfile -ExecutionPolicy Bypass -File $me -Scan 'CleanMod' 2>&1
-        Check '-Scan exits 0 on a clean mod' ($LASTEXITCODE -eq 0)
-    } finally { $env:CLAUDE_PROJECT_DIR = $null }
+        Check 'fixture root beats an ambient CLAUDE_PROJECT_DIR' `
+            ((Invoke-Gate (& $mk $up $sid) $proj).Code -eq 2)
+    } finally { $env:CLAUDE_PROJECT_DIR = $stale }
 
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     if ($script:tfails -gt 0) { Write-Host "SELF-TEST FAILED ($script:tfails)"; exit 1 }
@@ -304,6 +334,16 @@ public class P {
 try {
     $raw = [Console]::In.ReadToEnd()
     if (-not $raw) { exit 0 }
+    # Discard anything before the first '{'. A UTF-8 BOM on the input makes ConvertFrom-Json throw
+    # "Invalid JSON primitive", the catch fails the gate OPEN, and the block never happens - a gate
+    # that has silently stopped gating. Trimming the BOM CODEPOINT is not enough: when the child's
+    # stdin decoder is not UTF-8 the three BOM bytes arrive as three separate characters, so
+    # [char]0xFEFF never matches (measured: a 7-character payload read as length 12). Cutting to the
+    # first brace is decoding-independent. Found because the same self-test passed under pwsh and
+    # failed under Windows PowerShell 5.1, scoring every fail-open as a pass.
+    $brace = $raw.IndexOf('{')
+    if ($brace -lt 0) { exit 0 }
+    if ($brace -gt 0) { $raw = $raw.Substring($brace) }
     $ev = $raw | ConvertFrom-Json
 
     $tool = ''
@@ -325,7 +365,7 @@ try {
     if ($cmd -match '(?i)-f\s+mod=([A-Za-z0-9_.]+)') { $mod = $Matches[1] }
     if (-not $mod) { exit 0 }
 
-    $root = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } else { (Get-Location).Path }
+    $root = Resolve-Root
     $modDir = Join-Path $root $mod
     if (-not (Test-Path -LiteralPath $modDir)) { exit 0 }   # unknown mod -> fail open
 
