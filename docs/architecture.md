@@ -34,6 +34,25 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   events (`_onNewDay`, `OnFullyHarvested`, `OnBehaviorTypeChanged`, `OnTakeDamage`, etc.). **Use a
   registered `MonoBehaviour` with `Update()` polling instead** (the `DayTracker`/`RegenTracker`/
   `TorchFuelTracker`/`NeedsController` pattern). This is the single most-repeated dead end across mods.
+- **`ClassInjector.RegisterTypeInIl2Cpp<T>()` logs a `[Warning:Il2CppInterop] … has unsupported
+  parameter/return type` line for every method on the injected type whose signature uses a generic
+  collection (`List<T>`, `Dictionary<K,V>`) or an array of a mod-defined type — and those warnings
+  are harmless.** The injector walks all declared methods regardless of accessibility (`private` and
+  `internal` members are flagged too) and skips the ones it cannot express in the il2cpp class; the
+  method still exists and still runs, because the mod calls it directly from managed C#, never
+  through il2cpp dispatch. Confirmed 2026-08-10 from an end-user's BepInEx log:
+  `DynamicVillagerNeedsMod 1.10.0` printed 8 such warnings at load (`ObserveTick`, `ScaleDrain`,
+  `GetPaintedSnapshotForSave`, `CheckBuilderLoanWorldLeave`, `CheckStaleLoanLeftovers`,
+  `RefreshCohorts`, `WriteStationsFileIfChanged`, `ParseStationRules`) immediately before
+  `Registered mono type DynamicVillagerNeedsMod.NeedsController in il2cpp domain`, and the mod's
+  needs loop then ran normally for the whole session. Simple-signature private methods on the same
+  class produce no warning, so the filter is the type, not the accessibility. **The fix, confirmed
+  in-game 2026-08-10 (DVN v1.10.1, zero `Il2CppInterop` warnings naming the mod):** the injector
+  walks INSTANCE methods only, so marking a helper `static` removes it from injection whatever its
+  parameters — pass the controller as a first `NeedsController self` parameter when the body needs
+  instance state. Where the offending argument is always the same object anyway, dropping the
+  parameter and reading that object inside the body is simpler and leaves the method an instance
+  method. Both shapes are compiler-checked, so a build with zero errors verifies the transform.
 - **`UnityEngine.Object.FindObjectsByType<T>()` (generic overload) throws `MissingMethodException`**
   through the IL2CPP-to-managed trampoline on every call (AOT generic instantiation isn't supported).
   Called from `Update()` it logs thousands of times/sec. Get instances from a Harmony patch's

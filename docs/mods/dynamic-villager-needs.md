@@ -1,4 +1,4 @@
-# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.10.0)
+# Mod 5: DynamicVillagerNeedsMod — COMPLETE (v1.10.1)
 
 **Goal:** Replace ASKA's clock-based villager schedule (manually assigning Sleep/Work/Leisure hours)
 with **needs-based** behavior so villagers self-manage: tired → sleep, low happiness or a real
@@ -8,7 +8,7 @@ reducing happiness.** Villager-only; the player is never touched.
 **Game subsystem:** [Villager Schedule / Needs / Happiness System](../architecture.md#villager-schedule--needs--happiness-system)
 — survival/happiness/schedule APIs, the eating FSM, the game-mechanic facts (night-sleep race, sleep
 being a rate problem, warmth left to the game), and the subsystem dead-ends all live there. Read it
-first. This file describes the mod as it exists at v1.10.0; the version history is compressed into
+first. This file describes the mod as it exists at v1.10.1; the version history is compressed into
 the appendix at the bottom.
 
 ## Architecture
@@ -250,3 +250,4 @@ Diagnostics: `ManualScheduleDiagnostics` (false); `BuilderDiagnostics` (false); 
 | v1.9.5 | 2026-07-10 | Typing guard on the F9 hotkey. |
 | v1.9.6–v1.9.7 | 2026-07-12 | `[Perf]` sub-phase stopwatches; cfg reload 5 s→30 s. No behavior change. |
 | v1.10.0 | 2026-07-24 | `ManualScheduleIncludeSoloStations` drops the cohort floor to 1 so one-worker stations get manual schedules (Nexus request); stations-file verdict now reports solo exclusion. |
+| v1.10.1 | 2026-08-10 | Signature-only refactor of eight `NeedsController` helpers so the il2cpp class injector stops printing `unsupported parameter/return type` warnings at load. No behavior change. |

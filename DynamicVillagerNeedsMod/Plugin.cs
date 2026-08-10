@@ -341,7 +341,7 @@ public class Plugin : BasePlugin
         string stationFillSummary = "";
         try
         {
-            var stationRules = NeedsController.Instance!.ParseStationRules(ManualScheduleStations.Value);
+            var stationRules = NeedsController.ParseStationRules(NeedsController.Instance!, ManualScheduleStations.Value);
             stationFillSummary = NeedsController.DescribeStationRules(stationRules);
         }
         catch (Exception ex) { Logger.LogError($"[DynamicNeeds] startup station-rule parse: {ex}"); }

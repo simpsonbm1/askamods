@@ -257,7 +257,7 @@ askamods/
   TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.8.0, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: player + villager out-of-combat HP regen, per-villager rates [COMPLETE v1.3.1 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled [COMPLETE v1.2.5 — docs/mods/torch-fuel.md]
-  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.10.0 — docs/mods/dynamic-villager-needs.md]
+  DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.10.1 — docs/mods/dynamic-villager-needs.md]
   VillagerFightBackMod/      ← Mod 7: villagers fight whitelisted enemies [COMPLETE v1.0.31 — docs/mods/villager-fight-back.md]
   CookingStationFixMod/      ← Mod 8: read-only cooking-pipeline diagnostic [PARKED v0.2.0, .dll.off, not shipped]
   SeedScoutMod/              ← Mod 9: reveal ALL native POI map pins at world load, no teleport [COMPLETE v1.3.1 — docs/mods/seed-scout.md]

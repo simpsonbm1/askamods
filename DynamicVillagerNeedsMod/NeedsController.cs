@@ -222,9 +222,8 @@ public class NeedsController : MonoBehaviour
         // v1.7.0 OffWindowFill=Builder: world-leave detection and the one-time stale-loan diagnostic are
         // both independent of Enabled/msDiag gating below — a world can be left (or a stale loan can be
         // sitting from a prior session) while the mod is disabled.
-        var trackedForLoanChecks = Plugin.TrackedSurvivals;
-        CheckBuilderLoanWorldLeave(trackedForLoanChecks);
-        if (trackedForLoanChecks.Count > 0) CheckStaleLoanLeftovers(trackedForLoanChecks);
+        CheckBuilderLoanWorldLeave();
+        if (Plugin.TrackedSurvivals.Count > 0) CheckStaleLoanLeftovers();
 
         bool enabledCtl = Plugin.Enabled.Value;
         bool msDiag = Plugin.ManualScheduleDiagnostics.Value;
@@ -246,7 +245,7 @@ public class NeedsController : MonoBehaviour
         if (!enabledCtl)
         {
             var obsSw = Stopwatch.StartNew();
-            ObserveTick(tracked, dt);
+            ObserveTick(dt);
             obsSw.Stop();
             double obsMs = obsSw.Elapsed.TotalMilliseconds;
             if (obsMs > 2.0)
@@ -321,7 +320,7 @@ public class NeedsController : MonoBehaviour
         if (cohortTick && (msDiag || manualMode))
         {
             var cohortSw = Stopwatch.StartNew();
-            RefreshCohorts(tracked, msDiag);
+            RefreshCohorts(msDiag);
             cohortSw.Stop();
             double cohortMs = cohortSw.Elapsed.TotalMilliseconds;
             if (cohortMs > 2.0)
@@ -612,8 +611,9 @@ public class NeedsController : MonoBehaviour
     // ApplyScheduleIfNeeded, no BoostAttr/ScaleDrain, no RecheckConsumeNeeds, no Rpc calls of any kind.
     // Advances the same _summaryTimer/_cohortTimer accumulators so LogHourCalibration/RefreshCohorts still
     // fire on their usual cadence while the control loop is off.
-    private void ObserveTick(List<VillagerSurvival> tracked, float dt)
+    private void ObserveTick(float dt)
     {
+        var tracked = Plugin.TrackedSurvivals;
         _summaryTimer += dt;
         bool summaryNow = _summaryTimer >= 5f;
         if (summaryNow) _summaryTimer = 0f;
@@ -664,7 +664,7 @@ public class NeedsController : MonoBehaviour
             }
         }
 
-        if (cohortNow) RefreshCohorts(tracked, true);
+        if (cohortNow) RefreshCohorts(true);
     }
 
     // Read-only: watches the player's live schedule while the control loop is off. On first sight of a
@@ -977,7 +977,7 @@ public class NeedsController : MonoBehaviour
     // (mult-1)x of any decrease, so the net drain ends up mult x vanilla. mult>1 = gets hungry/thirsty faster
     // (handy for testing the food re-check), <1 = slower, =1 = untouched (guarded by the caller). A rise
     // (the villager just ate/drank) is never scaled, so this only ever tunes the natural drain.
-    private void ScaleDrain(VariableAttribute va, float mult, Dictionary<VillagerSurvival, float> last, VillagerSurvival surv)
+    private static void ScaleDrain(VariableAttribute va, float mult, Dictionary<VillagerSurvival, float> last, VillagerSurvival surv)
     {
         try
         {
@@ -1192,11 +1192,11 @@ public class NeedsController : MonoBehaviour
     // ALSO differs from the snapshot — masking then would bake the STALE snapshot over the player's new
     // paint (confirmed: ate one cook's repainted schedule on save). Only our own writes may be masked;
     // any other live value is player intent and must serialize as-is.
-    internal int[]? GetPaintedSnapshotForSave(VillagerSurvival surv, int[] liveSchedule, long livePacked)
+    internal static int[]? GetPaintedSnapshotForSave(NeedsController self, VillagerSurvival surv, int[] liveSchedule, long livePacked)
     {
         if (surv == null || liveSchedule == null) return null;
-        if (!_appliedPacked.TryGetValue(surv, out var applied) || applied != livePacked) return null;
-        if (!_scheduleHours.TryGetValue(surv, out var snap) || snap == null || snap.Length == 0) return null;
+        if (!self._appliedPacked.TryGetValue(surv, out var applied) || applied != livePacked) return null;
+        if (!self._scheduleHours.TryGetValue(surv, out var snap) || snap == null || snap.Length == 0) return null;
         if (snap.Length != liveSchedule.Length) return null;
         for (int h = 0; h < snap.Length; h++)
             if (snap[h] != liveSchedule[h]) return snap;
@@ -1207,8 +1207,9 @@ public class NeedsController : MonoBehaviour
     // WITHOUT calling BuilderLoan.Restore — those wrappers are stale/gone at that point (never safe to
     // call native methods on across a world boundary; the same rule BuilderDiag follows for its own
     // experiment state — see CLAUDE.md "never cache interop wrappers of per-world native objects").
-    private void CheckBuilderLoanWorldLeave(List<VillagerSurvival> tracked)
+    private void CheckBuilderLoanWorldLeave()
     {
+        var tracked = Plugin.TrackedSurvivals;
         bool has = tracked.Count > 0;
         if (!has && _hadTrackedVillagers)
         {
@@ -1243,8 +1244,9 @@ public class NeedsController : MonoBehaviour
     // session's _builderLoans tracking (freshly empty) knows nothing about it. Deliberately NOT
     // auto-healed — undoing someone else's Buildstation membership blind is riskier than surfacing it
     // for the player to notice. Log-only, gated on ManualScheduleDiagnostics.
-    private void CheckStaleLoanLeftovers(List<VillagerSurvival> tracked)
+    private void CheckStaleLoanLeftovers()
     {
+        var tracked = Plugin.TrackedSurvivals;
         if (_staleLoanCheckDone) return;
         _staleLoanCheckDone = true;
         if (!Plugin.ManualScheduleDiagnostics.Value) return;
@@ -1514,8 +1516,9 @@ public class NeedsController : MonoBehaviour
     // schedules have them asleep. In RespectManualSchedule mode a NON-empty overlap is a coverage risk
     // the player should fix — warn once per distinct overlap value. Builds everything fresh each
     // report; no Workstation wrapper is stored past this method.
-    private void RefreshCohorts(List<VillagerSurvival> tracked, bool logReport)
+    private void RefreshCohorts(bool logReport)
     {
+        var tracked = Plugin.TrackedSurvivals;
         try
         {
             _cohortsComputed = true;
@@ -1601,11 +1604,11 @@ public class NeedsController : MonoBehaviour
             // substring join _inCohort; everyone else falls back to pure needs-based behavior (Decide(),
             // never DecideManual()). Each rule is either bare (Fill == null -> global OffWindowFill) or
             // 'Name:Fill' (per-station override) — see ParseStationRules. First-match-wins in list order.
-            StationRule[] stationRules = ParseStationRules(Plugin.ManualScheduleStations.Value);
+            StationRule[] stationRules = ParseStationRules(this, Plugin.ManualScheduleStations.Value);
 
             // v1.9.2 Feature 1: refresh the generated station-name file. Independent of logReport/
             // ManualScheduleDiagnostics — this is player-facing observability, not a debug diagnostic.
-            WriteStationsFileIfChanged(allNames, allDefaultNames, allCounts, allIsBuild, stationRules);
+            WriteStationsFileIfChanged(this, allNames, allDefaultNames, allCounts, allIsBuild, stationRules);
 
             // v1.10.0: cohort-size floor. Manual mode originally existed to preserve player-staggered
             // coverage of SHARED posts, so it required 2+ workers at a station. Nexus request
@@ -1762,12 +1765,13 @@ public class NeedsController : MonoBehaviour
     // against the CURRENT ManualScheduleStations list. Rewrites the file only when the computed content
     // actually changed (_lastWrittenStationsFileContent), and gives up for the rest of the session on the
     // first write failure (_stationsFileWriteFailed) — a broken file write must never affect the mod itself.
-    private void WriteStationsFileIfChanged(
+    private static void WriteStationsFileIfChanged(
+        NeedsController self,
         Dictionary<IntPtr, string> allNames, Dictionary<IntPtr, string> allDefaultNames,
         Dictionary<IntPtr, int> allCounts, Dictionary<IntPtr, bool> allIsBuild,
         StationRule[] rules)
     {
-        if (_stationsFileWriteFailed) return;
+        if (self._stationsFileWriteFailed) return;
         try
         {
             // `name` stays the raw display name (used for the copy-pasteable "Example:" line below);
@@ -1829,15 +1833,15 @@ public class NeedsController : MonoBehaviour
                     sb.AppendLine($"{e.renderedName}  |  {e.count} assigned villager(s)  |  {e.verdict}");
 
             string content = sb.ToString();
-            if (content == _lastWrittenStationsFileContent) return;
+            if (content == self._lastWrittenStationsFileContent) return;
 
             string path = Path.Combine(BepInEx.Paths.ConfigPath, StationsFileName);
             File.WriteAllText(path, content);
-            _lastWrittenStationsFileContent = content;
+            self._lastWrittenStationsFileContent = content;
         }
         catch (Exception ex)
         {
-            _stationsFileWriteFailed = true;
+            self._stationsFileWriteFailed = true;
             Plugin.Logger.LogWarning($"[DynamicNeeds] station-list file write failed (giving up for this session): {ex.Message}");
         }
     }
@@ -1857,9 +1861,9 @@ public class NeedsController : MonoBehaviour
     // current behavior). Each non-empty entry is either a bare name substring (Fill = null -> caller
     // uses the global OffWindowFill) or 'Name:Fill' where Fill is Leisure/Work/Builder (case-insensitive)
     // -- an invalid Fill token logs a one-time warning (per distinct bad entry text) and falls back to
-    // treating the entry as bare rather than dropping it or failing the whole list. Instance method (not
-    // static) because the one-time-warning gate lives in the instance field _badFillTokenWarned.
-    internal StationRule[] ParseStationRules(string raw)
+    // treating the entry as bare rather than dropping it or failing the whole list. Static so the il2cpp
+    // class injector skips it; the warn-once gate is reached through the `self` parameter.
+    internal static StationRule[] ParseStationRules(NeedsController self, string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<StationRule>();
         var parts = raw.Split(',');
@@ -1886,7 +1890,7 @@ public class NeedsController : MonoBehaviour
             }
             else
             {
-                if (_badFillTokenWarned.Add(t))
+                if (self._badFillTokenWarned.Add(t))
                     Plugin.Logger.LogWarning(
                         $"[DynamicNeeds] ManualScheduleStations: invalid fill token '{fillPart}' in entry '{t}' " +
                         "(expected Leisure, Work, or Builder) — treating as a bare entry (uses the global OffWindowFill).");

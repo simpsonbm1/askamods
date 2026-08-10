@@ -46,7 +46,7 @@ internal static class ScheduleMask
             long livePacked;
             try { livePacked = v._ScheduleToNetworkSchedule(live); } catch { return null; }
 
-            var snap = controller.GetPaintedSnapshotForSave(surv, liveManaged, livePacked);
+            var snap = NeedsController.GetPaintedSnapshotForSave(controller, surv, liveManaged, livePacked);
             if (snap == null) return null; // no snapshot, an unadopted player edit is live, or nothing to mask
 
             int n = Math.Min(live.Length, snap.Length);
