@@ -32,9 +32,10 @@
 
   CHECK B - the mod's own documentation. Blocks once, repeat proceeds.
     Scans docs/mods/<mod>.md for pending/unverified/do-not-publish markers and prints them. These
-    need judgment, not prohibition: 12 of the mod docs carry a pending marker at any time and most
-    are irrelevant to shipping. The block exists to put them in front of the user's eyes, which is
-    the step that was skipped.
+    need judgment, not prohibition: 8 mod docs match this exact marker list today (craft-from-
+    storage, den-respawn, fish-fillet, ground-item-vacuum, outhouse-composter, supply-chain,
+    torch-fuel, tree-respawn) and most of those markers are irrelevant to shipping. The block
+    exists to put them in front of the user's eyes, which is the step that was skipped.
 
   What it CANNOT do: verify the user was actually asked. No hook can read intent. It guarantees
   the evidence is surfaced and the upload stops; putting it to the user remains judgment

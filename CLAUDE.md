@@ -100,7 +100,8 @@ by `-f mod=<Name>` the moment a `gh workflow run nexus-upload.yml` is about to e
   mods today. Comments are never scanned — only `Config.Bind` text.
 - **CHECK B — blocks once, repeat proceeds.** Scans that mod's `docs/mods/*.md` for `not yet run
   in-game` / `never been run in-game` / `do NOT publish` / `UNVERIFIED` / `pending in-game` and
-  prints every hit. Judgment, not prohibition — 12 mod docs carry such markers at any time.
+  prints every hit. Judgment, not prohibition — 8 mod docs carry such markers today, most of them
+  irrelevant to shipping.
 - **Verification ritual (must print `PASS`):**
   `powershell -File .claude/hooks/publish-gate.ps1 -SelfTest`
   Audit any mod on demand (exit 1 = Check A hits): `-Scan <ModName>`.
@@ -309,14 +310,15 @@ askamods/
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [radius sweep
-                                COMPLETE; whole-map mode PUBLISHED at v1.9.2 (Nexus
-                                2026-08-10, replacing the long-published 1.1.3). It restricts
-                                removal to records whose source prefab carries
-                                DynamicItemObject, confirmed in-game 2026-08-10 (445 excluded,
-                                0 undetermined). Jotun Blood cannot be told apart by prefab, so
-                                ExcludeItems defaults to it (user ruling 2026-08-10). The corpse
-                                sweep is DELETED — do not reinstate it
-                                — docs/mods/ground-item-vacuum.md]
+                                COMPLETE; whole-map mode repo v1.12.1 UNCOMMITTED, Nexus stuck
+                                at v1.9.2 which DELETES DRAUGAR alive and dead — an upload is
+                                owed. Fixed by the v1.11.0/v1.12.0 creature guard, confirmed
+                                in-game 2026-08-10: creatures can carry DynamicItemObject, so
+                                the prefab check alone is not enough and name/category filters
+                                cannot substitute (11 of 13 draugar had no readable name).
+                                Jotun Blood cannot be told apart by prefab, so ExcludeItems
+                                defaults to it (user ruling 2026-08-10). The corpse sweep is
+                                DELETED — do not reinstate it — docs/mods/ground-item-vacuum.md]
   FishFilletMod/             ← Mod 20: Shift+RMB (rebindable) fillets fish directly in the inventory [COMPLETE v1.5.0, locale-safe, confirmed in-game 2026-08-01 — docs/mods/fish-fillet.md]
   DenRespawnMod/             ← Mod 21: map-pin/timed revive for defeated dens + PopulationSpawner force-respawn [COMPLETE v1.4.4 — v1.3.0 locale den-key + German auto-revive test ⚠️ pending — docs/mods/den-respawn.md]
   TimeWarpMod/               ← Mod 22: dev/test time accelerator (K=fast-forward cycle, L=skip day) [DEV TOOL v0.1.1, NOT for Nexus — docs/mods/time-warp.md]
@@ -352,6 +354,36 @@ askamods/
 
 Each mod is a separate `.csproj` that outputs its own `.dll` to `BepInEx\plugins\<ModName>\`.
 The build target `CopyToPlugins` handles this automatically on build.
+
+## Working rules (user rulings; migrated from feedback memories 2026-08-10)
+
+- **Lifecycle:** proof of concept → broader testing (edge cases, co-op, save/reload) →
+  user declares complete → commit checkpoint → Nexus ship. The user decides every stage
+  transition; a "commit checkpoint" only means snapshot verified progress (2026-07-08).
+- **Config edits are Claude's job** (2026-07-14): edit the BepInEx .cfg directly while the
+  game is closed and state the exact key/value changed — never hand out edit instructions.
+- **Configure for the next test, never for play** (stated 2026-07-12-era): ~90% of the
+  user's game time is modding. Don't ask about or restore a playable state between runs.
+- **Test runs are disposable:** autosave is off; quit-without-save is the free revert.
+  Ship write-capable features default-ON so one launch tests them; never ask for save
+  backups except for tests that must persist across a reload.
+- **TimeWarpMod's live on/off state is user-managed** (2026-07-12) — never carry re-park
+  reminders; its default-parked status in sync-plugins stays as documented.
+- **Nexus replies posted as the user:** zero em dashes (at most one en dash), casual
+  lowercase style matching his existing comments ("super excessive", 2026-07-14).
+- **Doc cadence** (restructured 2026-07-16): confirmed facts and dead-ends go into
+  `docs/architecture.md` / mod docs AS CONFIRMED during work; CLAUDE.md blurb only on
+  status/approach change; mod-doc status header + version history at milestones only;
+  at commit time NOTHING — stage, commit, push (~30 s) and trust the pre-commit hook.
+- **Doc structure:** CLAUDE.md stays lean orientation; ALL game/interop knowledge
+  consolidates by subsystem in `docs/architecture.md` (dead-ends included); plain
+  markdown links, never `@import`.
+- **doc-scribe prompts** (2026-07-20): write facts as prose the doc could contain — never
+  labeled FACT-blocks with meta-instructions, which get pasted verbatim; name the exact
+  stale strings to remove and grep for them afterward.
+- **Design altitude** (2026-07-15): when re-engaging a design problem, re-read the mod's
+  own goal/plan docs and reason FORWARD from the stated goal; ask at design altitude, not
+  config granularity ("re-ground yourself with the goals of the mod").
 
 ## IL2CPP interop gotchas (apply to every mod)
 The recurring traps in the BepInEx 6 / Il2CppInterop layer — keep these in mind on *any* mod.

@@ -61,6 +61,12 @@ text the API sets — it lands on the file in the Files tab. Keep a consistent s
 (e.g. the 1.1.0 note: *"1.1.0: Villagers no longer get stuck at an empty food store … Also adds
 optional hunger/thirst drain-rate multipliers (default 1.0 = vanilla)."*)
 
+**EVERY UPLOAD IS A PUSH TO EVERY USER (user, 2026-08-10).** Nexus's Vortex app auto-updates
+installed mods, so an upload lands on the whole user base rather than sitting on a page. There is
+no cheap re-upload. **Never ship a stopgap you expect to replace** — get the evidence, fix it once,
+upload once. When a live bug needs data, ask the reporter for their log and wait. His words when
+offered a same-day patch for the draugar-deletion bug: *"i dont want to spam everyones system"*.
+
 **PRE-UPLOAD GATE — unfinished features must never ship.** A prose check used to live here and
 failed: on 2026-08-10 it was read during the session and the upload proceeded anyway, publishing an
 untested feature behind a `false` default. The rule now lives in `CLAUDE.md` ("NEVER PUBLISH AN

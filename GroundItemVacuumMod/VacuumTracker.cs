@@ -20,10 +20,21 @@ public class VacuumTracker : MonoBehaviour
 
     private sealed class Candidate
     {
+        // v1.10.0: the tracked node itself, kept so the object-layer probe can inspect the
+        // GameObject it lives on. Never cached beyond one sweep - Candidate lists are built
+        // fresh per sweep and dropped at the end of it.
+        public DynamicItemObject Node = null!;
         public WorldItemObject Item = null!;
         public string Name = "?";
         public string CatChain = "";
         public Vector3 Pos;
+        // v1.11.0: creature verdict, resolved once per candidate in AddCandidate. IsCreature
+        // means "never delete this" - it is the ONLY test that worked on the draugar, because
+        // 11 of the 13 had no readable item name at all and so no name or category filter
+        // could ever have matched them.
+        public bool IsCreature;
+        public string CreatureHit = "";
+        public string GoName = "?";
     }
 
     // v1.4.0: one matched data-layer record collected during a DataLayerSweep walk, kept around
@@ -162,7 +173,8 @@ public class VacuumTracker : MonoBehaviour
         Plugin.Logger.LogInfo($"[Vacuum] Sweep start ({(auto ? "auto" : "manual")}, {(dryRun ? "DRY-RUN" : "LIVE")}): tracked={trackedCount}, trace={trace}.");
 
         // Filter.
-        var targets = FilterCandidates(all, entireWorld, playerPos, out int inRangeTotal);
+        var creaturesSpared = new List<Candidate>();
+        var targets = FilterCandidates(all, entireWorld, playerPos, out int inRangeTotal, creaturesSpared);
         var byName = new Dictionary<string, int>();
         foreach (var c in targets)
             byName[c.Name] = byName.TryGetValue(c.Name, out var n) ? n + 1 : 1;
@@ -193,6 +205,7 @@ public class VacuumTracker : MonoBehaviour
             return;
         }
 
+        ProbeObjectLayerTargets(targets, creaturesSpared, "radius-sweep");
         int removed = RemoveCandidates(targets);
 
         Plugin.Logger.LogInfo($"[Vacuum] Removed {removed}/{targets.Count} ground items.");
@@ -224,8 +237,13 @@ public class VacuumTracker : MonoBehaviour
         return all;
     }
 
-    // Shared filter: radius (skipped when entireWorld) + OnlyItems/ExcludeItems/ExcludeCategories.
-    private List<Candidate> FilterCandidates(List<Candidate> all, bool entireWorld, Vector3 playerPos, out int inRangeTotal)
+    // Shared filter: radius (skipped when entireWorld) + the v1.11.0 creature guard +
+    // OnlyItems/ExcludeItems/ExcludeCategories. The creature guard runs BEFORE the name and
+    // category filters on purpose: a creature with no readable item info has an empty name and
+    // an empty category chain, so neither of those filters can see it (that is exactly how 11
+    // draugar got deleted with ExcludeCategories set to Weapon,Equipment,... in-game 2026-08-10).
+    private List<Candidate> FilterCandidates(List<Candidate> all, bool entireWorld, Vector3 playerPos,
+                                             out int inRangeTotal, List<Candidate>? creaturesSpared = null)
     {
         var excludeCats = ParseCsv(Plugin.ExcludeCategories.Value);
         var excludeItems = ParseCsv(Plugin.ExcludeItems.Value);
@@ -243,6 +261,8 @@ public class VacuumTracker : MonoBehaviour
             }
             inRangeTotal++;
 
+            if (c.IsCreature) { creaturesSpared?.Add(c); continue; }
+
             if (onlyItems.Count > 0 && !ContainsAny(c.Name, onlyItems)) continue;
             if (ContainsAny(c.Name, excludeItems)) continue;
             if (ContainsAny(c.CatChain, excludeCats)) continue;
@@ -250,6 +270,47 @@ public class VacuumTracker : MonoBehaviour
             targets.Add(c);
         }
         return targets;
+    }
+
+    // v1.11.0 PROBE, read-only. Reports what the object-layer pass is about to delete AND what
+    // the creature guard spared. Every target now carries its GameObject name: 79 of 86 targets
+    // in the 2026-08-10 draugar run had an unreadable item name, so a name-only report could not
+    // say what 68 of the deletions were.
+    private void ProbeObjectLayerTargets(List<Candidate> targets, List<Candidate> creaturesSpared, string phaseLabel)
+    {
+        Plugin.Logger.LogInfo($"[Vacuum] PROBE {phaseLabel}: {targets.Count} target(s) to remove, {creaturesSpared.Count} creature(s) SPARED by the creature guard.");
+
+        var spared = new Dictionary<string, int>();
+        foreach (var c in creaturesSpared)
+        {
+            string k = c.Name + " | " + c.CreatureHit + " | go=" + c.GoName;
+            spared[k] = spared.TryGetValue(k, out var sn) ? sn + 1 : 1;
+        }
+        if (spared.Count == 0)
+        {
+            Plugin.Logger.LogInfo($"[Vacuum] PROBE {phaseLabel}: no creature was found among the candidates.");
+        }
+        else
+        {
+            var sortedSpared = new List<KeyValuePair<string, int>>(spared);
+            sortedSpared.Sort((a, b) => b.Value.CompareTo(a.Value));
+            int sToLog = Math.Min(60, sortedSpared.Count);
+            for (int i = 0; i < sToLog; i++)
+                Plugin.Logger.LogInfo($"[Vacuum] PROBE {phaseLabel} SPARED x{sortedSpared[i].Value}: {sortedSpared[i].Key}");
+        }
+
+        var nameCounts = new Dictionary<string, int>();
+        foreach (var c in targets)
+        {
+            string k = c.Name + " | go=" + c.GoName;
+            nameCounts[k] = nameCounts.TryGetValue(k, out var n) ? n + 1 : 1;
+        }
+        var sortedNames = new List<KeyValuePair<string, int>>(nameCounts);
+        sortedNames.Sort((a, b) => b.Value.CompareTo(a.Value));
+        int toLog = Math.Min(80, sortedNames.Count);
+        for (int i = 0; i < toLog; i++)
+            Plugin.Logger.LogInfo($"[Vacuum] PROBE {phaseLabel} target x{sortedNames[i].Value}: {sortedNames[i].Key}");
+        Plugin.Logger.LogInfo($"[Vacuum] PROBE {phaseLabel} distinct target names: {sortedNames.Count}.");
     }
 
     // The proven object-layer removal call (confirmed in-game since v1.0.1): WorldItemObject's
@@ -446,13 +507,26 @@ public class VacuumTracker : MonoBehaviour
         return result;
     }
 
-    // v1.7.0: does this item spawn as a loose ground item? Resolved via its source prefab's
-    // DynamicItemObject component - the same component the radius-gated sweep's own-set tracking
-    // is built from (see AddCandidate/DynamicItemObject at the top of this file). Cached per item
-    // name for the lifetime of one Sweep() call (shared across the walk + verify passes by the
-    // caller) - a world has only a few dozen distinct item names, so this turns thousands of
-    // per-record prefab lookups into a handful. Fails CLOSED: any null step or exception returns
-    // null (undetermined), which the caller treats as "not a match" - never removed.
+    // Does this item spawn as a loose ground item? Resolved via its source prefab: it must carry
+    // DynamicItemObject (the component the object-layer sweep's own-set tracking is built from,
+    // see AddCandidate) AND must NOT be a creature.
+    //
+    // v1.12.0 added the creature half. The DynamicItemObject test alone is not sufficient:
+    // draugar prefabs carry that component, which is the root of the 2026-08-10 bug, so draugar
+    // corpses passed this gate and were deleted from the data layer even after v1.11.0 protected
+    // the LIVE ones in the object layer. Measured that day: `SCAN match x1: Draugar Headsman` and
+    // `SCAN match x1: Draugar Bruiser` on the sweep after two draugar were killed, exactly the
+    // two kills. Wight corpses were never affected only because wight prefabs lack
+    // DynamicItemObject - an accident of their prefab, not protection.
+    //
+    // Cached per item name for the lifetime of one Sweep() call (shared across the walk + verify
+    // passes by the caller) - a world has only a few dozen distinct item names, so this turns
+    // thousands of per-record prefab lookups into a handful.
+    //
+    // Fails CLOSED on every path: a null step, an exception anywhere in the lookup, OR a creature
+    // probe that throws without reaching a verdict, all return null (undetermined), which the
+    // caller treats as "not a match" so the record is never removed. Only a positive, fully
+    // resolved "carries DynamicItemObject and is not a creature" permits deletion.
     private bool? ResolveIsDroppedItem(string name, ItemInfo? itemInfo, InventoryItemDataHandler handler, Dictionary<string, bool?> cache)
     {
         if (cache.TryGetValue(name, out var cached)) return cached;
@@ -467,7 +541,26 @@ public class VacuumTracker : MonoBehaviour
                 {
                     GameObject? prefab = descriptor.GetSourceObject();
                     if (prefab != null)
-                        result = prefab.GetComponent<DynamicItemObject>() != null;
+                    {
+                        bool hasDynamic = prefab.GetComponent<DynamicItemObject>() != null;
+                        bool isCreature = false;
+                        bool probeFailed = false;
+                        if (hasDynamic)
+                        {
+                            // Same structural test the object-layer guard uses, applied to the
+                            // prefab. Singular generic GetComponent<T>() only - the plural and
+                            // non-generic forms are missing through the IL2CPP trampoline.
+                            try { if (prefab.GetComponent<Monster>() != null) isCreature = true; } catch { probeFailed = true; }
+                            if (!isCreature) { try { if (prefab.GetComponent<Creature>() != null) isCreature = true; } catch { probeFailed = true; } }
+                            if (!isCreature) { try { if (prefab.GetComponent<Character>() != null) isCreature = true; } catch { probeFailed = true; } }
+                        }
+                        // A probe that threw without finding a creature leaves the answer UNKNOWN,
+                        // and unknown must never mean deletable. Returning null hands it to the
+                        // caller's undetermined path, which spares the record and counts it.
+                        // Swallowing the throw here instead would classify the record as clutter
+                        // and destroy it - the exact inversion of this method's stated policy.
+                        result = (probeFailed && !isCreature) ? (bool?)null : (bool?)(hasDynamic && !isCreature);
+                    }
                 }
             }
         }
@@ -488,7 +581,7 @@ public class VacuumTracker : MonoBehaviour
             Plugin.Logger.LogInfo($"[Vacuum] SCAN records by buffer class x{kv.Value}: {kv.Key}");
         foreach (var kv in walk.MatchesByBufferClass)
             Plugin.Logger.LogInfo($"[Vacuum] SCAN matches by buffer class x{kv.Value}: {kv.Key}");
-        Plugin.Logger.LogInfo($"[Vacuum] SCAN dropped-item filter (DynamicItemObject prefab check): excluded {walk.DroppedCheckExcluded} record(s), undetermined/fail-closed {walk.DroppedCheckUndetermined} record(s).");
+        Plugin.Logger.LogInfo($"[Vacuum] SCAN dropped-item filter (DynamicItemObject prefab check + creature guard): excluded {walk.DroppedCheckExcluded} record(s), undetermined/fail-closed {walk.DroppedCheckUndetermined} record(s).");
         {
             var excludedSorted = new List<KeyValuePair<string, int>>(walk.DroppedCheckExcludedNameCounts);
             excludedSorted.Sort((a, b) => b.Value.CompareTo(a.Value));
@@ -575,11 +668,13 @@ public class VacuumTracker : MonoBehaviour
 
         // Phase 1 - object layer (reuses the proven candidate build/filter/remove helpers).
         var objAll = BuildCandidates(trace: false);
-        var objTargets = FilterCandidates(objAll, entireWorld: true, playerPos, out _);
+        var objCreaturesSpared = new List<Candidate>();
+        var objTargets = FilterCandidates(objAll, entireWorld: true, playerPos, out _, objCreaturesSpared);
         int phase1Matched = objTargets.Count;
         int phase1Removed = 0;
         if (canRemove)
         {
+            ProbeObjectLayerTargets(objTargets, objCreaturesSpared, "phase1");
             phase1Removed = RemoveCandidates(objTargets);
             Plugin.Logger.LogInfo($"[Vacuum] Phase 1 (object layer, tracked items): removed {phase1Removed}/{phase1Matched}.");
         }
@@ -729,7 +824,53 @@ public class VacuumTracker : MonoBehaviour
         Vector3 pos = node.transform.position;
         if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: pos ok ({pos.x:F0},{pos.z:F0})");
 
-        outList.Add(new Candidate { Item = itemObj, Name = name, CatChain = catChain, Pos = pos });
+        // v1.11.0 creature guard, resolved here so both sweeps inherit it. Walks the node's own
+        // GameObject and up to 4 ancestors, testing Monster / Creature / Character with the
+        // singular generic GetComponent<T>() - the plural and non-generic forms are missing
+        // through the IL2CPP trampoline, and a base-typed singular GetComponent DOES return
+        // derived instances. Confirmed in-game 2026-08-10: this found all 13 draugar with
+        // 'Monster on self' and zero errors, while every legitimate debris item came back clean.
+        // FAILS CLOSED: any exception marks the candidate a creature so it is spared, because
+        // wrongly keeping a stick costs nothing and wrongly deleting a live enemy is this bug.
+        bool isCreature = false;
+        string creatureHit = "";
+        string goName = "?";
+        try
+        {
+            var go = node.gameObject;
+            if (go != null)
+            {
+                goName = go.name ?? "?";
+                var t = go.transform;
+                for (int depth = 0; depth <= 4 && t != null; depth++)
+                {
+                    var probeGo = t.gameObject;
+                    string hit = "";
+                    try { if (probeGo.GetComponent<Monster>() != null) hit = "Monster"; } catch { }
+                    if (hit.Length == 0) { try { if (probeGo.GetComponent<Creature>() != null) hit = "Creature"; } catch { } }
+                    if (hit.Length == 0) { try { if (probeGo.GetComponent<Character>() != null) hit = "Character"; } catch { } }
+                    if (hit.Length > 0)
+                    {
+                        isCreature = true;
+                        creatureHit = hit + (depth == 0 ? " on self" : " on ancestor+" + depth);
+                        break;
+                    }
+                    try { t = t.parent; } catch { break; }
+                }
+            }
+        }
+        catch
+        {
+            isCreature = true;
+            creatureHit = "probe-error (spared, fail-closed)";
+        }
+        if (trace) Plugin.Logger.LogInfo($"[Vacuum] trace #{idx}: creature={isCreature} ({creatureHit}) go={goName}");
+
+        outList.Add(new Candidate
+        {
+            Node = node, Item = itemObj, Name = name, CatChain = catChain, Pos = pos,
+            IsCreature = isCreature, CreatureHit = creatureHit, GoName = goName
+        });
     }
 
     private static string BuildCategoryChain(ItemCategoryInfo? cat)

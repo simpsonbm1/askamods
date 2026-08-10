@@ -2658,6 +2658,17 @@ in **two layers**, and a mod that only sees the GameObject layer sees a bubble a
   …), with **zero** records undetermined out of 4262 walked — so the fail-closed branch was never
   exercised and stays untested. `Wight` being excluded here also removes the need for any corpse
   awareness on this route: corpse creatures do not spawn from a `DynamicItemObject` prefab.
+  **CREATURES CAN CARRY `DynamicItemObject` — this test alone deletes them (confirmed in-game
+  2026-08-10).** A draugr's spawned GameObject carries BOTH `SSSGame.Monster` and
+  `DynamicItemObject`, so draugar were tracked as loose items by the object layer AND passed this
+  prefab check in the data layer; live draugar and their corpses vanished on the hotkey. Wights,
+  skeletons, followers, fenn and wulfar were unaffected only because their prefabs lack
+  `DynamicItemObject` — an accident of those prefabs, not protection. **Any removal built on
+  either layer must additionally test `GetComponent<Monster>()` / `Creature` / `Character`**
+  (singular generic only) and refuse to delete a hit. Name and category filters CANNOT
+  substitute: 11 of 13 draugar had no readable `ItemInfo`, so their name read `"?"` and their
+  category chain was empty, and an empty haystack matches no exclusion list. Working guard on
+  both layers: GroundItemVacuumMod v1.11.0 (object) and v1.12.0 (data).
   **One name escapes it: `Jotun Blood`.** The same run logged
   `[Vacuum] SCAN match x190: Jotun Blood`, neither excluded nor undetermined, so its prefab does
   carry `DynamicItemObject` and no prefab-level test can separate it from debris. GroundItemVacuum

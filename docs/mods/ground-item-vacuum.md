@@ -1,13 +1,15 @@
 # Mod 19: GroundItemVacuumMod — on Nexus as "Ground Item Vacuum Cleaner"
 
-> **Status 2026-08-10.** Repo and Nexus both at **v1.9.2**, published on the user's instruction.
-> The version it replaced on Nexus was **1.1.3**, in which `VacuumEntireWorld` skipped the
+> **Status 2026-08-10.** Repo at **v1.12.1**, UNCOMMITTED. Nexus is at **v1.9.2**, which has a
+> live bug: it deletes draugar, alive and dead. The fix is v1.11.0 + v1.12.0, both confirmed
+> in-game — see the CREATURE GUARD section. **An upload is owed to fix that published bug**;
+> the changelog and timing are the user's call (every upload auto-pushes to all Vortex users).
+> The version Nexus 1.9.2 replaced was **1.1.3**, in which `VacuumEntireWorld` skipped the
 > `Radius` test against the mod's own tracked-item set only — that set holds items with a spawned
 > GameObject, so the option cleared just the loaded area around the player despite its name.
-> v1.9.2 replaces it with the whole-map data-layer walk described below. The dropped-item filter
-> is confirmed in-game at v1.8.0. `Jotun Blood` is spared by a shipped `ExcludeItems` default
-> rather than by code (user ruling 2026-08-10); that default is ⚠️ pending — not yet run in-game.
-> The corpse sweep is REMOVED — see the REMOVED section below.
+> `Jotun Blood` is spared by a shipped `ExcludeItems` default rather than by code (user ruling
+> 2026-08-10); that default is ⚠️ pending — not yet run in-game. The corpse sweep is REMOVED —
+> see the REMOVED section below.
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey or timer. Confirmed in-game 2026-07-07: removes debris cleanly with only a
@@ -155,10 +157,78 @@ All 17 excluded names are creatures or world harvestables: `Wight` 204, `Crawler
 undetermined**, so the descriptor→prefab→component chain resolved for every one of the 4262
 records walked — the fail-closed branch was never exercised on this run and stays untested.
 
-**Corpses are out of reach of the whole-map pass.** `Wight` at 204 is excluded by the dropped-item
-filter: corpse creatures do not spawn from a prefab carrying `DynamicItemObject`, so the
-data-layer pass cannot touch them. This held even while a separate corpse-sweep feature existed,
-and that feature is now removed entirely (see the dead-end below).
+**Most corpse creatures were already out of reach, BY ACCIDENT — draugar were not.** `Wight` at
+204 is excluded by the dropped-item filter because wight prefabs do not carry
+`DynamicItemObject`. Draugar prefabs DO carry it, so nothing stopped the pass deleting them until
+the v1.12.0 creature guard. Never treat "corpse creatures are safe" as a property of the
+prefab check — it is a property of some prefabs.
+
+## THE CREATURE GUARD — the 2026-08-10 draugar bug and its fix
+
+**Confirmed in-game 2026-08-10.** The mod deleted live draugar and draugar corpses, instantly on
+the hotkey. It is fixed by one structural test applied in two places. Both halves are needed
+because a live creature and its corpse are different objects to this mod.
+
+**How draugar differ from every other creature (measured).** A draugr's spawned GameObject carries
+BOTH `SSSGame.Monster` and `DynamicItemObject`. That second component is what the object-layer
+tracking hooks on, so draugar were tracked as loose items. Across five sweeps the object layer saw
+**only** draugar — never a wight, skeleton, follower, fenn or wulfar — while the data layer's
+excluded list carried all of those and **never** a draugr. The two paths never overlapped.
+
+**Why no name or category filter could ever have saved them.** 11 of 13 draugar logged
+`PROBE phase1 target x79: ?` — no readable `ItemInfo`, so `Name` is `"?"` and `CatChain` is
+empty. `ContainsAny` returns false on an empty haystack, so `ExcludeCategories` (set to
+`Armor,Clothing,Tool,Equipment,Weapon` at the time) could not match, and `ExcludeItems` had no
+name to match either. Only 2 of the 13 carried a name. **A user adding "Draugar" to
+`ExcludeItems` spares 2 of 13 and silently loses the rest** — that is why the fix is structural,
+not a config entry, and it is locale-invariant into the bargain.
+
+**The test, both halves.** `GetComponent<Monster>()`, then `Creature`, then `Character` — singular
+generic only, since the plural and non-generic forms are missing through the trampoline.
+- **Object layer (v1.11.0)** — `AddCandidate` walks the tracked node's own GameObject and up to 4
+  ancestors, storing the verdict on the `Candidate`. `FilterCandidates` drops any creature
+  **before** the name/category filters, which is required: those filters are blind to a
+  nameless creature. Measured: `PROBE phase1: 47 target(s) to remove, 13 creature(s) SPARED`,
+  every hit `Monster on self`, zero probe errors.
+- **Data layer (v1.12.0)** — `ResolveIsDroppedItem` now requires `hasDynamic && !isCreature` on the
+  source prefab. Before this, corpses passed: killing two draugar produced
+  `SCAN match x1: Draugar Headsman` and `SCAN match x1: Draugar Bruiser`, exactly the two kills.
+  After it, the same names appear in the excluded list instead.
+
+**Confirmed working, 2026-08-10, one press after killing draugar (v1.12.0 build):**
+```
+[Vacuum] PROBE phase1: 112 target(s) to remove, 13 creature(s) SPARED by the creature guard.
+[Vacuum] SCAN dropped-item filter (DynamicItemObject prefab check + creature guard): excluded 456 record(s), undetermined/fail-closed 0 record(s).
+[Vacuum] SCAN dropped-item filter excluded x1: Draugar Basher
+[Vacuum] SCAN dropped-item filter excluded x1: Draugar Bonker
+[Vacuum] SCAN dropped-item filter excluded x1: Draugar
+```
+Zero `SCAN match` lines contained a draugar name, and the user confirmed on screen that living
+draugar and their bodies both survived while ordinary debris cleared. The excluded set grew from
+17 names to 22, the additions being `Draugar`, `Draugar Basher`, `Draugar Bonker`, `Follower` and
+`Smolkr` — all creatures. **No ordinary item was newly excluded**, so the tightening cost nothing.
+
+**`Item_Magic_EyeOfOdin` is a shared prefab, not the Eye of Odin building.** The same run logged
+`PROBE phase1 target x3: Jotun Blood | go=Item_Magic_EyeOfOdin`. The user's reading, 2026-08-10:
+the only thing called Eye of Odin in game is the player-built villager-summoning structure, so
+this cannot be one; the three are most likely shards from a mined jotun-blood rock, three at once
+because his multiplier mod is active. Plausible and unverified — the point to carry forward is
+that a `go=` prefab name does NOT reliably name the thing being deleted.
+
+**Do not add the two spared counts together.** The object layer spared 13 and the data layer
+spared 3, but the three NAMED object-layer spares are `Draugar Basher`, `Draugar Bonker` and
+`Draugar` — the same three names the data layer spared, so those creatures are almost certainly
+counted once in each layer rather than being six distinct things. Nothing in the log states
+whether any spared object was alive or dead; the six unnamed object-layer spares read `?` while
+the three named ones match the corpse names, which is suggestive but unmeasured.
+
+**Both halves FAIL CLOSED (v1.12.1).** Any exception in the creature test means "unknown", and
+unknown never permits deletion — the object layer marks the candidate a creature, the data layer
+returns null so the caller's undetermined path spares and counts it. v1.12.0 had this inverted on
+the data-layer side: its three probes swallowed their exceptions, leaving `isCreature` false, so
+an unresolvable record was classified as clutter and deleted. Never write a creature probe whose
+failure path permits deletion. ⚠️ The fail-closed branch has still never been exercised — every
+run to date reports `undetermined/fail-closed 0`.
 
 **`Jotun Blood` is handled by a shipped default exclusion, not by code (user ruling 2026-08-10:
 "keep the jotun blood clear, but default it to being blocked in the config for downloads").**
@@ -351,7 +421,19 @@ touching the game's list pointers.
 - **v1.9.1** (build-verified, ⚠️ pending in-game): `ExcludeItems` config description reworded to
   claim only what was measured. No behavior change. Published to Nexus 2026-08-10, replacing the
   previously published 1.1.3, then superseded the same day by v1.9.2.
-- **v1.9.2** (build-verified, ⚠️ pending in-game): corpse sweep deleted in full — both `Corpses`
-  config entries, the `Monster` lifecycle patches and the corpse pass in `Sweep()`. See the
-  REMOVED section above for why and for what to rebuild from if it is ever wanted. No other
-  behavior change; the whole-map pass is untouched.
+- **v1.9.2** (build-verified; later builds containing it have run in-game, but nothing tested the
+  corpse-sweep removal specifically): corpse sweep deleted in full — both `Corpses` config
+  entries, the `Monster` lifecycle patches and the corpse pass in `Sweep()`. See the REMOVED
+  section above for why and for what to rebuild from if it is ever wanted. No other behavior
+  change; the whole-map pass is untouched. Published to Nexus 2026-08-10, and this is the version
+  Nexus still carries — it has the draugar bug.
+- **v1.10.0 / v1.10.1** (diagnostic only, confirmed in-game 2026-08-10): the object-layer pass
+  logged a bare count, so a run that deleted 154 objects left no record of what it took. It now
+  names every target and reports its GameObject. This is what identified the draugar.
+- **v1.11.0** (confirmed in-game 2026-08-10): creature guard on the object layer — live draugar
+  are spared. See the CREATURE GUARD section above.
+- **v1.12.0** (confirmed in-game 2026-08-10): creature guard extended to the data layer — draugar
+  CORPSES are spared. Same structural test applied to the source prefab.
+- **v1.12.1** (build-verified, ⚠️ the branch it fixes has never been exercised): the data-layer
+  creature probes swallowed their exceptions, so an unresolvable record was classified as
+  deletable clutter. They now mark the answer undetermined, which spares it.
