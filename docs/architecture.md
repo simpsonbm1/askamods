@@ -36,8 +36,9 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   `TorchFuelTracker`/`NeedsController` pattern). This is the single most-repeated dead end across mods.
 - **`ClassInjector.RegisterTypeInIl2Cpp<T>()` logs a `[Warning:Il2CppInterop] … has unsupported
   parameter/return type` line for every method on the injected type whose signature uses a generic
-  collection (`List<T>`, `Dictionary<K,V>`) or an array of a mod-defined type — and those warnings
-  are harmless.** The injector walks all declared methods regardless of accessibility (`private` and
+  collection (`List<T>`, `Dictionary<K,V>`, `HashSet<T>`), ANY array (`Int32[]` and `StationRule[]`
+  are both flagged, so this is not limited to arrays of mod-defined types), or a mod-defined type
+  passed directly (`DenRespawnMod.DenRecord`) — and those warnings are harmless.** The injector walks all declared methods regardless of accessibility (`private` and
   `internal` members are flagged too) and skips the ones it cannot express in the il2cpp class; the
   method still exists and still runs, because the mod calls it directly from managed C#, never
   through il2cpp dispatch. Confirmed 2026-08-10 from an end-user's BepInEx log:
