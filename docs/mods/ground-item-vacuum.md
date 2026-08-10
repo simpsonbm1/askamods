@@ -1,9 +1,11 @@
 # Mod 19: GroundItemVacuumMod — on Nexus as "Ground Item Vacuum Cleaner"
 
-> **Status 2026-08-10.** Repo at **v1.12.1**, UNCOMMITTED. Nexus is at **v1.9.2**, which has a
-> live bug: it deletes draugar, alive and dead. The fix is v1.11.0 + v1.12.0, both confirmed
-> in-game — see the CREATURE GUARD section. **An upload is owed to fix that published bug**;
-> the changelog and timing are the user's call (every upload auto-pushes to all Vortex users).
+> **Status 2026-08-10.** Repo at **v1.12.1**, committed and pushed (`5e6a98c`). Nexus is at
+> **v1.9.2**, which has a live bug: it deletes draugar, alive and dead. The fix is v1.11.0 +
+> v1.12.0, both confirmed in-game — see the CREATURE GUARD section. **An upload is owed to fix
+> that published bug**; the changelog and timing are the user's call (every upload auto-pushes to
+> all Vortex users). ⚠️ v1.12.1 itself has not been run in-game — v1.12.0 was — and the two differ
+> only on a branch that has never executed.
 > The version Nexus 1.9.2 replaced was **1.1.3**, in which `VacuumEntireWorld` skipped the
 > `Radius` test against the mod's own tracked-item set only — that set holds items with a spawned
 > GameObject, so the option cleared just the loaded area around the player despite its name.
