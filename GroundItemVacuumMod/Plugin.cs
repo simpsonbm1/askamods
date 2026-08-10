@@ -72,15 +72,20 @@ public class Plugin : BasePlugin
 
         VacuumEntireWorld = Config.Bind(
             "General", "VacuumEntireWorld", false,
-            "When true, ignore Radius and consider every loose ground item in the whole world. Aggressive - review a DryRun scan first.");
+            "When true, a sweep walks the whole map's item DATA (not just items spawned near you) "
+            + "instead of applying Radius, and with DryRun=false it REMOVES every match across the "
+            + "entire map in two phases: nearby spawned items first, then the remaining data "
+            + "records. With an empty OnlyItems, every non-excluded loose item record on the whole "
+            + "map is removed. DryRun=true still scans and logs without removing, and HostOnly "
+            + "still gates real removal.");
 
         ExcludeCategories = Config.Bind(
             "Filters", "ExcludeCategories", "Weapon,Armor,Clothing,Tool,Equipment",
             "Comma-separated, case-insensitive substrings matched against each item's category name AND its parent-category chain. Any match spares the item. Protects gear from being vacuumed. (Category names are dumped by a DryRun scan when Diagnostics is on - tune this list from that dump.)");
 
         ExcludeItems = Config.Bind(
-            "Filters", "ExcludeItems", "",
-            "Comma-separated, case-insensitive substrings matched against the item's name. Any match spares the item. E.g. 'Iron,Gold' to never vacuum those.");
+            "Filters", "ExcludeItems", "Jotun Blood",
+            "Comma-separated, case-insensitive substrings matched against the item's name. Any match spares the item. E.g. 'Iron,Gold' to never vacuum those. 'Jotun Blood' ships in this list as a precaution: the whole-map VacuumEntireWorld pass identifies loose ground items by their source prefab, and Jotun Blood's prefab is indistinguishable from ordinary debris, so the pass would clear it along with sticks and stones. Remove it from this list if you do want Jotun Blood cleared.");
 
         OnlyItems = Config.Bind(
             "Filters", "OnlyItems", "",
@@ -103,8 +108,8 @@ public class Plugin : BasePlugin
             "Debug: log each item step-by-step during a sweep so a hard-crash log pinpoints the failing item/step. Very verbose. Shipped default false - only enable when investigating a crash.");
 
         IncludeCorpses = Config.Bind(
-            "Corpses", "IncludeCorpses", true,
-            "When true, a sweep also sweeps dead enemy/animal corpses (dead Monster creatures) within the radius via the game's own network despawn; their unharvested loot is lost. Player and villager corpses are a different game system and are never touched. Default true during development, will be flipped to false before any public release.");
+            "Corpses", "IncludeCorpses", false,
+            "UNFINISHED FEATURE - off by default. When true, a sweep also sweeps dead enemy/animal corpses (dead Monster creatures) within the radius via the game's own network despawn; their unharvested loot is lost. Player and villager corpses are a different game system and are never touched.");
 
         ExcludeCorpseNames = Config.Bind(
             "Corpses", "ExcludeCorpseNames", "",

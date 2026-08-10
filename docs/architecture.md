@@ -2561,6 +2561,128 @@ Used by Mod 9 (SeedScoutMod) — full recipe in
   for a scorer (you type the seed); required only for an auto-finder. See
   `archive/SEED_SCOUT_HANDOFF.md` for the chase.
 
+### World item DATA vs. spawned GameObjects — the "entire world" gate (Cecil 2026-08-10)
+
+Loose world items (dropped/decayed ground clutter, the things `DynamicItemObject` represents) exist
+in **two layers**, and a mod that only sees the GameObject layer sees a bubble around the player.
+
+- **Data layer, per world tile.** `WorldDataManager : MonoBehaviour` owns `_dataMap` of
+  `WorldTileData`, each holding `WorldDataCell`s. Item records live in an
+  `InventoryItemInstancesBuffer` (parallel `positions` / `rotations` / `scales` / `uniqueIds` /
+  `items` lists) reached through `InventoryItemDataHandler` (`WorldDataSlot.INVENTORY`). Each record
+  materializes as an `InventoryItemInstance : WorldItemInstance` carrying `GetItem()`,
+  `GetPosition()`, `UniqueId`, `Active`, and its own
+  `Destroy(Boolean&, InstanceDestructionLevel&)` — **no GameObject required to read or remove one**.
+- **Object layer.** A `WorldItemInstance` only gets a GameObject when an activation context is set;
+  `InstanceActivationContext` includes `AREA`, `HAS_GAMEOBJECT`, `REQUEST`, `FORCE_ACTIVE`.
+  `DynamicItemObject.OnEnable` therefore fires only where a GameObject exists, which is why an
+  own-set lifecycle tracker (GroundItemVacuumMod) can never see the whole map, whatever radius
+  config it is given. Live readings (confirmed in-game 2026-08-10):
+  `interactionObjectsRange=32`, `closeRangeScale=1.5`, `nearRangeScale=3.5`, `farRangeScale=5.5`.
+  ⚠️ pending — whether these fields gate item spawning (the probe read the values but did not
+  trace a call site that uses them).
+- **Whole-world enumeration entry points (confirmed in-game 2026-08-10):**
+  The working sequence: get the slot id from
+  `InventoryItemDataHandler.GetSlotId()` (reads `1` for `WorldDataSlot.INVENTORY`);
+  get tiles from `WorldDataManager.FetchAllData()`; per tile call
+  `WorldTileData.QueryAllCells(DataAccessMode.FETCH, cells)` passing an
+  `Il2CppSystem.Collections.Generic.List<WorldDataCell>` cast to
+  `ICollection<WorldDataCell>`; per cell call `WorldDataCell.GetDataContainer(slotId)`
+  and identify the result as `InventoryCellDataContainer` by native class pointer
+  before rewrapping (managed casts lie); then iterate `itemBuffers.Values` with a
+  plain foreach, which works; then per buffer call `GetSize()` and read each index
+  with `GetPosAt(ref int)` and `GetItemAt(ref int)`. Zero exceptions and zero
+  skipped tiles, cells or buffers across two probe runs.
+- **Interface-injection risk:** both search calls take an il2cpp interface
+  (`IWorldItemInstanceSearchProcessor`, methods `ValidateDescriptor` / `ProcessInstance` /
+  `GetResult`). Implementing it from managed code needs `ClassInjector` interface support, which is
+  untested here. The injection-free alternative is per-cell buffer reads —
+  `WorldDataCell.GetDataContainer(slotId)` and
+  `InventoryItemDataHandler.GetExistingItemsBuffer(...)` expose the raw parallel lists plus
+  `RemoveInstanceData(int, out int)`.
+- **Removal paths (confirmed in-game 2026-08-10, GroundItemVacuumMod v1.5.1).** The vanilla
+  path is `WorldItemObject.RemoveObjectFromWorld()`, confirmed working (`Phase 1 (object
+  layer, tracked items): removed 524/524`), but it requires a spawned GameObject. For an
+  unspawned record, `WorldItemInstance.Destroy(ref bool silent, ref
+  InstanceDestructionLevel level)` removes the record when `silent=false` and silently
+  does nothing when `silent=true` — a single-argument difference between working and
+  no-op. Evidence (v1.5.1 run): `[Vacuum] Phase 2 route 1 (Destroy silent=false): removed
+  2079, failed 0.` and `[Vacuum] Self-verification: matched before removal=2079, removal
+  calls succeeded=2079, matched remaining after=0.` Routes 2 and 3 were never exercised:
+  `InventoryItemDataHandler.RemoveInstanceDataSilent(instance)` and
+  `InventoryItemInstancesBufferBase.RemoveInstanceData(int index, out int swapIndex)` both
+  remain UNTESTED and must not be recorded as working or failing.
+- **WorldDataManager header readings** (confirmed in-game 2026-08-10): `TileSize=128`, `CellSize=32`,
+  `CellResolution=4`, `_dataMap.Count=183`.
+- **Every world tile's data is already resident.** `FetchAllData()` returned a list of 183 tiles, and
+  `_dataMap.Count` read 183 both before and after the call. No fetch step needed before enumerating.
+- **Handler lookup works directly** (confirmed in-game 2026-08-10):
+  `WorldDataManager.GetDataHandler<InventoryItemDataHandler>(WorldDataSlot.INVENTORY)` returned an
+  object on the first attempt; the native-class-pointer rewrap fallback was never needed.
+- **DEAD-END — `InventoryItemDataHandler._instanceList` is NOT the world item registry
+  (confirmed in-game 2026-08-10).** Must not be used to enumerate ground items. Two
+  probe dumps taken in the same session read `_instanceList.Count` as 0 and 105
+  respectively, while the per-cell buffer walk found 4829 and 4831 records. The list
+  holds materialized instances only, not the stored-data registry.
+- **Traversal coverage per dump (confirmed in-game 2026-08-10):** first dump reported
+  tiles seen 183, cells seen 1978, cells with an inventory container 233, buffers
+  seen 590, total records 4829. Second dump reported tiles seen 183, cells seen 1978,
+  cells with an inventory container 234, buffers seen 591, total records 4831. Both
+  reported zero skipped tiles, cells and buffers.
+- **Reach (confirmed in-game 2026-08-10):** positions spanned x from -501.6742 to
+  596.1379 and z from -550.11 to 739.73956, identical in both dumps. Largest
+  horizontal distance from the player was 1009.9802 m in the first dump and
+  1003.16064 m in the second.
+- **Distance distribution (confirmed in-game 2026-08-10):** first dump's bands read
+  63 records within 30 m, 659 from 30 to 60 m, 1053 from 60 to 120 m, 1702 from 120
+  to 256 m, 1329 from 256 to 512 m, and 23 beyond 512 m. Second dump read 413, 250,
+  1028, 1679, 1450 and 11 across the same bands.
+- **CAUTION — the inventory data slot is NOT just loose dropped clutter (confirmed in-game
+  2026-08-10).** The first probe dump saw 64 distinct item names (second saw 63), including
+  `Wight` at 204, `Crawler Egg` at 54, `Cave Fingers Growth` at 41 and `Iron Deposit` at 20.
+  A GroundItemVacuumMod run that filtered these records only by name and category **deleted all
+  four of those kinds**, which the object-layer sweep has never done. Any removal built on this
+  route needs a test for "is this record a loose dropped item", separate from the user's
+  name/category filters.
+  **Do NOT solve this by demanding an allow-list** — that was tried, was never asked for, and was
+  reverted on the user's instruction 2026-08-10 ("it should follow the same logic as the regular
+  run, just apply to the whole map").
+  **The working discriminator (confirmed in-game 2026-08-10, GroundItemVacuumMod v1.8.0):**
+  resolve the item's `ItemInfo` → `InventoryItemDataHandler.GetItemDescriptor(ItemInfo)` →
+  `InventoryItemDescriptor.GetSourceObject()` → `GameObject.GetComponent<DynamicItemObject>()`,
+  and treat a non-null component as "this spawns as a loose ground item". Fail closed when any
+  step is null. (`ItemInfo.spawnObject : GameObject` is the same prefab reached in one hop —
+  Cecil 2026-08-10 — if the descriptor route ever proves awkward.) A live whole-map run excluded
+  445 records across 17 names, every one a creature or world harvestable (`Wight` 204,
+  `Crawler Egg` 54, `Cave Fingers Growth` 41, `Iron Deposit` 20, `Skeleton *`, `Fenn`, `Wulfar`,
+  …), with **zero** records undetermined out of 4262 walked — so the fail-closed branch was never
+  exercised and stays untested. `Wight` being excluded here also removes the need for any corpse
+  awareness on this route: corpse creatures do not spawn from a `DynamicItemObject` prefab.
+  **One name escapes it: `Jotun Blood`.** The same run logged
+  `[Vacuum] SCAN match x190: Jotun Blood`, neither excluded nor undetermined, so its prefab does
+  carry `DynamicItemObject` and no prefab-level test can separate it from debris. GroundItemVacuum
+  v1.9.0 handles that with a shipped `ExcludeItems` default rather than a code discriminator (user
+  ruling 2026-08-10). If a real separation is ever needed it has to be per-record. Untested
+  candidate: `InventoryItemInstancesBufferBase.GetNetworkIdAt(ref int index)`, the same value a
+  materialized instance exposes as `InventoryItemInstance.AttachedObjectNetworkID`.
+  **DEAD-END — the buffer class discriminates nothing.** `InventoryCellDataContainer.itemBuffers`
+  values are typed `InventoryItemInstancesBufferBase`, which has exactly two concrete subclasses
+  (Cecil 2026-08-10): `SSSGame.InventoryItemInstancesBuffer` (parallel `positions`/`rotations`/
+  `scales`/`uniqueIds`/`attachedObjectNetworkIDs`/`items` lists) and
+  `SSSGame.VegetationItemInstancesBuffer` (same lists plus `datas` and `renderBufferOffset`). The
+  whole-map run read `InventoryItemInstancesBuffer` for all 4262 records and never saw the
+  vegetation class at all; `Cave Fingers Growth` shared a buffer class with `Stick`.
+- **Per-name count variability:** most per-name counts moved between measurements, including
+  Bark (472→476→480), Stick (350→350→346), Resin (25→25→24), and Feathers (1000→1000→1004).
+  The byte-identical round number 1000 for Feathers in the first two measurements was a
+  coincidence; a third measurement showed 1004. Small Stone read 634 unchanged across all
+  measurements; no cap was found for any name.
+- **Per-cell buffer walk reproducibility (confirmed in-game 2026-08-10):** three independent
+  walks by GroundItemVacuumMod v1.3.0's scan mode, on the same day, each reported tiles seen 183
+  and cells seen 1978, with total records reading 4832, 4843 and 4851 respectively, and zero
+  skipped tiles, cells or buffers in every walk. (GroundItemAuditMod's two probe dumps the same
+  day read 4829 and 4831 by the same route — a different mod, hence the different totals.)
+
 ---
 
 ## Caves, Mines & Hallway Excavation (confirmed in-game 2026-06-26)

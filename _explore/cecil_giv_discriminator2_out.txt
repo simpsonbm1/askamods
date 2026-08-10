@@ -1,0 +1,289 @@
+### NO TYPE SSSGame.ItemObjectSpawnContext
+
+### TYPE SandSailorStudio.Inventory.ItemInfo  base=SandSailorStudio.Assets.AssetNode
+  -- properties --
+    id : Int32
+    databaseIndex : UInt16
+    category : ItemCategoryInfo
+    unique : Boolean
+    stackSize : Int32
+    showTier : Boolean
+    tier : Int32
+    localizedName : String
+    localizedDescription : String
+    localizedLore : String
+    icon : Sprite
+    previewImage : Sprite
+    colors : ColorTableConfig
+    spawnObject : GameObject
+    spawnHeight : Single
+    storageClass : ItemStorageClass
+    processes : Il2CppReferenceArray`1
+    components : Il2CppReferenceArray`1
+    attributes : Il2CppReferenceArray`1
+    networkedInventoryAttributes : Il2CppReferenceArray`1
+    _cachedComponentsTable : Dictionary`2
+    _cachedComponents : List`1
+    _cachedAttributes : Dictionary`2
+    s_itemInfoList : List`1
+    _durabAttrData : AttributeData
+    _decayRateAttrData : AttributeData
+    _localized : Boolean
+    Name : String
+    Description : String
+    Lore : String
+    Localized : Boolean
+  -- methods --
+    Void .cctor() [static,priv]
+    Void Configure() [virt,pub]
+    Item CreateItem() [virt,pub]
+    Boolean IsTierRelevant() [virt,pub]
+    Boolean CanJoin(ItemInfo targetItemInfo) [virt,pub]
+    Boolean CanBeAcquired(ItemCollection container) [virt,pub]
+    AttributeData FindAttribute(Int32& attrId) [virt,pub]
+    Int32 HasComponent(ItemInfo info, Int32& quantity) [pub]
+    Int32 _HasComponentUncached(ItemInfo info, Int32& quantity) [virt,pub]
+    Int32 HasComponent(IItemFilter itemFilter) [pub]
+    Int32 _HasComponentUncached(IItemFilter itemFilter) [virt,pub]
+    IItemFilter GetItemFilter() [pub]
+    Void GetFullComponentList(List`1 componentList) [pub]
+    Void _GetFullComponentUncached(List`1 componentList) [virt,pub]
+    List`1 GetFullComponentList() [virt,pub]
+    GameObject SpawnObject(ItemObjectSpawnContext& context, Int32& quantity, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt,pub]
+    GameObject SpawnObject(ItemObjectSpawnContext& context, Item item, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Boolean sampleTerrain) [virt,pub]
+    GameObject _Spawn(GameObject spawnable, ItemObjectSpawnContext context, Vector3& position, Quaternion& rotation, Vector3& scale, Transform parent, Item item, Int32 itemQuantity, Boolean sampleTerrain) [pub]
+    String get_Name() [virt,pub]
+    String get_Description() [virt,pub]
+    String get_Lore() [virt,pub]
+    String Loc(String keyToken, Il2CppStringArray interpStrings) [virt,pub]
+    String GetKey(String token) [virt,pub]
+    Dictionary`2 GetLocalizationStrings() [virt,pub]
+    Boolean get_Localized() [virt,pub]
+    Void set_Localized(Boolean value) [virt,pub]
+    Boolean ContainerTypeFilter(ItemContainer container) [pub]
+    Boolean ContainerCapacityFilter(ItemContainer container) [pub]
+    Boolean ItemTypeFilter(Item item) [pub]
+    Void .ctor() [pub]
+    String Loc(String keyToken, String[] interpStrings) [virt,pub]
+    Void .ctor(IntPtr pointer) [pub]
+    Int32 get_id() [pub]
+    Void set_id(Int32 ) [pub]
+    UInt16 get_databaseIndex() [pub]
+    Void set_databaseIndex(UInt16 ) [pub]
+    ItemCategoryInfo get_category() [pub]
+    Void set_category(ItemCategoryInfo ) [pub]
+    Boolean get_unique() [pub]
+    Void set_unique(Boolean ) [pub]
+    Int32 get_stackSize() [pub]
+    Void set_stackSize(Int32 ) [pub]
+    Boolean get_showTier() [pub]
+    Void set_showTier(Boolean ) [pub]
+    Int32 get_tier() [pub]
+    Void set_tier(Int32 ) [pub]
+    String get_localizedName() [pub]
+    Void set_localizedName(String ) [pub]
+    String get_localizedDescription() [pub]
+    Void set_localizedDescription(String ) [pub]
+    String get_localizedLore() [pub]
+    Void set_localizedLore(String ) [pub]
+    Sprite get_icon() [pub]
+    Void set_icon(Sprite ) [pub]
+    Sprite get_previewImage() [pub]
+    Void set_previewImage(Sprite ) [pub]
+    ColorTableConfig get_colors() [pub]
+    Void set_colors(ColorTableConfig ) [pub]
+    GameObject get_spawnObject() [pub]
+    Void set_spawnObject(GameObject ) [pub]
+    Single get_spawnHeight() [pub]
+    Void set_spawnHeight(Single ) [pub]
+    ItemStorageClass get_storageClass() [pub]
+    Void set_storageClass(ItemStorageClass ) [pub]
+    Il2CppReferenceArray`1 get_processes() [pub]
+    Void set_processes(Il2CppReferenceArray`1 ) [pub]
+    Il2CppReferenceArray`1 get_components() [pub]
+    Void set_components(Il2CppReferenceArray`1 ) [pub]
+    Il2CppReferenceArray`1 get_attributes() [pub]
+    Void set_attributes(Il2CppReferenceArray`1 ) [pub]
+    Il2CppReferenceArray`1 get_networkedInventoryAttributes() [pub]
+    Void set_networkedInventoryAttributes(Il2CppReferenceArray`1 ) [pub]
+    Dictionary`2 get__cachedComponentsTable() [pub]
+    Void set__cachedComponentsTable(Dictionary`2 ) [pub]
+    List`1 get__cachedComponents() [pub]
+    Void set__cachedComponents(List`1 ) [pub]
+    Dictionary`2 get__cachedAttributes() [pub]
+    Void set__cachedAttributes(Dictionary`2 ) [pub]
+    List`1 get_s_itemInfoList() [static,pub]
+    Void set_s_itemInfoList(List`1 ) [static,pub]
+    AttributeData get__durabAttrData() [pub]
+    Void set__durabAttrData(AttributeData ) [pub]
+    AttributeData get__decayRateAttrData() [pub]
+    Void set__decayRateAttrData(AttributeData ) [pub]
+    Boolean get__localized() [pub]
+    Void set__localized(Boolean ) [pub]
+
+### TYPE SSSGame.InventoryItemInstancesBufferBase  base=Il2CppSystem.Object
+  -- properties --
+  -- methods --
+    Void .cctor() [static,priv]
+    Int32 GetSize() [virt,pub]
+    Int32 FindIndexOfUniqueId(UInt32& uniqueId) [virt,pub]
+    Int32 FindIndexOfUniqueIdPredictiveSpawn(UInt32& uniqueId) [virt,pub]
+    Boolean IsValidIndex(Int32& index) [virt,pub]
+    Int32 AddInstanceData(Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    Boolean RemoveInstanceData(Int32 index, Int32& swapIndex) [virt,pub]
+    Boolean UpdateInstanceData(Int32 index, Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    List`1 GetItemsList() [virt,pub]
+    Vector3 GetPosAt(Int32& index) [virt,pub]
+    Quaternion GetRotAt(Int32& index) [virt,pub]
+    Vector3 GetScaleAt(Int32& index) [virt,pub]
+    Item GetItemAt(Int32& index) [virt,pub]
+    UInt32 GetUniqueIdAt(Int32& index) [virt,pub]
+    NetworkId GetNetworkIdAt(Int32& index) [virt,pub]
+    Void GetTransform(Int32& index, Vector3& pos, Quaternion& rot, Vector3& scale) [virt,pub]
+    Void SetPosAt(Int32& index, Vector3& pos) [virt,pub]
+    Void SetRotAt(Int32& index, Quaternion& rot) [virt,pub]
+    Void SetScaleAt(Int32& index, Vector3& scale) [virt,pub]
+    Void SetItemAt(Int32& index, Item item) [virt,pub]
+    Void SetUniqueIdAt(Int32& index, UInt32& id) [virt,pub]
+    Void SetNetworkIdAt(Int32& index, NetworkId& networkId) [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+
+### TYPE SSSGame.InventoryItemInstancesBuffer  base=SSSGame.InventoryItemInstancesBufferBase
+  -- properties --
+    positions : List`1
+    rotations : List`1
+    scales : List`1
+    uniqueIds : List`1
+    attachedObjectNetworkIDs : List`1
+    items : List`1
+  -- methods --
+    Void .cctor() [static,priv]
+    Int32 GetSize() [virt,pub]
+    Int32 FindIndexOfUniqueId(UInt32& uniqueId) [virt,pub]
+    Boolean IsValidIndex(Int32& index) [virt,pub]
+    Int32 AddInstanceData(Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    Boolean RemoveInstanceData(Int32 index, Int32& swapIndex) [virt,pub]
+    Boolean UpdateInstanceData(Int32 index, Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    Void GetTransform(Int32& index, Vector3& pos, Quaternion& rot, Vector3& scale) [virt,pub]
+    List`1 GetItemsList() [virt,pub]
+    UInt32 GetUniqueIdAt(Int32& index) [virt,pub]
+    Vector3 GetPosAt(Int32& index) [virt,pub]
+    Quaternion GetRotAt(Int32& index) [virt,pub]
+    Vector3 GetScaleAt(Int32& index) [virt,pub]
+    Item GetItemAt(Int32& index) [virt,pub]
+    NetworkId GetNetworkIdAt(Int32& index) [virt,pub]
+    Void SetPosAt(Int32& index, Vector3& pos) [virt,pub]
+    Void SetRotAt(Int32& index, Quaternion& rot) [virt,pub]
+    Void SetScaleAt(Int32& index, Vector3& scale) [virt,pub]
+    Void SetItemAt(Int32& index, Item item) [virt,pub]
+    Void SetUniqueIdAt(Int32& index, UInt32& id) [virt,pub]
+    Void SetNetworkIdAt(Int32& index, NetworkId& networkId) [virt,pub]
+    Int32 FindIndexOfUniqueIdPredictiveSpawn(UInt32& uniqueId) [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    List`1 get_positions() [pub]
+    Void set_positions(List`1 ) [pub]
+    List`1 get_rotations() [pub]
+    Void set_rotations(List`1 ) [pub]
+    List`1 get_scales() [pub]
+    Void set_scales(List`1 ) [pub]
+    List`1 get_uniqueIds() [pub]
+    Void set_uniqueIds(List`1 ) [pub]
+    List`1 get_attachedObjectNetworkIDs() [pub]
+    Void set_attachedObjectNetworkIDs(List`1 ) [pub]
+    List`1 get_items() [pub]
+    Void set_items(List`1 ) [pub]
+
+### TYPE SSSGame.VegetationItemInstancesBuffer  base=SSSGame.InventoryItemInstancesBufferBase
+  -- properties --
+    positions : List`1
+    rotations : List`1
+    scales : List`1
+    uniqueIds : List`1
+    datas : List`1
+    items : List`1
+    renderBufferOffset : Int32
+  -- methods --
+    Void .cctor() [static,priv]
+    Int32 GetSize() [virt,pub]
+    Int32 AddInstanceData(Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    Int32 FindIndexOfUniqueId(UInt32& uniqueId) [virt,pub]
+    Boolean IsValidIndex(Int32& index) [virt,pub]
+    Boolean RemoveInstanceData(Int32 index, Int32& swapIndex) [virt,pub]
+    Boolean UpdateInstanceData(Int32 index, Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 uniqueID, NetworkId attachedObjectNetworkID) [virt,pub]
+    Void GetTransform(Int32& index, Vector3& pos, Quaternion& rot, Vector3& scale) [virt,pub]
+    List`1 GetItemsList() [virt,pub]
+    UInt32 GetUniqueIdAt(Int32& index) [virt,pub]
+    Vector3 GetPosAt(Int32& index) [virt,pub]
+    Quaternion GetRotAt(Int32& index) [virt,pub]
+    Vector3 GetScaleAt(Int32& index) [virt,pub]
+    Item GetItemAt(Int32& index) [virt,pub]
+    NetworkId GetNetworkIdAt(Int32& index) [virt,pub]
+    Void SetPosAt(Int32& index, Vector3& pos) [virt,pub]
+    Void SetRotAt(Int32& index, Quaternion& rot) [virt,pub]
+    Void SetScaleAt(Int32& index, Vector3& scale) [virt,pub]
+    Void SetItemAt(Int32& index, Item item) [virt,pub]
+    Void SetUniqueIdAt(Int32& index, UInt32& id) [virt,pub]
+    Void SetNetworkIdAt(Int32& index, NetworkId& networkId) [virt,pub]
+    Void SetDataAt(Int32& index, UInt32& data) [pub]
+    UInt32 GetDataAt(Int32& index) [pub]
+    Int32 FindIndexOfUniqueIdPredictiveSpawn(UInt32& uniqueId) [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    List`1 get_positions() [pub]
+    Void set_positions(List`1 ) [pub]
+    List`1 get_rotations() [pub]
+    Void set_rotations(List`1 ) [pub]
+    List`1 get_scales() [pub]
+    Void set_scales(List`1 ) [pub]
+    List`1 get_uniqueIds() [pub]
+    Void set_uniqueIds(List`1 ) [pub]
+    List`1 get_datas() [pub]
+    Void set_datas(List`1 ) [pub]
+    List`1 get_items() [pub]
+    Void set_items(List`1 ) [pub]
+    Int32 get_renderBufferOffset() [pub]
+    Void set_renderBufferOffset(Int32 ) [pub]
+
+### TYPE SSSGame.InventoryCellDataContainer  base=SSSGame.CellDataContainer
+  -- properties --
+    itemBuffers : Dictionary`2
+    activeInstances : Dictionary`2
+  -- methods --
+    Void .cctor() [static,priv]
+    InventoryItemInstancesBufferBase GetBuffer(ItemInfo itemInfo, DataAccessMode mode) [pub]
+    Void ReadSnapshot(BinaryReader reader) [virt,pub]
+    Void WriteSnapshot(BinaryWriter writer) [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    Dictionary`2 get_itemBuffers() [pub]
+    Void set_itemBuffers(Dictionary`2 ) [pub]
+    Dictionary`2 get_activeInstances() [pub]
+    Void set_activeInstances(Dictionary`2 ) [pub]
+
+==================== Types whose name contains WorldItem / ItemObject ====================
+  SSSGame.CreatureItemObject  base=SSSGame.WorldItemObject
+  SSSGame.ContainerItemObject  base=SSSGame.ItemObject
+  SSSGame.DynamicItemObject  base=UnityEngine.MonoBehaviour
+  SSSGame.DynamicItemObjectManager  base=UnityEngine.MonoBehaviour
+  SSSGame.EquipmentItemObject  base=SSSGame.ItemObject
+  SSSGame.ItemObject  base=SSSGame.WorldItemObject
+  SSSGame.WeaponizedItemObject  base=SSSGame.EquipmentItemObject
+  SSSGame.WearableItemObject  base=SSSGame.EquipmentItemObject
+  SSSGame.WorldItemObject  base=SandSailorStudio.Inventory.ItemComponent
+  SSSGame.WorldItemObjectListener  base=UnityEngine.MonoBehaviour
+  SSSGame.IWorldItemInstanceFilter  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IWorldItemInstanceSearchProcessor  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.SpecificWorldItemInstanceId  base=System.ValueType
+  SSSGame.WorldItemDescriptor  base=Il2CppSystem.Object
+  SSSGame.WorldItemInstance  base=Il2CppSystem.Object
+  SSSGame.WorldItemInstanceId  base=System.ValueType
+
+==================== MonoBehaviours that look like world-placed item objects ====================
+  SUBCLASS OF WorldItemObject: SSSGame.CreatureItemObject
+  SUBCLASS OF WorldItemObject: SSSGame.ItemObject
+  ItemComponent subclass: SSSGame.CreatureItemComponent
+  ItemComponent subclass: SSSGame.MarkerObject
+  ItemComponent subclass: SSSGame.StructureItemComponent
+  ItemComponent subclass: SSSGame.WorldItemObject

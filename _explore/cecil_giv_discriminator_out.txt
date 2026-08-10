@@ -1,0 +1,981 @@
+==================== 1. WorldItemInstance FAMILY (all subclasses) ====================
+  SSSGame.BiomeAreaInstance  : AreaInstance
+  SSSGame.BiomeItemInstance  : WorldItemInstance
+  SSSGame.InventoryItemInstance  : WorldItemInstance
+  SandSailorStudio.WorldGen.PolygonalTerrainAreaInstance  : TerrainAreaInstance
+  SandSailorStudio.WorldGen.SeaAreaInstance  : WorldAreaInstance
+  SandSailorStudio.WorldGen.TerrainAreaInstance  : WorldAreaInstance
+  SandSailorStudio.WorldGen.WorldAreaInstance  : AreaInstance
+  SandSailorStudio.WorldGen.CaveAreaInstance  : AreaInstance
+  SandSailorStudio.WorldGen.DungeonInstance  : AreaInstance
+  SandSailorStudio.WorldGen.Deterministic.LandmassInstance  : TerrainAreaInstance
+
+==================== 2. Types named *ItemInstance* / *ItemDescriptor* ====================
+  SSSGame.IWorldItemInstanceFilter  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IWorldItemInstanceSearchProcessor  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.IBiomeItemInstanceDataClient  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BiomeItemDescriptor  base=SSSGame.WorldItemDescriptor
+  SSSGame.BiomeItemInstancesBuffer  base=Il2CppSystem.Object
+  SSSGame.BiomeItemInstance  base=SSSGame.WorldItemInstance
+  SSSGame.BiomeItemInstance/MethodInfoStoreGeneric_GetModifier_Public_Virtual_T_0`1  base=System.Object
+  SSSGame.SpecificWorldItemInstanceId  base=System.ValueType
+  SSSGame.WorldItemDescriptor  base=Il2CppSystem.Object
+  SSSGame.WorldItemInstance  base=Il2CppSystem.Object
+  SSSGame.WorldItemInstance/MethodInfoStoreGeneric_GetModifier_Public_Virtual_New_T_0`1  base=System.Object
+  SSSGame.WorldItemInstanceId  base=System.ValueType
+  SSSGame.IInventoryItemInstanceDataClient  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.InventoryItemDescriptor  base=SSSGame.WorldItemDescriptor
+  SSSGame.InventoryItemInstance  base=SSSGame.WorldItemInstance
+  SSSGame.InventoryItemInstance/MethodInfoStoreGeneric_GetModifier_Public_Virtual_T_0`1  base=System.Object
+  SSSGame.InventoryItemInstancesBufferBase  base=Il2CppSystem.Object
+  SSSGame.InventoryItemInstancesBuffer  base=SSSGame.InventoryItemInstancesBufferBase
+  SSSGame.VegetationItemInstancesBuffer  base=SSSGame.InventoryItemInstancesBufferBase
+  SSSGame.Vegetation.VegetationItemInstancesContainer  base=Il2CppSystem.Object
+  SSSGame.Vegetation.VegetationItemInstancesContainer/VegeDataArray  base=Il2CppSystem.ValueType
+  AwesomeTechnologies.Vegetation.VegetationItemInstanceInfo  base=UnityEngine.MonoBehaviour
+  AwesomeTechnologies.VegetationSystem.InstancesBuffer  base=Il2CppSystem.Object
+  Steamworks.SteamItemInstanceID_t  base=System.ValueType
+  PlayFab.ClientModels.ItemInstance  base=PlayFab.SharedModels.PlayFabBaseModel
+
+==================== 3. Key type dumps ====================
+### TYPE SSSGame.WorldItemInstance  base=Il2CppSystem.Object
+  -- fields --
+  -- properties --
+    c_flagDestroyed : UInt16
+    c_flagInstanceActive : UInt16
+    c_flagInstanceDeactivateMask : UInt16
+    c_contextFlagMask : UInt16
+    _Descriptor_k__BackingField : WorldItemDescriptor
+    _Cell_k__BackingField : WorldDataCell
+    gameObject : GameObject
+    _id : Int32
+    _contextFlags : UInt16
+    _uniqueId : UInt32
+    OnDataChanged : Action`1
+    Descriptor : WorldItemDescriptor
+    Cell : WorldDataCell
+    InteractionArea : IInteractionArea
+    Index : Int32
+    Active : Boolean
+    Destroyed : Boolean
+    UniqueId : UInt32
+  -- methods --
+    Void .cctor() [static,priv]
+    WorldItemDescriptor get_Descriptor() [pub]
+    Void set_Descriptor(WorldItemDescriptor value) [pub]
+    WorldDataCell get_Cell() [pub]
+    Void set_Cell(WorldDataCell value) [pub]
+    IInteractionArea get_InteractionArea() [virt,pub]
+    Int32 get_Index() [pub]
+    Void set_Index(Int32 value) [pub]
+    Boolean get_Active() [virt,pub]
+    Void set_Active(Boolean value) [virt,pub]
+    Boolean get_Destroyed() [virt,pub]
+    UInt32 get_UniqueId() [pub]
+    Void Dispose() [virt,pub]
+    WorldDataHandler GetHandler() [virt,pub]
+    Void Destroy(Boolean& silent, InstanceDestructionLevel& level) [virt,pub]
+    WorldItemInstanceId GetWorldItemInstanceId() [virt,pub]
+    SpecificWorldItemInstanceId GetSpecificWorldItemInstanceId() [virt,pub]
+    Void ActivateContext(InstanceActivationContext context) [pub]
+    Void DeactivateContext(InstanceActivationContext context) [pub]
+    Boolean HasActiveContext(InstanceActivationContext context) [pub]
+    UInt16 _ConvertToFlags(InstanceActivationContext context) [pub]
+    Boolean HasContextFlags() [pub]
+    Int32 GetContexts() [pub]
+    Boolean IsRemovable(InstanceDestructionLevel level) [virt,pub]
+    T GetModifier() [virt,pub]
+    Vector3 GetPosition() [virt,pub]
+    Quaternion GetRotation() [virt,pub]
+    Vector3 GetScale() [virt,pub]
+    Void add_OnDataChanged(Action`1 value) [pub]
+    Void remove_OnDataChanged(Action`1 value) [pub]
+    Void _OnActivateInstance() [virt,pub]
+    Void _OnDeactivateInstance() [virt,pub]
+    Void _OnActivateContext(InstanceActivationContext context) [virt,pub]
+    Void _OnDeactivateContext(InstanceActivationContext context) [virt,pub]
+    Void _DestroyInstance() [virt,pub]
+    Void _OnDataChanged() [pub]
+    Void WriteSnapshot(BinaryWriter writer) [virt,pub]
+    Void ReadSnapshot(BinaryReader reader) [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    UInt16 get_c_flagDestroyed() [static,pub]
+    Void set_c_flagDestroyed(UInt16 ) [static,pub]
+    UInt16 get_c_flagInstanceActive() [static,pub]
+    Void set_c_flagInstanceActive(UInt16 ) [static,pub]
+    UInt16 get_c_flagInstanceDeactivateMask() [static,pub]
+    Void set_c_flagInstanceDeactivateMask(UInt16 ) [static,pub]
+    UInt16 get_c_contextFlagMask() [static,pub]
+    Void set_c_contextFlagMask(UInt16 ) [static,pub]
+    WorldItemDescriptor get__Descriptor_k__BackingField() [pub]
+    Void set__Descriptor_k__BackingField(WorldItemDescriptor ) [pub]
+    WorldDataCell get__Cell_k__BackingField() [pub]
+    Void set__Cell_k__BackingField(WorldDataCell ) [pub]
+    GameObject get_gameObject() [pub]
+    Void set_gameObject(GameObject ) [pub]
+    Int32 get__id() [pub]
+    Void set__id(Int32 ) [pub]
+    UInt16 get__contextFlags() [pub]
+    Void set__contextFlags(UInt16 ) [pub]
+    UInt32 get__uniqueId() [pub]
+    Void set__uniqueId(UInt32 ) [pub]
+    Action`1 get_OnDataChanged() [pub]
+    Void set_OnDataChanged(Action`1 ) [pub]
+
+### TYPE SSSGame.InventoryItemInstance  base=SSSGame.WorldItemInstance
+  -- fields --
+  -- properties --
+    Handler : InventoryItemDataHandler
+    _position : Vector3
+    _rotation : Quaternion
+    _scale : Vector3
+    _item : Item
+    _buffer : InventoryItemInstancesBufferBase
+    _attachedObjectNetworkID : NetworkId
+    _regiteredToProcMan : Boolean
+    Descriptor : InventoryItemDescriptor
+    InteractionArea : IInteractionArea
+    AttachedObjectNetworkID : NetworkId
+  -- methods --
+    Void .cctor() [static,priv]
+    InventoryItemDescriptor get_Descriptor() [pub]
+    IInteractionArea get_InteractionArea() [virt,pub]
+    NetworkId get_AttachedObjectNetworkID() [pub]
+    Void set_AttachedObjectNetworkID(NetworkId value) [pub]
+    Void .ctor() [pub]
+    Void .ctor(WorldItemDescriptor descriptor, WorldDataCell cell, Int32 instanceIndex, InventoryItemInstancesBufferBase buffer) [pub]
+    Void Initialize(WorldItemDescriptor descriptor, WorldDataCell cell, Int32 instanceIndex, InventoryItemInstancesBufferBase buffer) [pub]
+    InventoryItemInstancesBufferBase GetBuffer() [pub]
+    WorldItemInstanceId GetWorldItemInstanceId() [virt,pub]
+    SpecificWorldItemInstanceId GetSpecificWorldItemInstanceId() [virt,pub]
+    WorldDataHandler GetHandler() [virt,pub]
+    Vector3 GetPosition() [virt,pub]
+    Quaternion GetRotation() [virt,pub]
+    Vector3 GetScale() [virt,pub]
+    Item GetItem() [pub]
+    Void ConfirmPredictedSpawn(UInt32 confirmedUniqueID) [pub]
+    Void UpdatePositionAndRotation(Vector3& pos, Quaternion& rot, Boolean& updateAttachedObject, Boolean& notifyDataChange) [pub]
+    Void SetPosition(Vector3& pos, Boolean& updateAttachedObject, Boolean& notifyDataChange) [pub]
+    Void SetRotation(Quaternion& rot, Boolean& updateAttachedObject, Boolean& notifyDataChange) [pub]
+    Void SetScale(Vector3& scale, Boolean& updateAttachedObject, Boolean& notifyDataChange) [pub]
+    T GetModifier() [virt,pub]
+    Void DetachItemObject() [pub]
+    Void AttachItemObject(WorldItemObject o) [pub]
+    Void AttachNetworkObject(NetworkObject o) [pub]
+    Void SendDataChangedEvent() [pub]
+    Boolean IsRemovable(InstanceDestructionLevel level) [virt,pub]
+    Boolean _ValidateIndex() [pub]
+    Void _OnActivateContext(InstanceActivationContext context) [virt,pub]
+    Void _OnDeactivateContext(InstanceActivationContext context) [virt,pub]
+    Void _OnActivateInstance() [virt,pub]
+    Void _OnDeactivateInstance() [virt,pub]
+    Void _SetDirtyContainer() [pub]
+    Void _RefreshGameObject() [virt,pub]
+    Void Destroy(Boolean& silent, InstanceDestructionLevel& level) [virt,pub]
+    Void OnItemChanged(Item item) [virt,pub]
+    Boolean HasAuthority() [virt,pub]
+    Void WriteSnapshot(BinaryWriter writer) [virt,pub]
+    Void ReadSnapshot(BinaryReader reader) [virt,pub]
+    Void ReadItemSnapshot(BinaryReader reader) [virt,pub]
+    Void .ctor(IntPtr pointer) [pub]
+    InventoryItemDataHandler get_Handler() [static,pub]
+    Void set_Handler(InventoryItemDataHandler ) [static,pub]
+    Vector3 get__position() [pub]
+    Void set__position(Vector3 ) [pub]
+    Quaternion get__rotation() [pub]
+    Void set__rotation(Quaternion ) [pub]
+    Vector3 get__scale() [pub]
+    Void set__scale(Vector3 ) [pub]
+    Item get__item() [pub]
+    Void set__item(Item ) [pub]
+    InventoryItemInstancesBufferBase get__buffer() [pub]
+    Void set__buffer(InventoryItemInstancesBufferBase ) [pub]
+    NetworkId get__attachedObjectNetworkID() [pub]
+    Void set__attachedObjectNetworkID(NetworkId ) [pub]
+    Boolean get__regiteredToProcMan() [pub]
+    Void set__regiteredToProcMan(Boolean ) [pub]
+
+### TYPE SSSGame.WorldItemDescriptor  base=Il2CppSystem.Object
+  -- fields --
+  -- properties --
+    itemInfo : ItemInfo
+  -- methods --
+    Void .cctor() [static,priv]
+    Void .ctor(ItemInfo itemInfo) [pub]
+    GameObject GetSourceObject() [virt,pub]
+    Int32 GetHashCode() [virt,pub]
+    String GetFormalName() [virt,pub]
+    Void .ctor(IntPtr pointer) [pub]
+    ItemInfo get_itemInfo() [pub]
+    Void set_itemInfo(ItemInfo ) [pub]
+
+### TYPE SSSGame.InventoryItemDescriptor  base=SSSGame.WorldItemDescriptor
+  -- fields --
+  -- properties --
+    c_renderableByVFX : Int32
+    c_hasBiomeObstacle : Int32
+    c_hasProcesses : Int32
+    _specialPropertiesFlags : Byte
+    RenderableByVFX : Boolean
+    HasBiomeObstacleNavigation : Boolean
+  -- methods --
+    Void .cctor() [static,priv]
+    Boolean get_RenderableByVFX() [pub]
+    Boolean get_HasBiomeObstacleNavigation() [pub]
+    Void .ctor(ItemInfo info) [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    Int32 get_c_renderableByVFX() [static,pub]
+    Void set_c_renderableByVFX(Int32 ) [static,pub]
+    Int32 get_c_hasBiomeObstacle() [static,pub]
+    Void set_c_hasBiomeObstacle(Int32 ) [static,pub]
+    Int32 get_c_hasProcesses() [static,pub]
+    Void set_c_hasProcesses(Int32 ) [static,pub]
+    Byte get__specialPropertiesFlags() [pub]
+    Void set__specialPropertiesFlags(Byte ) [pub]
+
+### TYPE SSSGame.DynamicItemObject  base=UnityEngine.MonoBehaviour
+  -- fields --
+  -- properties --
+    _UnderPlatformRigidbody_k__BackingField : Rigidbody
+    _NextDynamicObject_k__BackingField : DynamicItemObject
+    _PreviousDynamicObject_k__BackingField : DynamicItemObject
+    destroyIfUnderwater : Boolean
+    maxWaterDepthToDestroy : Single
+    preventFromFallingBelowTerrain : Boolean
+    maxDistBelowTerrain : Single
+    preventFromLeavingTheCell : Boolean
+    cellConfinementRadius : Single
+    notMobileOnStreamingTerrain : Boolean
+    destroyWhenLeavingTheCell : Boolean
+    updateInstanceDataPosition : Boolean
+    instanceDataPosDelta : Single
+    notifyDataChangePosChange : Boolean
+    debugNoFalling : Boolean
+    debugOutsideCell : Boolean
+    _itemObject : WorldItemObject
+    _transform : Transform
+    _wsm : WorldStreamingManager
+    _um : UnderwaterManager
+    _rb : Rigidbody
+    _setup : Boolean
+    _oldHeight : Single
+    _contextSpawn : Boolean
+    _spawnPos : Vector3
+    _spawnContext : ItemObjectSpawnContext
+    _contextLayers : Int32
+    _maxHeight : Single
+    _sleeping : Boolean
+    UnderPlatformRigidbody : Rigidbody
+    WalkerType : WalkerType
+    WalkerRigidbody : Rigidbody
+    NextDynamicObject : DynamicItemObject
+    PreviousDynamicObject : DynamicItemObject
+  -- methods --
+    Void .cctor() [static,priv]
+    Rigidbody get_UnderPlatformRigidbody() [virt,pub]
+    Void set_UnderPlatformRigidbody(Rigidbody value) [virt,pub]
+    WalkerType get_WalkerType() [virt,pub]
+    Rigidbody get_WalkerRigidbody() [virt,pub]
+    DynamicItemObject get_NextDynamicObject() [pub]
+    Void set_NextDynamicObject(DynamicItemObject value) [pub]
+    DynamicItemObject get_PreviousDynamicObject() [pub]
+    Void set_PreviousDynamicObject(DynamicItemObject value) [pub]
+    Void Awake() [pub]
+    Void ManualSetup(ItemObjectSpawnContext context, Item item) [pub]
+    Void _OnSetup(ItemObjectSpawnContext context, Item item) [pub]
+    Void OnEnable() [pub]
+    Void OnDisable() [pub]
+    Void ManualUpdate() [pub]
+    Void ForceUpdateInstancePosition() [pub]
+    Boolean _IsOutOfBounds(Vector3& worldPos, Rect& cellRect) [pub]
+    Void _UpdateInstancePosition(Boolean& forced) [pub]
+    Void EnsureAboveGround() [virt,pub]
+    Void .ctor() [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    Rigidbody get__UnderPlatformRigidbody_k__BackingField() [pub]
+    Void set__UnderPlatformRigidbody_k__BackingField(Rigidbody ) [pub]
+    DynamicItemObject get__NextDynamicObject_k__BackingField() [pub]
+    Void set__NextDynamicObject_k__BackingField(DynamicItemObject ) [pub]
+    DynamicItemObject get__PreviousDynamicObject_k__BackingField() [pub]
+    Void set__PreviousDynamicObject_k__BackingField(DynamicItemObject ) [pub]
+    Boolean get_destroyIfUnderwater() [pub]
+    Void set_destroyIfUnderwater(Boolean ) [pub]
+    Single get_maxWaterDepthToDestroy() [pub]
+    Void set_maxWaterDepthToDestroy(Single ) [pub]
+    Boolean get_preventFromFallingBelowTerrain() [pub]
+    Void set_preventFromFallingBelowTerrain(Boolean ) [pub]
+    Single get_maxDistBelowTerrain() [pub]
+    Void set_maxDistBelowTerrain(Single ) [pub]
+    Boolean get_preventFromLeavingTheCell() [pub]
+    Void set_preventFromLeavingTheCell(Boolean ) [pub]
+    Single get_cellConfinementRadius() [pub]
+    Void set_cellConfinementRadius(Single ) [pub]
+    Boolean get_notMobileOnStreamingTerrain() [pub]
+    Void set_notMobileOnStreamingTerrain(Boolean ) [pub]
+    Boolean get_destroyWhenLeavingTheCell() [pub]
+    Void set_destroyWhenLeavingTheCell(Boolean ) [pub]
+    Boolean get_updateInstanceDataPosition() [pub]
+    Void set_updateInstanceDataPosition(Boolean ) [pub]
+    Single get_instanceDataPosDelta() [pub]
+    Void set_instanceDataPosDelta(Single ) [pub]
+    Boolean get_notifyDataChangePosChange() [pub]
+    Void set_notifyDataChangePosChange(Boolean ) [pub]
+    Boolean get_debugNoFalling() [pub]
+    Void set_debugNoFalling(Boolean ) [pub]
+    Boolean get_debugOutsideCell() [pub]
+    Void set_debugOutsideCell(Boolean ) [pub]
+    WorldItemObject get__itemObject() [pub]
+    Void set__itemObject(WorldItemObject ) [pub]
+    Transform get__transform() [pub]
+    Void set__transform(Transform ) [pub]
+    WorldStreamingManager get__wsm() [pub]
+    Void set__wsm(WorldStreamingManager ) [pub]
+    UnderwaterManager get__um() [pub]
+    Void set__um(UnderwaterManager ) [pub]
+    Rigidbody get__rb() [pub]
+    Void set__rb(Rigidbody ) [pub]
+    Boolean get__setup() [pub]
+    Void set__setup(Boolean ) [pub]
+    Single get__oldHeight() [pub]
+    Void set__oldHeight(Single ) [pub]
+    Boolean get__contextSpawn() [pub]
+    Void set__contextSpawn(Boolean ) [pub]
+    Vector3 get__spawnPos() [pub]
+    Void set__spawnPos(Vector3 ) [pub]
+    ItemObjectSpawnContext get__spawnContext() [pub]
+    Void set__spawnContext(ItemObjectSpawnContext ) [pub]
+    Int32 get__contextLayers() [pub]
+    Void set__contextLayers(Int32 ) [pub]
+    Single get__maxHeight() [pub]
+    Void set__maxHeight(Single ) [pub]
+    Boolean get__sleeping() [pub]
+    Void set__sleeping(Boolean ) [pub]
+
+### TYPE SSSGame.WorldItemObject  base=SandSailorStudio.Inventory.ItemComponent
+  -- fields --
+  -- properties --
+    _interactable : NetworkItemInteractable
+    _hittable : NetworkHittable
+    _worldInstance : WorldItemInstance
+    WorldInstance : WorldItemInstance
+  -- methods --
+    Void .cctor() [static,priv]
+    WorldItemInstance get_WorldInstance() [virt,pub]
+    Void set_WorldInstance(WorldItemInstance value) [virt,pub]
+    Void RefreshIdentity() [pub]
+    Void Setup(ItemObjectSpawnContext& context, Item item) [virt,pub]
+    Void _InvokeOnSetupEvent(ItemObjectSpawnContext& context, Item item) [virt,pub]
+    Void RemoveObjectFromWorld() [virt,pub]
+    Void RemoveObjectFromWorldWithDialogue() [pub]
+    Void .ctor() [pub]
+    Void _RemoveObjectFromWorldWithDialogue_b__10_0(ConfirmActionMenu _) [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    NetworkItemInteractable get__interactable() [pub]
+    Void set__interactable(NetworkItemInteractable ) [pub]
+    NetworkHittable get__hittable() [pub]
+    Void set__hittable(NetworkHittable ) [pub]
+    WorldItemInstance get__worldInstance() [pub]
+    Void set__worldInstance(WorldItemInstance ) [pub]
+
+
+==================== 4. Types named *Decay* / *Despawn* / *Cleanup* / *Lifetime* ====================
+  UnityStandardAssets.Utility.AutoMoveAndRotate  base=UnityEngine.MonoBehaviour
+  UnityStandardAssets.Utility.AutoMoveAndRotate/Vector3andSpace  base=Il2CppSystem.Object
+  UnityStandardAssets.Utility.SimpleMouseRotator  base=UnityEngine.MonoBehaviour
+  UnityStandardAssets.Cameras.ProtectCameraFromWallClip  base=UnityEngine.MonoBehaviour
+  UnityStandardAssets.Cameras.ProtectCameraFromWallClip/RayHitComparer  base=Il2CppSystem.Object
+  RootMotion.FinalIK.ConstraintRotation  base=RootMotion.FinalIK.Constraint
+  RootMotion.FinalIK.ConstraintRotationOffset  base=RootMotion.FinalIK.Constraint
+  RootMotion.FinalIK.IKSolverVR/RotationOffset  base=System.Enum
+  RootMotion.FinalIK.RotationLimit  base=UnityEngine.MonoBehaviour
+  RootMotion.FinalIK.RotationLimitAngle  base=RootMotion.FinalIK.RotationLimit
+  RootMotion.FinalIK.RotationLimitHinge  base=RootMotion.FinalIK.RotationLimit
+  RootMotion.FinalIK.RotationLimitPolygonal  base=RootMotion.FinalIK.RotationLimit
+  RootMotion.FinalIK.RotationLimitPolygonal/ReachCone  base=Il2CppSystem.Object
+  RootMotion.FinalIK.RotationLimitPolygonal/LimitPoint  base=Il2CppSystem.Object
+  RootMotion.FinalIK.RotationLimitSpline  base=RootMotion.FinalIK.RotationLimit
+  RootMotion.FinalIK.HitReactionVRIK/RotationOffset  base=RootMotion.FinalIK.HitReactionVRIK/Offset
+  RootMotion.FinalIK.ShoulderRotator  base=UnityEngine.MonoBehaviour
+  RootMotion.Demos.PlatformRotator  base=UnityEngine.MonoBehaviour
+  RootMotion.Demos.PlatformRotator/_SwitchRotation_d__14  base=Il2CppSystem.Object
+  RootMotion.Demos.SimpleLocomotion/RotationMode  base=System.Enum
+  _CameraRotate_BF02  base=UnityEngine.MonoBehaviour
+  PlayerAOIPrototype  base=Fusion.NetworkBehaviour
+  ControllerPrototype  base=Fusion.NetworkBehaviour
+  InputBehaviourPrototype  base=Fusion.Behaviour
+  NetworkInputPrototype  base=System.ValueType
+  NetworkCharacterControllerPrototype  base=Fusion.NetworkTransform
+  PlayerSpawnerPrototype  base=SpawnerPrototype`1<PlayerSpawnPointPrototype>
+  ISpawnPointManagerPrototype`1  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  ISpawnPointPrototype  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  PlayerSpawnPointManagerPrototype  base=SpawnPointManagerPrototype`1<PlayerSpawnPointPrototype>
+  PlayerSpawnPointPrototype  base=Fusion.SimulationBehaviour
+  SpawnPointManagerPrototype`1  base=Fusion.Behaviour
+  SpawnPointManagerPrototype`1/SpawnSequence  base=System.Enum
+  SpawnerPrototype`1  base=Fusion.SimulationBehaviour
+  SpawnerPrototype`1/SpawnMethods  base=System.Enum
+  SpawnerPrototype`1/AuthorityOptions  base=System.Enum
+  Rotate  base=UnityEngine.MonoBehaviour
+  LockWorldRotation  base=UnityEngine.MonoBehaviour
+  Rotator  base=UnityEngine.MonoBehaviour
+  SSSGame.AnvilCleanupQuest  base=SSSGame.AI.WorkstationQuest
+  SSSGame.AnvilCleanupQuest/AnvilCleanupQuestData  base=SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.CuringCleanupQuest  base=SSSGame.AI.WorkstationQuest
+  SSSGame.CuringCleanupQuest/CuringCleanupQuestData  base=SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.TroughCleanupQuest  base=SSSGame.AI.WorkstationQuest
+  SSSGame.TroughCleanupQuest/TroughCleanupQuestData  base=SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AnchorRotationAxis  base=System.Enum
+  SSSGame.MultiPivotRotator  base=UnityEngine.MonoBehaviour
+  SSSGame.MultiPivotRotator/SnapID  base=System.ValueType
+  SSSGame.MultiPivotRotator/SnapTransform  base=System.ValueType
+  SSSGame.MultiPivotRotator/Direction  base=System.Enum
+  SSSGame.WheelRotation  base=UnityEngine.MonoBehaviour
+  SSSGame.AnvilInteraction/DieRotationAxis  base=System.Enum
+  SSSGame.AnvilInteraction/__DieRotationRoutine_d__137  base=Il2CppSystem.Object
+  SSSGame.Creature/__DespawnRoutine_d__254  base=Il2CppSystem.Object
+  SSSGame.GameStateManager_Prototype  base=SandSailorStudio.Game.GameStateManager
+  SSSGame.GameStateManager_Prototype/__WaitForLockedFalse_d__12  base=Il2CppSystem.Object
+  SSSGame.ItemDurablilityProcess/DecayMode  base=System.Enum
+  SSSGame.NetworkRotatableSelector  base=Fusion.NetworkBehaviour
+  SSSGame.NetworkRotatableSelector/RotatingTransform  base=Il2CppSystem.Object
+  SSSGame.NetworkRotatableSelector/RotationEvents  base=Il2CppSystem.Object
+  SSSGame.NetworkRotatableSelector/Selectables  base=Il2CppSystem.Object
+  SSSGame.Prototype_VoronoiStamping  base=UnityEngine.MonoBehaviour
+  SSSGame.Prototype_VoronoiStamping/VoronoiStamp  base=Il2CppSystem.ValueType
+  SSSGame.Prototype_VoronoiStamping/GenerateJob  base=Il2CppSystem.ValueType
+  SSSGame.InteractWidget/MethodInfoStoreGeneric__Cleanup_Private_Void_Dictionary_2_IInteractionWidgetUser_Dictionary_2_Int32_ValueTuple_2_T_T_0`1  base=System.Object
+  SSSGame.Localization.TMProTextWrapper  base=SSSGame.Localization.TextWrapper
+  SSSGame.Network.ItemDecaySyncProcess  base=SandSailorStudio.Inventory.ItemProcess
+  SSSGame.Network.IntermittentStateInterpolator`1/RotationState  base=Il2CppSystem.ValueType
+  SSSGame.Network.IntermittentStateInterpolator`1/PositionRotationValues  base=Il2CppSystem.ValueType
+  SSSGame.Network.YRotationIntermittentStateInterpolator  base=SSSGame.Network.IntermittentStateInterpolator`1<System.Single>
+  SSSGame.Network.FullRotationIntermittentStateInterpolator  base=SSSGame.Network.IntermittentStateInterpolator`1<UnityEngine.Quaternion>
+  SSSGame.Network.SmallestThreeRotationIntermittentStateInterpolator  base=SSSGame.Network.IntermittentStateInterpolator`1<System.UInt32>
+  SSSGame.Network.INetworkLifetimeTracker  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkInteractable`1/MethodInfoStoreGeneric__TryGetInteractable_Protected_Static_Boolean_NetworkRunner_byref_INetworkIdentity_Int32_byref_T_0`1  base=System.Object
+  SSSGame.Network.NetworkChatSession/PasswordProtocolToken  base=Il2CppSystem.ValueType
+  SSSGame.Network.NetworkFullRotationMover  base=SSSGame.Network.NetworkMover`1<UnityEngine.Quaternion>
+  SSSGame.Network.NetworkPositionYRotation  base=Fusion.NetworkAreaOfInterestBehaviour
+  SSSGame.Network.NetworkSmallestThreeRotationMover  base=SSSGame.Network.NetworkMover`1<System.UInt32>
+  SSSGame.Network.NetworkSpawner/__DelayedDespawn_d__28  base=Il2CppSystem.Object
+  SSSGame.Network.NetworkSpawner/MethodInfoStoreGeneric_Despawn_Public_Void_T_Single_0`1  base=System.Object
+  SSSGame.Network.NetworkYRotationMover  base=SSSGame.Network.NetworkMover`1<System.Single>
+  SSSGame.Water.RudderInteraction/RudderRotationAxis  base=System.Enum
+  SSSGame.Controllers.RotateCharacterForward  base=UnityEngine.StateMachineBehaviour
+  SSSGame.Combat.StoneGolemBoss/__DelayedDespawnBoss_d__75  base=Il2CppSystem.Object
+  SSSGame.Combat.StoneGolemBoss/__DelayedDespawnPartRoutine_d__76  base=Il2CppSystem.Object
+  SSSGame.Combat.StoneGolemMinion/__DelayedDespawnCreatureRoutine_d__40  base=Il2CppSystem.Object
+  SSSGame.Combat.StoneGolemMinion/__DelayedDespawnPartRoutine_d__41  base=Il2CppSystem.Object
+  SSSGame.AI.BuilderCleanupInventoryQuest  base=SSSGame.AI.CleanupInventoryQuest
+  SSSGame.AI.BuilderCleanupInventoryQuest/BuilderCleanupInventoryQuestData  base=SSSGame.AI.CleanupInventoryQuest/CleanupInventoryQuestData
+  SSSGame.AI.CleanupInventoryQuest  base=SSSGame.AI.WorkstationQuest
+  SSSGame.AI.CleanupInventoryQuest/CleanupInventoryQuestData  base=SSSGame.AI.WorkstationQuest/WorkstationQuestData
+  SSSGame.AI.RotationMode  base=System.Enum
+  SSSGame.AI.RotateTowardsData  base=System.ValueType
+  SSSGame.AI.RotationAxis  base=System.Enum
+  SSSGame.AI.FSM.FSM_RotateAroundTarget  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateAwayFromPosition  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateInDirection  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateToPosition  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateToTarget  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateToTarget/TargetFocusPoint  base=System.Enum
+  SSSGame.AI.FSM.FSM_RotateToTargetDistance  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateToTargetDistance/TargetFocusPoint  base=System.Enum
+  SSSGame.AI.FSM.FSM_StopRotateTo  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_CleanupCrockpot  base=SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_CleanupCrockpot/CleanupData  base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_CleanupCrockpot/ReturnStage  base=System.Enum
+  SSSGame.AI.FSM.FSM_CleanupCrockpot/__c__DisplayClass8_0  base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_CleanupCrockpot/__c__DisplayClass8_1  base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_CleanupInventory  base=SSSGame.AI.FSM.FSM_QuestAction
+  SSSGame.AI.FSM.FSM_CleanupInventory/NicePriority  base=System.Enum
+  SSSGame.AI.FSM.FSM_CleanupInventory/StorageSpaceItemFilter  base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_CleanupInventory/CleanupInventoryData  base=Il2CppSystem.Object
+  SSSGame.AI.FSM.FSM_CleanupInventory/CleanupState  base=System.Enum
+  SSSGame.AI.FSM.FSM_RotateToTargetAnimate  base=SSSGame.AI.FSM.vStateAction
+  SSSGame.AI.FSM.FSM_RotateToTargetAnimate/RotationTarget  base=System.Enum
+  SSSGame.AI.FSM.FSM_RotateToTargetAnimate/TurnAction  base=Il2CppSystem.Object
+  Invector.vRotateObject  base=UnityEngine.MonoBehaviour
+  Invector.vCharacterController.AI.v_AIController/_MeleeAttackRotine_d__35  base=Il2CppSystem.Object
+  Pathfinding.GraphModifier/MethodInfoStoreGeneric_GetModifiersOfType_Protected_Static_List_1_T_0`1  base=System.Object
+  Pathfinding.Examples.ProceduralWorld/RotationRandomness  base=System.Enum
+  SandSailorStudio.VegetationSystem.ApplyOffsetRotateScaleJob  base=Il2CppSystem.ValueType
+  AwesomeTechnologies.VegetationSystem.OffsetAndRotateScaleVegetationInstanceMathJob  base=Il2CppSystem.ValueType
+  AwesomeTechnologies.VegetationSystem.VegetationRotationType  base=System.Enum
+  Cinemachine.CinemachineTargetGroup/RotationMode  base=System.Enum
+  Cinemachine.CinemachineExtension/MethodInfoStoreGeneric_GetExtraState_Protected_T_ICinemachineCamera_0`1  base=System.Object
+  Cinemachine.CinemachineExtension/MethodInfoStoreGeneric_GetAllExtraStates_Protected_List_1_T_0`1  base=System.Object
+  Cinemachine.Utility.GaussianWindow1D_CameraRotation  base=Cinemachine.Utility.GaussianWindow1d`1<UnityEngine.Vector2>
+  Steamworks.OverlayBrowserProtocolNavigation_t  base=Il2CppSystem.ValueType
+  Steamworks.MicroTxnAuthorizationResponse_t  base=System.ValueType
+  Steamworks.ESteamIPv6ConnectivityProtocol  base=System.Enum
+  Fusion.Protocol.ICommunicator  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.Protocol.ICommunicator/MethodInfoStoreGeneric_RegisterPackageCallback_Public_Abstract_Virtual_New_Void_Action_2_Int32_K_0`1  base=System.Object
+  Fusion.Protocol.IMessage  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.IDespawned  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.IPredictedDespawnBehaviour  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Fusion.NetworkPositionRotation  base=Fusion.NetworkPosition
+  Fusion.NetworkPositionRotation/EncodedRotation  base=System.ValueType
+  Fusion.NetworkTransform/PositionRotationValues  base=System.ValueType
+  Fusion.BVHNode/Rot  base=System.Enum
+  Fusion.LagCompensationUtils/RotationMatrix  base=System.ValueType
+  Fusion.Rotation  base=System.ValueType
+  Fusion.Rotation/RotationTypes  base=System.Enum
+  Fusion.NetworkRunner/_ShutdownWithCleanupCoroutine_d__118  base=Il2CppSystem.Object
+  Fusion.LagCompensation.PositionRotationQuery  base=Il2CppSystem.ValueType
+  Fusion.Protocol.BitStream  base=Il2CppSystem.Object
+  Fusion.Protocol.BitStream/ArrayElementSerializer`1  base=Il2CppSystem.MulticastDelegate
+  Fusion.Protocol.BitStream/MethodInfoStoreGeneric_SerializeArrayLength_Public_Void_byref_Il2CppArrayBase_1_T_0`1  base=System.Object
+  Fusion.Protocol.BitStream/MethodInfoStoreGeneric_SerializeArray_Public_Void_byref_Il2CppArrayBase_1_T_ArrayElementSerializer_1_T_0`1  base=System.Object
+  Fusion.Protocol.UdpByteConverter  base=System.ValueType
+  Fusion.Protocol.CommunicatorBase  base=Il2CppSystem.Object
+  Fusion.Protocol.CommunicatorBase/__c__DisplayClass16_0`1  base=Il2CppSystem.Object
+  Fusion.Protocol.CommunicatorBase/MethodInfoStoreGeneric_RegisterPackageCallback_Public_Virtual_Final_New_Void_Action_2_Int32_K_0`1  base=System.Object
+  Fusion.Protocol.Message  base=Il2CppSystem.Object
+  Fusion.Protocol.Disconnect  base=Fusion.Protocol.Message
+  Fusion.Protocol.DisconnectReason  base=System.Enum
+  Fusion.Protocol.DummyTrafficSync  base=Fusion.Protocol.Message
+  Fusion.Protocol.HostMigration  base=Fusion.Protocol.Message
+  Fusion.Protocol.JoinMessageType  base=System.Enum
+  Fusion.Protocol.PeerMode  base=System.Enum
+  Fusion.Protocol.JoinRequests  base=System.Enum
+  Fusion.Protocol.Join  base=Fusion.Protocol.Message
+  Fusion.Protocol.SyncType  base=System.Enum
+  Fusion.Protocol.NetworkConfigSync  base=Fusion.Protocol.Message
+  Fusion.Protocol.ReflexiveInfo  base=Fusion.Protocol.Message
+  Fusion.Protocol.SnapshotType  base=System.Enum
+  Fusion.Protocol.Snapshot  base=Fusion.Protocol.Message
+  Fusion.Protocol.StartRequests  base=System.Enum
+  Fusion.Protocol.Start  base=Fusion.Protocol.Message
+  Fusion.Protocol.PluginGameMode  base=System.Enum
+  Fusion.Protocol.EventCodes  base=Il2CppSystem.Object
+  Fusion.Protocol.PhotonConstants  base=Il2CppSystem.Object
+  Fusion.Protocol.ProtocolSerializer  base=Il2CppSystem.Object
+  Fusion.Protocol.ProtocolMessageVersion  base=System.Enum
+  Il2CppMono.Security.Protocol.Ntlm.ChallengeResponse  base=Il2CppSystem.Object
+  Il2CppMono.Security.Protocol.Ntlm.ChallengeResponse2  base=Il2CppSystem.Object
+  Il2CppMono.Security.Protocol.Ntlm.MessageBase  base=Il2CppSystem.Object
+  Il2CppMono.Security.Protocol.Ntlm.NtlmAuthLevel  base=System.Enum
+  Il2CppMono.Security.Protocol.Ntlm.NtlmFlags  base=System.Enum
+  Il2CppMono.Security.Protocol.Ntlm.NtlmSettings  base=Il2CppSystem.Object
+  Il2CppMono.Security.Protocol.Ntlm.Type1Message  base=Il2CppMono.Security.Protocol.Ntlm.MessageBase
+  Il2CppMono.Security.Protocol.Ntlm.Type2Message  base=Il2CppMono.Security.Protocol.Ntlm.MessageBase
+  Il2CppMono.Security.Protocol.Ntlm.Type3Message  base=Il2CppMono.Security.Protocol.Ntlm.MessageBase
+  Il2CppMono.Security.Interface.TlsProtocolCode  base=System.Enum
+  Il2CppMono.Security.Interface.TlsProtocols  base=System.Enum
+  Il2CppSystem.Runtime.Remoting.Lifetime.ILease  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Lifetime.ISponsor  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Lifetime.Lease  base=Il2CppSystem.MarshalByRefObject
+  Il2CppSystem.Runtime.Remoting.Lifetime.Lease/RenewalDelegate  base=Il2CppSystem.MulticastDelegate
+  Il2CppSystem.Runtime.Remoting.Lifetime.LeaseManager  base=Il2CppSystem.Object
+  Il2CppSystem.Runtime.Remoting.Lifetime.LeaseSink  base=Il2CppSystem.Object
+  Il2CppSystem.Runtime.Remoting.Lifetime.LeaseState  base=System.Enum
+  Il2CppSystem.Runtime.Remoting.Lifetime.LifetimeServices  base=Il2CppSystem.Object
+  Il2CppSystem.Runtime.CompilerServices.CallSiteBinder/MethodInfoStoreGeneric_CacheTarget_Protected_Void_T_0`1  base=System.Object
+  Interop/ApplicationProtocolNegotiationStatus  base=System.Enum
+  Interop/ApplicationProtocolNegotiationExt  base=System.Enum
+  Interop/SecPkgContext_ApplicationProtocol  base=Il2CppSystem.Object
+  Il2CppMono.Unity.UnityTls/unitytls_protocol  base=System.Enum
+  Il2CppMono.Unity.UnityTls/unitytls_tlsctx_protocolrange  base=System.ValueType
+  Il2CppMono.Net.Security.AsyncProtocolResult  base=Il2CppSystem.Object
+  Il2CppMono.Net.Security.AsyncProtocolRequest  base=Il2CppSystem.Object
+  Il2CppMono.Net.Security.AsyncProtocolRequest/_StartOperation_d__23  base=Il2CppSystem.ValueType
+  Il2CppMono.Net.Security.AsyncProtocolRequest/_ProcessOperation_d__24  base=Il2CppSystem.ValueType
+  Il2CppMono.Net.Security.AsyncProtocolRequest/_InnerRead_d__25  base=Il2CppSystem.ValueType
+  Il2CppSystem.Security.Authentication.SslProtocols  base=System.Enum
+  Il2CppSystem.Security.Authentication.ExtendedProtection.ServiceNameCollection  base=Il2CppSystem.Collections.ReadOnlyCollectionBase
+  Il2CppSystem.Security.Authentication.ExtendedProtection.TokenBinding  base=Il2CppSystem.Object
+  Il2CppSystem.Security.Authentication.ExtendedProtection.ChannelBinding  base=Il2CppMicrosoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
+  Il2CppSystem.Security.Authentication.ExtendedProtection.ChannelBindingKind  base=System.Enum
+  Il2CppSystem.Security.Authentication.ExtendedProtection.ExtendedProtectionPolicy  base=Il2CppSystem.Object
+  Il2CppSystem.Security.Authentication.ExtendedProtection.ExtendedProtectionPolicyTypeConverter  base=Il2CppSystem.ComponentModel.TypeConverter
+  Il2CppSystem.Security.Authentication.ExtendedProtection.PolicyEnforcement  base=System.Enum
+  Il2CppSystem.Net.SecurityProtocol  base=Il2CppSystem.Object
+  Il2CppSystem.Net.SecurityProtocolType  base=System.Enum
+  Il2CppSystem.Net.HttpProtocolUtils  base=Il2CppSystem.Object
+  Il2CppSystem.Net.ProtocolViolationException  base=Il2CppSystem.InvalidOperationException
+  Il2CppSystem.Net.HttpListener/ExtendedProtectionSelector  base=Il2CppSystem.MulticastDelegate
+  Il2CppSystem.Net.Cache.RequestCacheProtocol  base=Il2CppSystem.Object
+  Il2CppSystem.Net.Sockets.IPProtectionLevel  base=System.Enum
+  Il2CppSystem.Net.Sockets.ProtocolType  base=System.Enum
+  MagicaCloth2.AutoRotate  base=UnityEngine.MonoBehaviour
+  MagicaCloth2.AutoRotate/UpdateMode  base=System.Enum
+  MagicaCloth2.RenderSetupData/CalcInverseRotationJob  base=Il2CppSystem.ValueType
+  MagicaCloth2.VirtualMesh/BaseLine_CalcLocalPositionRotationJob  base=Il2CppSystem.ValueType
+  NaughtyCharacter.RotationSettings  base=Il2CppSystem.Object
+  ExitGames.Client.Photon.SerializationProtocol  base=System.Enum
+  ExitGames.Client.Photon.SerializationProtocolFactory  base=Il2CppSystem.Object
+  ExitGames.Client.Photon.IProtocol  base=Il2CppSystem.Object
+  ExitGames.Client.Photon.IProtocol/DeserializationFlags  base=System.Enum
+  ExitGames.Client.Photon.ConnectionProtocol  base=System.Enum
+  ExitGames.Client.Photon.Protocol  base=Il2CppSystem.Object
+  ExitGames.Client.Photon.Protocol16  base=ExitGames.Client.Photon.IProtocol
+  ExitGames.Client.Photon.Protocol16/GpType  base=System.Enum
+  ExitGames.Client.Photon.Protocol18  base=ExitGames.Client.Photon.IProtocol
+  ExitGames.Client.Photon.Protocol18/GpType  base=System.Enum
+  PlayFab.MultiplayerModels.ProtocolType  base=System.Enum
+  Trello.RotateAround  base=UnityEngine.MonoBehaviour
+  SandSailorStudio.UI.Menu/MethodInfoStoreGeneric__Open_Protected_Static_Void_MenuParameters_0`1  base=System.Object
+  SandSailorStudio.UI.Menu/MethodInfoStoreGeneric__Close_Protected_Static_Void_0`1  base=System.Object
+  SandSailorStudio.Gameplay.RotationWobbleAction  base=SandSailorStudio.Gameplay.Action
+  SandSailorStudio.Gameplay.RotationWobbleAction/__Wobble_d__18  base=Il2CppSystem.Object
+  SandSailorStudio.WorldGen.RotateInstanceToPointNode  base=SandSailorStudio.WorldGen.AreaInstanceTransformNode
+  SandSailorStudio.WorldGen.RotateInstanceTowardsPointNode  base=SandSailorStudio.WorldGen.AreaInstanceTransformNode
+  SandSailorStudio.WorldGen.RotateRandomNode  base=SandSailorStudio.WorldGen.AreaInstanceTransformNode
+  SandSailorStudio.WorldGen.RotateTowardsPointNode  base=XNode.Node
+  SandSailorStudio.WorldGen.DungeonRotation  base=Il2CppSystem.Object
+  UnityEngine.Animations.Rigging.MultiRotationConstraintJob  base=Il2CppSystem.ValueType
+  UnityEngine.Animations.Rigging.IMultiRotationConstraintData  base=Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Animations.Rigging.MultiRotationConstraintJobBinder`1  base=UnityEngine.Animations.Rigging.AnimationJobBinder`2<UnityEngine.Animations.Rigging.MultiRotationConstraintJob,T>
+  UnityEngine.Animations.Rigging.MultiRotationConstraintData  base=Il2CppSystem.ValueType
+  UnityEngine.Animations.Rigging.MultiRotationConstraint  base=UnityEngine.Animations.Rigging.RigConstraint`3<UnityEngine.Animations.Rigging.MultiRotationConstraintJob,UnityEngine.Animations.Rigging.MultiRotationConstraintData,UnityEngine.Animations.Rigging.MultiRotationConstraintJobBinder`1<UnityEngine.Animations.Rigging.MultiRotationConstraintData>>
+  UnityEngine.InputSystem.OnScreen.OnScreenControl/MethodInfoStoreGeneric_SendValueToControl_Protected_Void_TValue_0`1  base=System.Object
+  UnityEngine.InputSystem.LowLevel.InputStateHistory/MethodInfoStoreGeneric_ReadValue_Protected_TValue_ptr_RecordHeader_0`1  base=System.Object
+  UnityEngine.InputSystem.Processors.CompensateRotationProcessor  base=UnityEngine.InputSystem.InputProcessor`1<UnityEngine.Quaternion>
+  Unity.Mathematics.math/RotationOrder  base=System.Enum
+  UnityEngine.Rendering.DebugDisplaySettings`1/MethodInfoStoreGeneric_Add_Protected_TData_TData_0`1  base=System.Object
+  UnityEngine.Rendering.UI.DebugUIHandlerWidget/MethodInfoStoreGeneric_CastWidget_Protected_T_0`1  base=System.Object
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline/MethodInfoStoreGeneric_IsRenderRequestSupported_Protected_Virtual_Boolean_Camera_RequestData_0`1  base=System.Object
+  UnityEngine.Rendering.HighDefinition.HDRenderPipeline/MethodInfoStoreGeneric_ProcessRenderRequests_Protected_Virtual_Void_ScriptableRenderContext_Camera_RequestData_0`1  base=System.Object
+  UnityEngine.AI.NavMeshAgent/get_updateRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AI.NavMeshData/get_rotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AndroidJavaObject/MethodInfoStoreGeneric__Call_Protected_ReturnType_String_Il2CppReferenceArray_1_Object_0`1  base=System.Object
+  UnityEngine.AndroidJavaObject/MethodInfoStoreGeneric__Call_Protected_ReturnType_IntPtr_Il2CppReferenceArray_1_Object_0`1  base=System.Object
+  UnityEngine.AndroidJavaObject/MethodInfoStoreGeneric__CallStatic_Protected_ReturnType_String_Il2CppReferenceArray_1_Object_0`1  base=System.Object
+  UnityEngine.AndroidJavaObject/MethodInfoStoreGeneric__CallStatic_Protected_ReturnType_IntPtr_Il2CppReferenceArray_1_Object_0`1  base=System.Object
+  UnityEngine.Animator/get_isRootPositionOrRotationControlledByCurves_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/set_rootRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/get_bodyRotationInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/set_bodyRotationInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/GetGoalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/GetGoalWeightRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/SetBoneLocalRotationInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animator/get_targetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AnimatorOverrideController/PerformOverrideClipListCleanup_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Avatar/Internal_GetPreRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalSetGoalWeightRotationDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetGoalWeightRotationDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetGoalRotationFromPose_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetBodyLocalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalSetBodyLocalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetBodyRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalSetBodyRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetGoalLocalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalSetGoalLocalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalGetGoalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationHumanStream/InternalSetGoalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationOffsetPlayable/GetRotationInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationOffsetPlayable/SetRotationInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AnimationStream/GetRootMotionRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.TransformStreamHandle/GetRotationReadMaskInternalDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint  base=UnityEngine.Behaviour
+  UnityEngine.Animations.RotationConstraint/Internal_CreateDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_weight_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_weight_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_constraintActive_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_constraintActive_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/get_locked_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/set_locked_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/GetSourceCountInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/GetSources_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/SetSourcesInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/AddSource_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/RemoveSourceInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/GetSourceInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.RotationConstraint/SetSourceInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/get_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/set_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/get_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/set_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/get_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.AimConstraint/set_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.LookAtConstraint/get_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.LookAtConstraint/set_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.LookAtConstraint/get_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.LookAtConstraint/set_rotationOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/get_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/set_rotationAtRest_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/get_rotationOffsets_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/set_rotationOffsets_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/get_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/set_rotationAxis_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/GetRotationOffsetInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Animations.ParentConstraint/SetRotationOffsetInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbFilter/get_decayTime_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbFilter/set_decayTime_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbFilter/get_decayHFRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbFilter/set_decayHFRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbZone/get_decayTime_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbZone/set_decayTime_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbZone/get_decayHFRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioReverbZone/set_decayHFRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioEchoFilter/get_decayRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.AudioEchoFilter/set_decayRatio_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.WebCamTexture/get_videoRotationAngle_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ClusterInput/GetTrackerRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ClusterInput/SetTrackerRotation_InjectedDelegate  base=System.MulticastDelegate
+  Unity.Scripting.LifecycleManagement.AutoStaticsCleanupOnCodeReloadAttribute  base=Il2CppSystem.Attribute
+  Unity.Scripting.LifecycleManagement.NoAutoStaticsCleanupAttribute  base=Il2CppSystem.Attribute
+  UnityEngine.SpritePackingRotation  base=System.Enum
+  UnityEngine.Random/get_rotationUniform_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Transform/GetRotationOrderInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Transform/SetRotationOrderInternal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Transform/RotateAroundLocal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/SetLocalPositionAndRotation_InternalDelegate  base=System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/GetPositionAndRotation_InternalDelegate  base=System.MulticastDelegate
+  UnityEngine.Jobs.TransformAccess/GetLocalPositionAndRotation_InternalDelegate  base=System.MulticastDelegate
+  UnityEngine.Events.BaseInvokableCall/MethodInfoStoreGeneric_ThrowOnInvalidArg_Protected_Static_Void_Object_0`1  base=System.Object
+  UnityEngine.PlayerLoop.EarlyUpdate/PlayerCleanupCachedData  base=System.ValueType
+  UnityEngine.Rendering.RenderPipeline/MethodInfoStoreGeneric_ProcessRenderRequests_Protected_Virtual_New_Void_ScriptableRenderContext_Camera_RequestData_0`1  base=System.Object
+  Unity.Baselib.LowLevel.Binding/Baselib_Socket_Protocol  base=System.Enum
+  Unity.Scripting.LifecycleManagement.CleanupStrategy  base=System.Enum
+  Unity.Scripting.LifecycleManagement.AutoStaticsCleanupAttribute  base=System.Attribute
+  UnityEngine.RotationOrder  base=System.Enum
+  UnityEngine.U2D.Clipper2D/Internal_Execute_CleanupDelegate  base=System.MulticastDelegate
+  UnityEngine.U2D.ClipperOffset2D/Internal_Execute_CleanupDelegate  base=System.MulticastDelegate
+  UnityEngine.GUIStyle/Internal_CleanupAllTextGeneratorDelegate  base=System.MulticastDelegate
+  UnityEngine.Gyroscope/rotationRate_Internal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Gyroscope/rotationRateUnbiased_Internal_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystem/ForceOverLifetimeModule  base=Il2CppSystem.ValueType
+  UnityEngine.ParticleSystem/AllocateAxisOfRotationAttribute_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystem/get_has3DParticleRotations_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemRenderer/get_rotateWithStretchDirection_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemRenderer/set_rotateWithStretchDirection_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/get_rotationRandomness_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/set_rotationRandomness_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/get_rotationSpeedBlittable_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/set_rotationSpeedBlittable_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/get_rotationAttractionBlittable_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ParticleSystemForceField/set_rotationAttractionBlittable_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Physics2D/get_maxRotationSpeedDelegate  base=System.MulticastDelegate
+  UnityEngine.Physics2D/set_maxRotationSpeedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/SetRotation_Angle_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/SetRotation_Quaternion_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/MoveRotation_Quaternion_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/MovePositionAndRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/MovePositionAndRotation_Quaternion_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/get_freezeRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Rigidbody2D/set_freezeRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_UnwindAngleDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsWorld_GetBodyMaxRotationDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetRotationalInertia_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_SetFastRotationAllowed_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsBody_GetFastRotationAllowed_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_GetRelativeAngle_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_IntegrateRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_LerpRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_AngularVelocity_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_Normalize_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_IsNormalized_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_MultiplyRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_InverseMultiplyRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_RotateVector_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_InverseRotateVector_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsLowLevelScripting2D/PhysicsRotate_Rotate_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.LowLevelPhysics2D.PhysicsRotate  base=System.ValueType
+  UnityEngine.PlatformEffector2D/get_rotationalOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.PlatformEffector2D/set_rotationalOffset_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ConfigurableJoint/get_targetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ConfigurableJoint/set_targetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ConfigurableJoint/get_rotationDriveMode_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ConfigurableJoint/set_rotationDriveMode_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/get_anchorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/set_anchorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/get_parentAnchorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/set_parentAnchorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/get_inertiaTensorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.ArticulationBody/set_inertiaTensorRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.RotationDriveMode  base=System.Enum
+  Unity.Properties.ContainerPropertyBag`1/MethodInfoStoreGeneric_AddProperty_Protected_Void_Property_2_TContainer_TValue_0`1  base=System.Object
+  Unity.Properties.ConcreteTypeVisitor/MethodInfoStoreGeneric_VisitContainer_Protected_Abstract_Virtual_New_Void_byref_TContainer_0`1  base=System.Object
+  Unity.Properties.PathVisitor/MethodInfoStoreGeneric_VisitPath_Protected_Virtual_New_Void_Property_2_TContainer_TValue_byref_TContainer_byref_TValue_0`2  base=System.Object
+  UnityEngine.Terrain/get_preserveTreePrototypeLayers_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.Terrain/set_preserveTreePrototypeLayers_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TreePrototype  base=Il2CppSystem.Object
+  UnityEngine.TreePrototype/ValidateTreePrototype_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.DetailPrototype  base=Il2CppSystem.Object
+  UnityEngine.DetailPrototype/ValidateDetailPrototype_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/RefreshPrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/set_detailPrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/set_treePrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/RemoveTreePrototype_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/RemoveDetailPrototype_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/NeedUpgradeScaledTreePrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/UpgradeScaledTreePrototype_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/get_splatPrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.TerrainData/set_splatPrototypes_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.SplatPrototype  base=System.Object
+  UnityEngine.GridBrushBase/RotationDirection  base=System.Enum
+  UnityEngine.UI.LayoutGroup/MethodInfoStoreGeneric_SetProperty_Protected_Void_byref_T_T_0`1  base=System.Object
+  UnityEngine.UIElements.TextValueField`1/MethodInfoStoreGeneric_AddLabelDragger_Protected_Void_0`1  base=System.Object
+  UnityEngine.UIElements.SetValueVisitor`1/MethodInfoStoreGeneric_VisitPath_Protected_Virtual_Void_Property_2_TContainer_TValue_byref_TContainer_byref_TValue_0`2  base=System.Object
+  UnityEngine.UIElements.InlineStyleAccessPropertyBag/RotateProperty  base=UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleRotateProperty
+  UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleRotateProperty  base=UnityEngine.UIElements.InlineStyleAccessPropertyBag/InlineStyleProperty`1<UnityEngine.UIElements.StyleRotate>
+  UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/RotateProperty  base=UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/ResolvedRotateProperty
+  UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/ResolvedRotateProperty  base=UnityEngine.UIElements.ResolvedStyleAccessPropertyBag/ResolvedStyleProperty`1<UnityEngine.UIElements.Rotate>
+  UnityEngine.UIElements.Rotate  base=System.ValueType
+  UnityEngine.UIElements.Rotate/PropertyBag  base=Unity.Properties.ContainerPropertyBag`1<UnityEngine.UIElements.Rotate>
+  UnityEngine.UIElements.StyleRotate  base=System.ValueType
+  UnityEngine.UIElements.StylePropertyAnimationSystem/ValuesRotate  base=UnityEngine.UIElements.StylePropertyAnimationSystem/Values`1<UnityEngine.UIElements.Rotate>
+  UnityEngine.UIElements.UxmlAttributeDescription/MethodInfoStoreGeneric_TryGetValueFromBag_Protected_Boolean_IUxmlAttributes_CreationContext_Func_3_String_T_T_T_byref_T_0`1  base=System.Object
+  UnityEngine.UIElements.UxmlAttributeDescription/MethodInfoStoreGeneric_GetValueFromBag_Protected_T_IUxmlAttributes_CreationContext_Func_3_String_T_T_T_0`1  base=System.Object
+  UnityEngine.UIElements.RotateField  base=UnityEngine.UIElements.BaseField`1<UnityEngine.UIElements.Rotate>
+  UnityEngine.UIElements.RotateField/UxmlSerializedData  base=UnityEngine.UIElements.BaseField`1/UxmlSerializedData<UnityEngine.UIElements.Rotate>
+  UnityEngine.WheelCollider/get_rotationSpeed_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.WheelCollider/set_rotationSpeed_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.VFX.VFXManager/get_batchEmptyLifetimeDelegate  base=System.MulticastDelegate
+  UnityEngine.VFX.VFXManager/set_batchEmptyLifetimeDelegate  base=System.MulticastDelegate
+  UnityEngine.VFX.VFXManager/CleanupEmptyBatchesDelegate  base=System.MulticastDelegate
+  UnityEngine.XR.InputTracking/GetLocalRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.XR.Eyes/Eyes_TryGetEyeRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.XR.Bone/Bone_TryGetRotation_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.XR.XRDisplaySubsystem/get_contentProtectionEnabled_InjectedDelegate  base=System.MulticastDelegate
+  UnityEngine.XR.XRDisplaySubsystem/set_contentProtectionEnabled_InjectedDelegate  base=System.MulticastDelegate
+
+==================== 5. InstanceDestructionLevel / InstanceActivationContext enums ====================
+### SSSGame.InstanceDestructionLevel
+    SYSTEM = 0
+    BOMBS = 1
+    TERRAFORMING = 2
+
+### SSSGame.InstanceActivationContext
+    AREA = 1
+    REQUEST = 2
+    NETWORK = 4
+    PROCESS = 8
+    PICKING = 16
+    FORCE_ACTIVE = 32
+    VFX = 64
+    UPDATE_DATA = 128
+    SPELL = 256
+    PREDICTIVE_SPAWN = 512
+    RESOURCE_FINDER = 1024
+    HAS_GAMEOBJECT = 311
+    ALL = 1599
+    NONE = 0
+
+### SSSGame.WorldDataSlot
+    BIOME = 0
+    INVENTORY = 1
+    TERRAIN = 2
+    EXPLORATION = 3
+    BIOMEAREAS = 4
+    PATHFINDING = 5
+    CAVES = 6
+    ENTITIES = 7
+    FORESTRY = 8
+
+
+==================== 6. InventoryItemDataHandler ====================
+### TYPE SSSGame.InventoryItemDataHandler  base=SSSGame.WorldDataHandler
+  -- fields --
+  -- properties --
+    OnInstanceAdded : Action`1
+    OnInstanceRemoved : Action`1
+    OnInstanceModified : Action`1
+    _temporaryInstances : List`1
+    _pooledInstances : List`1
+    _instanceList : List`1
+    _descriptorsTable : Dictionary`2
+    _dataClients : Dictionary`2
+    c_nextUniqueIdKey : String
+    c_cellsKey : String
+    c_cellIdKey : String
+    c_buffersKey : String
+    c_instancesKey : String
+    c_typeKey : String
+    c_posKey : String
+    c_rotKey : String
+    c_scaleKey : String
+    c_itemKey : String
+    c_uniqueIdKey : String
+    IsMaster : Boolean
+  -- methods --
+    Void .cctor() [static,priv]
+    Boolean get_IsMaster() [virt,pub]
+    Void .ctor(WorldDataManager manager) [pub]
+    InventoryItemDescriptor GetItemDescriptor(ItemInfo itemInfo) [pub]
+    InventoryItemDescriptor GetItemDescriptor(Int32 itemInfoId) [pub]
+    Int32 GetSlotId() [virt,pub]
+    TileDataContainer CreateTileDataContainer() [virt,pub]
+    Void RegisterDataClient(InventoryItemDescriptor descriptor, IInventoryItemInstanceDataClient client) [pub]
+    Void UnregisterDataClient(InventoryItemDescriptor descriptor, IInventoryItemInstanceDataClient client) [pub]
+    InventoryItemInstance CreateInstance(Item item, Vector3 position, Quaternion rotation, Single scale, UInt32 predictedSpawnUniqueID, Byte owner) [pub]
+    InventoryItemInstance CreateInstance(WorldItemObject itemObject, NetworkId attachedObjectID) [pub]
+    Void ActivateInstancesContext(ICollection`1 cells, InstanceActivationContext context, IWorldItemInstanceFilter instanceFilter) [virt,pub]
+    Void DeactivateInstancesContext(ICollection`1 cells, InstanceActivationContext context, IWorldItemInstanceFilter instanceFilter) [virt,pub]
+    WorldItemInstance GetInstance(WorldDataCell cell, Int32 bufferID, Int32 instanceIdx, Boolean onlyIfActive, Boolean noPooling) [virt,pub]
+    WorldItemInstance GetInstance(WorldTileId tileId, WorldItemInstanceId worldItemInstanceId, Boolean onlyIfActive, Boolean noPooling) [virt,pub]
+    Void SearchInstances(ICollection`1 cells, IWorldItemInstanceSearchProcessor instanceFilter) [virt,pub]
+    InventoryItemInstancesBufferBase GetExistingItemsBuffer(WorldTileId& tileId, Int32& cellX, Int32& cellY, InventoryItemDescriptor descriptor) [pub]
+    Void RemoveInstanceDataSilent(InventoryItemInstance instance) [pub]
+    InventoryItemInstance CreateInstanceDataSilent(Item item, WorldTileId worldTileId, Int32 cellX, Int32 cellY, UInt32 instanceId) [pub]
+    Void ClearTemporaryInstances() [virt,pub]
+    Void _NotifyInstanceAdded(InventoryItemInstance instance) [pub]
+    Void _NotifyInstanceRemoved(InventoryItemInstance instance) [pub]
+    Void _NotifyInstanceChanged(InventoryItemInstance instance) [pub]
+    Boolean _TryGetPooledInstance(InventoryItemInstance& pooledInventoryItemInstance) [pub]
+    Void _ReleasePooledInstance(InventoryItemInstance inventoryItemInstance) [pub]
+    Void Release() [virt,pub]
+    Void ActivateData(WorldTileData tileData) [virt,pub]
+    Void ReleaseData(WorldTileData tileData) [virt,pub]
+    Void FlushData(WorldTileData tileData) [virt,pub]
+    Int32 GetVersion() [virt,pub]
+    Void SelectReadVersion(Int32 version) [virt,pub]
+    Void Write(TileDataContainer container, Stream stream) [virt,pub]
+    Void Read(TileDataContainer container, Stream stream) [virt,pub]
+    SerializationReturnCode WriteMeta(TileDataContainer container, DataObject tileElement) [virt,pub]
+    SerializationReturnCode ReadMeta(TileDataContainer container, DataObject tileElement) [virt,pub]
+    Void OnActivateInstance(WorldItemInstance instance) [virt,pub]
+    Void OnDeactivateInstance(WorldItemInstance instance) [virt,pub]
+    Void OnDestroyInstance(WorldItemInstance instance) [virt,pub]
+    Void OnInstanceDataChanged(WorldItemInstance instance) [pub]
+    Void .ctor(IntPtr pointer) [pub]
+    Action`1 get_OnInstanceAdded() [pub]
+    Void set_OnInstanceAdded(Action`1 ) [pub]
+    Action`1 get_OnInstanceRemoved() [pub]
+    Void set_OnInstanceRemoved(Action`1 ) [pub]
+    Action`1 get_OnInstanceModified() [pub]
+    Void set_OnInstanceModified(Action`1 ) [pub]
+    List`1 get__temporaryInstances() [pub]
+    Void set__temporaryInstances(List`1 ) [pub]
+    List`1 get__pooledInstances() [pub]
+    Void set__pooledInstances(List`1 ) [pub]
+    List`1 get__instanceList() [pub]
+    Void set__instanceList(List`1 ) [pub]
+    Dictionary`2 get__descriptorsTable() [pub]
+    Void set__descriptorsTable(Dictionary`2 ) [pub]
+    Dictionary`2 get__dataClients() [pub]
+    Void set__dataClients(Dictionary`2 ) [pub]
+    String get_c_nextUniqueIdKey() [static,pub]
+    Void set_c_nextUniqueIdKey(String ) [static,pub]
+    String get_c_cellsKey() [static,pub]
+    Void set_c_cellsKey(String ) [static,pub]
+    String get_c_cellIdKey() [static,pub]
+    Void set_c_cellIdKey(String ) [static,pub]
+    String get_c_buffersKey() [static,pub]
+    Void set_c_buffersKey(String ) [static,pub]
+    String get_c_instancesKey() [static,pub]
+    Void set_c_instancesKey(String ) [static,pub]
+    String get_c_typeKey() [static,pub]
+    Void set_c_typeKey(String ) [static,pub]
+    String get_c_posKey() [static,pub]
+    Void set_c_posKey(String ) [static,pub]
+    String get_c_rotKey() [static,pub]
+    Void set_c_rotKey(String ) [static,pub]
+    String get_c_scaleKey() [static,pub]
+    Void set_c_scaleKey(String ) [static,pub]
+    String get_c_itemKey() [static,pub]
+    Void set_c_itemKey(String ) [static,pub]
+    String get_c_uniqueIdKey() [static,pub]
+    Void set_c_uniqueIdKey(String ) [static,pub]
+
