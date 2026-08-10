@@ -61,6 +61,14 @@ text the API sets — it lands on the file in the Files tab. Keep a consistent s
 (e.g. the 1.1.0 note: *"1.1.0: Villagers no longer get stuck at an empty food store … Also adds
 optional hunger/thirst drain-rate multipliers (default 1.0 = vanilla)."*)
 
+**PRE-UPLOAD GATE — unfinished features must never ship.** A prose check used to live here and
+failed: on 2026-08-10 it was read during the session and the upload proceeded anyway, publishing an
+untested feature behind a `false` default. The rule now lives in `CLAUDE.md` ("NEVER PUBLISH AN
+UNFINISHED FEATURE") and is enforced by `.claude/hooks/publish-gate.ps1`, a PreToolUse hook that
+inspects the mod named by `-f mod=` and refuses the `gh workflow run` call. Check A (unfinished
+markers in shipped `Config.Bind` text) cannot be waved through by repeating the call. Audit any mod
+before you upload with `powershell -File .claude/hooks/publish-gate.ps1 -Scan <ModName>`.
+
 **Main description page (Description tab) — MANUAL, but don't forget it:** the API can't edit it
 (the mod endpoint is GET-only; verified against the v3 OpenAPI schema). So whenever a
 pushed/uploaded version adds a **user-facing feature worth calling out on the main page**, the

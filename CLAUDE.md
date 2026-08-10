@@ -75,6 +75,44 @@ setup):
 ### Diagnostics Default Behavior
 Whenever you add a configuration option for a diagnostic or debug logger, **always default it to `true` initially.** This saves the user from having to boot the game just to generate the config file, close it, edit it, and launch again. Once a mod is verified and ready to ship, update the code to flip the default to `false` so it doesn't spam normal users' logs. These doc updates ride along with the related work when it's committed.
 
+## NEVER PUBLISH AN UNFINISHED FEATURE — applies to EVERY mod (standing instruction)
+**A default of `false` is not a reason to ship something.** A config toggle a downloader can find
+and switch on is shipped, whatever its default. Before ANY Nexus upload, every unfinished or
+unverified thing in that build goes **in front of the user as a question**, and the upload waits
+for his answer. Not into a handoff note, not into a mod doc, not weighed up privately — asked.
+
+This exists because on 2026-08-10 GroundItemVacuumMod 1.9.1 published a corpse-sweep feature that
+had **never been run in-game**: no confirmation it worked, no record that it failed. Its config
+description, which lands verbatim in every downloader's `.cfg`, opened `UNFINISHED FEATURE - off by
+default`. `docs/nexus-upload.md` already carried a check naming that exact setting; the check was
+read during the session and the upload went ahead anyway. The user's verdict: *"that was a
+fourteen-out-of-ten problem, so we need to ensure it cannot happen."* The feature was stripped and
+re-uploaded as 1.9.2.
+
+**MECHANIZED — `.claude/hooks/publish-gate.ps1`** (PreToolUse on `Bash|PowerShell`, wired in the
+tracked `.claude/settings.json`, so both machines get it from `git pull`). It inspects the mod named
+by `-f mod=<Name>` the moment a `gh workflow run nexus-upload.yml` is about to execute:
+- **CHECK A — HARD BLOCK, no override.** Scans every `Config.Bind(...)` call in `<Mod>/**/*.cs` for
+  `UNFINISHED` / `UNTESTED` / `EXPERIMENTAL` / `BROKEN` / `DO NOT SHIP` / `NOT FOR RELEASE`. That
+  text is written into the player's config file. **Repeating the call does NOT get past this** —
+  finish the feature, delete it, or reword the text. Regression-verified: it blocks the tree at
+  commit `68ed1ea` (the build that shipped the defect) on `Plugin.cs:110`, and is silent on all 29
+  mods today. Comments are never scanned — only `Config.Bind` text.
+- **CHECK B — blocks once, repeat proceeds.** Scans that mod's `docs/mods/*.md` for `not yet run
+  in-game` / `never been run in-game` / `do NOT publish` / `UNVERIFIED` / `pending in-game` and
+  prints every hit. Judgment, not prohibition — 12 mod docs carry such markers at any time.
+- **Verification ritual (must print `PASS`):**
+  `powershell -File .claude/hooks/publish-gate.ps1 -SelfTest`
+  Audit any mod on demand (exit 1 = Check A hits): `-Scan <ModName>`.
+  Diagnose a silent fail-open with `PUBLISH_GATE_DEBUG=1`.
+- **Residual gap, stated plainly:** no hook can verify the user was actually asked. Check A is a
+  real guarantee because the only way past it is to change the shipped artifact; Check B only
+  guarantees the evidence reaches the model's context. Asking remains the model's job.
+- **When a new bad shape gets through, add a marker** to `$script:ConfigMarkers` (Check A) or
+  `$script:DocMarkers` (Check B) and extend `-SelfTest`. Its negative cases are regression locks —
+  real repo text that must NOT trip the gate, including the reason `PLACEHOLDER` was rejected as a
+  Check A marker.
+
 ## Never Consider an Issue Resolved Until Confirmed In-Game (standing instruction)
 Do not mark any issue as RESOLVED or CLOSED in orientation files or handoff documents until the user has explicitly confirmed it is fixed in-game. Until then, use terms like FIX ATTEMPTED or PENDING CONFIRMATION.
 

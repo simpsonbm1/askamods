@@ -50,7 +50,7 @@ minor ~2-frame hitch on ~1165 removals, no crash.
 - **Typing guard** (confirmed in-game 2026-07-10): the hotkey is ignored while a game text field
   (structure rename, etc.) is focused.
 
-## `VacuumEntireWorld` — whole-map DATA-layer removal (repo v1.7.0, UNVERIFIED)
+## `VacuumEntireWorld` — whole-map DATA-layer removal (shipped v1.9.2)
 
 `VacuumEntireWorld = true` switches a sweep from the radius-gated object layer to a whole-map
 walk of the game's item DATA layer (`WorldDataManager` → `InventoryItemDataHandler` → per-tile
@@ -235,9 +235,10 @@ answer questions about is worse than an absent feature. The user's words on the 
 "so you shipped a feature that was unfinished behind a config toggle that someone is going to turn
 on and wonder why it doesnt work?"
 
-The process failure that let it happen: `docs/nexus-upload.md`'s pre-upload checklist named this
-exact setting, the check was read, and the upload went ahead without putting it to the user first.
-**Anything flagged unfinished goes in front of the user BEFORE an upload, not into a handoff note.**
+This mod is the incident that produced the publish gate. The rule and the mechanism live where they
+apply to every mod: `CLAUDE.md` → "NEVER PUBLISH AN UNFINISHED FEATURE", enforced by
+`.claude/hooks/publish-gate.ps1`. This build's `Config.Bind` text is what Check A is
+regression-tested against.
 
 What was in it, if it is ever rebuilt: dead enemy/animal corpses are dead `SSSGame.Monster`
 instances awaiting despawn (confirmed in-game 2026-07-18 — `CharacterRemains` is the PLAYER-corpse
