@@ -6,8 +6,8 @@
 > option cleared just the loaded area around the player despite its name. v1.9.1 replaces it with
 > the whole-map data-layer walk described below. The dropped-item filter is confirmed in-game at
 > v1.8.0. `Jotun Blood` is spared by a shipped `ExcludeItems` default rather than by code (user
-> ruling 2026-08-10); that default is ⚠️ pending — not yet run in-game. `IncludeCorpses` remains
-> an unfinished feature and ships default `false`.
+> ruling 2026-08-10); that default is ⚠️ pending — not yet run in-game. The corpse sweep has been
+> REMOVED — see the dead-end below.
 
 **Goal:** clear loose ground items (dropped/decayed clutter — sticks, resin, firewood, stones, bark)
 on a configurable hotkey or timer. Confirmed in-game 2026-07-07: removes debris cleanly with only a
@@ -155,10 +155,10 @@ All 17 excluded names are creatures or world harvestables: `Wight` 204, `Crawler
 undetermined**, so the descriptor→prefab→component chain resolved for every one of the 4262
 records walked — the fail-closed branch was never exercised on this run and stays untested.
 
-**This closes the `IncludeCorpses` gap on the data-layer path.** `Wight` at 204 is now excluded
-by the dropped-item filter, not by any corpse setting. Corpse creatures do not spawn from a
-prefab carrying `DynamicItemObject`, so the data-layer pass can no longer reach them. No separate
-corpse discriminator is needed there.
+**Corpses are out of reach of the whole-map pass.** `Wight` at 204 is excluded by the dropped-item
+filter: corpse creatures do not spawn from a prefab carrying `DynamicItemObject`, so the
+data-layer pass cannot touch them. This held even while a separate corpse-sweep feature existed,
+and that feature is now removed entirely (see the dead-end below).
 
 **`Jotun Blood` is handled by a shipped default exclusion, not by code (user ruling 2026-08-10:
 "keep the jotun blood clear, but default it to being blocked in the config for downloads").**
@@ -223,6 +223,30 @@ from the mine entrance; the sweep log records no positions, so no individual swe
 place. Call sequence and detailed probe results: `docs/architecture.md` → "World item DATA vs.
 spawned GameObjects".
 
+## REMOVED — the corpse sweep (v1.9.2, user ruling 2026-08-10)
+
+`Corpses/IncludeCorpses` and `Corpses/ExcludeCorpseNames`, the `Monster.Spawned`/`Monster.Despawned`
+tracking patches and the whole corpse pass in `Sweep()` are **deleted**. Do not reinstate any of it
+without a fresh decision from the user.
+
+Why: it reached a public Nexus build (1.9.1) having **never been run in-game** — the project holds
+no dated confirmation that it worked and no record that it failed. A config toggle that nobody can
+answer questions about is worse than an absent feature. The user's words on the 1.9.1 upload:
+"so you shipped a feature that was unfinished behind a config toggle that someone is going to turn
+on and wonder why it doesnt work?"
+
+The process failure that let it happen: `docs/nexus-upload.md`'s pre-upload checklist named this
+exact setting, the check was read, and the upload went ahead without putting it to the user first.
+**Anything flagged unfinished goes in front of the user BEFORE an upload, not into a handoff note.**
+
+What was in it, if it is ever rebuilt: dead enemy/animal corpses are dead `SSSGame.Monster`
+instances awaiting despawn (confirmed in-game 2026-07-18 — `CharacterRemains` is the PLAYER-corpse
+system, and `Creature` is not a `Character` subclass, so `Character._CreateCharacterRemains` never
+runs for enemies). Patch `Monster`'s own lifecycle overrides ONLY — never `Creature`/`Den`/`Pet`,
+because a defeated den legitimately reads `IsDead` and despawning one permanently destroys the
+spawner. Removal went through `Monster.DespawnImmediatelyIfStateAuthority()`, and unharvested loot
+on the corpse was lost. Player and villager corpses are a different system and were never touched.
+
 ## DEAD-END — do NOT walk the game's linked list (v1.0.0 native crash)
 
 v1.0.0 captured the managers and walked `_head` → `NextDynamicObject`, calling native getters
@@ -256,11 +280,9 @@ touching the game's list pointers.
 - `Filters/OnlyItems` (allow-list substrings; empty = all), `ExcludeItems` (default `Jotun Blood`
   since v1.9.0 — see the whole-map section for why), `ExcludeCategories` (default
   `Weapon,Armor,Clothing,Tool,Equipment` — matched against the category name + parent chain).
-- `Corpses/IncludeCorpses` (default **false** since v1.6.0 — unfinished feature, off by default).
-  When true, a sweep also sweeps dead enemy/animal corpses (dead `Monster` creatures) within the
-  radius via the game's own network despawn; their unharvested loot is lost. Player and villager
-  corpses are a different game system and are never touched. `Corpses/ExcludeCorpseNames`
-  (comma-separated substrings matched against the dead creature's name; any match spares it).
+- There is no `Corpses` section. It was removed in v1.9.2 — see the dead-end below. A config file
+  written by an older build still carries the two dead keys; they do nothing and BepInEx leaves
+  them in place.
 - **The user's own "debris only" config**, read verbatim from his live cfg on 2026-08-10:
   `OnlyItems = Stick,Small Stone,Bark,Twig,Young Fir,Resin,Firewood, Stone, Seed, Yellow, Fiber,Feather`
   with `ExcludeItems = Hardwood,Long,Ore` and
@@ -326,4 +348,9 @@ touching the game's list pointers.
   separate `Jotun Blood` from debris, and the user ruled that a shipped default exclusion is the
   answer rather than a per-record discriminator.
 - **v1.9.1** (build-verified, ⚠️ pending in-game): `ExcludeItems` config description reworded to
-  claim only what was measured. No behavior change.
+  claim only what was measured. No behavior change. Published to Nexus 2026-08-10, replacing the
+  previously published 1.1.3, then superseded the same day by v1.9.2.
+- **v1.9.2** (build-verified, ⚠️ pending in-game): corpse sweep deleted in full — both `Corpses`
+  config entries, the `Monster` lifecycle patches and the corpse pass in `Sweep()`. See the
+  REMOVED section above for why and for what to rebuild from if it is ever wanted. No other
+  behavior change; the whole-map pass is untouched.

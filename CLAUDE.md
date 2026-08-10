@@ -271,7 +271,7 @@ askamods/
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [radius sweep
-                                COMPLETE + published; whole-map mode WIP at repo v1.9.1,
+                                COMPLETE + published; whole-map mode WIP at repo v1.9.2,
                                 UNCOMMITTED — do not publish. v1.8.0 restricts it to records
                                 whose source prefab carries DynamicItemObject, confirmed
                                 in-game 2026-08-10 (445 excluded, 0 undetermined; closed the
