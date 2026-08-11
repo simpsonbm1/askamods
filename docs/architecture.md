@@ -1474,6 +1474,23 @@ for Bark, where the destination already held 40 and refused further adds. The di
 is whether the source removal succeeded: a successful removal paired with a zero add means the
 destination refused the item, whereas a zero removal means the source snapshot was stale or
 duplicated.
+**One container TYPE serves both a station's INPUT and OUTPUT bins, so a type-name rule cannot
+tell them apart (census-confirmed 2026-08-11):** a bloomery's `StorageOre`, `StorageCoal` and
+`StorageBloom` are all `Storage_SmallItems_L1`. The same type also carries the hunter hut's
+`Scraps`, the gatherer's `FruitsStorage`/`MaterialsStorage`/`VegetablesStorage`, the woodcutter's
+`FiberResin`, the farm's `FoodStorage`/`FibersStorage`/`SeedsStorage`, the mine's
+`Ore`/`StoneSmall`/`CrawlerResources` and the charcoal maker's `CoalStorageInteraction`.
+`Storage_MediumItems_L1` likewise carries the hunter hut's `StorageHorns` and `HideStorage`, the
+animal pen's `SmolkrHornContainerArea`, the fishing hut's `Fish` and the woodcutter's
+`Bark`/`Firewood`/`Sticks`/`Thatch` alongside the workshop staging bins. **The container's node
+name (`ItemContainerComponent.gameObject.name`) is the discriminator**, and node names come from
+the prefab: 22 of 23 names derived from one settlement were present in a second, unrelated one.
+Where a node name is itself ambiguous, resolve the owning structure's `Workstation` native class
+(`HuntingStation`, `CraftingStation`, `ResourceStorage`, …) — `Scraps` is the hunter hut's output
+bin AND the bench bin on Blacksmith, Metalworker, Leatherworker and Tailoring workshops.
+**Second settlement census (confirmed in-game 2026-08-11):** 416 structures, 644 containers,
+70 workstations, 44,896 items. Station classes observed beyond the 2026-07-16 list:
+`Buildstation` (Builder's Post), `HealingStation`, `Marketplace`.
 **Type-based blacklist rule (instead of the structural EquipPoint probe that yielded 0 hits):**
 skip containers reachable from an `EquipmentManager` (via `equipPoints : List<EquipPoint>` →
 `.ItemContainer`), and skip hard-coded never-drain types: `CharacterFlask`, `CharacterBuilder`

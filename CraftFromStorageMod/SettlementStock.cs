@@ -32,6 +32,10 @@ internal static class SettlementStock
         internal ItemContainer Container = null!;
         internal Vector3 WorldPos;
         internal string TypeName = "?";
+        // v1.1.0: the container's own GameObject name (icc.gameObject.name), e.g. 'StorageHorns'.
+        // Distinguishes bins that share one container TYPE on the same station - a bloomery's
+        // StorageOre, StorageCoal and StorageBloom are all Storage_SmallItems_L1.
+        internal string NodeName = "?";
         internal string StructureName = "?";
         internal int Qty;
     }
@@ -41,6 +45,10 @@ internal static class SettlementStock
     private static bool _everBuilt;
     private static HashSet<string>? _blacklistCache;
     private static string _blacklistRaw = "";
+    // v1.2.0: node name -> the station classes it is admitted under. A null value means
+    // unrestricted (admitted on any owner). See GetNodeAllowlist for the config syntax.
+    private static Dictionary<string, HashSet<string>?>? _nodeAllowCache;
+    private static string _nodeAllowRaw = "";
 
     // Called after any pull/sweep-back (design point B) so the next read re-walks instead of
     // trusting stale quantities.
@@ -139,6 +147,58 @@ internal static class SettlementStock
         return set;
     }
 
+    // v1.1.0: container NODE names that are admitted as pull sources even when their container TYPE
+    // is blacklisted. The blacklist is type-keyed, but the game reuses one type for both a station's
+    // protected INPUT bins and its finished OUTPUT bins - a bloomery's StorageOre, StorageCoal and
+    // StorageBloom are all Storage_SmallItems_L1 (census-confirmed 2026-08-11). Node names come from
+    // the prefab, so they are stable across saves and repeat across instances of a building
+    // (Woodcutter 1/2/3 all carry Bark/Firewood/Sticks/Thatch/FiberResin in that same census).
+    // Matched case-insensitively against icc.gameObject.name.
+    //
+    // v1.2.0 syntax: an entry is either a bare node name, admitted on any owner, or
+    // 'Node@StationClass', admitted only when the owning structure's workstation reports that
+    // native class. The qualified form exists because 'Scraps' is the hunter hut's output bin AND
+    // the bench bin on the Blacksmith, Metalworker, Leatherworker and Tailoring workshops
+    // (census-confirmed 2026-08-11), so node name alone cannot separate them. Repeating a node with
+    // different classes unions them; listing it bare anywhere makes it unrestricted.
+    private static Dictionary<string, HashSet<string>?> GetNodeAllowlist()
+    {
+        string raw = "";
+        try { raw = Plugin.SourceNodeAllowlist?.Value ?? ""; } catch { }
+        if (_nodeAllowCache != null && raw == _nodeAllowRaw) return _nodeAllowCache;
+
+        var map = new Dictionary<string, HashSet<string>?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var part in raw.Split(','))
+        {
+            var t = part.Trim();
+            if (t.Length == 0) continue;
+
+            string node = t;
+            string? stationClass = null;
+            int at = t.IndexOf('@');
+            if (at > 0 && at < t.Length - 1)
+            {
+                node = t.Substring(0, at).Trim();
+                stationClass = t.Substring(at + 1).Trim();
+                if (node.Length == 0 || stationClass.Length == 0) { node = t; stationClass = null; }
+            }
+
+            if (!map.TryGetValue(node, out var classes))
+            {
+                map[node] = stationClass == null
+                    ? null
+                    : new HashSet<string>(StringComparer.OrdinalIgnoreCase) { stationClass };
+                continue;
+            }
+            // Already unrestricted stays unrestricted; a bare entry downgrades a qualified one.
+            if (classes == null || stationClass == null) { map[node] = null; continue; }
+            classes.Add(stationClass);
+        }
+        _nodeAllowRaw = raw;
+        _nodeAllowCache = map;
+        return map;
+    }
+
     // Same per-structure/per-container traversal shape as StorageCensus.RunCensus's PROVEN walk
     // (GetStructures -> CollectComponents<ItemContainerComponent> -> per-container GetItems() bounded
     // by capacity), just building a queryable dictionary instead of logging.
@@ -159,6 +219,7 @@ internal static class SettlementStock
             }
 
             var blacklist = GetBlacklist();
+            var nodeAllow = GetNodeAllowlist();
 
             Il2CppSystem.Collections.Generic.List<Structure>? structures = null;
             try { structures = settlement.GetStructures(); } catch { }
@@ -175,6 +236,13 @@ internal static class SettlementStock
                 if (st == null) continue;
                 string structureName = StorageCensus.SafeStructureName(st);
 
+                // v1.2.0: the owning station's class, resolved LAZILY and at most once per structure.
+                // Only a station-qualified allow-list entry ('Scraps@HuntingStation') needs it, and
+                // those are rare - 5 of 912 containers in the 2026-08-11 census - so the common
+                // rebuild pays nothing for the extra hierarchy walk.
+                string? stationClass = null;
+                bool stationClassResolved = false;
+
                 var containers = new List<ItemContainerComponent>();
                 try { StorageCensus.CollectComponents(st.transform, containers, 0); } catch { }
 
@@ -187,7 +255,29 @@ internal static class SettlementStock
 
                     string typeName = "?";
                     try { typeName = container.containerType?.name ?? "?"; } catch { }
-                    if (blacklist.Contains(typeName)) { skippedBlacklisted++; continue; }
+                    string nodeName = "?";
+                    try { nodeName = icc.gameObject.name ?? "?"; } catch { }
+                    // v1.1.0: a blacklisted TYPE is still admitted when this specific NODE is on the
+                    // output allow-list - see GetNodeAllowlist's comment for why type alone cannot
+                    // separate a station's input bins from its output bins.
+                    if (blacklist.Contains(typeName))
+                    {
+                        if (!nodeAllow.TryGetValue(nodeName, out var allowedClasses))
+                        { skippedBlacklisted++; continue; }
+
+                        // v1.2.0: a null value is unrestricted; otherwise the owning structure's
+                        // station class must be one of the listed ones.
+                        if (allowedClasses != null)
+                        {
+                            if (!stationClassResolved)
+                            {
+                                stationClass = StorageCensus.ResolveStationClass(st);
+                                stationClassResolved = true;
+                            }
+                            if (stationClass == null || !allowedClasses.Contains(stationClass))
+                            { skippedBlacklisted++; continue; }
+                        }
+                    }
 
                     Vector3 pos = default;
                     try { pos = icc.transform.position; } catch { }
@@ -251,6 +341,7 @@ internal static class SettlementStock
                                 Container = container,
                                 WorldPos = pos,
                                 TypeName = typeName,
+                                NodeName = nodeName,
                                 StructureName = structureName,
                                 Qty = kv.Value
                             });

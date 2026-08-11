@@ -71,6 +71,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> SweepBackLeftovers = null!;
     internal static ConfigEntry<float> SnapshotTtlSeconds = null!;
     internal static ConfigEntry<string> BlacklistContainerTypes = null!;
+    internal static ConfigEntry<string> SourceNodeAllowlist = null!;
     internal static ConfigEntry<bool> TransferDiagnostics = null!;
     internal static ConfigEntry<bool> StockStationOnFetch = null!;
     internal static ConfigEntry<string> SkipBlueprintClasses = null!;
@@ -172,10 +173,35 @@ public class Plugin : BasePlugin
             "stations (confirmed in-game 2026-07-30); it is excluded so one workshop's staged materials are " +
             "never drained to feed another station, and so those staged items stop inflating availability counts. " +
             "v0.16.0: Storage_SmallItems_L1 is the small items bin at workshop tables (census-confirmed " +
-            "2026-07-31; also used by farms). KNOWN ACCEPTED LIMIT: Storage_SmallItems_L1 is ALSO the " +
-            "bloomery bloom-output slot's container type, so this blacklist entry means the mod cannot pull " +
-            "finished blooms out of a bloomery (user accepted 2026-07-31 to keep the change small - see " +
-            "docs/mods/craft-from-storage.md).");
+            "2026-07-31; also used by farms). v1.1.0: this list is now overridden per-container by " +
+            "SourceNodeAllowlist below, which re-admits the gathering and production OUTPUT bins that " +
+            "share a type with the workshop staging bins this list exists to protect.");
+
+        SourceNodeAllowlist = Config.Bind(
+            "2. Tuning", "SourceNodeAllowlist",
+            "StorageHorns,HideStorage,Fish,Bark,Firewood,Sticks,Thatch,FiberResin," +
+            "FruitsStorage,MaterialsStorage,VegetablesStorage,StoneSmall,Ore,CrawlerResources," +
+            "FoodStorage,FibersStorage,SeedsStorage,SticksStorage,SmolkrHornContainerArea," +
+            "CoalStorageInteraction,coalPileContainer,StorageBloom,Scraps@HuntingStation",
+            "v1.1.0: comma-separated container NODE names (the container GameObject's own name) that " +
+            "ARE drainable as a storage-pull source even when BlacklistContainerTypes excludes their " +
+            "container type. The game reuses one container type for both a station's protected INPUT " +
+            "bins and its finished OUTPUT bins - a bloomery's StorageOre, StorageCoal and StorageBloom " +
+            "are all Storage_SmallItems_L1 - so type alone cannot tell them apart (census-confirmed " +
+            "2026-08-11). The default admits the output bins of hunter huts, fishing houses, " +
+            "woodcutters, gatherers, stonecutters, mines, farms, animal pens, charcoal makers and " +
+            "bloomeries. It deliberately omits bloomery StorageOre/StorageCoal and fishing Bait, which " +
+            "are inputs a neighbouring station must not steal. Matched case-insensitively. Leave empty " +
+            "to restore the pre-v1.1.0 behaviour where a blacklisted type is never a source. " +
+            "Forestry huts and plain (non-cave) miner huts are not covered yet - no census has shown " +
+            "their node names; add them here when one does, no rebuild needed. " +
+            "v1.2.0 SYNTAX: an entry is either a bare node name, admitted on any building, or " +
+            "'Node@StationClass', admitted only when the owning building's workstation reports that " +
+            "native class. 'Scraps@HuntingStation' is the worked example: 'Scraps' is the hunter " +
+            "hut's output bin, but the same node name also sits on the Blacksmith, Metalworker, " +
+            "Leatherworker and Tailoring benches (census-confirmed 2026-08-11), so the qualifier " +
+            "opens the hunter hut's and leaves those four workshop bins protected. Station class " +
+            "names are the ones the F12 census prints on its 'station:' lines.");
 
         SkipBlueprintClasses = Config.Bind(
             "2. Tuning", "SkipBlueprintClasses",

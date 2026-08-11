@@ -977,7 +977,8 @@ internal static class CraftTransfer
 
                 if (Plugin.TransferDiagnostics.Value)
                     Plugin.Logger.LogInfo($"{tag} PullShortfall: -{moved} '{SafeName(info)}' from " +
-                        $"{candidate.StructureName}@{candidate.WorldPos} -> {destLabel} (still need {Math.Max(0, remaining)}).");
+                        $"{candidate.StructureName}@{candidate.WorldPos} node={candidate.NodeName} " +
+                        $"type={candidate.TypeName} -> {destLabel} (still need {Math.Max(0, remaining)}).");
             }
 
             if (remaining > 0 && Plugin.TransferDiagnostics.Value)
@@ -1062,7 +1063,8 @@ internal static class CraftTransfer
                             // directly into a BepInEx Logger.Log* call throws VerificationException at
                             // the log site (project-wide gotcha).
                             Plugin.Logger.LogInfo($"{tag} StockStation ZERO-MOVE: '{SafeName(info)}' from " +
-                                $"{candidate.StructureName}@{candidate.WorldPos.ToString()} snapshotQty={candidate.Qty} " +
+                                $"{candidate.StructureName}@{candidate.WorldPos.ToString()} node={candidate.NodeName} " +
+                                $"type={candidate.TypeName} snapshotQty={candidate.Qty} " +
                                 $"take={take} removed={removed} added={moved} stationHad={stationHadBefore} " +
                                 $"stationNow={stationHadAfter} (villager={villagerName} station={stationName}).");
                         }
@@ -1087,7 +1089,8 @@ internal static class CraftTransfer
 
                 if (Plugin.TransferDiagnostics.Value)
                     Plugin.Logger.LogInfo($"{tag} StockStation: -{moved} '{SafeName(info)}' from " +
-                        $"{candidate.StructureName}@{candidate.WorldPos} -> station (villager={villagerName} " +
+                        $"{candidate.StructureName}@{candidate.WorldPos} node={candidate.NodeName} " +
+                        $"type={candidate.TypeName} -> station (villager={villagerName} " +
                         $"station={stationName}, still need {Math.Max(0, remaining)}).");
             }
 
@@ -1124,7 +1127,8 @@ internal static class CraftTransfer
                     {
                         if (i > 0) sb.Append("; ");
                         var c = candidates[i];
-                        sb.Append($"[{i}] {c.StructureName}@{c.WorldPos.ToString()} type={c.TypeName} qty={c.Qty}");
+                        sb.Append($"[{i}] {c.StructureName}@{c.WorldPos.ToString()} node={c.NodeName} " +
+                            $"type={c.TypeName} qty={c.Qty}");
                     }
                     if (candidates.Count > shown) sb.Append($" ...(+{candidates.Count - shown} more)");
                     Plugin.Logger.LogInfo(sb.ToString());

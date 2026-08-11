@@ -7,7 +7,10 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: COMPLETE v1.0.0, confirmed in-game 2026-07-31, host/solo only, published on Nexus.**
+**Status: COMPLETE v1.2.0, host/solo only, published on Nexus.** Phase 1 and Phase 2 confirmed
+in-game 2026-07-31. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
+horns; the station-qualified form added in v1.2.0 loads clean but its admission path is
+⚠️ pending in-game.
 Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
 → idea 17. Subsystem facts: docs/architecture.md → "Player crafting pipeline".
 
@@ -55,6 +58,7 @@ somewhere vanilla already looks, then lets vanilla consume normally.
 | `StockStationOnFetch` | `true` | Stock stations on villager fetch-start (Phase 2c) |
 | `UiPollSeconds` | `0.2` | UI poller tick; also observed update latency |
 | `BlacklistContainerTypes` | see below | Never-drain source containers, by type name |
+| `SourceNodeAllowlist` | see below | Per-node override re-admitting output bins on a blacklisted type |
 | `SkipBlueprintClasses` | see below | Never-stock auxiliary-station recipes, by class |
 | `SkipStationClasses` | see below | Station classes never receive deliveries |
 
@@ -92,6 +96,21 @@ somewhere vanilla already looks, then lets vanilla consume normally.
   entries are belt-and-braces only — user-confirmed 2026-07-20 that armor racks hold finished
   products and no ASKA recipe consumes finished gear as an input, so the racks are not a real
   drain risk.
+- **`2. Tuning/SourceNodeAllowlist`** (v1.1.0, station-qualified form v1.2.0): container NODE
+  names (`ItemContainerComponent.gameObject.name`) admitted as pull sources even when their
+  container TYPE is blacklisted. An entry is either a bare node name, admitted on any building,
+  or `Node@StationClass`, admitted only when the owning structure's `Workstation` reports that
+  native class. The 23-entry default covers the output bins of hunter huts, fishing houses,
+  woodcutters, gatherers, stonecutters, mines, farms, animal pens, charcoal makers and
+  bloomeries: `StorageHorns`, `HideStorage`, `Fish`, `Bark`, `Firewood`, `Sticks`, `Thatch`,
+  `FiberResin`, `FruitsStorage`, `MaterialsStorage`, `VegetablesStorage`, `StoneSmall`, `Ore`,
+  `CrawlerResources`, `FoodStorage`, `FibersStorage`, `SeedsStorage`, `SticksStorage`,
+  `SmolkrHornContainerArea`, `CoalStorageInteraction`, `coalPileContainer`, `StorageBloom`,
+  `Scraps@HuntingStation`. Deliberately omitted are the bloomery's `StorageOre` and
+  `StorageCoal` and the fishing hut's `Bait`, which are inputs a neighbouring station must not
+  steal. An empty value restores type-only exclusion. Node names come from the prefab, so a new
+  building type is a config edit and never a rebuild. Not yet covered because no census has shown
+  their node names: forestry huts, and plain (non-cave) miner huts.
 - **`2. Tuning/SkipBlueprintClasses`:** `ForgingBlueprintInfo,ForgingBlueprint,DyeingBlueprintInfo,PaintingBlueprintInfo,KnowledgeBlueprintInfo`.
   These are the auxiliary-station families (forge, dye, paint, study) that craft at specialty
   stations rather than from a crafting table's own bin. Matched exactly and case-insensitively;
@@ -556,7 +575,9 @@ stock.
 - A rewritten requirement row holds its value until vanilla itself repaints the row.
 - The ledger is one flat list, so two players pulling in overlapping windows could cross-attribute
   (single-player unaffected).
-- Diagnostics all default `true` — flip before any public release.
+- Diagnostics all default `false` as of v1.0.0; the per-move and candidate-dump lines that name a
+  source container sit behind `TransferDiagnostics`, so a reporter's log carries none of them
+  unless that flag is switched on first.
 - **A failed move is invisible in the log.** `CraftTransfer.MoveContainerToAgent` returns 0 for a
   failed remove and a refused add alike, and the per-move log line only fires when `moved > 0`,
   so a candidate that yields nothing leaves no trace. Two distinct failure causes are behind it,
@@ -566,6 +587,18 @@ stock.
   source removal from a refused destination add.
 
 ## Version history
+- **v1.2.0** — station-qualified allow-list entries (`Node@StationClass`), plus
+  `StorageCensus.ResolveStationClass` reusing the census's own
+  `FindComponent<Workstation>` + `Plugin.NativeClassName` pair. The class is resolved lazily and
+  at most once per structure, so only a qualified entry pays for the extra hierarchy walk. Every
+  unresolvable case refuses the container, so the gate fails closed. Ships one qualified entry,
+  `Scraps@HuntingStation`. Loaded clean in-game 2026-08-11 with zero mod errors; the admission
+  path itself is ⚠️ pending in-game.
+- **v1.1.0–v1.1.2** — the `SourceNodeAllowlist` per-node override, its `NodeName` field on the
+  snapshot record, and `node=`/`type=` fields on all four log lines that name a source candidate
+  (`PullShortfall`, `StockStation`, `StockStation ZERO-MOVE`, `StockStation CANDIDATES`).
+  Confirmed in-game 2026-08-11: smolkr horns reached the crafting table, the settlement total
+  showed in the crafting menu, and villagers crafted on a newly assigned task.
 - **v1.0.0** — release: config restructured into three numbered sections ([1. Features],
   [2. Tuning], [3. Diagnostics]) so feature toggles lead the file; `EnableForVillagers`
   default flipped to false (fresh installs player-only per user decision 2026-07-31);

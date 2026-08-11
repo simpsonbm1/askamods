@@ -224,6 +224,21 @@ public class StorageCensus : MonoBehaviour
         return null;
     }
 
+    // v1.2.0: the owning station's native class name for a structure ('HuntingStation',
+    // 'CraftingStation', ...), or null when the structure carries no workstation at all. Same
+    // FindComponent<Workstation> + Plugin.NativeClassName pair the census itself logs above, reused
+    // by SettlementStock's station-qualified node allow-list so a node name that appears on BOTH a
+    // gathering hut and a workshop bench can be admitted on one and refused on the other.
+    // Lives here (not in SettlementStock) because Workstation is already in scope in this file.
+    internal static string? ResolveStationClass(Structure? st)
+    {
+        if (st == null) return null;
+        Workstation? ws = null;
+        try { ws = FindComponent<Workstation>(st.transform); } catch { }
+        if (ws == null) return null;
+        try { return Plugin.NativeClassName(ws); } catch { return null; }
+    }
+
     // Manual hierarchy walk for a component of type T. The plural generic GetComponentsInChildren<T>
     // is missing through the interop trampoline (project-wide gotcha); per-node singular
     // GetComponent<T>() + child recursion is the proven replacement (SupplyChainMod StationWalker).

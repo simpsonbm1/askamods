@@ -333,10 +333,14 @@ askamods/
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max, or run each at a chosen
                                 drain/gain rate [COMPLETE v1.1.1 — rate control confirmed in-game
                                 2026-08-10 on player food — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.0.0 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.2.0 —
                                 Phase 1 (player) + Phase 2 (villager incl. bloomery/kiln delivery)
                                 confirmed in-game 2026-07-31, host/solo only, diagnostics default
-                                false — docs/mods/craft-from-storage.md]
+                                false. SourceNodeAllowlist re-admits gathering/production OUTPUT
+                                bins whose container type is blacklisted, keyed on the container
+                                NODE name with an optional @StationClass qualifier; horn delivery
+                                confirmed in-game 2026-08-11, the qualified form ⚠️ pending —
+                                docs/mods/craft-from-storage.md]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
                                 identity beside translated display strings, to retarget the
                                 locale-gated mods; F5 in-world [DEV TOOL v0.4.0, NOT for Nexus —
