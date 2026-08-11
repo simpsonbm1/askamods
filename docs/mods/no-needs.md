@@ -1,4 +1,4 @@
-# Mod 27: NoNeedsMod — COMPLETE (v1.1.0 rate control ⚠️ pending in-game)
+# Mod 27: NoNeedsMod — COMPLETE (v1.1.1)
 
 **Goal:** govern the player's and all villagers' survival needs on a polling tick — hold them at
 maximum ("god mode"), or run them at a chosen multiple of the game's own drain and refill rates.
@@ -92,5 +92,14 @@ is false is untouched, and its rates are ignored.
   change. Existing configs keep their saved value.
 - **v1.1.0** (2026-08-10): per-need drain/gain rate multipliers for every governed need (player
   food/water/warmth/stamina, villager food/water/warmth/rest/happiness), 20 new config entries.
-  `DrainRate = 0` preserves v1.0.0's pin-at-max, so existing configs are unchanged. Builds clean;
-  ⚠️ pending in-game.
+  `DrainRate = 0` preserves v1.0.0's pin-at-max, so existing configs are unchanged.
+  **Rate mode confirmed in-game 2026-08-10** on the player's food need at
+  `FoodDrainRate = 5` / `FoodGainRate = 5`: the user played and reported it fine, and the log
+  read `Player needs handled (food 71.6, max 100.0)` — food below max, so the need was running
+  on the rate path rather than being pinned. 87 villagers registered and pinned in the same
+  session with no exceptions. The other needs' rate multipliers share this one code path but
+  were not individually exercised.
+- **v1.1.1** (2026-08-10): the load banner now prints each need's gain rate beside its drain rate
+  (`Food=True/5x drain/5x gain`), so one log line verifies both halves of a need's configuration.
+  Log text only, no behavior change. Shipped without an in-game run of this exact build — the user
+  declined a relaunch for a logging-only change (his decision, 2026-08-10).

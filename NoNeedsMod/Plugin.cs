@@ -167,7 +167,25 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"NoNeedsMod loaded. Player: Enabled={PlayerEnabled.Value}, Food={PlayerFood.Value}/{PlayerFoodDrain.Value}x, Water={PlayerWater.Value}/{PlayerWaterDrain.Value}x, Warmth={PlayerWarmth.Value}/{PlayerWarmthDrain.Value}x, Energy={PlayerEnergy.Value}/{PlayerEnergyDrain.Value}x. Villagers: Enabled={VillagersEnabled.Value}, Food={VillagersFood.Value}/{VillagersFoodDrain.Value}x, Water={VillagersWater.Value}/{VillagersWaterDrain.Value}x, Warmth={VillagersWarmth.Value}/{VillagersWarmthDrain.Value}x, Rest={VillagersRest.Value}/{VillagersRestDrain.Value}x, Happiness={VillagersHappiness.Value}/{VillagersHappinessDrain.Value}x. TickSeconds={TickSeconds.Value}, DebugLogging={DebugLogging.Value}.");
+        Logger.LogInfo(
+            $"NoNeedsMod loaded. Player: Enabled={PlayerEnabled.Value}, "
+            + $"{Describe("Food", PlayerFood, PlayerFoodDrain, PlayerFoodGain)}, "
+            + $"{Describe("Water", PlayerWater, PlayerWaterDrain, PlayerWaterGain)}, "
+            + $"{Describe("Warmth", PlayerWarmth, PlayerWarmthDrain, PlayerWarmthGain)}, "
+            + $"{Describe("Energy", PlayerEnergy, PlayerEnergyDrain, PlayerEnergyGain)}. "
+            + $"Villagers: Enabled={VillagersEnabled.Value}, "
+            + $"{Describe("Food", VillagersFood, VillagersFoodDrain, VillagersFoodGain)}, "
+            + $"{Describe("Water", VillagersWater, VillagersWaterDrain, VillagersWaterGain)}, "
+            + $"{Describe("Warmth", VillagersWarmth, VillagersWarmthDrain, VillagersWarmthGain)}, "
+            + $"{Describe("Rest", VillagersRest, VillagersRestDrain, VillagersRestGain)}, "
+            + $"{Describe("Happiness", VillagersHappiness, VillagersHappinessDrain, VillagersHappinessGain)}. "
+            + $"TickSeconds={TickSeconds.Value}, DebugLogging={DebugLogging.Value}.");
+    }
+
+    // One need's on/off state and both of its rate multipliers, e.g. "Food=True/5x drain/5x gain".
+    private static string Describe(string need, ConfigEntry<bool> on, ConfigEntry<float> drain, ConfigEntry<float> gain)
+    {
+        return $"{need}={on.Value}/{drain.Value}x drain/{gain.Value}x gain";
     }
 
     // How fast this need falls, as a multiple of the game's own rate. 0 keeps the original
