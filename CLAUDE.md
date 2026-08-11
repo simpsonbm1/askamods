@@ -330,7 +330,9 @@ askamods/
                                 diagnostics ⚠️ pending in-game; next: v0.18 complaint-demand plane
                                 (SupplyChainMod/DEMAND_MODEL_PLAN.md); dev tool NOT for Nexus —
                                 docs/mods/supply-chain.md]
-  NoNeedsMod/                ← Mod 27: pin player + villager needs at max — needs "god mode" [COMPLETE v1.0.0 — docs/mods/no-needs.md]
+  NoNeedsMod/                ← Mod 27: pin player + villager needs at max, or run each at a chosen
+                                drain/gain rate [COMPLETE v1.1.0 — rate control ⚠️ pending in-game
+                                — docs/mods/no-needs.md]
   CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.0.0 —
                                 Phase 1 (player) + Phase 2 (villager incl. bloomery/kiln delivery)
                                 confirmed in-game 2026-07-31, host/solo only, diagnostics default

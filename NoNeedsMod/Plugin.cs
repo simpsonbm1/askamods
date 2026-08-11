@@ -20,12 +20,32 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> PlayerWarmth = null!;
     internal static ConfigEntry<bool> PlayerEnergy = null!;
 
+    internal static ConfigEntry<float> PlayerFoodDrain = null!;
+    internal static ConfigEntry<float> PlayerFoodGain = null!;
+    internal static ConfigEntry<float> PlayerWaterDrain = null!;
+    internal static ConfigEntry<float> PlayerWaterGain = null!;
+    internal static ConfigEntry<float> PlayerWarmthDrain = null!;
+    internal static ConfigEntry<float> PlayerWarmthGain = null!;
+    internal static ConfigEntry<float> PlayerEnergyDrain = null!;
+    internal static ConfigEntry<float> PlayerEnergyGain = null!;
+
     internal static ConfigEntry<bool> VillagersEnabled = null!;
     internal static ConfigEntry<bool> VillagersFood = null!;
     internal static ConfigEntry<bool> VillagersWater = null!;
     internal static ConfigEntry<bool> VillagersWarmth = null!;
     internal static ConfigEntry<bool> VillagersRest = null!;
     internal static ConfigEntry<bool> VillagersHappiness = null!;
+
+    internal static ConfigEntry<float> VillagersFoodDrain = null!;
+    internal static ConfigEntry<float> VillagersFoodGain = null!;
+    internal static ConfigEntry<float> VillagersWaterDrain = null!;
+    internal static ConfigEntry<float> VillagersWaterGain = null!;
+    internal static ConfigEntry<float> VillagersWarmthDrain = null!;
+    internal static ConfigEntry<float> VillagersWarmthGain = null!;
+    internal static ConfigEntry<float> VillagersRestDrain = null!;
+    internal static ConfigEntry<float> VillagersRestGain = null!;
+    internal static ConfigEntry<float> VillagersHappinessDrain = null!;
+    internal static ConfigEntry<float> VillagersHappinessGain = null!;
 
     internal static ConfigEntry<float> TickSeconds = null!;
     internal static ConfigEntry<bool> DebugLogging = null!;
@@ -71,6 +91,15 @@ public class Plugin : BasePlugin
             defaultValue: false,
             description: "Pin the player's stamina meter at max. Off by default; turn on for full god mode (stamina drains briefly during sprinting/combat, then re-pins every tick).");
 
+        PlayerFoodDrain = BindDrain("Player", "FoodDrainRate", "food");
+        PlayerFoodGain = BindGain("Player", "FoodGainRate", "food", "eating");
+        PlayerWaterDrain = BindDrain("Player", "WaterDrainRate", "water");
+        PlayerWaterGain = BindGain("Player", "WaterGainRate", "water", "drinking");
+        PlayerWarmthDrain = BindDrain("Player", "WarmthDrainRate", "warmth");
+        PlayerWarmthGain = BindGain("Player", "WarmthGainRate", "warmth", "standing at a fire");
+        PlayerEnergyDrain = BindDrain("Player", "EnergyDrainRate", "stamina");
+        PlayerEnergyGain = BindGain("Player", "EnergyGainRate", "stamina", "resting after exertion");
+
         VillagersEnabled = Config.Bind(
             section: "Villagers",
             key: "Enabled",
@@ -107,6 +136,17 @@ public class Plugin : BasePlugin
             defaultValue: true,
             description: "Pin happiness — the game re-clamps it to each villager's HappinessCap (housing-based), so a plateau below 100% is expected.");
 
+        VillagersFoodDrain = BindDrain("Villagers", "FoodDrainRate", "food");
+        VillagersFoodGain = BindGain("Villagers", "FoodGainRate", "food", "eating");
+        VillagersWaterDrain = BindDrain("Villagers", "WaterDrainRate", "water");
+        VillagersWaterGain = BindGain("Villagers", "WaterGainRate", "water", "drinking");
+        VillagersWarmthDrain = BindDrain("Villagers", "WarmthDrainRate", "warmth");
+        VillagersWarmthGain = BindGain("Villagers", "WarmthGainRate", "warmth", "standing at a fire");
+        VillagersRestDrain = BindDrain("Villagers", "RestDrainRate", "rest");
+        VillagersRestGain = BindGain("Villagers", "RestGainRate", "rest", "sleeping");
+        VillagersHappinessDrain = BindDrain("Villagers", "HappinessDrainRate", "happiness");
+        VillagersHappinessGain = BindGain("Villagers", "HappinessGainRate", "happiness", "the game's own happiness sources");
+
         TickSeconds = Config.Bind(
             section: "General",
             key: "TickSeconds",
@@ -127,6 +167,32 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"NoNeedsMod loaded. Player: Enabled={PlayerEnabled.Value}, Food={PlayerFood.Value}, Water={PlayerWater.Value}, Warmth={PlayerWarmth.Value}, Energy={PlayerEnergy.Value}. Villagers: Enabled={VillagersEnabled.Value}, Food={VillagersFood.Value}, Water={VillagersWater.Value}, Warmth={VillagersWarmth.Value}, Rest={VillagersRest.Value}, Happiness={VillagersHappiness.Value}. TickSeconds={TickSeconds.Value}, DebugLogging={DebugLogging.Value}.");
+        Logger.LogInfo($"NoNeedsMod loaded. Player: Enabled={PlayerEnabled.Value}, Food={PlayerFood.Value}/{PlayerFoodDrain.Value}x, Water={PlayerWater.Value}/{PlayerWaterDrain.Value}x, Warmth={PlayerWarmth.Value}/{PlayerWarmthDrain.Value}x, Energy={PlayerEnergy.Value}/{PlayerEnergyDrain.Value}x. Villagers: Enabled={VillagersEnabled.Value}, Food={VillagersFood.Value}/{VillagersFoodDrain.Value}x, Water={VillagersWater.Value}/{VillagersWaterDrain.Value}x, Warmth={VillagersWarmth.Value}/{VillagersWarmthDrain.Value}x, Rest={VillagersRest.Value}/{VillagersRestDrain.Value}x, Happiness={VillagersHappiness.Value}/{VillagersHappinessDrain.Value}x. TickSeconds={TickSeconds.Value}, DebugLogging={DebugLogging.Value}.");
+    }
+
+    // How fast this need falls, as a multiple of the game's own rate. 0 keeps the original
+    // behaviour: the need is held at maximum and never falls at all.
+    private ConfigEntry<float> BindDrain(string section, string key, string need)
+    {
+        return Config.Bind(
+            section: section,
+            key: key,
+            defaultValue: 0.0f,
+            configDescription: new ConfigDescription(
+                $"How fast {need} drains, as a multiple of the game's own rate. 0 = held at maximum (never drains). 1 = vanilla speed. 0.5 = half speed. 2 = twice as fast. Ignored unless the matching on/off setting above is true.",
+                new AcceptableValueRange<float>(0f, 10f)));
+    }
+
+    // How fast this need refills from the game's own sources, as a multiple of the vanilla amount.
+    // Only consulted when the matching drain rate is above 0.
+    private ConfigEntry<float> BindGain(string section, string key, string need, string example)
+    {
+        return Config.Bind(
+            section: section,
+            key: key,
+            defaultValue: 1.0f,
+            configDescription: new ConfigDescription(
+                $"How much {need} is restored by the game's own sources ({example}), as a multiple of the vanilla amount. 1 = vanilla. 2 = double. 0 = nothing restores it. Has no effect while the matching drain rate is 0, because the need is already held at maximum.",
+                new AcceptableValueRange<float>(0f, 10f)));
     }
 }
