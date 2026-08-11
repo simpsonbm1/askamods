@@ -61,6 +61,22 @@ text the API sets — it lands on the file in the Files tab. Keep a consistent s
 (e.g. the 1.1.0 note: *"1.1.0: Villagers no longer get stuck at an empty food store … Also adds
 optional hunger/thirst drain-rate multipliers (default 1.0 = vanilla)."*)
 
+**MANDATORY — the user approves the note BEFORE the workflow runs (user rule 2026-08-11).** Draft
+the `description` text, put it in front of him as text he can edit, and wait for his answer. Only
+then run `gh workflow run`. The note is the one thing every downloader reads, and it is not
+practically re-editable: the API only sets it at upload time, so a bad note is either lived with or
+fixed by hand on the website.
+
+Three things the note must get right, all named in the 2026-08-11 ruling on the
+CraftFromStorageMod 1.2.0 note:
+- **Say which kind of release it is.** A bug fix reads as a bug fix. A note that opens by listing
+  capabilities reads as a feature announcement even when nothing was added.
+- **Never list already-working behaviour as new.** The 1.2.0 note named ten building types as newly
+  supported storage sources; roughly half of them already worked, because only the bins on a
+  blacklisted container type were ever affected. Name what CHANGED, not the feature it sits inside.
+- **Keep it short.** His words on that note: *"way too much"*. One or two sentences of what a player
+  will notice beats an accurate paragraph.
+
 **EVERY UPLOAD IS A PUSH TO EVERY USER (user, 2026-08-10).** Nexus's Vortex app auto-updates
 installed mods, so an upload lands on the whole user base rather than sitting on a page. There is
 no cheap re-upload. **Never ship a stopgap you expect to replace** — get the evidence, fix it once,
