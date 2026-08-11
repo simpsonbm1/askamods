@@ -575,9 +575,12 @@ stock.
 - A rewritten requirement row holds its value until vanilla itself repaints the row.
 - The ledger is one flat list, so two players pulling in overlapping windows could cross-attribute
   (single-player unaffected).
-- Diagnostics all default `false` as of v1.0.0; the per-move and candidate-dump lines that name a
-  source container sit behind `TransferDiagnostics`, so a reporter's log carries none of them
-  unless that flag is switched on first.
+- Every LOGGING flag defaults `false` as of v1.0.0. The two exceptions in `[3. Diagnostics]` are
+  `IncludeEquipmentProbe` and `IncludeWorkstationStock`, both `true`: they shape what the F12
+  census prints rather than enabling background logging, and neither emits anything until the
+  hotkey is pressed. The per-move and candidate-dump lines that name a source container sit behind
+  `TransferDiagnostics`, so a reporter's log carries none of them unless that flag is switched on
+  first.
 - **A failed move is invisible in the log.** `CraftTransfer.MoveContainerToAgent` returns 0 for a
   failed remove and a refused add alike, and the per-move log line only fires when `moved > 0`,
   so a candidate that yields nothing leaves no trace. Two distinct failure causes are behind it,
