@@ -4,7 +4,8 @@
 > `version_id=32345398706651`), replacing 1.9.2 which deleted draugar alive and dead. The fix is
 > the creature guard — see the CREATURE GUARD section. ⚠️ v1.12.1 itself has not been run
 > in-game: v1.12.0 was, and the two differ only on a fail-closed branch that has never executed.
-> The user approved shipping on that basis 2026-08-10.
+> The user said "go ahead and upload" 2026-08-10 after being told this; his own stated reason
+> concerned the `Jotun Blood` counts, not the untested branch.
 > The version Nexus 1.9.2 replaced was **1.1.3**, in which `VacuumEntireWorld` skipped the
 > `Radius` test against the mod's own tracked-item set only — that set holds items with a spawned
 > GameObject, so the option cleared just the loaded area around the player despite its name.
