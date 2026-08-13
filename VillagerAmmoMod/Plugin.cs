@@ -35,6 +35,13 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> ArrowCategoryMatch = null!;
     internal static ConfigEntry<float> TargetArrowRadius = null!;
     internal static ConfigEntry<string> TargetNameMatch = null!;
+    internal static ConfigEntry<bool> RestockFromStorage = null!;
+    internal static ConfigEntry<int> RestockTargetCount = null!;
+    internal static ConfigEntry<int> RestockWhenBelow = null!;
+    internal static ConfigEntry<float> RestockCheckSeconds = null!;
+    internal static ConfigEntry<string> RestockArrowPreference = null!;
+    internal static ConfigEntry<float> RestockSnapshotTtlSeconds = null!;
+    internal static ConfigEntry<string> RestockBlacklistContainerTypes = null!;
 
     // --- live state ---
     // v0.1.2: NO patches on ammo-event methods (see Patches/AmmoPatches.cs header for why). Instead
@@ -101,6 +108,34 @@ public class Plugin : BasePlugin
             "VillagerAmmo", "EnableDiagnostics", false,
             "Verbose diagnostic logging (per-refund/per-adopt lines, capture and census logs). Shipped default false - flip to true when troubleshooting.");
 
+        RestockFromStorage = Config.Bind(
+            "Restock", "RestockFromStorage", false,
+            "When true, this REPLACES the infinite-ammo refund above: a villager's spent arrows are no longer conjured back, they are pulled from settlement storage into their quiver instead, so arrows must actually be produced and stocked. Enabled remains the master switch for both modes - turning this on with Enabled=false does nothing.");
+
+        RestockTargetCount = Config.Bind(
+            "Restock", "RestockTargetCount", 20,
+            "When a villager is topped up (see RestockWhenBelow), their quiver is refilled toward this many arrows, stock permitting. A villager's quiver holds one stack of arrows, which is 20 - setting this above 20 makes the mod repeatedly chase a level the quiver can never reach, doing a full settlement storage walk for a tiny top-up every single time.");
+
+        RestockWhenBelow = Config.Bind(
+            "Restock", "RestockWhenBelow", 5,
+            "A villager's quiver is only topped up when their current ammo count is below this. Nothing happens while they are at or above it. A lower value means fewer, larger refills and less work overall; a value close to RestockTargetCount causes frequent tiny top-ups instead.");
+
+        RestockCheckSeconds = Config.Bind(
+            "Restock", "RestockCheckSeconds", 10f,
+            "How often villagers are checked for a restock top-up, in seconds.");
+
+        RestockArrowPreference = Config.Bind(
+            "Restock", "RestockArrowPreference", "Arrow,Stone Arrow,Iron Arrow",
+            "Comma-separated item names in priority order, used ONLY when the mod cannot tell what arrow a villager was using (a quiver that has been empty since world load). These are display names and will NOT match on a non-English game - when none match, the mod falls back to the largest settlement stock matching TargetCleanup/ArrowCategoryMatch.");
+
+        RestockSnapshotTtlSeconds = Config.Bind(
+            "Restock", "RestockSnapshotTtlSeconds", 10f,
+            "How long the settlement storage snapshot used by restock is cached before being rebuilt, in seconds.");
+
+        RestockBlacklistContainerTypes = Config.Bind(
+            "Restock", "RestockBlacklistContainerTypes", "CharacterFlask,CharacterBuilder,ArmorRack,ArmorRackSmall,ArmorRackLarge,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse",
+            "Comma-separated container type names that restock will never draw arrows from.");
+
         TargetCleanupEnabled = Config.Bind(
             "TargetCleanup", "TargetCleanupEnabled", true,
             "Periodically release stuck arrows from shooting targets via the game's own ReleaseAllStuckObjects() - prevents the framerate collapse from thousands of accumulated stuck arrows.");
@@ -134,6 +169,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}, TargetNameMatch={TargetNameMatch.Value}");
+        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}, TargetNameMatch={TargetNameMatch.Value}, RestockFromStorage={RestockFromStorage.Value}, RestockTargetCount={RestockTargetCount.Value}, RestockWhenBelow={RestockWhenBelow.Value}");
     }
 }

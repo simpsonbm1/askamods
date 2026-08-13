@@ -22,6 +22,7 @@ public class AmmoTracker : MonoBehaviour
     private float _cfgReloadTimer = 0f;
     private float _pollTimer = 0f;
     private float _cleanupTimer = 0f;
+    private float _restockTimer = 0f;
     private bool _pollActiveLogged = false;
 
     private void Update()
@@ -38,6 +39,13 @@ public class AmmoTracker : MonoBehaviour
         {
             _cleanupTimer = 0f;
             if (Plugin.TargetCleanupEnabled.Value) RunTargetCleanup();
+        }
+
+        _restockTimer += Time.deltaTime;
+        if (_restockTimer >= Plugin.RestockCheckSeconds.Value)
+        {
+            _restockTimer = 0f;
+            if (Plugin.Enabled.Value && Plugin.RestockFromStorage.Value) RunRestockPass();
         }
 
         _pollTimer += Time.deltaTime;
@@ -148,6 +156,7 @@ public class AmmoTracker : MonoBehaviour
         }
 
         bool shouldRefund = Plugin.Enabled.Value
+            && !Plugin.RestockFromStorage.Value
             && (!Plugin.RefundOnlyWhenShooting.Value
                 || state == RangedManager.AimState.Aim
                 || state == RangedManager.AimState.Fire
@@ -336,7 +345,7 @@ public class AmmoTracker : MonoBehaviour
                 var info = item?.info;
                 if (info == null) continue;
 
-                string catChain = BuildCategoryChain(info.category);
+                string catChain = CategoryChainOf(info.category);
                 if (catChain.IndexOf(categoryMatch, StringComparison.OrdinalIgnoreCase) < 0) continue;
 
                 Vector3 pos = node.transform.position;
@@ -422,6 +431,161 @@ public class AmmoTracker : MonoBehaviour
             Plugin.Logger.LogInfo($"[VillagerAmmo] cleanup pass: {liveTargets.Count} target(s), {targetsWithStuck} with stuck-registry entries.");
     }
 
+    // v1.1.0 (RestockFromStorage): periodic top-up pass, mirroring RunTargetCleanup's shape
+    // (Stopwatch wrapper, per-manager try/catch, host gate). Draws from SettlementStock instead of
+    // conjuring - the "restock" economy, mutually exclusive with the in-place refund (see
+    // ProcessManager's shouldRefund gate).
+    private void RunRestockPass()
+    {
+        var sw = Stopwatch.StartNew();
+        int checkedCount = 0, belowThreshold = 0, toppedUp = 0;
+        try
+        {
+            RunRestockPassCore(ref checkedCount, ref belowThreshold, ref toppedUp);
+        }
+        finally
+        {
+            sw.Stop();
+            double ms = sw.Elapsed.TotalMilliseconds;
+            if (ms > 2.0)
+                Plugin.Logger.LogInfo($"[Perf][VillagerAmmo] restock pass took {ms:F1} ms (checked={checkedCount})");
+            if (Plugin.EnableDiagnostics.Value)
+                Plugin.Logger.LogInfo($"[VillagerAmmo] restock pass: {checkedCount} manager(s) checked, {belowThreshold} below threshold, {toppedUp} topped up.");
+        }
+    }
+
+    private void RunRestockPassCore(ref int checkedCount, ref int belowThreshold, ref int toppedUp)
+    {
+        bool diag = Plugin.EnableDiagnostics.Value;
+
+        // 1. Host gate FIRST - this writes world state (moves items between containers).
+        if (!IsHost())
+        {
+            if (diag) Plugin.Logger.LogInfo("[VillagerAmmo] restock pass skipped: not host.");
+            return;
+        }
+
+        RangedManager[] snapshot;
+        lock (Plugin.RegistryLock)
+        {
+            snapshot = new RangedManager[Plugin.Registry.Count];
+            Plugin.Registry.CopyTo(snapshot);
+        }
+
+        foreach (var mgr in snapshot)
+        {
+            try
+            {
+                if (mgr == null) continue; // Unity destroyed-object equality
+
+                bool isPlayer = true; // fail-safe: skip if we can't tell
+                try { isPlayer = mgr.IsPlayer; } catch { }
+                if (isPlayer) continue;
+
+                bool hasAuth = false; // fail-safe: skip if we can't tell
+                try { hasAuth = mgr.HasAuthority; } catch { }
+                if (!hasAuth) continue;
+
+                // Skip anything that is not a settlement villager - the registry captures every
+                // non-player RangedManager, and an in-game census found tracked helpers also sitting
+                // on skeletons and other creatures (see docs/mods/villager-ammo.md). Without this
+                // gate the mod would hand the player's warehouse arrows to hostile archers.
+                Villager? villager = ResolveVillager(mgr);
+                if (villager == null) continue;
+
+                checkedCount++;
+
+                var ammo = mgr.CurrentRangedAmmo;
+                if (ammo == null) continue;
+
+                int count = 0;
+                try { count = ammo.RealAmmoCount; } catch { continue; }
+
+                ItemContainer? quiver = null;
+                try { quiver = ammo._itemContainer; } catch { }
+                if (quiver == null) continue;
+
+                if (count >= Plugin.RestockWhenBelow.Value) continue;
+                belowThreshold++;
+
+                string villagerName = "?";
+                try { villagerName = villager.gameObject.name ?? "?"; } catch { }
+
+                ItemInfo? info = null;
+                try { info = quiver.GetItem(0)?.info; } catch { }
+                if (info != null)
+                {
+                    try { Plugin.InfoCache[quiver.Pointer] = info; } catch { }
+                }
+                else
+                {
+                    try { Plugin.InfoCache.TryGetValue(quiver.Pointer, out info); } catch { }
+                    if (info != null)
+                    {
+                        try { Plugin.InfoCache[quiver.Pointer] = info; } catch { }
+                    }
+                }
+                if (info == null)
+                {
+                    info = SettlementStock.ResolveArrowInfo(Plugin.RestockArrowPreference.Value, Plugin.ArrowCategoryMatch.Value);
+                }
+
+                if (info == null)
+                {
+                    if (diag) Plugin.Logger.LogInfo($"[VillagerAmmo] restock skip for '{villagerName}': no arrow type resolvable.");
+                    continue;
+                }
+
+                int want = Plugin.RestockTargetCount.Value - count;
+                if (want <= 0) continue;
+
+                int moved = AmmoRestock.TryRestock(quiver, info, want, out string sourceSummary);
+                if (moved > 0)
+                {
+                    Plugin.Baselines[mgr] = count + moved;
+                    toppedUp++;
+                    Plugin.Logger.LogInfo($"[VillagerAmmo] restocked {moved}/{want} '{info.Name}' for villager '{villagerName}' from {sourceSummary}");
+                }
+                else if (diag)
+                {
+                    int available = SettlementStock.GetAvailableQuantity(info);
+                    Plugin.Logger.LogInfo($"[VillagerAmmo] restock found nothing for '{villagerName}': wanted {want} '{info.Name}', settlement holds {available}");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (diag) Plugin.Logger.LogDebug($"[VillagerAmmo] restock pass manager error: {ex}");
+            }
+        }
+
+        // v1.1.1: one invalidation per PASS, not per villager. v1.1.0 invalidated inside
+        // AmmoRestock.TryRestock, which made every served villager trigger a fresh 371-container walk -
+        // measured in-game at up to 574.5 ms for a single pass (2026-08-12).
+        if (toppedUp > 0) SettlementStock.Invalidate();
+    }
+
+    // Singular GetComponent<Villager>() walk up to 6 ancestors - the plural generic
+    // GetComponentsInChildren<T> is missing through the interop trampoline (project-wide gotcha),
+    // and there is no reason to expect this one differs for an upward walk.
+    private static Villager? ResolveVillager(RangedManager mgr)
+    {
+        Transform? t = null;
+        try { t = mgr.transform; } catch { return null; }
+
+        int depth = 0;
+        while (t != null && depth++ < 7) // self + up to 6 ancestors
+        {
+            try
+            {
+                var v = t.GetComponent<Villager>();
+                if (v != null) return v;
+            }
+            catch { }
+            try { t = t.parent; } catch { break; }
+        }
+        return null;
+    }
+
     private bool IsHost()
     {
         try
@@ -434,7 +598,7 @@ public class AmmoTracker : MonoBehaviour
         catch { return false; }
     }
 
-    private static string BuildCategoryChain(ItemCategoryInfo? cat)
+    internal static string CategoryChainOf(ItemCategoryInfo? cat)
     {
         if (cat == null) return "";
         var sb = new StringBuilder();
