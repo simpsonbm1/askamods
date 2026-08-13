@@ -115,6 +115,58 @@ internal static class CraftUiAvailability
         }
     }
 
+    // v1.5.0: the same rewrite for the PERSONAL crafting menu's ingredient rows, called from
+    // HandcraftPull.Tick. That menu has no station, so there is no station quantity to subtract:
+    // SettlementStock walks settlement containers only and never the player's own pack, so the
+    // settlement total and vanilla's displayed "have" cannot overlap here. The station-resolution
+    // fail-closed branch in ApplyCombinedDisplay exists precisely because a station's stock IS
+    // counted twice, and that reasoning does not apply in this menu.
+    internal static void PollApplyBuildMenu(ItemThumbnailPanel instance, bool diagnostics)
+    {
+        try
+        {
+            ItemInfo? info = SafeGetItemInfo(instance);
+            if (info == null) return;
+
+            TextMeshProUGUI? tmp = ResolveQuantityLabel(instance, diagnostics);
+            string? raw = SafeGetText(tmp);
+            if (tmp == null || string.IsNullOrEmpty(raw)) return;
+
+            int labelId;
+            try { labelId = tmp.GetInstanceID(); } catch { return; }
+
+            // Same idempotency guard as the station path - the poller re-reads text it wrote, and
+            // without this a row compounds on every tick.
+            if (_lastWrittenText.TryGetValue(labelId, out var lastWritten) && raw == lastWritten)
+                return;
+
+            if (!TryParseHaveNumber(raw!, out int haveIndex, out int haveLength, out int vanillaHave))
+            {
+                if (diagnostics) LogUnparsedRateLimited(info, raw!);
+                return;
+            }
+
+            if (!SettlementStock.TryGetCachedQuantity(info, out int settlementQty)) return;
+            if (settlementQty <= 0) return;
+
+            int displayedHave = vanillaHave + settlementQty;
+            string newText = raw!.Substring(0, haveIndex) + displayedHave.ToString() + raw!.Substring(haveIndex + haveLength);
+
+            try { tmp.text = newText; }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[CFS] [CFS-HC] writing rewritten text failed: {ex}");
+                return;
+            }
+
+            _lastWrittenText[labelId] = newText;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] [CFS-HC] PollApplyBuildMenu error: {ex}");
+        }
+    }
+
     private static void ApplyCombinedDisplay(TextMeshProUGUI tmp, string raw, ItemInfo info, CraftMenu menu, bool diagnostics, int labelId)
     {
         if (!TryParseHaveNumber(raw, out int haveIndex, out int haveLength, out int vanillaHave))

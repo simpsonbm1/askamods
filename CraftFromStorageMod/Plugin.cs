@@ -51,6 +51,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<bool> TraceOnCraftingSuccess = null!;
     internal static ConfigEntry<bool> TraceActivateBlueprint = null!;
     internal static ConfigEntry<bool> TraceRecipeListUI = null!;
+    internal static ConfigEntry<bool> TracePersonalCraftMenu = null!;
     internal static ConfigEntry<bool> VerboseGateLogging = null!;
 
     // --- config: Watch (v0.2.0 craft delta watcher - resolves the "where does consumption
@@ -67,6 +68,8 @@ public class Plugin : BasePlugin
     // --- config: Transfer (v0.3.0 Phase 1 - the actual storage-pull feature; v0.7.0 Phase 2 extends
     // it to villager crafting via EnableForVillagers, independent of EnablePlayerPull) ---
     internal static ConfigEntry<bool> EnablePlayerPull = null!;
+    internal static ConfigEntry<bool> EnablePlayerHandcraftPull = null!;
+    internal static ConfigEntry<int> HandcraftCraftsToStock = null!;
     internal static ConfigEntry<bool> EnableForVillagers = null!;
     internal static ConfigEntry<bool> SweepBackLeftovers = null!;
     internal static ConfigEntry<float> SnapshotTtlSeconds = null!;
@@ -127,6 +130,21 @@ public class Plugin : BasePlugin
             "'[CFS-V]' tagged pull/verify/sweep lines this feature emits against the v0.6.0 spike's " +
             "'[CFS-P2] CYCLE SUMMARY verdict=DIRECT|TOURED' line to check. Defaults false so a fresh install " +
             "affects only the player; enable to let villager crafters draw on settlement storage too.");
+
+        EnablePlayerHandcraftPull = Config.Bind(
+            "1. Features", "EnablePlayerHandcraftPull", true,
+            "v1.4.0: extend the player pull to the PERSONAL crafting menu - the one opened with the build key " +
+            "(B by default), where rope and wooden tools are made without a workbench. While that menu is open " +
+            "the selected recipe's missing ingredients are moved from settlement storage into your own pack, and " +
+            "anything left unused is returned when you close the menu. Requires EnablePlayerPull. Host/solo only.");
+
+        HandcraftCraftsToStock = Config.Bind(
+            "2. Tuning", "HandcraftCraftsToStock", 5,
+            "v1.5.0: how many crafts' worth of ingredients the personal crafting menu keeps in your pack for the " +
+            "selected recipe. At 1 you can craft once and must reselect the recipe before crafting again; higher " +
+            "values let you press craft repeatedly, the way a crafting table does. Everything unused is still " +
+            "returned to storage when you close the menu. Raise it for fewer interruptions, lower it to keep less " +
+            "in your pack at a time. Minimum 1.");
 
         StockTransformStationMaterials = Config.Bind(
             "1. Features", "StockTransformStationMaterials", false,
@@ -332,6 +350,14 @@ public class Plugin : BasePlugin
             "Postfix-log SSSGame.UI.CreateItemsTabPage.Show(bool, TabButton) - AvailableBlueprints/UnavailableBlueprints " +
             "counts at recipe-list-open time (may be null/empty at this point, which is itself informative).");
 
+        TracePersonalCraftMenu = Config.Bind(
+            "3. Diagnostics", "TracePersonalCraftMenu", false,
+            "v1.3.0 read-only probe for the PERSONAL (bench-free) crafting menu: logs SSSGame.UI.PlayerMenu " +
+            "open/close, every SSSGame.UI.CreateItemsTabPage.Show with its owning menu's native class name and " +
+            "available/unavailable recipe counts, whether CraftInteraction.CheckOwnedRequirements fires at all " +
+            "while that menu is open, and which of CraftBlueprint.Activate() or Blueprint.Use(GameObject) runs " +
+            "when a craft is triggered. Logs only - touches no inventory and alters no gate result.");
+
         VerboseGateLogging = Config.Bind(
             "3. Diagnostics", "VerboseGateLogging", false,
             "v0.2.0: CheckOwnedRequirements / _CheckOwnedBlueprintManifest fire ~96x per recipe-menu-open, so by " +
@@ -433,6 +459,23 @@ public class Plugin : BasePlugin
         else
             Logger.LogInfo("[CFS] TraceRecipeListUI=false - CreateItemsTabPage.Show patch NOT applied.");
 
+        // v1.3.0: personal-crafting-menu probe. All six targets are free of the inventory-family
+        // parameter types that cause this project's known plugin-load native crash, and every patch
+        // is a logging-only postfix. Gated on one flag so a single config edit disables the whole
+        // probe without a rebuild.
+        if (TracePersonalCraftMenu.Value)
+        {
+            harmony.PatchAll(typeof(Patches.PlayerMenuActivateProbePatch));
+            harmony.PatchAll(typeof(Patches.PlayerMenuClosedProbePatch));
+            harmony.PatchAll(typeof(Patches.CreateItemsTabPageProbePatch));
+            harmony.PatchAll(typeof(Patches.CheckOwnedRequirementsProbePatch));
+            harmony.PatchAll(typeof(Patches.CraftBlueprintActivateProbePatch));
+        }
+        else
+        {
+            Logger.LogInfo("[CFS] TracePersonalCraftMenu=false - personal-crafting-menu probe patches NOT applied.");
+        }
+
         // v0.4.0: settlement-stock requirement-UI feature. All four patches exist solely to serve this
         // one config flag (unlike the Trace/EnablePlayerPull dual-purpose patches above), so gate
         // PatchAll on it directly. The postfixes ALSO re-check ShowSettlementStockInUI.Value themselves
@@ -448,6 +491,18 @@ public class Plugin : BasePlugin
         else
         {
             Logger.LogInfo("[CFS] ShowSettlementStockInUI=false - craft-menu availability-UI patches NOT applied.");
+        }
+
+        // v1.4.0: build-menu lifecycle for the personal-craft pull. Gated on both switches because
+        // the feature is an extension of the player pull, not an independent one.
+        if (EnablePlayerPull.Value && EnablePlayerHandcraftPull.Value)
+        {
+            harmony.PatchAll(typeof(Patches.BuildMenuActivatePatch));
+            harmony.PatchAll(typeof(Patches.BuildMenuDeactivatePatch));
+        }
+        else
+        {
+            Logger.LogInfo("[CFS] [CFS-HC] personal-craft pull disabled - BuildMenu patches NOT applied.");
         }
 
         // v0.6.0 Phase 2a: villager-fetch diagnostic spike (Patches/VillagerFetchPatches.cs).

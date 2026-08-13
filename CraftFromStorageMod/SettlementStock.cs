@@ -54,12 +54,40 @@ internal static class SettlementStock
     // trusting stale quantities.
     internal static void Invalidate() { _builtAtRealtime = -9999f; }
 
+    // v1.5.2: a running correction to the DISPLAYED settlement totals, applied between snapshot
+    // rebuilds. The snapshot is only rebuilt on a timer (SnapshotTtlSeconds, 5 s by default) because
+    // the walk covers hundreds of containers, so after the mod moves items out of storage the cached
+    // total stays stale until that timer expires. In the personal crafting menu that was visible as
+    // the ingredient count refusing to drop for several crafts and then falling by the whole amount
+    // at once (user, 2026-08-13: "sometimes it would go down by 10, sometimes it wouldnt go down at
+    // all, and then catch up 3 clicks later to go down by 40").
+    //
+    // This is a DISPLAY correction only. It never affects which containers are offered as pull
+    // sources: an emptied container simply yields nothing on the next move attempt, which the
+    // candidate loop already handles. Cleared on every rebuild, so it can never accumulate drift.
+    private static readonly Dictionary<int, int> _displayAdjust = new();
+
+    internal static void NoteRemovedForDisplay(int itemId, int qty)
+    {
+        if (qty <= 0) return;
+        try
+        {
+            _displayAdjust.TryGetValue(itemId, out int running);
+            _displayAdjust[itemId] = running + qty;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[CFS] SettlementStock.NoteRemovedForDisplay error: {ex}");
+        }
+    }
+
     // World-leave (CraftWatcher.ClearWorldState, called from Patches/LifecyclePatches.cs
     // PlayerDespawnedPatch) - drops every held ItemContainer wrapper (project-wide gotcha: never
     // cache interop wrappers of per-world objects across sessions).
     internal static void ClearWorldState()
     {
         _byItemId.Clear();
+        _displayAdjust.Clear();
         _builtAtRealtime = -9999f;
         _everBuilt = false;
     }
@@ -95,6 +123,14 @@ internal static class SettlementStock
         {
             if (_byItemId.TryGetValue(info.id, out var list))
                 qty = list.Sum(c => c.Qty);
+
+            // Subtract anything moved out of storage since the last rebuild - see
+            // NoteRemovedForDisplay for why the snapshot alone runs stale here.
+            if (_displayAdjust.TryGetValue(info.id, out int removed))
+            {
+                qty -= removed;
+                if (qty < 0) qty = 0;
+            }
             return true;
         }
         catch (Exception ex)
@@ -205,6 +241,7 @@ internal static class SettlementStock
     private static void Rebuild()
     {
         _byItemId.Clear();
+        _displayAdjust.Clear();
         _everBuilt = true;
         _builtAtRealtime = Time.realtimeSinceStartup;
 

@@ -336,13 +336,13 @@ askamods/
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max, or run each at a chosen
                                 drain/gain rate [COMPLETE v1.1.1 — rate control confirmed in-game
                                 2026-08-10 on player food — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.2.0 —
-                                Phase 1 (player) + Phase 2 (villager incl. bloomery/kiln delivery)
-                                confirmed in-game 2026-07-31, host/solo only, diagnostics default
-                                false. SourceNodeAllowlist re-admits gathering/production OUTPUT
-                                bins whose container type is blacklisted, keyed on the container
-                                NODE name with an optional @StationClass qualifier; horn delivery
-                                confirmed in-game 2026-08-11, the qualified form ⚠️ pending —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.6.0 —
+                                Phase 1 (player stations), Phase 2 (villager + bloomery/kiln),
+                                Phase 3 (personal build-menu crafting) all confirmed in-game
+                                2026-07-31/2026-08-13, host/solo only. SourceNodeAllowlist
+                                re-admits gathering/production OUTPUT bins whose container type
+                                is blacklisted, keyed on NODE name with optional @StationClass;
+                                horn delivery + qualified form confirmed in-game 2026-08-11 —
                                 docs/mods/craft-from-storage.md]
   LocaleAuditMod/            ← Mod 29: throwaway locale-audit probe — dumps locale-invariant
                                 identity beside translated display strings, to retarget the
@@ -412,6 +412,7 @@ Full detail + per-subsystem dead-ends in [`docs/architecture.md`](docs/architect
 - **Managed `as`/`is` casts LIE for interop objects materialized under a base declared type** (list elements, base-typed params) — the wrapper IS the declared type, so the cast returns null even when the native object is the derived type. Identify by asset `name`/`id` or native class name (`IL2CPP.il2cpp_object_get_class` + `il2cpp_class_get_name`), then construct the derived wrapper via `new T(IntPtr)`.
 - **The IL2CPP AOT compiler inlines small/single-caller methods — patches on them silently never fire.** Prefer virtual/vtable-dispatched methods (`Init`, `Show`, `Use`) or multi-caller publics, and always fire-verify a new patch with a log line.
 - **DO NOT Harmony-patch methods with inventory-family parameter types** (`Item`, `ItemCollection`, `ItemEventContext`, e.g. `RangedManager._OnAmmoRemoved(ItemCollection, Item, …)`). The patch mechanism resolves target method parameter types at setup time, forcing too-early il2cpp class-init of those types during plugin load — causing a native crash (`coreclr.dll+0x1d1fdd` fatal CLR exit, no managed exception). Reproduced 3× (2026-07-11, VillagerAmmoMod v0.1.0/v0.1.1; crash dumps saved). **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix only) + polling; never detour a method with inventory-family parameters. Full evidence: [`docs/mods/villager-ammo.md`](docs/mods/villager-ammo.md) → Dead-end section.
+- **The DECLARING type carries its own risk, separate from the parameter types** — a method whose declaring type is inventory-family is unsafe even when every parameter is harmless. A postfix on `SandSailorStudio.Inventory.Blueprint.Use(GameObject)` (declaring type `Blueprint : Item`, parameter a plain `GameObject`) left the game unable to load, confirmed 2026-08-13, CraftFromStorageMod v1.3.0. Its signature differs from the parameter-type crash above and must not be conflated with it: this one logs a MANAGED exception right after `Chainloader startup complete` — `[Error :Il2CppInterop] During invoking native->managed trampoline` / `System.NullReferenceException` at `DMD<SandSailorStudio.Inventory.Blueprint::Use>` — and the patch's own try/catch cannot catch it, because the throw is in the marshalling layer rather than the patch body. `Blueprint` as a PARAMETER stays safe: `CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent)` has been patched since v0.1.0 without incident.
 - **Interop link-properties can lie at runtime** — `Workstation.NetworkWorkstations` returns null/empty even when the `NetworkCraftingStation` component exists on the same GameObject; `GetComponent<T>()` finds it correctly (confirmed in-game 2026-07-12, SupplyChainMod v0.3.5). Reach network components via `GetComponent<T>()`, not cached link properties.
 - **Never cache interop wrappers of per-world native objects across world sessions** (managers, handlers, instance registries). Quit-to-menu → reload of the SAME world does NOT change `StorageManager.ActiveSessionID`, so same-ID checks won't clear caches — and reads through a stale wrapper AV in native code (no managed exception; try/catch can't help), killing the process via a CLR fatal error whose WER signature is always `coreclr.dll+0x1d1fdd`. Detect world-leave via `ActiveSessionID` becoming empty and drop all per-world state (TreeRespawn v1.4.5 `NoteWorldLeft` pattern, confirmed in-game 2026-07-06). Full crash-forensics recipe: docs/architecture.md → Native Crash Diagnosis.
 - **If a mod hard-crashes the game natively with no managed exception in the log, don't guess** — map the Windows Error Reporting crash offset to a method with Cpp2IL. See [Native Crash Diagnosis](docs/architecture.md#native-crash-diagnosis-wer--cpp2il).

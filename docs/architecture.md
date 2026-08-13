@@ -152,6 +152,20 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   **Workaround:** capture instances via zero-parameter lifecycle methods (`Awake` postfix,
   PARAMETERLESS binding) + polling, never detour a method with inventory-family parameters. Full
   evidence and recipe in [`docs/mods/villager-ammo.md`](mods/villager-ammo.md) → Dead-end section.
+- **Never Harmony-patch a method whose DECLARING type is in the inventory family**, even when all
+  parameter and return types are safe (confirmed 2026-08-13, CraftFromStorageMod v1.3.0).
+  `SandSailorStudio.Inventory.Blueprint.Use(GameObject)` takes only a `GameObject`, yet a postfix on
+  it left the game unable to reach a playable state. What the log shows, immediately after
+  `Chainloader startup complete`: `[Error :Il2CppInterop] During invoking native->managed trampoline`
+  followed by `System.NullReferenceException` at `DMD<SandSailorStudio.Inventory.Blueprint::Use>`.
+  The throw is in the marshalling layer rather than in the patch body, so the postfix's own
+  try/catch cannot intercept it. `Blueprint` derives from `Item`. **This is a DIFFERENT failure from
+  the inventory-family PARAMETER crash above and must not be merged with it:** that one is a silent
+  native `coreclr.dll+0x1d1fdd` exit with no managed exception, this one logs a managed exception.
+  `Blueprint` as a parameter remains safe —
+  `CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent)` has been patched since
+  CraftFromStorageMod v0.1.0 without incident. Why the trampoline throws here is NOT established;
+  only the reproduction and its log signature are.
 - **Interface implementation is NOT statically decidable from the interop assemblies** (confirmed
   2026-07-26, controlled sweep of 37,037 types). Only 6 types declare any interface at all in the
   interop metadata, and the only recurring one is the compiler-generated `INotifyCompletion`. Cecil
@@ -2780,6 +2794,25 @@ in **two layers**, and a mod that only sees the GameObject layer sees a bubble a
 
 
 ## Build Menu / Structure Templates & Localization (confirmed in-game 2026-07-01)
+
+**Personal (bench-free) crafting UI (confirmed in-game 2026-08-13):** The personal crafting menu
+(opened with B by default) has root object `BuildMenuReworked(Clone)`. `SSSGame.UI.BuildMenu :
+ContextMenu` declares `OnActivate()` and `OnDeactivate()` but NOT `OnClosed()`, so a Harmony patch
+naming `OnClosed` would fail to find its target. Observed 2026-08-13: `OnDeactivate` fired at
+startup and did not fire again when the player closed the menu, so detecting menu closure requires
+checking if the menu object is no longer active (the reliable signal).
+
+The selected recipe is held by an `ItemThumbnailPanel` on the active `BuildPreviewPage` node,
+whose script is `SSSGame.UI.BuildPreviewTabPage`, at path
+`BuildMenuReworked(Clone)/Panel/SupplyListPanel/BuildPreviewPage`. Two preview pages exist,
+`BuildPreviewPage` and `BuildPreviewPage Sec`, and only one is active at a time. The ingredient
+rows are `ItemThumbnailPanel` clones under that node at `MaterialsDiv/MaterialsList/`, named
+`ItemThumbnailMaterial_Medium(Clone)`.
+
+`SSSGame.UI.BuildPreviewTabPage` exposes public zero-parameter `RefreshConfirmButton()` and
+`ClearMessages()`. The game evaluates craftability only when a recipe is selected and never
+re-evaluates while it stays selected, so materials arriving afterwards are invisible until
+`RefreshConfirmButton()` is called.
 
 Backing feature: TerrainLevelerMod's "Bulldozer Field" square (Mod 15, v1.4.5–v1.4.8) — the first mod
 to inject a **new buildable entry** into the build menu. Full recipe in

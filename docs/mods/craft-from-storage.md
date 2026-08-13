@@ -7,12 +7,15 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: COMPLETE v1.2.0, host/solo only, published on Nexus.** Phase 1 and Phase 2 confirmed
-in-game 2026-07-31. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
+**Status: COMPLETE v1.5.2, host/solo only, published on Nexus.** Phase 1 (player crafting at
+stations) and Phase 2 (villager crafting from storage) confirmed in-game 2026-07-31. Personal
+crafting from the build menu (bench-free recipes: rope, stone blades, wooden tools) confirmed
+in-game 2026-08-13. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
 horns; the station-qualified form added in v1.2.0 loads clean but its admission path is
 ⚠️ pending in-game.
-Origin: Nexus request from rondi112 (2026-07-20). Plan entry: NEW_MOD_IDEAS_PLAN.md
-→ idea 17. Subsystem facts: docs/architecture.md → "Player crafting pipeline".
+Origin: Nexus request from rondi112 (2026-07-20). Nexus bug report from Ivan02313 (2026-08-13)
+for personal-menu support. Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
+docs/architecture.md → "Player crafting pipeline".
 
 ## What it does (Phase 1)
 Crafting at a station pulls missing ingredients from any non-blacklisted settlement storage into
@@ -464,7 +467,59 @@ container name appeared exactly once in the whole session log and only as anothe
 capacity survey line, never as a pull source, while bloomeries were still fed from warehouse
 stock.
 
+## Phase 3 — personal crafting from build menu (v1.4.0+)
+The personal crafting menu, opened with the build key (B by default), covers bench-free recipes
+(rope, stone blades, wooden tools) made without a workbench. Origin: Nexus bug report from
+Ivan02313 (2026-08-13) — crafting from storage worked at a workshop but not from the personal
+menu.
+
+**Confirmed in-game 2026-08-13:** the user crafted repeatedly from settlement storage, ingredient
+counts decremented per craft, and no borrowed materials were left in the player's inventory after
+closing the menu.
+
+**How it works:** `SSSGame.UI.BuildMenu.OnActivate` and `.OnDeactivate` capture and release the
+open menu. A poller (riding the existing `CraftUiPoller`) reads the selected recipe, computes the
+shortfall against the player's own pack, and moves missing ingredients from settlement storage
+into the pack using the same `CraftTransfer.PullShortfall` the crafting-table path uses. It then
+calls the game's own `BuildPreviewTabPage.ClearMessages()` followed by `RefreshConfirmButton()`
+so the craft button re-evaluates. Unused materials return to their source containers when the menu
+closes. Nothing patches the craftability test or the craft trigger.
+
+**Config reference:**
+- `1. Features/EnablePlayerHandcraftPull`, bool, default true. Requires `EnablePlayerPull`.
+  Host/solo only.
+- `2. Tuning/HandcraftCraftsToStock`, int, default 5, minimum 1. How many crafts' worth of
+  ingredients are kept in the player's pack for the selected recipe. At 1 the player must reselect
+  the recipe between crafts; higher values allow pressing craft repeatedly like a crafting table.
+- `3. Diagnostics/TracePersonalCraftMenu`, bool, default true. Read-only probe logging plus a
+  hierarchy dump of the open build menu.
+
 ## Dead-ends and traps
+- **Never patch `SandSailorStudio.Inventory.Blueprint.Use(GameObject)`.** A postfix on it throws
+  inside the interop trampoline the moment the chainloader finishes, before any user code runs, and
+  the game never reaches a playable state. The log line is `[Error :Il2CppInterop] During invoking
+  native->managed trampoline` followed by `System.NullReferenceException` at
+  `DMD<SandSailorStudio.Inventory.Blueprint::Use>`. The postfix's own try/catch cannot help because
+  the throw is in the marshalling layer. `GameObject` is not an inventory-family parameter type, so
+  the deciding factor is the DECLARING type: `Blueprint` derives from `Item`. `Blueprint` as a
+  PARAMETER stays safe, which is why `CraftInteraction.CheckOwnedRequirements(Blueprint,
+  IInteractionAgent)` has been patched since v0.1.0 without incident.
+- **The build menu's `ItemDetailsPanel` is the tooltip, not the recipe details.** It sits at
+  `BuildMenuReworked(Clone)/Panel/ItemDetailsPanel`, and it is inactive with a null `ItemInfo` the
+  entire time the menu is open. Searching it for the selected recipe finds nothing.
+- **`SSSGame.UI.PlayerMenu` is not the personal crafting menu**, and
+  `SSSGame.UI.CreateItemsTabPage` is the crafting TABLE's recipe list, not the build menu's. Neither
+  fires while the personal crafting menu is open.
+- **`SSSGame.CraftBlueprint.Activate()` is not the craft trigger** — it logged zero calls across a
+  session in which the player successfully crafted at a crafting table.
+- **Hierarchy-walk caps sized for the crafting-table menu are too small for the build menu.** A
+  400-node cap was exhausted on every poll before reaching the selected recipe; 6000 nodes with a
+  depth cap of 20 completes the walk in roughly 440 to 915 nodes.
+- **The settlement-stock snapshot is rebuilt on a timer, so displayed totals run stale.** With a
+  5-second lifetime, an ingredient count in the personal menu stayed flat across several crafts and
+  then dropped by the whole amount at once. `SettlementStock.NoteRemovedForDisplay` now subtracts
+  what the mod moves, measured from the real before/after pack quantities rather than the amount
+  requested, and the correction is cleared on every rebuild.
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
   the `GetStructures()` walk.
 - **`_OnCraftingSuccess` IS the consumption site** — the ~3–6 ms between its prefix and postfix.
@@ -590,6 +645,16 @@ stock.
   source removal from a refused destination add.
 
 ## Version history
+- **v1.5.2** — clears the stale "not enough materials" message before re-checking the craft
+  button, and corrects displayed settlement totals as items are moved.
+- **v1.5.1** — calls `BuildPreviewTabPage.RefreshConfirmButton()` after a pull, because vanilla
+  decides the button's state only at recipe-selection time and never revisits it.
+- **v1.5.0** — ingredient rows in the personal menu show settlement-wide totals; the pull keeps
+  several crafts' worth in the pack rather than exactly one.
+- **v1.4.4** — reads the selection from the preview page, the location established by the v1.4.3
+  enumeration dump.
+- **v1.4.0 to v1.4.3** — the personal-craft pull, its per-branch stand-aside logging, raised
+  walk caps, and the read-only menu enumeration dump.
 - **v1.2.0** — station-qualified allow-list entries (`Node@StationClass`), plus
   `StorageCensus.ResolveStationClass` reusing the census's own
   `FindComponent<Workstation>` + `Plugin.NativeClassName` pair. The class is resolved lazily and

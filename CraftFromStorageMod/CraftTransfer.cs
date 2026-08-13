@@ -893,6 +893,117 @@ internal static class CraftTransfer
         }
     }
 
+    // ---- v1.4.0: entry points for the personal (bench-free) crafting path in HandcraftPull.cs. ----
+    //
+    // That path has no interaction agent and no craft-success hook, so it cannot use
+    // HandleBeginCraftingSequence or HandleCraftingSuccess. It supplies its own ledger key (the open
+    // build menu's pointer) and calls these two. Both are thin: the pull delegates to the SAME
+    // PullShortfall the station path uses, so there is exactly one implementation of the candidate
+    // loop, the blacklist and the capacity pre-check.
+
+    // Pull into a destination collection under a caller-supplied ledger key. isVillager is false:
+    // the destination is the player's own pack, as it is for every player-side pull.
+    internal static void PullShortfallFor(List<(ItemInfo info, int missing)> shortfall,
+        ItemCollection destColl, IntPtr ledgerKey, string tag)
+    {
+        if (shortfall == null || shortfall.Count == 0 || destColl == null) return;
+        try { PullShortfall(shortfall, destColl, false, ledgerKey); }
+        catch (Exception ex) { Plugin.Logger.LogError($"{tag} PullShortfallFor error: {ex}"); }
+    }
+
+    // Sweep every entry recorded under one ledger key back to its source container, using the same
+    // clamp as HandleCraftingSuccess: sweepBackQty = clamp(destQtyNow - destQtyBeforePull, 0,
+    // ledgerQty). The clamp is what makes this safe to run at an arbitrary moment rather than at a
+    // craft boundary - anything the player consumed is already missing from the destination, so it
+    // is never clawed back, and stock the player owned before the pull is never taken.
+    internal static void SweepLedgerFor(IntPtr ledgerKey, string tag)
+    {
+        try
+        {
+            if (!_ledger.TryGetValue(ledgerKey, out var myLedger) || myLedger.Count == 0) return;
+
+            if (!SafeGet(Plugin.SweepBackLeftovers, true))
+            {
+                Plugin.Logger.LogInfo($"{tag} SweepLedgerFor: SweepBackLeftovers=false - leaving " +
+                    $"{myLedger.Count} entr(y/ies) with the player, clearing ledger.");
+                _ledger.Remove(ledgerKey);
+                return;
+            }
+
+            var byItem = new Dictionary<int, List<LedgerEntry>>();
+            foreach (var e in myLedger)
+            {
+                int id;
+                try { id = e.Info.id; } catch { continue; }
+                if (!byItem.TryGetValue(id, out var list)) { list = new List<LedgerEntry>(); byItem[id] = list; }
+                list.Add(e);
+            }
+
+            int sweptTotal = 0, keptTotal = 0;
+            foreach (var group in byItem.Values)
+            {
+                try
+                {
+                    ItemInfo info = group[0].Info;
+                    int destQtyBeforePull = group[0].DestQtyBeforePull;
+                    ItemCollection? destColl = group[0].DestCollection;
+                    int ledgerQty = 0;
+                    foreach (var e in group) ledgerQty += e.QtyMoved;
+
+                    if (destColl == null)
+                    {
+                        Plugin.Logger.LogError($"{tag} SweepLedgerFor: no destination collection recorded " +
+                            $"for '{SafeName(info)}' - {ledgerQty} left unswept, skipping this item.");
+                        continue;
+                    }
+
+                    int destQtyNow = destColl.GetItemQuantity(info);
+                    int sweepBackQty = destQtyNow - destQtyBeforePull;
+                    if (sweepBackQty < 0) sweepBackQty = 0;
+                    if (sweepBackQty > ledgerQty) sweepBackQty = ledgerQty;
+                    if (sweepBackQty <= 0) continue;
+
+                    int stillToSweep = sweepBackQty;
+                    foreach (var e in group)
+                    {
+                        if (stillToSweep <= 0) break;
+                        int take = Math.Min(stillToSweep, e.QtyMoved);
+                        if (take <= 0) continue;
+
+                        int moved = MoveAgentToContainer(destColl, e.SourceContainer, info, take);
+                        sweptTotal += moved;
+                        stillToSweep -= take;
+
+                        if (moved < take)
+                        {
+                            int kept = take - moved;
+                            keptTotal += kept;
+                            Plugin.Logger.LogWarning($"{tag} SweepLedgerFor: source container for " +
+                                $"'{SafeName(info)}' at {e.SourceWorldPos} only accepted {moved}/{take} back " +
+                                "(full/destroyed?) - remainder left with the player.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogError($"{tag} SweepLedgerFor group error: {ex}");
+                }
+            }
+
+            if (sweptTotal > 0 || keptTotal > 0)
+                Plugin.Logger.LogInfo($"{tag} SweepLedgerFor: swept {sweptTotal} unused item(s) back to storage" +
+                    (keptTotal > 0 ? $", {keptTotal} retained by the player (source full/gone)." : "."));
+
+            _ledger.Remove(ledgerKey);
+            SettlementStock.Invalidate();
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"{tag} CraftTransfer.SweepLedgerFor error: {ex}");
+            _ledger.Remove(ledgerKey);
+        }
+    }
+
     // wanted minus (agentInv union stationInv), per item. Shared by point A (read-only check against
     // the cached snapshot) and point C (the actual pull) - agent- and villager-agnostic, the "have"
     // union is computed the same way for both agent kinds.

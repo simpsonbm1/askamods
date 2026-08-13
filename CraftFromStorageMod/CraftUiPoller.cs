@@ -39,6 +39,11 @@ public class CraftUiPoller : MonoBehaviour
     {
         try { Tick(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] CraftUiPoller.Update error: {ex}"); }
+
+        // v1.4.0: the personal (bench-free) crafting pull rides this same poller. It is deliberately
+        // OUTSIDE the try above so a fault in one feature cannot silence the other.
+        try { HandcraftPull.Tick(Time.deltaTime); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] [CFS-HC] HandcraftPull.Tick error: {ex}"); }
     }
 
     private void Tick()

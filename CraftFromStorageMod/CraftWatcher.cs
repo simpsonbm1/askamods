@@ -264,6 +264,17 @@ public class CraftWatcher : MonoBehaviour
         try { BloomeryTrace.ClearWorldState(); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] BloomeryTrace.ClearWorldState error: {ex}"); }
 
+        // v1.3.0: personal-crafting-menu probe - drops the menu-open flag and re-arms its rate
+        // limiters (bool/int only, no interop wrappers held) so a second world load logs its own
+        // evidence, same reasoning as BloomeryTrace.ClearWorldState above.
+        try { Patches.PersonalCraftProbe.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] [CFS-PCM] PersonalCraftProbe.ClearWorldState error: {ex}"); }
+
+        // v1.4.0: personal-craft pull - drops the open-menu reference and its ledger key so no
+        // interop wrapper survives a world change (project-wide gotcha).
+        try { HandcraftPull.ClearWorldState(); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[CFS] [CFS-HC] HandcraftPull.ClearWorldState error: {ex}"); }
+
         // Don't let a stale abort banner survive into the next world.
         _guiMessage = "";
         _guiExpiry = 0f;
