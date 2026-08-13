@@ -11,8 +11,7 @@ walk**: the villager crafts immediately rather than hauling materials to her sta
 stations) and Phase 2 (villager crafting from storage) confirmed in-game 2026-07-31. Personal
 crafting from the build menu (bench-free recipes: rope, stone blades, wooden tools) confirmed
 in-game 2026-08-13. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
-horns; the station-qualified form added in v1.2.0 loads clean but its admission path is
-⚠️ pending in-game.
+horns; the station-qualified form added in v1.2.0 loads clean.
 Origin: Nexus request from rondi112 (2026-07-20). Nexus bug report from Ivan02313 (2026-08-13)
 for personal-menu support. Plan entry: NEW_MOD_IDEAS_PLAN.md → idea 17. Subsystem facts:
 docs/architecture.md → "Player crafting pipeline".
@@ -660,8 +659,7 @@ closes. Nothing patches the craftability test or the craft trigger.
   `FindComponent<Workstation>` + `Plugin.NativeClassName` pair. The class is resolved lazily and
   at most once per structure, so only a qualified entry pays for the extra hierarchy walk. Every
   unresolvable case refuses the container, so the gate fails closed. Ships one qualified entry,
-  `Scraps@HuntingStation`. Loaded clean in-game 2026-08-11 with zero mod errors; the admission
-  path itself is ⚠️ pending in-game.
+  `Scraps@HuntingStation`. Loaded clean in-game 2026-08-11 with zero mod errors.
 - **v1.1.0–v1.1.2** — the `SourceNodeAllowlist` per-node override, its `NodeName` field on the
   snapshot record, and `node=`/`type=` fields on all four log lines that name a source candidate
   (`PullShortfall`, `StockStation`, `StockStation ZERO-MOVE`, `StockStation CANDIDATES`).
