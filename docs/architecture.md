@@ -2431,6 +2431,13 @@ keeps arrows refunded during training and combat (VillagerAmmoMod v0.1.3) is ful
     ammo container adds arrows to the stack; re-entrancy-safe (fires `_OnAmmoAdded`, not `_OnAmmoRemoved`).
 - `ItemEventContext` (enum: Default=0, SameInventoryTransfer=1) — NOT a consumption discriminator
   (confirmed in-game 2026-07-11); doesn't distinguish shooting from manual withdrawal.
+- **`SandSailorStudio.Inventory.AmmoItemInfo` is the ammo item-asset type** (Cecil-confirmed
+  2026-08-13). No subclasses; siblings under `WeaponizedItemInfo` are `RangedWeaponInfo`,
+  `FishingItemInfo` and `SSSGame.TootItemInfo`. Reading an ItemInfo's native class name is
+  therefore a locale-invariant "is this ammo?" test, where matching a category or item NAME
+  is not — confirmed in-game in German 2026-08-13, where the English category text matched 0
+  of 13 ammo items present. Managed is/as casts cannot perform this test: an ItemInfo arrives
+  declared as the base type and managed casts lie for interop objects under a base declared type.
 
 ### Villager shooting pipeline
 - `SSSGame.AI.FSM.FSM_Training` — archery-range training FSM: villager aims/fires repeatedly during

@@ -176,6 +176,7 @@ internal static class PlayerDespawnedPatch
                 Plugin.LastShootingSeen.Clear();
                 Plugin.InfoCache.Clear();
                 Plugin.CensusDone = false;
+                Plugin._identityCheckDone = false;
                 SettlementStock.ClearWorldState();
                 Plugin.Logger.LogInfo("[VillagerAmmo] Local player cleared; registry, target registry, tracked ground items, baselines, last-shooting-seen, info cache, settlement snapshot dropped, census reset.");
             }

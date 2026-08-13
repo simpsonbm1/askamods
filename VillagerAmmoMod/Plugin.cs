@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
 using BepInEx.Logging;
 using HarmonyLib;
+using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Injection;
 using SandSailorStudio.Inventory;
 using SSSGame;
@@ -42,6 +45,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> RestockArrowPreference = null!;
     internal static ConfigEntry<float> RestockSnapshotTtlSeconds = null!;
     internal static ConfigEntry<string> RestockBlacklistContainerTypes = null!;
+    internal static ConfigEntry<string> RestockSearchStructures = null!;
+    internal static ConfigEntry<bool> RestockStructureCensus = null!;
 
     // --- live state ---
     // v0.1.2: NO patches on ammo-event methods (see Patches/AmmoPatches.cs header for why). Instead
@@ -86,6 +91,39 @@ public class Plugin : BasePlugin
     // v0.2.2: one-time-per-world-session helper census (diagnostics-gated), reset on world-leave
     // in PlayerDespawnedPatch alongside the other per-world state.
     internal static bool CensusDone = false;
+
+    // v1.3.0: one-time-per-world-session ammo-identity fire-verification comparison (logged
+    // unconditionally, not diagnostics-gated - see RunTargetCleanupCore), reset on world-leave in
+    // PlayerDespawnedPatch alongside CensusDone.
+    internal static bool _identityCheckDone;
+
+    // Managed casts LIE for interop objects materialized under a base declared type (project-wide
+    // gotcha) - always read the NATIVE class name via IL2CPP.il2cpp_object_get_class, never as/is.
+    // Falls back to the managed wrapper's own type name for non-Il2Cpp objects.
+    internal static string NativeClassName(object? obj)
+    {
+        if (obj == null) return "null";
+        try
+        {
+            if (obj is Il2CppObjectBase b)
+            {
+                IntPtr cls = IL2CPP.il2cpp_object_get_class(b.Pointer);
+                return Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(cls)) ?? "?";
+            }
+        }
+        catch { }
+        return obj.GetType().Name;
+    }
+
+    // Cecil-confirmed 2026-08-13: SandSailorStudio.Inventory.AmmoItemInfo is the game's ammo
+    // item-asset type, with no subclasses, siblings being RangedWeaponInfo / FishingItemInfo /
+    // TootItemInfo. Reading the native class name is locale-invariant - the asset type is the same in
+    // every language - and replaces the English category/name matching this mod used to do.
+    internal static bool IsAmmoItem(ItemInfo? info)
+    {
+        if (info == null) return false;
+        try { return NativeClassName(info) == "AmmoItemInfo"; } catch { return false; }
+    }
 
     public override void Load()
     {
@@ -136,6 +174,14 @@ public class Plugin : BasePlugin
             "Restock", "RestockBlacklistContainerTypes", "CharacterFlask,CharacterBuilder,ArmorRack,ArmorRackSmall,ArmorRackLarge,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse",
             "Comma-separated container type names that restock will never draw arrows from.");
 
+        RestockSearchStructures = Config.Bind(
+            "Restock", "RestockSearchStructures", "Warehouse,Workshop,Storage",
+            "Comma-separated, case-insensitive substrings. Only buildings whose name matches one of these are searched for arrows, which makes the search much cheaper. If no arrows are found in the listed buildings, the mod automatically falls back to searching every building, so an unusual setup still works - it is just slower. Clearing this value entirely disables the filter and always searches every building.");
+
+        RestockStructureCensus = Config.Bind(
+            "Restock", "RestockStructureCensus", false,
+            "Off by default. Logs a one-time list of every building name in the settlement, so RestockSearchStructures above can be tuned to match. Turn on to tune it, then leave it off.");
+
         TargetCleanupEnabled = Config.Bind(
             "TargetCleanup", "TargetCleanupEnabled", true,
             "Periodically release stuck arrows from shooting targets via the game's own ReleaseAllStuckObjects() - prevents the framerate collapse from thousands of accumulated stuck arrows.");
@@ -150,7 +196,7 @@ public class Plugin : BasePlugin
 
         ArrowCategoryMatch = Config.Bind(
             "TargetCleanup", "ArrowCategoryMatch", "Arrows",
-            "Case-insensitive substring matched against a ground item's category chain (e.g. 'Arrows/Weapons'). Only matching items are ever culled.");
+            "No longer used - arrows are now identified by the game's own ammo item type (locale-invariant), so this setting no longer affects anything. Kept only so existing config files stay valid.");
 
         TargetArrowRadius = Config.Bind(
             "TargetCleanup", "TargetArrowRadius", 15f,
@@ -169,6 +215,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}, TargetNameMatch={TargetNameMatch.Value}, RestockFromStorage={RestockFromStorage.Value}, RestockTargetCount={RestockTargetCount.Value}, RestockWhenBelow={RestockWhenBelow.Value}");
+        Logger.LogInfo($"VillagerAmmoMod v{MyPluginInfo.PLUGIN_VERSION} loaded (polling mode). Enabled={Enabled.Value}, RefundOnlyWhenShooting={RefundOnlyWhenShooting.Value}, RecentShootingWindowSeconds={RecentShootingWindowSeconds.Value}, EnableDiagnostics={EnableDiagnostics.Value}, TargetCleanupEnabled={TargetCleanupEnabled.Value}, StuckArrowThreshold={StuckArrowThreshold.Value}, CleanupCheckSeconds={CleanupCheckSeconds.Value}, ArrowCategoryMatch={ArrowCategoryMatch.Value}, TargetArrowRadius={TargetArrowRadius.Value}, TargetNameMatch={TargetNameMatch.Value}, RestockFromStorage={RestockFromStorage.Value}, RestockTargetCount={RestockTargetCount.Value}, RestockWhenBelow={RestockWhenBelow.Value}, RestockSearchStructures={RestockSearchStructures.Value}, RestockStructureCensus={RestockStructureCensus.Value}");
     }
 }

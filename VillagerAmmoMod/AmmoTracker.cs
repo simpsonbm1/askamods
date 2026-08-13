@@ -327,9 +327,15 @@ public class AmmoTracker : MonoBehaviour
         }
         itemSnapshotLen = itemSnapshot.Length;
 
-        string categoryMatch = Plugin.ArrowCategoryMatch.Value ?? "Arrows";
         float radius = Plugin.TargetArrowRadius.Value;
         float radiusSqr = radius * radius;
+
+        // v1.3.0: one-time-per-world-session fire-verification comparing the new type-based test
+        // against the old category-text test, logged unconditionally on the first pass that examines
+        // at least one tracked ground item - see Plugin._identityCheckDone.
+        bool runIdentityCheck = !Plugin._identityCheckDone && itemSnapshot.Length > 0;
+        int identityByType = 0, identityByOldCategory = 0, identityTracked = 0;
+        string oldCategoryMatch = Plugin.ArrowCategoryMatch.Value ?? "Arrows";
 
         var candidates = new List<WorldItemObject>();
         foreach (var node in itemSnapshot)
@@ -345,8 +351,19 @@ public class AmmoTracker : MonoBehaviour
                 var info = item?.info;
                 if (info == null) continue;
 
-                string catChain = CategoryChainOf(info.category);
-                if (catChain.IndexOf(categoryMatch, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (runIdentityCheck)
+                {
+                    identityTracked++;
+                    if (Plugin.IsAmmoItem(info)) identityByType++;
+                    try
+                    {
+                        string oldChain = CategoryChainOf(info.category);
+                        if (oldChain.IndexOf(oldCategoryMatch, StringComparison.OrdinalIgnoreCase) >= 0) identityByOldCategory++;
+                    }
+                    catch { }
+                }
+
+                if (!Plugin.IsAmmoItem(info)) continue;
 
                 Vector3 pos = node.transform.position;
                 bool nearTarget = false;
@@ -362,6 +379,12 @@ public class AmmoTracker : MonoBehaviour
             {
                 Plugin.Logger.LogWarning($"[VillagerAmmo] ground-item resolve error during cleanup: {ex}");
             }
+        }
+
+        if (runIdentityCheck)
+        {
+            Plugin._identityCheckDone = true;
+            Plugin.Logger.LogInfo($"[VillagerAmmo] ammo-identity check: {identityByType} item(s) matched by type, {identityByOldCategory} by the old category text, out of {identityTracked} tracked ground item(s).");
         }
 
         // 4. Threshold gate.
@@ -527,7 +550,7 @@ public class AmmoTracker : MonoBehaviour
                 }
                 if (info == null)
                 {
-                    info = SettlementStock.ResolveArrowInfo(Plugin.RestockArrowPreference.Value, Plugin.ArrowCategoryMatch.Value);
+                    info = SettlementStock.ResolveArrowInfo(Plugin.RestockArrowPreference.Value);
                 }
 
                 if (info == null)

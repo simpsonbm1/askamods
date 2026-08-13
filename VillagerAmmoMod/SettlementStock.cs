@@ -44,6 +44,18 @@ internal static class SettlementStock
     private static HashSet<string>? _blacklistCache;
     private static string _blacklistRaw = "";
 
+    // v1.2.0 (building-filtered walk): narrows Rebuild to structures matching RestockSearchStructures,
+    // skipping the CollectComponents descent (and every slot read below it) for non-matching
+    // structures entirely - that skip, done BEFORE descent, is what makes the filter cheap.
+    // _lastRebuildWasNarrow records whether the CURRENT snapshot used the filter, so a lookup that
+    // comes up empty can tell a genuinely-empty settlement from a filter that missed the right
+    // building, and fall back to a full walk (EnsureCovers/ResolveArrowInfo).
+    private static string[]? _searchTokensCache;
+    private static string _searchTokensRaw = "";
+    private static bool _lastRebuildWasNarrow;
+    private static bool _censusDone;
+    private static readonly HashSet<string> _fallbackLoggedItems = new(StringComparer.OrdinalIgnoreCase);
+
     // Called after a restock move so the next read re-walks instead of trusting stale quantities.
     internal static void Invalidate() { _builtAtRealtime = -9999f; }
 
@@ -53,13 +65,16 @@ internal static class SettlementStock
         _byItemId.Clear();
         _builtAtRealtime = -9999f;
         _everBuilt = false;
+        _lastRebuildWasNarrow = false;
+        _censusDone = false;
+        _fallbackLoggedItems.Clear();
     }
 
     // Pull candidates for one item, largest stockpile first (minimizes the number of distinct source
     // containers a single top-up touches).
     internal static List<ContainerStock> GetCandidates(ItemInfo info)
     {
-        EnsureFresh();
+        EnsureCovers(info);
         try
         {
             if (_byItemId.TryGetValue(info.id, out var list))
@@ -74,7 +89,7 @@ internal static class SettlementStock
 
     internal static int GetAvailableQuantity(ItemInfo info)
     {
-        EnsureFresh();
+        EnsureCovers(info);
         try
         {
             if (_byItemId.TryGetValue(info.id, out var list))
@@ -87,22 +102,37 @@ internal static class SettlementStock
         return 0;
     }
 
-    // v1.1.0: the empty-quiver case. A villager whose quiver has been empty since world load offers
-    // no ItemInfo to match against storage, and the InfoCache has never seen that container either,
-    // so the mod has to CHOOSE an arrow. Resolution order:
+    // v1.1.0 (updated v1.3.0): the empty-quiver case. A villager whose quiver has been empty since
+    // world load offers no ItemInfo to match against storage, and the InfoCache has never seen that
+    // container either, so the mod has to CHOOSE an arrow. Resolution order:
     //
     //  1. RestockArrowPreference, a comma-separated item-name list in priority order - the first
-    //     name settlement storage actually holds wins.
-    //  2. Failing that, the largest settlement stock whose category chain contains
-    //     ArrowCategoryMatch (the same matcher the stuck-arrow cull already uses).
-    //
-    // Step 2 exists because item display names are localized: a German player's preference list
-    // never matches, and without the category fallback the feature would silently do nothing for
-    // them. Category matching is not proven locale-invariant either, which is why the preference
-    // list leads rather than follows.
-    internal static ItemInfo? ResolveArrowInfo(string preferenceRaw, string categoryMatch)
+    //     name settlement storage actually holds wins. This is now an optional player override for
+    //     steering which arrows get spent, not the mechanism.
+    //  2. Failing that, the largest settlement stock of any item for which Plugin.IsAmmoItem(info) is
+    //     true - the game's own ammo item-asset type (Cecil-confirmed 2026-08-13), which is
+    //     locale-invariant.
+    internal static ItemInfo? ResolveArrowInfo(string preferenceRaw)
     {
         EnsureFresh();
+        ItemInfo? result = TryResolveArrowInfo(preferenceRaw);
+
+        // v1.2.0: a narrow snapshot might simply not cover the building holding this item, so give
+        // one full-settlement retry before accepting "nothing found".
+        if (result == null && _lastRebuildWasNarrow)
+        {
+            var tokens = ParseList(preferenceRaw);
+            string fallbackName = tokens.Length > 0 ? tokens[0] : "arrow";
+            LogNarrowFallback(fallbackName);
+            Rebuild(false);
+            result = TryResolveArrowInfo(preferenceRaw);
+        }
+
+        return result;
+    }
+
+    private static ItemInfo? TryResolveArrowInfo(string preferenceRaw)
+    {
         try
         {
             foreach (var token in ParseList(preferenceRaw))
@@ -122,7 +152,6 @@ internal static class SettlementStock
                 if (best != null) return best;
             }
 
-            if (!string.IsNullOrWhiteSpace(categoryMatch))
             {
                 ItemInfo? best = null;
                 int bestQty = 0;
@@ -132,9 +161,7 @@ internal static class SettlementStock
                     ItemInfo? info = null;
                     foreach (var cs in kv.Value) { total += cs.Qty; info ??= cs.Info; }
                     if (info == null || total <= bestQty) continue;
-                    string chain = "";
-                    try { chain = AmmoTracker.CategoryChainOf(info.category); } catch { }
-                    if (chain.IndexOf(categoryMatch, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    if (!Plugin.IsAmmoItem(info)) continue;
                     bestQty = total;
                     best = info;
                 }
@@ -146,6 +173,31 @@ internal static class SettlementStock
             Plugin.Logger.LogError($"[VillagerAmmo] SettlementStock.ResolveArrowInfo error: {ex}");
         }
         return null;
+    }
+
+    // v1.2.0: rate-limited (one line per distinct item name per world session) unconditional log -
+    // this is signal the player's RestockSearchStructures list doesn't cover where their arrows are.
+    private static void LogNarrowFallback(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName)) itemName = "unknown";
+        if (!_fallbackLoggedItems.Add(itemName)) return;
+        Plugin.Logger.LogInfo($"[VillagerAmmo] narrow storage search found no '{itemName}' - falling back to a full settlement search. Consider adding the holding building to RestockSearchStructures.");
+    }
+
+    // v1.2.0: same fallback guarantee as ResolveArrowInfo, keyed on a known ItemInfo instead of a
+    // name search.
+    private static void EnsureCovers(ItemInfo info)
+    {
+        EnsureFresh();
+        bool has = false;
+        try { has = _byItemId.TryGetValue(info.id, out var list) && list.Count > 0; } catch { }
+        if (!has && _lastRebuildWasNarrow)
+        {
+            string name = "";
+            try { name = info.Name ?? ""; } catch { }
+            LogNarrowFallback(name);
+            Rebuild(false);
+        }
     }
 
     internal static string[] ParseList(string? raw)
@@ -167,7 +219,8 @@ internal static class SettlementStock
         try { ttl = Plugin.RestockSnapshotTtlSeconds?.Value ?? 10f; } catch { }
         if (ttl <= 0f) ttl = 10f;
         if (_everBuilt && (Time.realtimeSinceStartup - _builtAtRealtime) < ttl) return;
-        Rebuild();
+        bool narrow = GetSearchTokens().Length > 0;
+        Rebuild(narrow);
     }
 
     private static HashSet<string> GetBlacklist()
@@ -183,11 +236,40 @@ internal static class SettlementStock
         return set;
     }
 
-    private static void Rebuild()
+    private static string[] GetSearchTokens()
+    {
+        string raw = "";
+        try { raw = Plugin.RestockSearchStructures?.Value ?? ""; } catch { }
+        if (_searchTokensCache != null && raw == _searchTokensRaw) return _searchTokensCache;
+
+        var tokens = ParseList(raw);
+        _searchTokensRaw = raw;
+        _searchTokensCache = tokens;
+        return tokens;
+    }
+
+    // Matches on EITHER the display name (SafeStructureName - can be player-renamed) or the
+    // GameObject name (prefab-derived, stable across renames) so a renamed building doesn't silently
+    // fall out of the filter.
+    private static bool MatchesStructure(Structure st, string displayName, string[] tokens)
+    {
+        string goName = "";
+        try { goName = st.gameObject.name ?? ""; } catch { }
+
+        foreach (var token in tokens)
+        {
+            try { if (displayName.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+            try { if (goName.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0) return true; } catch { }
+        }
+        return false;
+    }
+
+    private static void Rebuild(bool narrow)
     {
         _byItemId.Clear();
         _everBuilt = true;
         _builtAtRealtime = Time.realtimeSinceStartup;
+        _lastRebuildWasNarrow = narrow;
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -201,6 +283,10 @@ internal static class SettlementStock
             }
 
             var blacklist = GetBlacklist();
+            string[] searchTokens = narrow ? GetSearchTokens() : Array.Empty<string>();
+
+            bool doCensus = false;
+            try { doCensus = Plugin.RestockStructureCensus.Value && !_censusDone; } catch { }
 
             Il2CppSystem.Collections.Generic.List<Structure>? structures = null;
             try { structures = settlement.GetStructures(); } catch { }
@@ -209,6 +295,8 @@ internal static class SettlementStock
             int containerEntries = 0;
             int skippedBlacklisted = 0;
             int skippedDuplicates = 0;
+            int structuresScanned = 0;
+            int structuresSkippedByFilter = 0;
             var seenContainerPtrs = new HashSet<IntPtr>();
             var seenContainerKeys = new HashSet<string>(StringComparer.Ordinal);
 
@@ -216,6 +304,22 @@ internal static class SettlementStock
             {
                 if (st == null) continue;
                 string structureName = SafeStructureName(st);
+
+                bool matched = !narrow || MatchesStructure(st, structureName, searchTokens);
+
+                if (doCensus)
+                {
+                    string goName = "";
+                    try { goName = st.gameObject.name ?? ""; } catch { }
+                    Plugin.Logger.LogInfo($"[VillagerAmmo] structure census: '{structureName}' (gameObject '{goName}') filter-matched={matched}");
+                }
+
+                if (narrow && !matched)
+                {
+                    structuresSkippedByFilter++;
+                    continue;
+                }
+                structuresScanned++;
 
                 var containers = new List<ItemContainerComponent>();
                 try { CollectComponents(st.transform, containers, 0); } catch { }
@@ -296,9 +400,12 @@ internal static class SettlementStock
                 }
             }
 
+            if (doCensus) _censusDone = true;
+
             if (Plugin.EnableDiagnostics.Value)
-                Plugin.Logger.LogInfo($"[VillagerAmmo] SettlementStock rebuilt: {_byItemId.Count} distinct item type(s), " +
-                    $"{containerEntries} container-entr(y/ies), {skippedBlacklisted} blacklisted, {skippedDuplicates} duplicate listing(s) skipped.");
+                Plugin.Logger.LogInfo($"[VillagerAmmo] SettlementStock rebuilt ({(narrow ? "narrow" : "full")}): {_byItemId.Count} distinct item type(s), " +
+                    $"{containerEntries} container-entr(y/ies), {skippedBlacklisted} blacklisted, {skippedDuplicates} duplicate listing(s) skipped, " +
+                    $"{structuresScanned} structure(s) scanned, {structuresSkippedByFilter} skipped by filter.");
         }
         catch (Exception ex)
         {

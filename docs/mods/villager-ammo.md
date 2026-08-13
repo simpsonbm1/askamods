@@ -1,4 +1,4 @@
-# Mod 24: VillagerAmmoMod — v1.0.0 on Nexus, storage restock confirmed; v1.1.2 retune ⚠️ pending
+# Mod 24: VillagerAmmoMod — COMPLETE v1.3.0, all features confirmed in-game 2026-08-13
 
 **Goal:** villagers in ranged roles (archery training, defenders, hunters) never run out of arrows —
 ammo spent while shooting is refunded in place, so the carried arrow stack holds level. The player is
@@ -38,8 +38,9 @@ archery-range targets (thousands over time — a confirmed FPS killer) are perio
   dead-end).
 - Own tracking set via `DynamicItemObject.OnEnable` postfix / `OnDisable` prefix (GroundItemVacuum
   pattern; parameterless targets — safe under the inventory-family patch gotcha).
-- Every `CleanupCheckSeconds` (60 s), host-gated: cull tracked items whose category chain contains
-  `ArrowCategoryMatch` AND that sit within `TargetArrowRadius` (squared-distance) of a tracked
+- Every `CleanupCheckSeconds` (60 s), host-gated: cull tracked items that `Plugin.IsAmmoItem`
+  identifies as ammo (see section 4 — locale-invariant, never a name or category string)
+  AND that sit within `TargetArrowRadius` (squared-distance) of a tracked
   target whose GameObject name matches `TargetNameMatch`, once the match count ≥
   `StuckArrowThreshold`. Removal via `WorldItemObject.RemoveObjectFromWorld()`.
 - **`TargetNameMatch` scoping is load-bearing** (v0.2.3): a census showed `ProjectileTargetHelper`
@@ -81,13 +82,13 @@ archery-range targets (thousands over time — a confirmed FPS killer) are perio
 - Arrow-type resolution runs in three tiers: the quiver's own `GetItem(0)?.info`; then
   `Plugin.InfoCache` keyed by the quiver's native pointer; then
   `SettlementStock.ResolveArrowInfo`, which tries `RestockArrowPreference` by item name in
-  order and falls back to the largest settlement stock whose category chain contains
-  `TargetCleanup/ArrowCategoryMatch`. The third tier exists for a quiver that has been
-  empty since world load, where the first two have nothing to offer.
-- **Locale limit:** `RestockArrowPreference` matches item DISPLAY names, so it will not
-  match on a non-English game. The category-chain fallback is what covers those players,
-  and it is not itself proven locale-invariant. The config description states this to the
-  player.
+  order and then falls back to the largest settlement stock that `Plugin.IsAmmoItem`
+  identifies as ammo. The third tier exists for a quiver that has been empty since world
+  load, where the first two have nothing to offer.
+- `RestockArrowPreference` matches item DISPLAY names, so it does nothing on a non-English
+  game. That is why it is only an optional override for steering which arrows get spent —
+  the ammo-type fallback beneath it is locale-invariant and is what actually resolves the
+  arrow (see section 4).
 - Sourcing: `SettlementStock.cs` is a port of CraftFromStorageMod's proven settlement walk
   (`GetStructures()` per structure, then a per-node singular `GetComponent<ItemContainerComponent>()`
   recursion, since the plural generic is missing through the interop trampoline). It
@@ -131,6 +132,32 @@ archery-range targets (thousands over time — a confirmed FPS killer) are perio
   The defaults are now a target of 20 and a trigger of 5, so an archer is filled to a
   full stack, fires fifteen arrows, and only then costs one walk.
 
+#### Building-filtered storage search (v1.2.0, confirmed in-game 2026-08-13)
+
+- The settlement walk is the entire cost of a restock pass, so
+  `Restock/RestockSearchStructures` limits which buildings are searched. Matching is
+  per-STRUCTURE and happens BEFORE descending into that structure's object tree, which is
+  what makes it save anything — a container's type is only knowable after it has already
+  been found, so a container-level filter would still pay the whole hierarchy walk.
+- A structure matches if EITHER its display name OR its `gameObject.name` contains any
+  configured token, case-insensitively. **The GameObject half is what makes this
+  locale-safe**: prefab names are not translated, so `WarehouseStorageArrows(Clone)` reads
+  identically in every language, while a player can rename the building itself.
+- **Fallback, which is the correctness guarantee:** if the narrow snapshot holds no entry
+  for the wanted item, the mod rebuilds with the filter off and retries. So a player whose
+  arrows live somewhere unlisted still gets served, just more slowly. The fallback logs
+  unconditionally, rate limited to one line per item name per world session.
+- Measured 2026-08-13: a narrow walk reported `82 structure(s) scanned, 334 skipped by
+  filter`, and container entries fell from 376 to 214. Across 23 walks in that session, 17
+  took 25 to 49 ms and 4 took 50 to 74 ms, against a 53 to 84 ms range before the filter.
+  Twenty walks ran narrow and three ran full.
+- One fallback fired in that run, and it was correct rather than a miss: `narrow storage
+  search found no 'Wood Arrow' - falling back to a full settlement search.` The settlement
+  held no Wood Arrows at all, so the wide search found none either.
+- `Restock/RestockStructureCensus` logs one line per building with its display name, its
+  GameObject name, and whether the filter matched. It defaults to false. It is how the
+  search list gets tuned.
+
 **First run (v1.1.0, confirmed in-game 2026-08-12):**
 
 - The mod loaded as `VillagerAmmoMod v1.1.0 loaded (polling mode). Enabled=True, ...
@@ -163,20 +190,48 @@ archery-range targets (thousands over time — a confirmed FPS killer) are perio
 - The walk itself is essentially the whole remaining cost of a pass, measured at up to
   `settlement snapshot rebuild took 83.8 ms` across 371 container entries.
 
+### 4) Locale-safe ammo identity (v1.3.0, confirmed in-game 2026-08-13)
+
+- **`SandSailorStudio.Inventory.AmmoItemInfo` is the game's ammo item-asset type**
+  (Cecil-confirmed 2026-08-13 against `Assembly-CSharp.dll`). Nothing derives from it. Its
+  three siblings under `WeaponizedItemInfo` are `RangedWeaponInfo`, `FishingItemInfo` and
+  `SSSGame.TootItemInfo`, which are bows, fishing gear and horns. So that one type means
+  ammo, exactly and only.
+- The mod reads that identity through `Plugin.IsAmmoItem`, which compares the native class
+  name via `Plugin.NativeClassName`. **A managed `is`/`as` cast cannot be used here** — an
+  `ItemInfo` reaches this code declared as the base type, and managed casts lie for interop
+  objects materialized under a base declared type, so the cast would return false for every
+  real arrow.
+- This replaced English text matching in two places: the stuck-arrow cull's category-chain
+  test, and the empty-quiver fallback in `SettlementStock.ResolveArrowInfo`. The
+  `RestockArrowPreference` name list survives as an optional player override for steering
+  which arrows get spent, and it is no longer the mechanism.
+- **The cull was completely inert for non-English players before this.** Confirmed by a
+  German run on 2026-08-13, whose one-time comparison line read: `ammo-identity check: 13
+  item(s) matched by type, 0 by the old category text, out of 181 tracked ground
+  item(s).` Zero of the thirteen ammo items present matched the English category text. The
+  cull then worked, logging `culled 23/23 stuck arrows near 12 target(s)`, and the user
+  watched stuck arrows disappear. Zero errors in the session.
+- `TargetCleanup/ArrowCategoryMatch` is retained as a config key so existing config files
+  stay valid, but no logic reads it. Its description says so.
+
 ## Config (`com.askamods.villagerammo.cfg`, hot-reloaded every 30 s)
 
 - `[General]` `Enabled` (**true**); `RefundOnlyWhenShooting` (**true**);
   `RecentShootingWindowSeconds` (**3.0**); `EnableDiagnostics` (**false** since v1.0.0 — shipped;
   flip to true when troubleshooting).
 - `[TargetCleanup]` `TargetCleanupEnabled` (**true**); `StuckArrowThreshold` (**10**);
-  `CleanupCheckSeconds` (**60**); `ArrowCategoryMatch` (**"Arrows"** — category parent-chain
-  substring); `TargetArrowRadius` (**15** m); `TargetNameMatch`
-  (**"ArcheryTarget,TrainingDummy"** — case-insensitive GameObject-name substrings, parsed each
-  cleanup pass).
+  `CleanupCheckSeconds` (**60**); `ArrowCategoryMatch` (retained for compatibility; no
+  logic reads it); `TargetArrowRadius` (**15** m); `TargetNameMatch`
+  (**"ArcheryTarget,TrainingDummy"** — case-insensitive GameObject-name substrings, parsed
+  each cleanup pass).
 - `[Restock]` `RestockFromStorage` (**false**); `RestockTargetCount` (**20**);
   `RestockWhenBelow` (**5**); `RestockCheckSeconds` (**10**);
   `RestockArrowPreference` (**"Arrow,Stone Arrow,Iron Arrow"**);
-  `RestockSnapshotTtlSeconds` (**10**); `RestockBlacklistContainerTypes`
+  `RestockSnapshotTtlSeconds` (**10**); `RestockSearchStructures`
+  (**"Warehouse,Workshop,Storage"** — case-insensitive substring match on display name or
+  GameObject name); `RestockStructureCensus` (**false**);
+  `RestockBlacklistContainerTypes`
   (**"CharacterFlask,CharacterBuilder,ArmorRack,ArmorRackSmall,ArmorRackLarge,Storage_Core,Storage_DecorationsTop,Storage_SmallItems_Outhouse"**).
 
 ## Log lines
@@ -190,8 +245,12 @@ archery-range targets (thousands over time — a confirmed FPS killer) are perio
 
 ## Open / resolved
 
-- ⚠️ **Unexercised path:** manual arrow withdrawal from an idle villager (should NOT refund — the
-  grace window + state gate should adopt it as a withdrawal; never explicitly tested).
+- ⚠️ **Unexercised path (as of 2026-08-13): the empty-quiver arrow lookup.**
+  SettlementStock.ResolveArrowInfo only runs when a villager's quiver has been empty since
+  world load AND the mod has never seen that quiver hold arrows. Across every run so far the
+  arrow type resolved from the quiver itself or the per-quiver cache, and the "restock skip
+  for" line never appeared, so the AmmoItemInfo fallback pass has never actually decided
+  anything in-game.
 - **RESOLVED as moot (2026-07-12):** the player-on-mount refund risk (mount shooting possibly
   routing through base `RangedManager` without `IsPlayer`) — **there are no mounts in ASKA**;
   `RiderRangedManager` is dead code. On-foot player arrows deplete normally (user play experience
@@ -258,13 +317,19 @@ never discarded, inside a loop that serves several consumers.
 
 ## Version history
 
+- **v1.3.0** (2026-08-13): ammo identified by the game's own AmmoItemInfo asset type in
+  both the stuck-arrow cull and the empty-quiver lookup, giving locale-invariant identity.
+  RestockStructureCensus default false. Confirmed in-game in German: 13 ammo items matched
+  by type identity, zero errors in session.
+- **v1.2.0** (2026-08-13): building-filtered settlement search (RestockSearchStructures)
+  with an automatic full-search fallback. Confirmed in-game: 334 of 416 structures skipped,
+  typical walk down from 53-84 ms to 25-49 ms.
 - **v1.1.2** (2026-08-13): retuned defaults to one stack - RestockTargetCount 40 to 20,
   RestockWhenBelow 20 to 5. Config text only, no logic change. Ends the hover loop caused
-  by an unreachable target. ⚠️ Not yet run in-game.
+  by an unreachable target. Confirmed in-game 2026-08-13.
 - **v1.1.1** (2026-08-12): snapshot decremented in place instead of invalidated per
   villager; one invalidation per restock pass; `GetCandidates` skips drained containers.
-  Fixes the 574.5 ms pass measured at v1.1.0, confirmed in-game 2026-08-13 with worst
-  pass down to 92.3 ms. Run exposed the unreachable-target hover loop fixed in v1.1.2.
+  Confirmed in-game 2026-08-13 with worst pass down to 92.3 ms, fastest 57.9 ms.
 - **v1.1.0** (2026-08-12): storage-restock mode (`Restock` config section, `SettlementStock.cs` +
   `AmmoRestock.cs`, `RunRestockPass`, villager gate). Replaces the refund when on. Built and
   publish-gate clean; confirmed in-game 2026-08-12. The run exposed a pass-time defect
