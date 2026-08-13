@@ -46,7 +46,11 @@ $ErrorActionPreference = 'Stop'
 $script:Patterns = @(
     @{ Rx = 'previously\s+(thought|believed|assumed|said|claimed|stated|recorded)';
        Why = 'states a former belief - delete it and state only what is true now' }
-    @{ Rx = '(the\s+)?(old|earlier|previous|original|former)\s+(claim|text|note|wording|framing|understanding|statement|scope)';
+    # The trailing lookahead exempts string-MATCHING talk: "the old text matched 0 of 13 ammo
+    # items" states what superseded CODE matched against, a durable technical fact about a locale
+    # bug, not the document's own prior content. Blocked twice on 2026-08-13, once on the very
+    # line recording the false positive.
+    @{ Rx = '(the\s+)?(old|earlier|previous|original|former)\s+(claim|text|note|wording|framing|understanding|statement|scope)(?!\s+match)';
        Why = 'points at superseded text instead of replacing it' }
     @{ Rx = 'retracted';
        Why = 'marks a retraction - rewrite the fact in place instead' }
@@ -187,6 +191,8 @@ if ($SelfTest) {
     )
     # MUST NOT trip (legitimate durable doc content from this repo)
     $negatives = @(
+        'Confirmed in German: the old text matched 0 of 13 ammo items, the type test matched all 13.',
+        'It blocked the phrase "the old text matched 0 of 13 ammo items" as doc-history prose.',
         '- **`CheckOwnedRequirements` is NOT inlined - the patch fires.** (confirmed in-game 2026-07-20)',
         '**DEAD-END (confirmed in-game 2026-07-20): `QuerySettlementResources()` HANGS the game.**',
         'Container acceptance is NOT storage-class-based alone. Pointer-verified in-game.',

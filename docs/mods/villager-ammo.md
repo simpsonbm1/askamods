@@ -317,7 +317,8 @@ never discarded, inside a loop that serves several consumers.
 
 ## Version history
 
-- **v1.3.0** (2026-08-13): ammo identified by the game's own AmmoItemInfo asset type in
+- **v1.3.0** (2026-08-13, published to Nexus 2026-08-13, file group `7651994`): ammo
+  identified by the game's own AmmoItemInfo asset type in
   both the stuck-arrow cull and the empty-quiver lookup, giving locale-invariant identity.
   RestockStructureCensus default false. Confirmed in-game in German: 13 ammo items matched
   by type identity, zero errors in session.
