@@ -7,7 +7,7 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: COMPLETE v1.5.2, host/solo only, published on Nexus.** Phase 1 (player crafting at
+**Status: COMPLETE v1.6.0, host/solo only, published on Nexus.** Phase 1 (player crafting at
 stations) and Phase 2 (villager crafting from storage) confirmed in-game 2026-07-31. Personal
 crafting from the build menu (bench-free recipes: rope, stone blades, wooden tools) confirmed
 in-game 2026-08-13. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
@@ -734,7 +734,7 @@ closes. Nothing patches the craftability test or the craft trigger.
 - **v0.9.5** — corrected the dropped-recipe count in the new per-villager log line. It had
   counted every repeat widening of an already-dropped recipe while labeling the number as
   distinct recipes, so it now tracks a set of recipe names instead and the reported number
-  matches the label. ⚠️ Not yet run in-game.
+  matches the label.
 - **v0.9.4** — added a widened-recipe diagnostic answering a question the earlier rollup could
   not: the rollup reported how many times the mod widened the craft-availability gate per
   villager, but never which recipe was widened. The per-widening raw line now carries the
@@ -744,13 +744,11 @@ closes. Nothing patches the craftability test or the craft trigger.
   omitted so nothing truncates silently. The original `TryReportAvailable rollup:` line is
   unchanged. One reading caveat: the shortfall recorded per recipe is the FIRST one seen in a
   flush burst, so a recipe whose missing set changed mid-burst shows only its earliest state.
-  ⚠️ Not yet run in-game.
 - **v0.9.3** — added a station-based fallback resolution chain so the blueprint-class gate also
   covers plain `CrafterFetchQuest` quests (which lack a direct `craftingProject` link), stopped
   the candidate retry loop once a destination refuses an item (logged as `destinationRefused=true`
   on the SHORT line), blacklisted `Storage_HotItemsSmall` as a pull source, and added a
-  diagnostic `stationType=` field to separate workshop tier from station kind. ⚠️ Not yet run
-  in-game.
+  diagnostic `stationType=` field to separate workshop tier from station kind.
 - **v0.9.2** — added the blueprint-class gate (`Transfer/SkipBlueprintClasses`) with a
   fail-open resolution chain, added a `bpClass=` field to the STOCKED log line, and added
   zero-move and candidate-list diagnostics that separate a failed source removal from a refused
