@@ -465,6 +465,16 @@ capacity survey line, never as a pull source, while bloomeries were still fed fr
 stock.
 
 ## Dead-ends and traps
+- **The mod cannot reach building construction (Cecil 2026-08-08,
+  `_explore/cecil_cfs_construction.ps1`).** `CheckOwnedRequirements` is declared on exactly one type
+  in the game, `SSSGame.CraftInteraction`, and the only types deriving from it are
+  `AnvilInteraction`, `CarpenterInteraction` and `DyeingInteraction` — so the availability
+  widening can never fire on a build site. Construction is a separate subsystem: `BuildSite` derives
+  straight from `MonoBehaviour`, and builders run `FSM_FetchBuildingSupplies` / `FSM_BuildStructure`
+  / `FSM_ReturnBuildingSupplies`, none of which this mod patches. The only route from this mod to a
+  build site is indirect and unremarkable: a crafted part a structure needs gets made faster at a
+  bench, so settlement storage holds it sooner. Raised by a Nexus report (2026-08-08) describing
+  structures turning green the moment they were plotted; that behaviour is not this mod.
 - **`Settlement.QuerySettlementResources()` HANGS the game** (`AppHangB1`; no managed rescue). Use
   the `GetStructures()` walk.
 - **`_OnCraftingSuccess` IS the consumption site** — the ~3–6 ms between its prefix and postfix.

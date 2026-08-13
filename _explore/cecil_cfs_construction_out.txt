@@ -1,0 +1,93 @@
+=== Q1a: every type whose base chain reaches SSSGame.CraftInteraction ===
+  SSSGame.AnvilInteraction   ::   SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AnvilInteractionDisplay   ::   SSSGame.CraftInteractionDisplay  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.CarpenterInteraction   ::   SSSGame.AnvilInteraction  ->  SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.DyeingInteraction   ::   SSSGame.CraftInteraction  ->  SSSGame.Interaction  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.PlayerAnvilInteractionConfig   ::   SSSGame.PlayerCraftInteractionConfig  ->  SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>
+  SSSGame.PlayerCraftInteractionConfig   ::   SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>
+  SSSGame.VillagerAnvilInteractionConfig   ::   SSSGame.VillagerCraftInteractionConfig  ->  SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>
+  SSSGame.VillagerCraftInteractionConfig   ::   SSSGame.InteractionConfiguration`1<SSSGame.CraftInteraction>
+
+=== Q1b: does any type declare its own CheckOwnedRequirements? ===
+  SSSGame.CraftInteraction.CheckOwnedRequirements
+
+=== Q1c: construction/building-named types and their base chains ===
+  SSSGame.StructureBuildJob   ::   SSSGame.BuildJob  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.StructureBuildJob/State   ::   System.Enum
+  SSSGame.BuildSite   ::   UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildSite/BuildsiteEvents   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildSite/BuildLayer   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildSite/__c   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.BuildSite/__c__DisplayClass54_0   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.StructureBuilder   ::   Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.TestBuildSites   ::   UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.WallConstructionData   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkBuildSite   ::   Fusion.NetworkBehaviour  ->  Fusion.SimulationBehaviour  ->  Fusion.Behaviour  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.Network.NetworkBuildSite/Progress   ::   System.ValueType
+  SSSGame.Deeds.BuildsiteEventData   ::   Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.SettlementIssuesTabPage/__CreateStructuresPanelsForBuildsites_d__65   ::   Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.SettlementIssuesTabPage/__CreateStructuresPanelsForOutpostBuildsites_d__63   ::   Il2CppSystem.ValueType  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.BuildsiteData   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.BuildsiteWidget   ::   SSSGame.HUDWidget  ->  UnityEngine.MonoBehaviour  ->  UnityEngine.Behaviour  ->  UnityEngine.Component  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.BuildsiteWidget/__c__DisplayClass22_0   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.BuildsiteWidget/__c__DisplayClass29_0   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.UI.BuildsiteWidget/__c__DisplayClass39_0   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.BuildsiteTaskData   ::   SSSGame.AI.BuildStationTaskData  ->  SSSGame.AI.WorkstationTaskData  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetRandomBuildSitePosition   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetRandomBuildSitePosition/__c__DisplayClass6_0   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetTopBuildSitePosition   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_HasTopBuildsite   ::   SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Activation.ConstructionLevelActivator   ::   Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Activation.IConstructionCallMessage   ::   Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Activation.IConstructionReturnMessage   ::   Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Messaging.ConstructionCall   ::   Il2CppSystem.Runtime.Remoting.Messaging.MethodCall  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Messaging.ConstructionCallDictionary   ::   Il2CppSystem.Runtime.Remoting.Messaging.MessageDictionary  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Il2CppSystem.Runtime.Remoting.Messaging.ConstructionResponse   ::   Il2CppSystem.Runtime.Remoting.Messaging.MethodResponse  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.IL2CPP.CompilerServices.Il2CppEagerStaticClassConstructionAttribute   ::   Il2CppSystem.Attribute  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  Unity.IL2CPP.CompilerServices.Il2CppEagerStaticClassConstructionAttribute   ::   Il2CppSystem.Attribute  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  UnityEngine.Renderer/get_rayTracingAccelerationStructureBuildFlags_InjectedDelegate   ::   System.MulticastDelegate
+  UnityEngine.Renderer/set_rayTracingAccelerationStructureBuildFlags_InjectedDelegate   ::   System.MulticastDelegate
+  UnityEngine.Renderer/get_rayTracingAccelerationStructureBuildFlagsOverride_InjectedDelegate   ::   System.MulticastDelegate
+  UnityEngine.Renderer/set_rayTracingAccelerationStructureBuildFlagsOverride_InjectedDelegate   ::   System.MulticastDelegate
+  UnityEngine.Rendering.RayTracingAccelerationStructureBuildFlags   ::   System.Enum
+
+=== Q2: every FSM_Fetch* / FSM_*Build* state action type ===
+  SSSGame.AI.FSM.FSM_FetchBloomerySupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchKilnSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_AcquireBuildingEquipment   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_BuildStructure   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_BuilderLightkeep   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchBuildingSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchPaintSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchRepairSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ResetBuildErrors   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_ReturnBuildingSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetRandomBuildSitePosition   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_SetTopBuildSitePosition   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerCargo   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCoalmakerFuel   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingStockpile   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCookingSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCrockpotSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchHomeStockpile   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchKennelFood   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_TradeRouteFetch   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_Fetch   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchAnvilResults   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchBoatCargo   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCraftingSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringParts   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchCuringResults   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchDyeParts   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchDyeingSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchExpeditionSupplies   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchNearbyUsefulItem   ::   SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchSaplings   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchTroughContents   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_FetchWaterForTrough   ::   SSSGame.AI.FSM.FSM_QuestAction  ->  SSSGame.AI.FSM.vStateAction  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CheckIdleBuilder   ::   SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_BuildNeedsRestart   ::   SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_BuildQuestHasComplaints   ::   SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_CheckBuildStatus   ::   SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
+  SSSGame.AI.FSM.FSM_HasTopBuildsite   ::   SSSGame.AI.FSM.FSM_QuestDecision  ->  SSSGame.AI.FSM.vStateDecision  ->  UnityEngine.ScriptableObject  ->  UnityEngine.Object  ->  Il2CppSystem.Object  ->  Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase
