@@ -50,10 +50,20 @@ Wells: architecture.md → "Constructed water structures" under the Gather secti
   invariant asset name**, value = days; `0` = disabled; `Default` = fallback for unlisted
   resources). v1.7.1+ matches both asset name AND translated display name (case-insensitive
   substring — key `Mushroom` matches asset `Item_Food_BiomeMushroom*` AND display names
-  "Gray/Grey/Yellow Mushrooms"; key `Fiber` matches asset prefixes AND `"Fibers"`). Dual matching
+  "Gray/Grey/Yellow Mushrooms"). Dual matching
   enables locale-safe configuration in every language (prior v1.6.x matched only the translated
   yield name and applied zero overrides in non-English, falling back to the `Default` rate for
   every non-English node). The yield-name↔node table lives in architecture.md → Gather.
+- **Two keys need an alias because the node is named after the plant, not the item**
+  (confirmed in-game 2026-08-22). Flax registers as `Item_Wood_PlantFlax` and reeds as
+  `Item_Wood_PlantReeds`, so the keys `Fiber` and `Thatch` matched nothing and both resources
+  used the `Default` rate. `Plugin.KeyAliases` widens `Fiber` to also match "Flax" and `Thatch`
+  to also match "Reeds"; the config key names are unchanged, so existing config files keep
+  working. Adding a resource whose node asset name does not contain its config key needs an
+  entry there too.
+- **`Small Stone` never registers a respawn at all** (observed 2026-08-22): picking a loose
+  ground stone produced no gather-respawn line, so that config entry appears inert. Not
+  confirmed either way from a single pickup, and the entry is deliberately left in place.
 - **Respawn days is NOT a "more stock" lever** — it only sets how soon a node is harvestable
   again. If a raw intermediate still reads ~0 in storage at a `0.01` threshold, the bottleneck is
   consumption or gather labor, not the mod.
@@ -377,6 +387,7 @@ not this query — still works, still cancels the respawn.
 | v1.6.0–v1.6.1 | 2026-07-12 | Perf hardening: cheap-first + 8/tick slicing, WellRefill on 30 s cadence, ServiceInterval 3 s (⚠️ pending in-game confirmation). |
 | v1.7.0 (2026-07-21) | Mushroom availability gate now matches invariant asset name (`Item_Food_BiomeMushroom*`) + translated display name, enabling year-round mushroom availability in every language; confirmed in-game in German. |
 | v1.7.1 (2026-07-21) | Per-item gather-respawn rate override (`GetGatherThreshold`) now keys on invariant asset name + translated yield name (dual matching); well-refill "Water" filter now matches invariant asset name (`Item_Elements_NaturalWaterCollector1`) + translated name, enabling locale-safe identification in every language. ⚠️ pending in-game confirmation. |
+| v1.8.1 (2026-08-22) | Config keys `Fiber` and `Thatch` now also match the flax and reed node asset names (`Item_Wood_PlantFlax`, `Item_Wood_PlantReeds`), which they had missed since v1.7.1 keyed matching on the asset name, sending both resources to the `Default` rate. Applies to `[GatherRespawn]` and `[RespawnOnTerraformedGround]` alike. Answers a Nexus report from tspringer5 (2026-08-22) that fiber respawned daily despite a custom rate. Confirmed in-game 2026-08-22: flax and reeds both returned at the configured rate. |
 | v1.8.0 (2026-08-05) | Per-gatherable respawn-on-terraformed-ground switch,
 `[RespawnOnTerraformedGround]`, defaults all true so behaviour is unchanged until a
 player opts in; confirmed in-game 2026-08-05. |
