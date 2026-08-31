@@ -1,8 +1,8 @@
 # TaskUnlockerMod (Mod 17) — unlock cooking recipes, fishing grounds + item-journal tasks
 
-**Status: COMPLETE v1.4.1, on Nexus ("Task and Journal Unlocker", renamed 2026-07-14, group ID 7623785).**
+**Status: COMPLETE v1.4.2, on Nexus ("Task and Journal Unlocker", renamed 2026-07-14, group ID 7623785).**
 Core journal unlock + perf rework confirmed in-game 2026-07-14 (as v1.3.0/v1.4.0); v1.4.1 =
-ship defaults only.
+ship defaults only; v1.4.2 = fishing-ground re-keying for 2026-08-31 game update.
 
 Unlocks all crockpot recipes, marks all fishing grounds, and discovers all item-gated building
 tasks (tavern, harbor, storage, workshops) at world load.
@@ -13,7 +13,7 @@ tasks (tavern, harbor, storage, workshops) at world load.
 |---|---|---|---|
 | Cooking (CrockpotRecipeInfo) | Blueprint discoverable (BlueprintConditionsDatabase) | `NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable(ItemInfo.id)` | Recipe appears in cooking workstation task list |
 | Item Journal (all other discoverables) | Same: Blueprint discoverable system | `NetworkBlueprintConditionsDatabase.Rpc_AddDiscoverable(ItemInfo.id)` | Journal entries appear + task gates lift at buildings with CheckTaskDiscovery |
-| Fishing | Marked fishing grounds (NOT discovery) | `NetworkWorldDataManager.RequestDiscoverFishingGround(id)` + `RequestMarkFishinGround(id, true)` | Game creates fish task; buoy marked on map |
+| Fishing | Marked fishing grounds (NOT discovery) | `NetworkWorldDataManager.RequestDiscoverFishingGround(id, index)` + `RequestMarkFishinGround(id, index, true)` | Game creates fish task; buoy marked on map |
 
 **Discoverable item families** (implement IDiscoverableItem: requiresDiscovery / IsDiscovered(db)
 / Discover(db)): CrockpotRecipeInfo; ResourceInfo (+ derived BiomeResourceInfo, ConsumableInfo,
@@ -107,3 +107,8 @@ PopulationInfo, VegetationResourceInfo); WearableItemInfo; PlantableItemInfo; We
 - v1.4.0 (2026-07-14): per-category toggles (gear families default off — workshop tier-gating),
   save-data load gate (fixes early-scan re-sends), reset repair switch, confirmed in-game.
 - v1.4.1: ship defaults (DiagnosticsLogPassTimings→false) + reset warning text.
+- v1.4.2 (2026-08-31): game update re-keyed fishing grounds as (id, index); calls updated to the
+  new signatures; the index is discovered by probing `NetworkWorldDataManager._TryGetFishingGround`
+  for pointer equality with the held ground and cached; per-ground tracking re-keyed from `_id` to
+  Unity `GetInstanceID()` because `_id` may no longer be unique; confirmed in-game 2026-08-31
+  (fishing markers appeared on a brand-new world, 212 discover+mark requests, zero probe failures).

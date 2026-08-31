@@ -293,7 +293,7 @@ askamods/
     archive/                 ← superseded handoffs/investigation logs (history only, never orientation)
   _explore/                  ← throwaway Mono.Cecil inspector scripts (not a mod)
   BowDamageMod/              ← Mod 1: buff early-game bow damage [COMPLETE v1.0.0 — docs/mods/bow-damage.md]
-  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.8.0, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
+  TreeRespawnMod/            ← Mod 2: tree/gather respawn, well refill, year-round mushrooms, stump protection [COMPLETE v1.8.1, locale-safe — v1.7.1 gather-rate + well-refill + v1.6.x perf hardening ⚠️ pending in-game — docs/mods/tree-respawn.md]
   HealthRegenMod/            ← Mod 3: player + villager out-of-combat HP regen, per-villager rates [COMPLETE v1.3.1 — docs/mods/health-regen.md]
   TorchFuelMod/              ← Mod 4: keep torches perpetually fueled [COMPLETE v1.2.5 — docs/mods/torch-fuel.md]
   DynamicVillagerNeedsMod/   ← Mod 5: needs-based villager behavior + opt-in manual-schedule mode [COMPLETE v1.10.1 — docs/mods/dynamic-villager-needs.md]
@@ -306,7 +306,7 @@ askamods/
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — docs/archive/SEED_HARVESTER_HANDOFF.md]
   TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
-  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.1 — docs/mods/task-unlocker.md]
+  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.2 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [radius sweep
@@ -336,7 +336,7 @@ askamods/
   NoNeedsMod/                ← Mod 27: pin player + villager needs at max, or run each at a chosen
                                 drain/gain rate [COMPLETE v1.1.1 — rate control confirmed in-game
                                 2026-08-10 on player food — docs/mods/no-needs.md]
-  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.6.0 —
+  CraftFromStorageMod/       ← Mod 28: idea-17 craft-from-settlement-storage [COMPLETE v1.6.1 —
                                 Phase 1 (player stations), Phase 2 (villager + bloomery/kiln),
                                 Phase 3 (personal build-menu crafting) all confirmed in-game
                                 2026-07-31/2026-08-13, host/solo only. SourceNodeAllowlist

@@ -148,9 +148,11 @@ internal static class MushroomDiag
                     {
                         try
                         {
-                            sb.Append("\n    process: lifespan=").Append(proc.Lifespan)
-                              .Append(" replenishWhenAvail=").Append(proc.ReplenishWhenAvailable)
-                              .Append(" canRun=").Append(proc.CanRun);
+                            // Lifespan and ReplenishWhenAvailable were removed from
+                            // AvailabilityProcess in the 2026-08-31 game update; the try/catch
+                            // could not save the old reads because MissingMethodException fires
+                            // when the enclosing block is JIT-compiled, not at the call.
+                            sb.Append("\n    process: canRun=").Append(proc.CanRun);
                         }
                         catch { }
                         sb.Append("\n    Season[").Append(seasonN).Append("]: ").Append(SeasonList(proc, seasonN));

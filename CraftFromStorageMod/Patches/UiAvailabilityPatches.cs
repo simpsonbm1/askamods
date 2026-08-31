@@ -76,12 +76,15 @@ internal static class CraftMenuClosedPatch
 // ---- ItemThumbnailPanel availability text: BOTH possible update methods are patched; fire-verified
 // via CraftUiAvailability's own once-each "FIRED" log (AOT inlining is the top risk on both - a patch
 // that never fires must be visible in the log, not silent). ----
-[HarmonyPatch(typeof(ItemThumbnailPanel), "_UpdateAvailablility")]
+// "UpdateAvailablility" (game's own typo, public since the 2026-08-31 game update; formerly
+// private "_UpdateAvailablility" - the old name no longer exists and patching it aborted the
+// whole plugin load).
+[HarmonyPatch(typeof(ItemThumbnailPanel), "UpdateAvailablility")]
 internal static class UpdateAvailablilityPatch
 {
     static void Postfix(ItemThumbnailPanel __instance)
     {
-        try { CraftUiAvailability.OnUpdateAvailability(__instance, "_UpdateAvailablility"); }
+        try { CraftUiAvailability.OnUpdateAvailability(__instance, "UpdateAvailablility"); }
         catch (Exception ex) { Plugin.Logger.LogError($"[CFS] UpdateAvailablilityPatch: {ex}"); }
     }
 }

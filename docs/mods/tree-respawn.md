@@ -1,10 +1,10 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.8.0)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.8.1)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries,
 etc.) after configurable in-game days — plus a configurable refill rate for **constructed wells**
 (Water Well / Rain Collector), year-round rain-independent **mushrooms**, **woodcutter stump
 protection**, and **per-resource control of respawn on terraformed ground**. This file describes
-the mod as it exists at v1.8.0; version history is compressed into the appendix. Deep
+the mod as it exists at v1.8.1; version history is compressed into the appendix. Deep
 investigation history: `docs/archive/TREERESPAWN_HANDOFF.md`.
 
 **Game subsystems:** [Resource / Tree System](../architecture.md#resource--tree-system) and
@@ -380,3 +380,8 @@ not this query — still works, still cancels the respawn.
 | v1.8.0 (2026-08-05) | Per-gatherable respawn-on-terraformed-ground switch,
 `[RespawnOnTerraformedGround]`, defaults all true so behaviour is unchanged until a
 player opts in; confirmed in-game 2026-08-05. |
+| v1.8.1 (2026-08-31) | Game update removed `AvailabilityProcess.Lifespan` and
+`ReplenishWhenAvailable`; the mushroom diagnostic now prints `canRun` only; the old
+try/catch could not contain the `MissingMethodException` because it fires at JIT of the
+enclosing block; confirmed clean in log 2026-08-31 (36 MushroomDiag lines, no
+exception). Respawn features themselves were not affected by the update. |

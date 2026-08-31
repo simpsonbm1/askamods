@@ -213,6 +213,34 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   cannot be used** — plain fetches get HTTP 403, and opening it in the Browser pane hard-crashed
   the Claude desktop app twice on BENSDESKTOP, badly enough that Windows offered to repair the app.
   Use the Steam news API instead.
+- **A `MissingMethodException` for a removed interop member fires at JIT-compile time of the
+  enclosing method, not at the call site** (confirmed 2026-08-31, TreeRespawnMod
+  `MushroomDiag.CheckConditions`). If the method containing the removed-reference call is JIT'd
+  before that reference is hit, the entire method fails to JIT and throws, even if a try/catch
+  wraps the call site itself — the exception is in the JIT glue, not in your code. **Guard by
+  removing the reference entirely or moving it to a separate method.** The TreeRespawn 1.8.1
+  `MushroomDiag` diagnostic removed a reference to deleted `AvailabilityProcess.Lifespan` and
+  `ReplenishWhenAvailable`; the method then compiled and ran clean (36 diagnostics logged,
+  zero exceptions).
+- **Game update 2026-08-31 — removed and renamed interop surfaces** (confirmed by Cecil scan of
+  regenerated interop + in-game fire-verification 2026-08-31): `SSSGame.UI.ItemThumbnailPanel`
+  private `_UpdateAvailablility` renamed to public `UpdateAvailablility` (game's typo kept); a
+  patch on the old private name aborts plugin load with `HarmonyException: Patching exception in
+  method null`. Fishing grounds are now indexed as (fishingGroundID, index) pairs; old single-id
+  calls to `NetworkWorldDataManager.RequestDiscoverFishingGround` and
+  `RequestMarkFishinGround` are invalid. `_TryGetFishingGround(int id, int index, out
+  FishingGround)` resolves a ground by the pair; probing it with pointer equality against held
+  ground instances locates that ground's index (confirmed in-game 2026-08-31: 212
+  discover+mark requests across 113- and 111-ground worlds, zero probe failures). `FishingGround`
+  gained a `uid` int property. `AvailabilityProcess` lost `Lifespan` and
+  `ReplenishWhenAvailable` properties entirely; `ItemContainer.GetFillRatio()` now requires a
+  bool parameter; `SSSGame.HarvestMarker` lost `ShowRadiusAbsolute`, `ShowRadiusRoutine`, and
+  `radius` property (marker range system reworked); `SSSGame.PopulationManager` lost
+  `_creatureGroups`. Full per-mod breakage and fixes: CraftFromStorageMod 1.6.1 (patch rename),
+  TaskUnlockerMod 1.4.2 (fishing-ground re-keying), TreeRespawnMod 1.8.1 (availability
+  properties removed), ResourceMarkerRadiusMod 1.1.2 (marker radius removed, unfixed WIP),
+  SupplyChainMod 0.17.3 (GetFillRatio parameter, unfixed dev tool), LocaleAuditMod 0.4.0
+  (PopulationManager removed, unfixed dev tool).
 
 ---
 

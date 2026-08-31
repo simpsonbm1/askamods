@@ -7,7 +7,7 @@ crafters**, one independent config toggle each. For villagers this means **delet
 walk**: the villager crafts immediately rather than hauling materials to her station first.
 (This line is quoted into `SESSION_HANDOFF.md`'s `## GOAL GROUNDING` section — see CLAUDE.md.)
 
-**Status: COMPLETE v1.6.0, host/solo only, published on Nexus.** Phase 1 (player crafting at
+**Status: COMPLETE v1.6.1, host/solo only, published on Nexus.** Phase 1 (player crafting at
 stations) and Phase 2 (villager crafting from storage) confirmed in-game 2026-07-31. Personal
 crafting from the build menu (bench-free recipes: rope, stone blades, wooden tools) confirmed
 in-game 2026-08-13. The v1.1.0 source-node allow-list confirmed in-game 2026-08-11 on smolkr
@@ -644,6 +644,10 @@ closes. Nothing patches the craftability test or the craft trigger.
   source removal from a refused destination add.
 
 ## Version history
+- **v1.6.1** (2026-08-31) — game update renamed `ItemThumbnailPanel` private method
+  `_UpdateAvailablility` to public `UpdateAvailablility`; retargeted patch target and
+  confirmed in-game 2026-08-31 (player crafting from storage, carpenter log transform from
+  storage, patch fire-verified in log).
 - **v1.5.2** — clears the stale "not enough materials" message before re-checking the craft
   button, and corrects displayed settlement totals as items are moved.
 - **v1.5.1** — calls `BuildPreviewTabPage.RefreshConfirmButton()` after a pull, because vanilla

@@ -21,6 +21,9 @@ namespace TaskUnlockerMod
     // FishingStation._OnFishingGroundMarkChanged → _UpdateFishStatus → task. So we invoke the
     // vanilla request path — NetworkWorldDataManager.RequestDiscoverFishingGround +
     // RequestMarkFishinGround (game's own typo) — and let native code build the tasks.
+    // Since the 2026-08-31 lake-fishing update, grounds are addressed as (fishingGroundID, index)
+    // rather than by id alone; the index is probed via _TryGetFishingGround until it returns the
+    // exact instance held (native pointer equality), never guessed from list position.
     //
     // Steady-state cost (the v1.3.0 perf pass): world identity comes from the persistent
     // StorageManager's ActiveSessionID (TreeRespawn pattern) instead of a per-second
@@ -59,6 +62,11 @@ namespace TaskUnlockerMod
         private int _idleGroundCount = -1;   // grounds.Count when the pass last confirmed nothing left to do
         private readonly Dictionary<int, int> _markAttempts = new();
         private readonly HashSet<int> _handledGrounds = new();   // marked once, or given up on — never touched again
+        // ground GetInstanceID -> resolved registry index. The 2026-08-31 lake-fishing update
+        // re-keyed grounds as (fishingGroundID, index); _TryGetFishingGround is the game's own
+        // lookup for that pair, so the index is discovered by probing it until it returns the
+        // exact instance we hold (native pointer equality), never guessed from list position.
+        private readonly Dictionary<int, int> _groundIndexCache = new();
 
         void Update()
         {
@@ -129,6 +137,7 @@ namespace TaskUnlockerMod
             _idleGroundCount = -1;
             _markAttempts.Clear();
             _handledGrounds.Clear();
+            _groundIndexCache.Clear();
         }
 
         // ── Discoverables (cooking recipes + item journal entries) ──────────────────────────
@@ -366,35 +375,46 @@ namespace TaskUnlockerMod
                 if (fg == null) continue;
 
                 int id = fg._id;
-                if (_handledGrounds.Contains(id)) continue;
+                int key = fg.GetInstanceID();
+                if (_handledGrounds.Contains(key)) continue;
 
                 if (fg.IsMarked)
                 {
                     // Done — and deliberately never re-marked, so a player who unmarks a buoy
                     // isn't fought over it.
-                    _handledGrounds.Add(id);
-                    _markAttempts.Remove(id);
+                    _handledGrounds.Add(key);
+                    _markAttempts.Remove(key);
                     continue;
                 }
 
-                _markAttempts.TryGetValue(id, out int attempts);
+                _markAttempts.TryGetValue(key, out int attempts);
                 if (attempts >= MaxMarkAttempts)
                 {
-                    Plugin.Log.LogWarning($"TaskUnlocker: ground id={id} fish='{fg.fish?.name}' still unmarked after " +
+                    Plugin.Log.LogWarning($"TaskUnlocker: ground id={id} uid={fg.uid} fish='{fg.fish?.name}' still unmarked after " +
                         $"{MaxMarkAttempts} requests (Discovered={fg.Discovered}, Disabled={fg.Disabled}) — " +
                         "marking may be gated (see FishingGround.UnlockMarking); leaving it alone.");
-                    _handledGrounds.Add(id);
-                    _markAttempts.Remove(id);
+                    _handledGrounds.Add(key);
+                    _markAttempts.Remove(key);
                     continue;
                 }
 
                 var net = fg.NetworkCommunicator;
                 if (net == null) { unresolved++; continue; }   // not network-ready yet — retry next pass
 
+                int index = ResolveGroundIndex(net, fg, id, count);
+                if (index < 0)
+                {
+                    _markAttempts[key] = attempts + 1;
+                    unresolved++;
+                    Plugin.Log.LogWarning($"TaskUnlocker: could not resolve (id,index) for ground id={id} uid={fg.uid} " +
+                        $"(probed 0..{count - 1}) — 2026-08-31 addressing may differ; attempt {attempts + 1}.");
+                    continue;
+                }
+
                 if (!fg.Discovered)
-                    net.RequestDiscoverFishingGround(id);
-                net.RequestMarkFishinGround(id, true);   // game's own typo
-                _markAttempts[id] = attempts + 1;
+                    net.RequestDiscoverFishingGround(id, index);
+                net.RequestMarkFishinGround(id, index, true);   // game's own typo; (id, index, marked) since 2026-08-31
+                _markAttempts[key] = attempts + 1;
                 requested++;
 
                 if (Plugin.DiagnosticsLogItemUnlocks.Value)
@@ -420,6 +440,28 @@ namespace TaskUnlockerMod
                         "(rescans only if the ground registry grows).");
                 _idleGroundCount = count;
             }
+        }
+
+        private int ResolveGroundIndex(SSSGame.Network.NetworkWorldDataManager net, FishingGround fg, int id, int probeCap)
+        {
+            int key = fg.GetInstanceID();
+            if (_groundIndexCache.TryGetValue(key, out int cached)) return cached;
+            if ((object)fg is not Il2CppObjectBase wantedBase) return -1;
+            var wanted = wantedBase.Pointer;
+            for (int idx = 0; idx < probeCap; idx++)
+            {
+                try
+                {
+                    if (!net._TryGetFishingGround(id, idx, out FishingGround probe) || probe == null) continue;
+                    if ((object)probe is Il2CppObjectBase pb && pb.Pointer == wanted)
+                    {
+                        _groundIndexCache[key] = idx;
+                        return idx;
+                    }
+                }
+                catch { return -1; }
+            }
+            return -1;
         }
 
         private static string? DiscoverableFamily(Il2CppObjectBase o)
