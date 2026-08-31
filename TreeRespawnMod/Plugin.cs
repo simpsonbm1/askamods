@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -66,6 +66,19 @@ public class Plugin : BasePlugin
     // Populated at startup from per-resource Config.Bind calls. Key is substring to match (case-insensitive).
     internal static readonly Dictionary<string, float> GatherOverridesMap =
         new(StringComparer.OrdinalIgnoreCase);
+
+    // Some gather nodes are named after the PLANT rather than the item they yield, so the config
+    // key (written against the item name) never appears in the node's invariant asset name. Confirmed
+    // in-game 2026-08-22: flax logged "Item_Wood_PlantFlax" and reeds logged "Item_Wood_PlantReeds",
+    // both falling through to the Default rate while the config keys "Fiber" and "Thatch" sat unused.
+    // Each entry lists every token that identifies the resource; the config key name is unchanged so
+    // existing config files keep working. Verified against the full item dump: neither added token
+    // appears in any other resource's asset or display name.
+    private static readonly Dictionary<string, string[]> KeyAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Fiber"]  = new[] { "Fiber", "Flax" },
+        ["Thatch"] = new[] { "Thatch", "Reeds" },
+    };
 
     // Populated at startup from per-resource RespawnOnTerraformedGround Config.Bind calls. Key is
     // substring to match (case-insensitive), same shape as GatherOverridesMap.
@@ -429,12 +442,26 @@ public class Plugin : BasePlugin
         return $"buf={buf} reg={reg} uid={(haveUid ? uid.ToString() : "?")} find={find} len={len} active={act}";
     }
 
+    // Does this resource name identify the resource a config key names? Case-insensitive substring
+    // test, widened to the KeyAliases token list for keys whose node is named after the plant.
+    private static bool MatchesKey(string itemName, string key)
+    {
+        if (KeyAliases.TryGetValue(key, out var tokens))
+        {
+            foreach (var token in tokens)
+                if (itemName.Contains(token, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
+        return itemName.Contains(key, StringComparison.OrdinalIgnoreCase);
+    }
+
     // Returns respawn days for a gathered item. Checks per-resource entries first (substring match),
     // falls back to Default. Returns 0 if respawn is disabled for this item.
     internal static float GetGatherThreshold(string itemName)
     {
         foreach (var kvp in GatherOverridesMap)
-            if (itemName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
+            if (MatchesKey(itemName, kvp.Key))
                 return kvp.Value;
         return _gatherDefaultDays.Value;
     }
@@ -444,7 +471,7 @@ public class Plugin : BasePlugin
     internal static bool GetRespawnOnTerraformed(string itemName)
     {
         foreach (var kvp in RespawnOnTerraformedMap)
-            if (itemName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
+            if (MatchesKey(itemName, kvp.Key))
                 return kvp.Value;
         return _respawnOnTerraformedDefault.Value;
     }

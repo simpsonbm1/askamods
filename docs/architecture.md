@@ -615,9 +615,16 @@ GatherInteraction (SSSGame.GatherInteraction : SSSGame.Interaction)
 **Critical distinction:** `GetGatherableItemInfo().Name` is the **yielded item**, not the world node name.
 - All names confirmed in-game against the inventory/storage UI (2026-06-17):
   - Reeds → `"Thatch"`, Berry Bush → `"Berries"`, Dwarf Spruce → `"Stick"`, Flax Bush → `"Fibers"`
-    (PLURAL — verified live in the respawn log 2026-06-25; the config key `Fiber` still matches it
-    via the case-insensitive `itemName.Contains(key)` substring test, so the override applies
-    regardless)
+    (PLURAL — verified live in the respawn log 2026-06-25)
+  - **Two nodes are named after the PLANT, not the yield, in their invariant asset name**
+    (confirmed in-game 2026-08-22): flax registers as `Item_Wood_PlantFlax` and reeds as
+    `Item_Wood_PlantReeds`. Since v1.7.1 keys the override on the asset name, the config keys
+    `Fiber` and `Thatch` matched neither and both resources silently used the `Default` rate.
+    TreeRespawnMod v1.8.1 fixes this with a per-key alias list (`Fiber` also matches "Flax",
+    `Thatch` also matches "Reeds"). Every other gather key does appear in its own asset name —
+    `Item_Food_BiomeBerries`, `Item_Food_BiomeMushroom1`, `Item_Wood_Sticks`,
+    `Item_Elements_NaturalWaterCollector1`, `Item_Food_BiomeMussels`, `Item_Misc_Feathers`
+    and the five `Item_Food_Biome*` vegetables.
   - `"Small Stone"` (ground pickup), `"Mussels"`, `"Feathers"` (Bird's Nest), `"Water"` (Natural Water Collector)
   - Vegetables: `"Carrot"`, `"Cabbage"`, `"Onion"`, `"Garlic"`, `"Beetroot"`
   - Mushrooms: `"Mushroom"` substring matches Gray/Grey/Yellow Mushrooms
