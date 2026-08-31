@@ -76,6 +76,10 @@ CraftFromStorageMod 1.2.0 note:
   blacklisted container type were ever affected. Name what CHANGED, not the feature it sits inside.
 - **Keep it short.** His words on that note: *"way too much"*. One or two sentences of what a player
   will notice beats an accurate paragraph.
+- **Never mention internal process** (user ruling 2026-08-31, on the TreeRespawn 1.8.2 note, which
+  said the release "merged with 1.8.1's fiber and thatch respawn-rate fix"): *"end users dont care
+  about our process. they just care whether the thing works and what changed."* Merges, branches,
+  machines, and version bookkeeping never belong in a note — name the player-visible fixes only.
 
 **EVERY UPLOAD IS A PUSH TO EVERY USER (user, 2026-08-10).** Nexus's Vortex app auto-updates
 installed mods, so an upload lands on the whole user base rather than sitting on a page. There is
