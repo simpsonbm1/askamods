@@ -16,6 +16,82 @@ internal static class MarkerRefresher
 {
     private const float MaxMatchDistance = 100f;
 
+    // Pin ownership check (v1.4.7). Given the native pointer of a clicked pin's
+    // WorldObjectiveMarker, finds the area-POI MarkerObject that owns it (MarkerObject.objectiveMarker
+    // points at the WorldObjectiveMarker) and reports whether that marker carries a biome
+    // population. Den, spire and bear-den POIs do; lakes, structures, villagers and resource
+    // markers either have no owning MarkerObject at all or no population. isAreaMarker=false means
+    // no MarkerObject owns this pin. Any failure reads as "unknown" (both false) and is logged.
+    internal static void CheckPinOwnership(IntPtr wMarkerPtr, out bool isAreaMarker, out bool hasPopulation, out string detail)
+    {
+        isAreaMarker = false;
+        hasPopulation = false;
+        detail = "";
+
+        if (wMarkerPtr == IntPtr.Zero) { detail = "no marker pointer"; return; }
+
+        try
+        {
+            var biomes = Plugin.Biomes;
+            var worldGen = biomes?._worldGenerator;
+            var map = worldGen?.GetDataMap();
+            var dict = map?._areaInstances;
+            if (dict == null) { detail = "area map unavailable"; return; }
+
+            int scanned = 0;
+            var en = dict.Values.GetEnumerator();
+            while (en.MoveNext())
+            {
+                AreaInstance area = en.Current;
+                if (area == null) continue;
+
+                IAreaInstanceMarkerHandler? handler = null;
+                try { handler = area.areaInstanceMarkerHandler; } catch { }
+                if (handler == null) continue;
+
+                ItemComponent? ic = null;
+                try { ic = handler.GetMarkerObject(); } catch { }
+                if (ic == null) continue;
+                if (!((object)ic is Il2CppObjectBase icBase)) continue;
+
+                string clsName = "?";
+                try
+                {
+                    IntPtr cls = IL2CPP.il2cpp_object_get_class(icBase.Pointer);
+                    clsName = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(IL2CPP.il2cpp_class_get_name(cls)) ?? "?";
+                }
+                catch { continue; }
+                if (clsName != "MarkerObject") continue;
+
+                scanned++;
+                var mo = new MarkerObject(icBase.Pointer);
+
+                IntPtr ownedPtr = IntPtr.Zero;
+                try
+                {
+                    var om = mo.objectiveMarker;
+                    ownedPtr = (object)om is Il2CppObjectBase omBase ? omBase.Pointer : IntPtr.Zero;
+                }
+                catch { }
+                if (ownedPtr == IntPtr.Zero || ownedPtr != wMarkerPtr) continue;
+
+                isAreaMarker = true;
+                try { hasPopulation = mo._biomePopulation != null; } catch { }
+                string areaPos = "?";
+                try { areaPos = area.position.ToString(); } catch { }
+                detail = $"owned by area marker at {areaPos}, biomePopulation={(hasPopulation ? "yes" : "null")}";
+                return;
+            }
+
+            detail = $"no area MarkerObject owns this pin ({scanned} marker(s) scanned)";
+        }
+        catch (Exception ex)
+        {
+            detail = "error: " + ex.Message;
+            Plugin.Logger.LogError($"[DenRespawn] MarkerRefresher.CheckPinOwnership error: {ex}");
+        }
+    }
+
     internal static void RefreshPinNear(Vector3 denPos)
     {
         AreaInstance? nearestArea = null;

@@ -43,6 +43,10 @@ public class DenTracker : MonoBehaviour
     private readonly List<GameObject> _anchors = new();
     private int _anchorCounter;
 
+    // v1.4.5 diagnostic: dens (by native pointer) whose node spawners have already been
+    // cross-checked against PopulationManager._populationSpawners this world session.
+    private readonly HashSet<IntPtr> _crossChecked = new();
+
     private void Start()
     {
         Instance = this;
@@ -64,7 +68,9 @@ public class DenTracker : MonoBehaviour
                     Plugin.Logger.LogInfo($"[DenRespawn] Pin click: reviving '{DenMapRevive.HoveredName}' at {posStr}");
                 }
 
-                bool claimed = SpawnerRespawn.TryForce(DenMapRevive.HoveredPos);
+                bool claimed = SpawnerRespawn.TryForce(DenMapRevive.HoveredPos, DenMapRevive.HoveredMarkerPtr);
+                if (Plugin.DenDiagnostics.Value)
+                    Plugin.Logger.LogInfo($"[DenRespawn] Pin click routing: {(claimed ? "SPAWNER path claimed the click" : "DEN path (spawner path declined)")}");
                 if (!claimed)
                     DenMapRevive.TryRevive(DenMapRevive.HoveredName, DenMapRevive.HoveredPos);
             }
@@ -160,6 +166,7 @@ public class DenTracker : MonoBehaviour
         if (Instance == null) return;
 
         Instance._pendingRefreshes.Clear();
+        Instance._crossChecked.Clear();
 
         foreach (var go in Instance._anchors)
             if (go != null) UnityEngine.Object.Destroy(go);
@@ -213,7 +220,17 @@ public class DenTracker : MonoBehaviour
             try { name = den.GetName(); } catch { }
             try { posVec = den.transform.position; pos = posVec.ToString(); havePos = true; } catch { }
 
-            Plugin.Logger.LogInfo($"[DenRespawn] Refreshing den '{name}' pos={pos} isActive={isActive} cooldown={cooldown} blocked={blocked} anyIgnore={anyIgnore} anyEmpty={anyEmpty} hitzones={hitzones} source={source}");
+            string assetName = "?";
+            try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
+
+            // Since the 2026-08-31 game update, wight spires are Den objects too (dataSheet assets
+            // 'LargeSpireDenDataSheet' / 'TinySpireDenDataSheet'), so a spire pin click now lands
+            // here instead of in the standalone-spawner path. Their node spawners need the
+            // instant-spawn primitive (SpawnPopulationFree) because the deferred
+            // RespawnAllPopulations call is held back by the instigator gate at spires.
+            bool isSpireDen = assetName.IndexOf("Spire", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            Plugin.Logger.LogInfo($"[DenRespawn] Refreshing den '{name}' asset='{assetName}' spireDen={isSpireDen} pos={pos} isActive={isActive} cooldown={cooldown} blocked={blocked} anyIgnore={anyIgnore} anyEmpty={anyEmpty} hitzones={hitzones} source={source}");
 
             Plugin.AllowReviveCall = true;
             try { den.Revive(); }
@@ -237,6 +254,33 @@ public class DenTracker : MonoBehaviour
                 try
                 {
                     var affected = den.affectedSpawners;
+                    int nodeCount = 0;
+                    if (affected != null)
+                    {
+                        foreach (var spawner in affected)
+                            if (spawner != null) nodeCount++;
+                    }
+
+                    // Small spires (TinySpireDenDataSheet) have NO node spawners; their single
+                    // follower spawner is wired as the den's alpha spawner. On those dens the alpha
+                    // IS the den, so it is the thing to respawn (user decision 2026-09-02). Classic
+                    // dens keep the alpha (boss) untouched.
+                    if (isSpireDen && nodeCount == 0)
+                    {
+                        var alpha = den.alphaSpawner;
+                        if (alpha != null)
+                        {
+                            string alphaName = "?";
+                            try { alphaName = alpha.gameObject.name; } catch { }
+                            Plugin.Logger.LogInfo($"[DenRespawn] Spire den has no node spawners — respawning through its alpha spawner '{alphaName}'");
+                            SpawnerRespawn.ForceOne(alpha, alphaName);
+                        }
+                        else
+                        {
+                            Plugin.Logger.LogWarning("[DenRespawn] Spire den has no node spawners and no alpha spawner — nothing to respawn");
+                        }
+                    }
+
                     if (affected != null)
                     {
                         foreach (var spawner in affected)
@@ -244,7 +288,15 @@ public class DenTracker : MonoBehaviour
                             if (spawner == null) continue;
                             try
                             {
-                                if (spawner.HasNoAliveCreatures())
+                                if (isSpireDen)
+                                {
+                                    // Same semantics as the standalone spire path's manual click:
+                                    // every node is topped up now, regardless of occupancy.
+                                    string goName = "?";
+                                    try { goName = spawner.gameObject.name; } catch { }
+                                    SpawnerRespawn.ForceOne(spawner, goName);
+                                }
+                                else if (spawner.HasNoAliveCreatures())
                                 {
                                     spawner.SetActiveSpawner(true, true);
                                     spawner.RespawnAllPopulations(false);
@@ -295,9 +347,6 @@ public class DenTracker : MonoBehaviour
             {
                 try
                 {
-                    string assetName = "?";
-                    try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
-
                     var rec = DenRegistry.Upsert(posVec, name, assetName);
                     DenRegistry.MarkAlive(rec);
                     DenRegistry.Save();
@@ -696,8 +745,14 @@ public class DenTracker : MonoBehaviour
                 try { cooldown = den.ReviveCooldown; } catch { }
                 try { blocked = den.IsBlockedByStructures(); } catch { }
                 try { hitzones = den._lastActiveHitzones; } catch { }
+                string assetName = "?";
+                try { var ds = den.dataSheet; if (ds != null) assetName = ds.name ?? "?"; } catch { }
+                string denGo = "?";
+                string denParent = "?";
+                try { denGo = den.gameObject.name; } catch { }
+                try { var p = den.transform.parent; denParent = p != null ? p.name : "(root)"; } catch { }
 
-                Plugin.Logger.LogInfo($"[DenRespawn][diag] den='{name}' pos={pos} isActive={isActive} isDay={isDay} reviveCooldown={cooldown} blockedByStructures={blocked} hitzones={hitzones}");
+                Plugin.Logger.LogInfo($"[DenRespawn][diag] den='{name}' asset='{assetName}' go='{denGo}' parent='{denParent}' pos={pos} isActive={isActive} isDay={isDay} reviveCooldown={cooldown} blockedByStructures={blocked} hitzones={hitzones}");
 
                 try
                 {
@@ -708,22 +763,46 @@ public class DenTracker : MonoBehaviour
                     Plugin.Logger.LogError($"[DenRespawn][diag] alphaSpawner read error: {ex}");
                 }
 
+                PopulationSpawner[]? nodesForCrossCheck = null;
                 try
                 {
                     var affected = den.affectedSpawners;
                     if (affected != null)
                     {
+                        var nodeList = new List<PopulationSpawner>();
                         int idx = 0;
                         foreach (var spawner in affected)
                         {
                             LogSpawnerDiag($"node[{idx}]", spawner);
+                            if (spawner != null) nodeList.Add(spawner);
                             idx++;
                         }
+                        nodesForCrossCheck = nodeList.ToArray();
                     }
                 }
                 catch (Exception ex)
                 {
                     Plugin.Logger.LogError($"[DenRespawn][diag] affectedSpawners read error: {ex}");
+                }
+
+                // v1.4.5 diagnostic, once per den per world: are this den's node spawners the
+                // same objects the spawner path scans (PopulationManager._populationSpawners),
+                // and which name-whitelisted standalone spawners sit near the den?
+                try
+                {
+                    IntPtr denPtr = (object)den is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase db ? db.Pointer : IntPtr.Zero;
+                    if (denPtr != IntPtr.Zero && _crossChecked.Add(denPtr))
+                    {
+                        Vector3 denPos = default;
+                        bool havePos = false;
+                        try { denPos = den.transform.position; havePos = true; } catch { }
+                        if (havePos)
+                            SpawnerRespawn.CrossCheckDen(name, assetName, denPos, nodesForCrossCheck ?? Array.Empty<PopulationSpawner>());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.LogError($"[DenRespawn][diag] cross-check error: {ex}");
                 }
             }
             catch (Exception ex)
@@ -764,7 +843,46 @@ public class DenTracker : MonoBehaviour
         try { noAlive = spawner.HasNoAliveCreatures(); } catch { }
         try { ignoreRespawning = spawner.ignoreRespawning; } catch { }
 
-        Plugin.Logger.LogInfo($"[DenRespawn][diag]   {label}: isActive={isActive} blockedByStructures={blocked} noAlive={noAlive} ignoreRespawning={ignoreRespawning}");
+        // v1.4.5 diagnostic: identity + occupancy of each node spawner, so a den whose nodes
+        // are standalone-spawner objects (post-2026-08-31 spire dens) can be told apart from a
+        // classic den, and the spawner path's name whitelist can be checked against them.
+        string goName = "?";
+        string parentName = "?";
+        string posStr = "?";
+        int creatureCount = -1;
+        string pops = "?";
+        try { goName = spawner.gameObject.name; } catch { }
+        try { var p = spawner.transform.parent; parentName = p != null ? p.name : "(root)"; } catch { }
+        try { posStr = spawner.transform.position.ToString(); } catch { }
+        try { creatureCount = spawner.GetCreatureCount(); } catch { }
+        try
+        {
+            var list = spawner._populations;
+            if (list == null) pops = "null";
+            else
+            {
+                var sb = new System.Text.StringBuilder();
+                int n = list.Count;
+                sb.Append(n).Append(" pop(s)");
+                for (int i = 0; i < n; i++)
+                {
+                    PopulationSpawner.SpawnPopulation? pop = null;
+                    try { pop = list[i]; } catch { }
+                    if (pop == null) { sb.Append(" [null]"); continue; }
+                    string cfg = "?";
+                    int have = -1, size = -1, max = -1;
+                    try { cfg = pop.config != null ? pop.config.name : "null"; } catch { }
+                    try { have = pop.creatures?.Count ?? -1; } catch { }
+                    try { size = pop.size; } catch { }
+                    try { max = pop.MaxPopulationSize; } catch { }
+                    sb.Append(" [").Append(cfg).Append(" have=").Append(have).Append(" size=").Append(size).Append(" max=").Append(max).Append(']');
+                }
+                pops = sb.ToString();
+            }
+        }
+        catch { }
+
+        Plugin.Logger.LogInfo($"[DenRespawn][diag]   {label}: isActive={isActive} blockedByStructures={blocked} noAlive={noAlive} ignoreRespawning={ignoreRespawning} go='{goName}' parent='{parentName}' pos={posStr} creatureCount={creatureCount} {pops}");
     }
 
     // Internal wrapper around the private GUI toast — lets patches (map click) surface feedback

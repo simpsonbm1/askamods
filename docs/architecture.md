@@ -1991,22 +1991,36 @@ isolated from defeat-freshness with current data.
 **Map pin labels ≠ den type names**
 - "Small Cemetery"/"Large Cemetery" pins = Skeleton Den / Skeleton Den Cluster dens internally
 
-### Standalone PopulationSpawners — bear dens & wight spires (confirmed in-game 2026-07-21)
+### Standalone PopulationSpawners — bear dens (spires became Dens 2026-08-31)
 
-**Bear dens and wight spires are NOT `SSSGame.Den`.** They are standalone
-`SSSGame.Combat.PopulationSpawner` instances in `PopulationManager._populationSpawners` (reach the
-manager via `FindAnyObjectByType<PopulationManager>()`). Invariant identity = the spawner's
-`gameObject.name` (strip a trailing `(Clone)`); it is locale-invariant. Captured via LocaleAudit's F6
-spawner probe:
+**Bear dens are standalone `SSSGame.Combat.PopulationSpawner` instances** in
+`PopulationManager._populationSpawners` (reach the manager via
+`FindAnyObjectByType<PopulationManager>()`). Invariant identity = the spawner's `gameObject.name`
+(strip a trailing `(Clone)`); it is locale-invariant.
 - **Bear den** = `HabitatBear`, parent `Biomes` — the same `Habitat*` family as ambient wildlife
-  (`Habitat_Smolkr`, `Habitat_Deer`), just with a visible den structure.
-- **Large wight spire** = a CLUSTER: `WightPopulationBig` + `WightPopulation` + several
-  `Follower Population`, parent `Populations`. (Followers are their own enemy type — giant wights.)
-- **Small spire** = `FollowerDen`, parent `BiomeFollower(Clone)`.
+  (`Habitat_Smolkr`, `Habitat_Deer`), just with a visible den structure. Still standalone after
+  the 2026-08-31 game update (inferred 2026-09-02: a "Bear Den" map pin exists in a world whose
+  29 captured `Den` objects include no bear-type asset).
 - `ExplorationTower` is a map-ping beacon, NOT the wight spire (dead-end).
 
-These have **no durable "defeated" flag** (unlike `Den.affectedSpawners[].ignoreRespawning`); only
-current occupancy is readable via `GetCreatureCount()` / `HasNoAliveCreatures()`.
+**Wight spires are `SSSGame.Den` objects since the 2026-08-31 game update** (confirmed in-game
+2026-09-02, DenRespawnMod 1.4.6 diagnostics). Their invariant identity is the den's `dataSheet`
+asset name:
+- **Large spire** = `LargeSpireDenDataSheet`, gameObject `LargeSpireDenNetworkLogic(Clone)`, parent
+  `DenSpawner`, sitting at world Y = 0. Its `affectedSpawners` hold 12 nodes that ARE the
+  standalone spawners of the old cluster — `WightPopulationBig` ×3 (population `WightPopulation`,
+  size 8–10, max 11), `WightPopulation` ×4 (population `WightPopulationSmall`, size 2–4, max 4),
+  `Follower Population`, `Follower Population (1)`…`(4)` (size 1) — each still registered in
+  `PopulationManager._populationSpawners` under its old name. Its `alphaSpawner` is a separate
+  `AlphaSpawner` with an `OgrePopulation` (the boss): leave it alone.
+- **Small spire** = `TinySpireDenDataSheet`, display name EMPTY (`GetName()` returns ""),
+  `affectedSpawners` EMPTY (`nodes=0`); its single `FollowerDen` spawner (parent
+  `BiomeFollower(Clone)`) is wired as the den's `alphaSpawner`. On this den type the alpha IS the
+  den.
+- The map pin of a spire sits up to ~44 m from the `Den` object (measured: pin (317, 334) vs den
+  (315, 378)).
+- Spire node spawners read `HasNoAliveCreatures()=False` with `GetCreatureCount()=0` at world
+  load (10 of the large spire's 12 nodes did), so that flag cannot gate a spire respawn.
 
 **The instigator gate is the key mechanism.** These spawners will NOT instantiate a creature while the
 player (the "instigator") is in range — `PopulationSpawner.IsInstigatorInRange == true` blocks it
@@ -2029,13 +2043,24 @@ each nested `SpawnPopulation` exposes `config` (a `CreaturePopulationConfigurati
 `pop.creatures`**, so `SpawnPopulationFree` never sees the population as full — repeated calls spawn
 unlimited creatures. Host-gate it (it spawns networked objects). The base `CreatureSpawner` also has
 `AddCreature(prefab, pos, rot, onBeforeInitialize)` / `AddFreeCreature(...)` for even lower-level
-instantiation, but `SpawnPopulationFree` was sufficient.
+instantiation, but `SpawnPopulationFree` was sufficient. On a spire `Den`, calling it per node in
+`affectedSpawners` repopulates the spire immediately (confirmed in-game 2026-09-02); the
+`pop.creatures` count it reads lags the creatures it just spawned (measured `have=1 want=11` on a
+node that had just received 10), so repeated calls keep adding creatures.
 
 **Map pins for these POIs resolve at world `Y = 0`** (the map is a flat plane) while the spawner sits
 at terrain height — match a clicked pin to a spawner by **horizontal (XZ) distance**, not 3D (a 3D
 gate overshoots by the vertical delta). Structure-block clearing is already covered by the existing
 `PopulationSpawner._UpdateBlockedByStructures` postfix when `AllowRespawnNearStructures=true`.
-(DenRespawnMod v1.4.x, [`docs/mods/den-respawn.md`](mods/den-respawn.md).)
+(DenRespawnMod v1.4.x, [`docs/mods/den-respawn.md`](mods/den-respawn.md).) A pin is owned by an
+area `MarkerObject` when `MarkerObject.objectiveMarker` (a `WorldObjectiveMarker`) is
+pointer-equal to the pin's marker; den, spire and bear-den pins carry a non-null
+`MarkerObject._biomePopulation`, and `ObjectiveMarkerFlags` has no den-vs-lake kind (values: Icon,
+Range, Structure, Character, CustomName, Dynamic, Waypoint, Misc, Marker, Mute, Solo, Pet, Border,
+Background, Remains, VisibleOnCompass, CustomIcon, CustomColor, AboveCompass, Island). Confirmed
+in-game 2026-09-02 (DenRespawnMod 1.4.7): lake, oak-area, ruin, cave and fishing-ground pins are
+owned by an area `MarkerObject` with `_biomePopulation == null`; a villager resource marker has no
+owning `MarkerObject`; bear-den and Stone Jotun Arena pins carry a non-null `_biomePopulation`.
 
 ---
 

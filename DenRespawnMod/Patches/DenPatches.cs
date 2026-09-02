@@ -249,6 +249,9 @@ internal static class DenMapRevive
     internal static string HoveredName = "";
     internal static Vector3 HoveredPos;
     internal static bool HaveHovered;
+    // Native pointer of the hovered pin's WorldObjectiveMarker (v1.4.7) — lets the spawner path
+    // check whether the pin belongs to a populated area POI before claiming the click.
+    internal static IntPtr HoveredMarkerPtr = IntPtr.Zero;
 
     internal static bool ModifierHeld()
     {
@@ -282,9 +285,13 @@ internal static class DenMapRevive
     // as/is casts lie for interop objects under a base declared type) and reads the marker's name +
     // world position off its WorldObjectiveMarker.
     internal static bool ResolveMarkerFromWidget(CompassObjectiveMarker widget, out string name, out Vector3 pos)
+        => ResolveMarkerFromWidget(widget, out name, out pos, out _);
+
+    internal static bool ResolveMarkerFromWidget(CompassObjectiveMarker widget, out string name, out Vector3 pos, out IntPtr markerPtr)
     {
         name = "";
         pos = default;
+        markerPtr = IntPtr.Zero;
 
         try
         {
@@ -313,6 +320,7 @@ internal static class DenMapRevive
                 bool havePos = false;
                 try { name = wMarker.CustomName ?? ""; } catch { }
                 try { pos = wMarker.transform.position; havePos = true; } catch { }
+                try { markerPtr = (object)wMarker is Il2CppObjectBase wb ? wb.Pointer : IntPtr.Zero; } catch { }
                 return havePos;
             }
         }
@@ -359,9 +367,20 @@ internal static class DenMapRevive
 
         DenTracker.Instance?.EnqueueRemoteRefresh(rec, "map");
 
+        // Spire dens added by the 2026-08-31 update have no display name (GetName() is empty,
+        // stored as "?"); fall back to the invariant asset name minus its "DataSheet" suffix.
+        string shown = rec.TypeName;
+        if (string.IsNullOrEmpty(shown) || shown == "?")
+        {
+            shown = rec.AssetName ?? "";
+            if (shown.EndsWith("DataSheet", StringComparison.OrdinalIgnoreCase))
+                shown = shown.Substring(0, shown.Length - "DataSheet".Length);
+            if (shown.Length == 0 || shown == "?") shown = "den";
+        }
+
         string msg = dist >= 0
-            ? $"Reviving {rec.TypeName} ({dist:F0} m away)..."
-            : $"Reviving {rec.TypeName}...";
+            ? $"Reviving {shown} ({dist:F0} m away)..."
+            : $"Reviving {shown}...";
         DenTracker.Instance?.Notify(msg);
     }
 }
@@ -550,7 +569,7 @@ internal static class DenPinSelectPatch
                 Plugin.Logger.LogInfo("[DenRespawn] FIRE-VERIFY: CompassObjectiveMarker.OnSelect patch is live");
             }
 
-            bool resolved = DenMapRevive.ResolveMarkerFromWidget(__instance, out var name, out var pos);
+            bool resolved = DenMapRevive.ResolveMarkerFromWidget(__instance, out var name, out var pos, out var markerPtr);
 
             if (Plugin.DenDiagnostics.Value)
             {
@@ -564,6 +583,7 @@ internal static class DenPinSelectPatch
             DenMapRevive.HoveredWidgetPtr = (object)__instance is Il2CppObjectBase b ? b.Pointer : IntPtr.Zero;
             DenMapRevive.HoveredName = name;
             DenMapRevive.HoveredPos = pos;
+            DenMapRevive.HoveredMarkerPtr = markerPtr;
             DenMapRevive.HaveHovered = true;
         }
         catch (Exception ex)
@@ -597,6 +617,7 @@ internal static class DenPinDeselectPatch
 
             DenMapRevive.HaveHovered = false;
             DenMapRevive.HoveredWidgetPtr = IntPtr.Zero;
+            DenMapRevive.HoveredMarkerPtr = IntPtr.Zero;
         }
         catch (Exception ex)
         {

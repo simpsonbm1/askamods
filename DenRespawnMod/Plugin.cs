@@ -346,6 +346,7 @@ public class Plugin : BasePlugin
         DenMapRevive.MapMenuInstance = null;
         DenMapRevive.HaveHovered = false;
         DenMapRevive.HoveredWidgetPtr = IntPtr.Zero;
+        DenMapRevive.HoveredMarkerPtr = IntPtr.Zero;
         DenTracker.ClearTransientState(); // pending remote-refresh queue + anchor GameObjects
         SpawnerRespawn.ClearTransientState();
         DayCounter.ClearTransientState();

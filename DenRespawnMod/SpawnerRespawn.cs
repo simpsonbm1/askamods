@@ -228,7 +228,7 @@ internal static class SpawnerRespawn
     // only if the instant loop spawned nothing at all, so a click is never a total no-op. Each
     // interop call/read guarded in its own try/catch. Fires the one-time FIRE-VERIFY line the
     // first time this reaches the summary log. Always returns true (this is the "force").
-    private static bool ForceOne(PopulationSpawner s, string goName)
+    internal static bool ForceOne(PopulationSpawner s, string goName)
     {
         int instantTotal = 0;
 
@@ -330,14 +330,115 @@ internal static class SpawnerRespawn
         return true;
     }
 
+    // v1.4.5 diagnostic (called once per den per world from DenTracker.DiagnosticsDump). For a
+    // den's node spawners, reports whether each is also registered in
+    // PopulationManager._populationSpawners (pointer identity) and whether its name would pass
+    // the SpawnerNames whitelist; then lists every whitelisted standalone spawner within 60 m
+    // (XZ) of the den. Answers "did the update fold the spire's standalone spawners into a Den,
+    // and would the spawner path still find them by name?"
+    internal static void CrossCheckDen(string denName, string assetName, Vector3 denPos, PopulationSpawner[] nodes)
+    {
+        try
+        {
+            var pm = GetPM();
+            var list = pm?._populationSpawners;
+            int registered = list?.Count ?? -1;
+
+            var registeredPtrs = new HashSet<IntPtr>();
+            if (list != null)
+            {
+                int n = list.Count;
+                for (int i = 0; i < n; i++)
+                {
+                    PopulationSpawner? s = null;
+                    try { s = list[i]; } catch { }
+                    if (s == null) continue;
+                    IntPtr p = (object)s is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase b ? b.Pointer : IntPtr.Zero;
+                    if (p != IntPtr.Zero) registeredPtrs.Add(p);
+                }
+            }
+
+            string denPosStr = denPos.ToString();
+            Plugin.Logger.LogInfo($"[DenRespawn][xcheck] den='{denName}' asset='{assetName}' pos={denPosStr} nodes={nodes.Length} PM._populationSpawners.Count={registered}");
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                var s = nodes[i];
+                string goName = "?";
+                try { goName = s.gameObject.name; } catch { }
+                IntPtr p = (object)s is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase b ? b.Pointer : IntPtr.Zero;
+                bool inPm = p != IntPtr.Zero && registeredPtrs.Contains(p);
+                Plugin.Logger.LogInfo($"[DenRespawn][xcheck]   node[{i}] go='{goName}' inPopulationManagerList={inPm} nameWhitelisted={NameMatches(goName)}");
+            }
+
+            if (list != null)
+            {
+                int n = list.Count;
+                int near = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    PopulationSpawner? s = null;
+                    try { s = list[i]; } catch { }
+                    if (s == null) continue;
+                    string goName = "?";
+                    try { goName = s.gameObject.name; } catch { continue; }
+                    float dist;
+                    try
+                    {
+                        float dx = denPos.x - s.transform.position.x;
+                        float dz = denPos.z - s.transform.position.z;
+                        dist = (float)Math.Sqrt(dx * dx + dz * dz);
+                    }
+                    catch { continue; }
+                    if (dist > 60f) continue;
+                    near++;
+                    string parent = "?";
+                    try { var pt = s.transform.parent; parent = pt != null ? pt.name : "(root)"; } catch { }
+                    bool empty = false;
+                    try { empty = s.HasNoAliveCreatures(); } catch { }
+                    int count = -1;
+                    try { count = s.GetCreatureCount(); } catch { }
+                    Plugin.Logger.LogInfo($"[DenRespawn][xcheck]   nearby standalone go='{goName}' parent='{parent}' distXZ={dist:F0}m whitelisted={NameMatches(goName)} empty={empty} creatureCount={count}");
+                }
+                Plugin.Logger.LogInfo($"[DenRespawn][xcheck]   {near} standalone spawner(s) within 60m of this den");
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Logger.LogError($"[DenRespawn] SpawnerRespawn.CrossCheckDen error: {ex}");
+        }
+    }
+
     // Manual Shift+click entry point. Returns true if it CLAIMS the click (caller then skips the
     // Den path), false if it declines and the Den path should run instead.
-    internal static bool TryForce(Vector3 pos)
+    internal static bool TryForce(Vector3 pos, IntPtr markerPtr)
     {
         try
         {
             if (!Plugin.SpawnerRespawnEnable.Value) return false;
-            if (DenRegistry.FindNearest(pos, Plugin.MapPinMatchRadius.Value) != null) return false;
+
+            // v1.4.7: only claim pins that belong to a populated area POI (bear dens; spires
+            // before they became Den objects). Lakes, structures, villagers and resource markers
+            // are declined so the Den path can answer "no known den" instead of streaming a tile.
+            MarkerRefresher.CheckPinOwnership(markerPtr, out bool isAreaMarker, out bool hasPopulation, out string detail);
+            if (!isAreaMarker || !hasPopulation)
+            {
+                if (Plugin.DenDiagnostics.Value)
+                    Plugin.Logger.LogInfo($"[DenRespawn] SpawnerRespawn.TryForce declined: pin is not a populated POI marker ({detail})");
+                return false;
+            }
+
+            var blockingRec = DenRegistry.FindNearest(pos, Plugin.MapPinMatchRadius.Value);
+            if (blockingRec != null)
+            {
+                if (Plugin.DenDiagnostics.Value)
+                {
+                    float dx = blockingRec.X - pos.x, dz = blockingRec.Z - pos.z;
+                    float d = (float)Math.Sqrt(dx * dx + dz * dz);
+                    Plugin.Logger.LogInfo($"[DenRespawn] SpawnerRespawn.TryForce declined: Den record '{blockingRec.TypeName}' asset='{blockingRec.AssetName}' at ({blockingRec.X:F0},{blockingRec.Z:F0}) is {d:F0}m from the pin (limit {Plugin.MapPinMatchRadius.Value:F0}m)");
+                }
+                return false;
+            }
         }
         catch (Exception ex)
         {

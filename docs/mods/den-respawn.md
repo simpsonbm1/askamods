@@ -1,9 +1,13 @@
-# Mod 21: DenRespawnMod — COMPLETE (v1.4.4, on Nexus as "Enemy Den Respawner")
+# Mod 21: DenRespawnMod — COMPLETE (v1.4.7, confirmed in-game 2026-09-02; Nexus "Enemy Den Respawner")
 
 **Status:** Den path (map-pin Shift+click revive + pin recolor, timed auto-respawn day rule,
-defeat-day reload persistence, natural-respawn suppression) and new Spawner path (bear-den /
-wight-spire PopulationSpawner force-respawn via map-pin / timer) both confirmed in-game
-2026-07-21. v1.3.0 locale den-key + German auto-revive test ⚠️ pending in-game.
+defeat-day reload persistence, natural-respawn suppression) and Spawner path (bear-den
+PopulationSpawner force-respawn via map-pin / timer) confirmed in-game 2026-07-21. The
+2026-08-31 game update turned wight spires into `Den` objects and broke spire respawn on 1.4.4;
+1.4.7 (spire handling, pin-ownership gate on the spawner path, small-spire alpha respawn,
+no-name toast fallback) confirmed in-game 2026-09-02: bears, large spire, small spire, classic
+dens, and lake / resource / ruin / cave / fishing-ground pins all behave. v1.3.0 locale den-key +
+German auto-revive test ⚠️ pending in-game.
 
 **Goal:** Refresh/revive defeated monster and beast dens (wulfar, bear, skeleton, etc.) back to life
 via a configurable hotkey, bringing them back into the creature-spawning rotation.
@@ -12,9 +16,9 @@ via a configurable hotkey, bringing them back into the creature-spawning rotatio
 — the classes, data structures, and spawn-state managers governing ASKA dens and their population lifecycle.
 
 **Working approach:**
-- **Hotkey-Triggered Refresh**: A persistent MonoBehaviour (`DenTracker`) polls for a configurable
-  hotkey (default: `j`). When pressed within a config radius (default: 150m; 0 = whole map), it
-  refreshes defeated dens.
+- **Map-Pin Trigger**: a persistent MonoBehaviour (`DenTracker`) checks every frame for a
+  Shift+left-click (modifier configurable) while a map pin is hovered, and revives the den at
+  that pin (remote force-load if its tile is unloaded). There is no hotkey path.
 - **Defeat Detection via Spawner State**: The game marks a den as DEFEATED by setting
   `ignoreRespawning=true` on the den's node spawners (`Den.affectedSpawners`), NOT via
   `den.isActive` (which has murky day/night semantics and is not reliable for defeat detection). A
@@ -31,18 +35,19 @@ via a configurable hotkey, bringing them back into the creature-spawning rotatio
      appear immediately post-call, native in-game toast "The monsters from [Den Name] are back!").
 - **NEVER touch `alphaSpawner`** — the boss spawner; empty/inactive is its normal pre-boss state.
 
-**PopulationSpawner Respawn Path (v1.4.x)** — force-respawn bear dens and wight spires:
-Bear dens and wight spires are standalone `SSSGame.Combat.PopulationSpawner` instances, not
-`Den` objects; a parallel code path (`SpawnerRespawn.cs`) handles them independently.
+**PopulationSpawner Respawn Path (v1.4.x)** — force-respawn bear dens:
+Bear dens are standalone `SSSGame.Combat.PopulationSpawner` instances, not `Den` objects; a
+parallel code path (`SpawnerRespawn.cs`) handles them independently. Wight spires are `Den`
+objects since the 2026-08-31 game update and go through the Den path (see "Spire dens" below).
 - **Identity:** spawner's invariant `gameObject.name` (trailing "(Clone)" stripped), matched
   case-insensitively as a `StartsWith` prefix against a config whitelist. Locale-safe (asset
   names identical in every language).
-- **Manual Trigger:** hold the MapRevive modifier (default LeftShift) + click a bear-den /
-  spire map pin. `SpawnerRespawn.TryForce` runs in `DenTracker.Update`'s Shift+click block
-  BEFORE the Den path's `TryRevive`, "claiming" the click (skipping Den path) whenever
-  `DenRegistry` finds no known Den near the clicked position. If the tile is loaded,
-  force-spawns immediately; if not, force-streams it (anchor + `RequestLoadWorldTile`) and
-  forces on pending scan.
+- **Manual Trigger:** hold the MapRevive modifier (default LeftShift) + click a bear-den map
+  pin. `SpawnerRespawn.TryForce` runs in `DenTracker.Update`'s Shift+click block BEFORE the
+  Den path's `TryRevive`, "claiming" the click (skipping Den path) when the pin passes the
+  pin-ownership gate below AND `DenRegistry` finds no known Den near the clicked position. If
+  the tile is loaded, force-spawns immediately; if not, force-streams it (anchor +
+  `RequestLoadWorldTile`) and forces on pending scan.
 - **Spawn Primitive:** `PopulationSpawner.SpawnPopulationFree(population, count, null)`
   per population in the spawner's `_populations` list, sized to each population's
   `MaxPopulationSize`. Creates creatures immediately, even while standing at the spawner.
@@ -51,19 +56,47 @@ Bear dens and wight spires are standalone `SSSGame.Combat.PopulationSpawner` ins
 - **Optional Timer:** config rule list "<SpawnerName>:<days>" fires every N in-game days and
   force-respawns loaded matching spawners currently empty.
 - **Host-gated:** only the host/master client spawns.
-- **Unlimited Spawning:** repeated clicks spawn unlimited creatures — `SpawnPopulationFree`
-  creatures are uncounted, so per-click top-up never saturates. Intended sandbox feature.
+- **Unlimited Spawning:** repeated clicks spawn unlimited creatures — the `pop.creatures` count
+  the top-up reads lags the creatures `SpawnPopulationFree` just made (measured 2026-09-02:
+  `have=1 want=11` on a node that had just received 10), so per-click top-up never saturates.
+  Intended sandbox behaviour (user ruling 2026-09-02: "stack is fine").
 - **Confirmed in-game 2026-07-21:** bear on-demand works both standing at den and via map-pin
-  from far away (remote path spawns exactly one, no doubling). Spire pins (wight/follower)
-  use identical path.
+  from far away (remote path spawns exactly one, no doubling).
+
+**Spire dens (since the 2026-08-31 game update; confirmed in-game 2026-09-02):** wight spires
+are `Den` objects (assets `LargeSpireDenDataSheet`,
+`TinySpireDenDataSheet`; see [architecture.md](../architecture.md)). A spire pin now resolves to
+a Den record within `MapPinMatchRadius`, so the spawner path declines and the Den path runs.
+`RunRefresh` treats any den whose asset name contains "Spire" specially: after the normal
+revive levers it calls `SpawnerRespawn.ForceOne` (SpawnPopulationFree) on EVERY node in
+`affectedSpawners`, regardless of occupancy, because the deferred `RespawnAllPopulations` call
+is held by the instigator gate at spires and because `HasNoAliveCreatures()` reads False on
+empty spire nodes. Repeated clicks stack more creatures (user ruling 2026-09-02: "stack is
+fine"; one click ≈ one vanilla spire population, ~47 creatures on the large spire). A spire den
+with ZERO nodes (the small spire) respawns through its `alphaSpawner`, which on that den type is
+its only `FollowerDen` spawner (confirmed in-game 2026-09-02: one follower per click, toast
+"Reviving TinySpireDen..."). Classic dens' alpha spawner (the boss) stays untouched.
+
+**Pin-ownership gate on the spawner path (v1.4.7, confirmed in-game 2026-09-02):**
+`SpawnerRespawn.TryForce` claims a Shift+click only when `MarkerRefresher.CheckPinOwnership`
+finds an area `MarkerObject` whose `objectiveMarker` is pointer-equal to the hovered pin's
+`WorldObjectiveMarker` AND whose `_biomePopulation` is non-null. Measured 2026-09-02: Large
+Lake, Oak Area, Old Ruins, Unexplored Cave and Mackerel Fishing Ground pins are owned by an area
+marker with `biomePopulation=null`; an unnamed villager resource marker has no owning
+`MarkerObject` at all; Bear Den passes and spawns. Declined pins fall to the Den path, which
+answers "No known den at this map pin" instead of toasting "Reaching that spire/den..." and
+force-loading a tile (the pre-1.4.7 behaviour on a "Large Lake" pin was the Nexus reporter's
+"lake" complaint). Residual: a "Stone Jotun Arena" pin passes the gate (it has a biome
+population), is claimed, streams its tile, finds no whitelisted spawner and toasts "Nothing to
+repopulate there" after the 30 s pending timeout.
 
 **Spawner Identities** (in `PopulationManager._populationSpawners`):
 - Bear den = gameObject.name "HabitatBear(Clone)", parent "Biomes".
-- Large wight spire = cluster: "WightPopulationBig" + "WightPopulation" + several
-  "Follower Population", parent "Populations".
-- Small spire = "FollowerDen", parent "BiomeFollower(Clone)".
-(No durable "defeated" flag like `Den.affectedSpawners.ignoreRespawning`; only current
-occupancy readable via `GetCreatureCount()` / `HasNoAliveCreatures()`.)
+- The large spire's cluster ("WightPopulationBig", "WightPopulation", "Follower Population (n)",
+  parent "Populations") and the small spire's "FollowerDen" (parent "BiomeFollower(Clone)") are
+  still registered here, but since 2026-08-31 they are reached through their owning spire `Den`.
+(No durable "defeated" flag on standalone spawners; only current occupancy readable via
+`GetCreatureCount()` / `HasNoAliveCreatures()`.)
 
 - **Structure-Block Bypass** (config-gated, patches fire-verified in-game):
   - `Den.IsBlockedByStructures()` postfix → returns `false` if config `AllowRespawnNearStructures=true`, allowing revive even when buildings are nearby.
@@ -241,6 +274,18 @@ position which can end up duplicating the real den's record (den-actual-position
   bear-on-demand works standing at the den and via remote map-click.
 - v1.4.4: Force-spawn toast is generic ("Repopulating (N)...") so it reads correctly on spire pins,
   not just bear dens.
+- v1.4.5: Diagnostic build after the 2026-08-31 game update — per-node spawner identity and
+  population sizes in every diag line, a once-per-den `[xcheck]` cross-check of `affectedSpawners`
+  against `PopulationManager._populationSpawners`, and click-routing lines (all gated on
+  `DenDiagnostics`).
+- v1.4.6 CONFIRMED IN-GAME (2026-09-02): spire dens (asset name contains "Spire") respawn every
+  node via `SpawnPopulationFree`; the large spire repopulated from a map click. Classic dens
+  unchanged (Skeleton Den Cluster revived in the same run).
+- v1.4.7 CONFIRMED IN-GAME (2026-09-02): spawner path claims only pins owned by a populated area
+  `MarkerObject` (lakes, ruins, caves, fishing grounds, resource markers, villagers declined);
+  zero-node spire dens respawn through their alpha spawner; revive toast falls back to the asset
+  name when the den has no display name. Bears, large spire, small spire and classic dens all
+  revived from the map in one run.
 
 **Confirmed in-game (2026-07-09):**
 - Timed auto-respawn day rule: 'Wulfar Den' DEFEATED (day 56) → TimeWarp day-skip (daysPassed 56→57)
