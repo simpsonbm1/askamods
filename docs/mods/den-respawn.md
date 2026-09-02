@@ -7,7 +7,8 @@ PopulationSpawner force-respawn via map-pin / timer) confirmed in-game 2026-07-2
 1.4.7 (spire handling, pin-ownership gate on the spawner path, small-spire alpha respawn,
 no-name toast fallback) confirmed in-game 2026-09-02: bears, large spire, small spire, classic
 dens, and lake / resource / ruin / cave / fishing-ground pins all behave. v1.3.0 locale den-key +
-German auto-revive test ⚠️ pending in-game.
+German-client auto-revive: user-confirmed tested in-game (reported 2026-09-02, test date not
+recorded).
 
 **Goal:** Refresh/revive defeated monster and beast dens (wulfar, bear, skeleton, etc.) back to life
 via a configurable hotkey, bringing them back into the creature-spawning rotation.
@@ -148,9 +149,9 @@ Diagnostics:
 - `Diagnostics/DiagnosticsIntervalSeconds` (float, default: `30`): How often to poll and
   log.
 
-**v1.1.x MVP Features (⚠️ ALL pending in-game confirmation):**
+**v1.1.x MVP Features (all confirmed in-game 2026-07-09):**
 
-The v1.1.x branch adds three new features on top of v1.0.2's confirmed hotkey refresh plumbing:
+The v1.1.x branch added three features on top of v1.0.2's refresh plumbing:
 
 1. **Natural-Respawn Suppression** — `[NaturalRespawns] SuppressNaturalRespawns` (default false):
    Harmony PREFIX gate on `Den.Revive()` with a re-entrancy allow-flag (`Plugin.AllowReviveCall`,
@@ -199,7 +200,7 @@ position which can end up duplicating the real den's record (den-actual-position
 - v1.1.0: Added three MVP features on shared plumbing — natural-respawn suppression
   (SuppressNaturalRespawns config), Shift+click map-pin revive (MapRevive path + force-load), timed
   auto-respawn (AutoRespawn Rules), plus per-world den registry (DenRegistry.cs) and day counter
-  (DayCounter.cs). Built clean; ⚠️ all features pending in-game test.
+  (DayCounter.cs). All three confirmed in-game 2026-07-09 (see v1.2.0).
 - v1.1.1: Backfill fix for dens defeated before first observation — they were stamped
   `DefeatedOnDay=-1` and permanently skipped by auto-rules. The scan now starts their clock at first
   observation once the day is known, logging `defeat day unknown — clock started at day N`. Day poll
@@ -237,8 +238,8 @@ position which can end up duplicating the real den's record (den-actual-position
   now `needsWork = anyIgnore` ALONE (was `anyEmpty || anyIgnore`). Evidence from live tests: J
   refreshed a HEALTHY Wulfar Den (matching on anyEmpty=false, wolves streaming-culled), yet two Baby
   Crawler Dens matching on ignoreRespawning=true were USER-CONFIRMED long-cleared dens (correct
-  revives). The broader filter was false-positive. ⚠️ v1.1.7 selection change (narrowed gate)
-  pending in-game test.
+  revives). The broader filter was false-positive. The narrowed hotkey gate itself was never
+  tested: v1.2.0 deleted the hotkey path it belonged to.
 - v1.2.0: J-hotkey revive REMOVED per user decision. Map-pin Shift+click (`MapRevive` path) is the
   primary manual driver; config auto-respawn rules (`AutoRespawn Rules`) cover timed revive.
   Deleted: `TriggerRevive()`, the hotkey input block, and the `ReviveHotkey` + `ReviveRadiusMeters`
