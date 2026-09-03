@@ -80,6 +80,11 @@ CraftFromStorageMod 1.2.0 note:
   said the release "merged with 1.8.1's fiber and thatch respawn-rate fix"): *"end users dont care
   about our process. they just care whether the thing works and what changed."* Merges, branches,
   machines, and version bookkeeping never belong in a note — name the player-visible fixes only.
+- **Description-tab text: no em dashes, no semicolons, and no sales voice** (user rulings
+  2026-09-03 on the TreeRespawn 1.9.1 page rewrite: "so many em dashes", "make it sound less
+  like a commercial", "no semicolons either"). Bullet labels end in a colon, sentences stay
+  short and plain, and phrases like "perfect for", "dependable supply" or "you stay fully in
+  control" are cut. The same zero-em-dash rule already governs his Nexus replies (CLAUDE.md).
 
 **EVERY UPLOAD IS A PUSH TO EVERY USER (user, 2026-08-10).** Nexus's Vortex app auto-updates
 installed mods, so an upload lands on the whole user base rather than sitting on a page. There is
