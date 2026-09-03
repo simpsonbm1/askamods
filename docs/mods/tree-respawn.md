@@ -1,11 +1,11 @@
-# Mod 2: TreeRespawnMod — COMPLETE (v1.8.2)
+# Mod 2: TreeRespawnMod — COMPLETE (v1.9.1)
 
 **Goal:** Respawn felled trees (stump condition) and exhausted gather resources (reeds, berries,
 etc.) after configurable in-game days — plus a configurable refill rate for **constructed wells**
 (Water Well / Rain Collector), year-round rain-independent **mushrooms**, **woodcutter stump
-protection**, and **per-resource control of respawn on terraformed ground**. This file describes
-the mod as it exists at v1.8.2; version history is compressed into the appendix. Deep
-investigation history: `docs/archive/TREERESPAWN_HANDOFF.md`.
+protection** (or its opposite, **stump-first clearing**), and **per-resource control of respawn
+on terraformed ground**. This file describes the mod as it exists at v1.9.1; version history is
+compressed into the appendix. Deep investigation history: `docs/archive/TREERESPAWN_HANDOFF.md`.
 
 **Game subsystems:** [Resource / Tree System](../architecture.md#resource--tree-system) and
 [Gather / Press-to-Collect System](../architecture.md#gather--press-to-collect-system) — both carry
@@ -267,22 +267,55 @@ that config-key matching works against both display name and asset name, maintai
 locale-safety. Zero exceptions and zero interop trampoline errors logged. The terrain-chunk
 capture logged its first-fire line.
 
-## Woodcutter stump protection (confirmed in-game 2026-06-26)
+## Woodcutter stump protection and stump-first clearing (confirmed in-game 2026-06-26 / 2026-09-03)
 
-Woodcutters harvest leftover stumps for firewood, destroying the instance and cancelling the
-respawn (slow deforestation). Fix: `StumpProtectionPatch` — Postfix
-`HarvestInteraction.CanProvideItem` → `__result = 0` when the instance is a multi-piece
-`BiomeItemInstance` (`pieces >= 2`) at its **last piece** (= a stump; structural gate — standing
-trees still felled, loose `Item_Wood_*` logs still hauled). Only `CanProvideItem` leaks the stump's
-firewood yield — every other candidate gate already reads depleted (full table: architecture.md →
-Resource/Tree → "What a stump actually IS"). Player stump-clearing is axe damage (`TakeDamage`),
-not this query — still works, still cancels the respawn.
+Both levers live in `StumpProtectionPatch`, a Postfix on `HarvestInteraction.CanProvideItem`,
+and both key off the same structural test for a stump: a multi-piece `BiomeItemInstance` at its
+**last piece** whose GameObject is a wood node (name contains `Harvest_Wood`; fallback: the
+descriptor's `itemInfo.name` contains `Wood`). The wood check exists because the structural test
+alone also matches a multi-piece ROCK at its last piece: on the 2026-09-03 v1.9.0 run such a node
+answered the `Item_Stone_Raw` (Large Stone) query with 2, so stump protection had been hiding the
+last piece of those rocks from stonecutters since v1.1.6. User ruling 2026-09-03: "stump
+protection should also not be hiding rocks". Since v1.9.1 neither lever touches a non-wood node.
+
+**Protection (`ProtectStumpsFromWoodcutters`, default true).** Woodcutters harvest leftover stumps
+for firewood, destroying the instance and cancelling the respawn (slow deforestation). With
+protection on a stump answers `CanProvideItem` with 0, so the woodcutter leaves it to regrow.
+Standing trees are still felled and loose `Item_Wood_*` logs still hauled (structural gate). Only
+`CanProvideItem` leaks the stump's firewood yield; every other candidate gate already reads
+depleted (full table: architecture.md → Resource/Tree → "What a stump actually IS"). Player
+stump-clearing is axe damage (`TakeDamage`), not this query, so it still works and still cancels
+the respawn. Re-confirmed on v1.9.1 (2026-09-03): six stumps hidden, none taken.
 
 - **Work-priority interaction (vanilla, not a mod softlock):** if firewood is prioritized and the
   only source left is protected stumps, woodcutters idle via `ComplainNoResourcesFound`. Fell a
   fresh tree near them or keep logs/long-sticks at equal priority.
-- Config: `ProtectStumpsFromWoodcutters` (true); `EnableDiagnostics` (false) — verbose stump-hide +
-  worker-idle logging (`WorkerIdleDiagPatch`).
+
+**Stump-first (`PreferStumpsForFirewood`, default false; `StumpPreferenceRadius`, default 20 m).**
+Only acts when protection is off. Vanilla sends woodcutters to a stump for firewood only once no
+loose log or long stick can answer the firewood query: in the same search, loose logs answered
+`Item_Wood_Firewood` with 4, 8, 8 and 2 while stumps answered 8, and the game still took the logs
+first (Nexus, tspringer5 2026-08-21 and 2026-09-03; Steam community thread Nov 2025). The ranking
+rule is native and unread, so the lever removes the competition instead of re-ranking: when the
+firewood query lands on a NON-stump wood candidate (loose log, long stick, standing tree) and a
+live stump sits within the radius, that candidate answers 0 and the search falls through to the
+stump. Confirmed 2026-09-03 with the radius at 100 m: four candidates hidden, one left alone at a
+moment when no stump was loaded, and the woodcutters cleared stumps with logs lying nearby.
+
+- **Firewood identity is learned, not hard-coded.** Any item a stump answers > 0 for is
+  remembered by `ItemInfo.id` (`Item_Wood_Firewood`, id 16830476, display "Firewood"); the
+  invariant asset name containing `Firewood` is the fallback before the first stump is queried.
+  A query for logs to haul is never touched.
+- **Live stumps** come from the `Plugin.LiveHarvestInteractions` walk the manual-respawn hotkey
+  uses (structural stump test plus `!Destroyed`), cached for 2 s; the walk never exceeded 2 ms on
+  the test map. The candidate and the stump are compared in the same HarvestInteraction
+  transform frame, so the biome-versus-transform Y offset does not matter.
+- Loose-log HarvestInteractions carry the GameObject name `HarvestInteraction`, so the object
+  name cannot identify a log; the non-biome `_worldInstance` is the discriminator.
+- Not tested: co-op.
+- Config: `EnableDiagnostics` (false) logs each stump hidden by protection, each non-stump
+  candidate the stump-first lever evaluated (with its distance to the nearest stump and whether
+  it was hidden), the learned firewood item, and worker-idle complaints (`WorkerIdleDiagPatch`).
 
 ## Performance shape (v1.5.5–v1.6.1)
 
@@ -396,3 +429,4 @@ player opts in; confirmed in-game 2026-08-05. |
 try/catch could not contain the `MissingMethodException` because it fires at JIT of the
 enclosing block; confirmed clean in log 2026-08-31 (36 MushroomDiag lines, no
 exception). Respawn features themselves were not affected by the update. |
+| v1.9.0–v1.9.1 (2026-09-03) | New `PreferStumpsForFirewood` (default false) + `StumpPreferenceRadius` (default 20 m): with stump protection off, loose logs, long sticks and standing trees within the radius of a leftover stump answer the woodcutters' FIREWOOD search with 0, so the stump is cleared first; confirmed in-game 2026-09-03 (four candidates hidden, stumps cleared with logs nearby). Both levers now require a wood node (`Harvest_Wood`); a multi-piece rock at its last piece had matched the structural stump test and stump protection had been hiding it from stonecutters (user ruling 2026-09-03). Protection re-confirmed on 1.9.1. Answers tspringer5's Nexus report (2026-09-03) that unchecking protection did not make woodcutters clear stumps: that is vanilla ranking, not a regression, and the 2026-08-31 game update left `HarvestInteraction` unchanged (102 members, identical to the June dump). |

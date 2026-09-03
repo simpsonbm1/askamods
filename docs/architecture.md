@@ -580,12 +580,27 @@ non-biome `WorldItemInstance`s** (loose logs/debris the woodcutter hauls). So:
   vs `225.8:38.0:582.9` — notably different Y). The biome-instance position is the canonical key
   (`PendingRespawns`/`ActiveInstances` use it); never key a stump by the HarvestInteraction transform.
 
+**Loose logs are firewood candidates too, and the game takes them before stumps (CONFIRMED in-game
+2026-09-03, TreeRespawnMod v1.9.1 diagnostic).** In one woodcutter firewood search the loose-log
+`HarvestInteraction`s (GameObject name literally `HarvestInteraction`, non-biome `_worldInstance`)
+answered `CanProvideItem(Item_Wood_Firewood)` with 4, 8, 8 and 2 while the stumps answered 8, and
+the woodcutters still took the logs. Stumps are picked only once nothing else answers (Nexus user
+report 2026-08-21: with no logs left the workers "immediately try to get firewood from a nearby
+stump"). The ranking rule is native and has not been read; hiding the competing candidates (answer
+0) is the working lever, confirmed 2026-09-03 (TreeRespawnMod `PreferStumpsForFirewood`). The
+firewood item is `Item_Wood_Firewood` (id 16830476). The 2026-08-31 game update did not touch this
+surface: `HarvestInteraction` has the same 102 interop members as the 2026-06-28 dump.
+**The structural stump test (multi-piece biome instance at its last piece) also matches a
+multi-piece ROCK at its last piece** — one answered `Item_Stone_Raw` (Large Stone) with 2 on
+2026-09-03. Tree nodes are the `Harvest_Wood_*` GameObjects; gate on that name to mean "tree".
+
 **Which gate the woodcutter uses + the fix (CONFIRMED working in-game 2026-06-26, v1.1.6).** A v1.1.1 diagnostic instrumented
 every candidate gate for a stump: `GetNonExhaustedDepth` → **-1**, `IsExhausted()` → **True**, `IsAvailable()`
 → **True** ("instance active", not "harvestable"), `Check(ItemInfo)` → **False** — all already read depleted,
 yet the woodcutter still picks the stump because **`HarvestInteraction.CanProvideItem(ItemInfo)` → 6/8** (it
 leaks the stump's firewood yield). **Fix:** Postfix `CanProvideItem` → `__result = 0` when the instance is a
-**multi-piece `BiomeItemInstance` (`pieces >= 2`) at its last piece** (i.e. a tree stump). This is a
+**multi-piece `BiomeItemInstance` (`pieces >= 2`) at its last piece whose GameObject name contains
+`Harvest_Wood`** (i.e. a tree stump; the wood check keeps rocks out, see above). This is a
 **structural** gate — it deliberately does NOT touch standing trees (same object, earlier piece → still
 felled) or loose `Item_Wood_*` logs (non-biome → still hauled). The player clears stumps via axe **damage
 (TakeDamage), not this query**, so manual clearing — and "cleared stump = permanent" — still works.

@@ -27,6 +27,8 @@ public class Plugin : BasePlugin
     internal static ManualLogSource Logger = null!;
     internal static ConfigEntry<float> RespawnDays = null!;
     internal static ConfigEntry<bool> ProtectStumps = null!;
+    internal static ConfigEntry<bool> PreferStumps = null!;
+    internal static ConfigEntry<float> StumpPreferenceRadius = null!;
     public static ConfigEntry<bool> BlockRespawnUnderStructures { get; private set; } = null!;
     internal static ConfigEntry<float> StructureBlockMargin = null!;
     public static ConfigEntry<bool> EnableDiagnostics { get; private set; } = null!;
@@ -144,6 +146,18 @@ public class Plugin : BasePlugin
             key: "ProtectStumpsFromWoodcutters",
             defaultValue: true,
             description: "When true, village woodcutters won't harvest the stumps left by felled trees, so those stumps survive to regrow into a renewable forest. You can still clear a stump yourself by hand to make that spot permanent — clearing a stump cancels its respawn.");
+
+        PreferStumps = Config.Bind(
+            section: "TreeRespawn",
+            key: "PreferStumpsForFirewood",
+            defaultValue: false,
+            description: "Only used when ProtectStumpsFromWoodcutters is false. The game itself only sends woodcutters to a stump for firewood once there are no loose logs or long sticks left to chop, so stumps tend to sit there. When this is ON, any log, long stick or standing tree within StumpPreferenceRadius metres of a leftover stump is skipped by the woodcutters' FIREWOOD search, so they clear the stump first. Logs are still hauled and trees still felled for wood as normal; only the firewood choice changes. Note: with the mod's respawn timer, a stump they clear will not regrow (clearing a stump cancels its respawn).");
+
+        StumpPreferenceRadius = Config.Bind(
+            section: "TreeRespawn",
+            key: "StumpPreferenceRadius",
+            defaultValue: 20.0f,
+            description: "Metres. With PreferStumpsForFirewood ON, a log, long stick or standing tree is skipped by the firewood search only if a leftover stump sits within this distance of it. Larger = stumps get cleared from further away before loose wood is touched; 0 = off.");
 
         BlockRespawnUnderStructures = Config.Bind(
             section: "TreeRespawn",
