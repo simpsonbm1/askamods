@@ -481,7 +481,13 @@ public class ComposterDiag : MonoBehaviour
 
         if (pool >= ratio)
         {
-            if (Plugin.SimultaneousConversion.Value)
+            // v1.6.0: a full outhouse with no Compost stack has no room for the +1 Compost, so
+            // neither converter below can ever run and (sequential mode removing 1 unit per fire)
+            // no slot ever frees — confirmed in-game 2026-09-14. Free a slot by converting a whole
+            // stack instead.
+            if (!HasSpaceForCompost(container))
+                DoConvertFullContainer(posKey, container, isFood, ratio, pool);
+            else if (Plugin.SimultaneousConversion.Value)
                 DoConvertSimultaneous(posKey, container, isFood, ratio, pool);
             else
                 DoConvert(posKey, container, isFood, ratio, pool);
@@ -528,6 +534,123 @@ public class ComposterDiag : MonoBehaviour
         catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] CountPool error: {ex}"); }
         finally { Patches.QueryHideBypass.Active = prevBypass; }
         return total;
+    }
+
+    // v1.6.0 — the converter's own "is there room for one Compost" read, wrapped in the query-hide
+    // bypass for the same reason as CountPool (native HasSpace may consult the patched query methods).
+    private bool HasSpaceForCompost(ItemContainer container)
+    {
+        if (_compostInfo == null) return false;
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
+        try { return container.HasSpace(_compostInfo, 1); }
+        catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] HasSpace(compost) error: {ex}"); return false; }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
+    }
+
+    // v1.6.0 — full-outhouse path (user-directed design 2026-09-14). Called only when the container
+    // has no room for a single Compost. Converts ONE whole slot so that slot becomes the Compost
+    // slot. Pass 1 picks the first matching slot (container order) whose count divides exactly by
+    // the ratio and whose Compost output fits one Compost stack at the configured outhouse Compost
+    // stack size — nothing is wasted. Pass 2 runs only when AllowFoodLossWhenFull is true: the first
+    // matching slot holding at least one ratio's worth is emptied anyway and the remainder is lost.
+    // With neither, the outhouse stays as it is until the player frees a slot. Same whole-body
+    // query-hide bypass wrap as DoConvert (see its comment).
+    private void DoConvertFullContainer(string posKey, ItemContainer container, bool isFood, int ratio, int poolBefore)
+    {
+        if (_compostInfo == null || ratio <= 0) return;
+        string kind = isFood ? "food" : "seeds";
+        int compostStack = Math.Clamp(Plugin.CompostStackSize.Value, 1, Patches.GetStackSizePatch.MaxStackSize);
+
+        bool prevBypass = Patches.QueryHideBypass.Active;
+        Patches.QueryHideBypass.Active = true;
+        try
+        {
+            var matching = new List<Item>();
+            try
+            {
+                var items = container.GetItems();
+                int capacity = -1;
+                try { capacity = container.capacity; } catch { }
+                int bound = capacity > 0 ? capacity : 64;
+                for (int i = 0; i < bound; i++)
+                {
+                    Item? item = null;
+                    try { item = items != null ? items[i] : null; } catch { break; }
+                    if (item == null) continue;
+                    ItemInfo? info = null;
+                    try { info = item.info; } catch { }
+                    if (info == null) continue;
+                    bool matches = isFood ? OuthouseGate.IsFood(info) : OuthouseGate.IsSeed(info);
+                    if (matches) matching.Add(item);
+                }
+            }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertFullContainer snapshot walk error: {ex}"); }
+
+            Item? chosen = null;
+            bool lossy = false;
+
+            // Pass 1: exact division, output fits one Compost stack.
+            foreach (var item in matching)
+            {
+                int c = 0;
+                try { c = item.count; } catch { }
+                if (c <= 0) continue;
+                if (c % ratio == 0 && c / ratio <= compostStack) { chosen = item; break; }
+            }
+
+            // Pass 2: lossy, only when the toggle allows it.
+            if (chosen == null && Plugin.AllowFoodLossWhenFull.Value)
+            {
+                foreach (var item in matching)
+                {
+                    int c = 0;
+                    try { c = item.count; } catch { }
+                    if (c >= ratio) { chosen = item; lossy = true; break; }
+                }
+            }
+
+            if (chosen == null)
+            {
+                if (Plugin.EnableDiagnostics.Value)
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: outhouse full and no {kind} slot divides exactly by {ratio} (AllowFoodLossWhenFull={Plugin.AllowFoodLossWhenFull.Value}) — stalled until a slot is freed (pool={poolBefore}).");
+                return;
+            }
+
+            int count = 0;
+            try { count = chosen.count; } catch { }
+            int produce = Math.Min(count / ratio, compostStack);
+            int lost = count - produce * ratio;
+
+            bool removed = false;
+            try { removed = container.RemoveItem(chosen, count, ItemEventContext.Default); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertFullContainer RemoveItem error: {ex}"); }
+            if (!removed)
+            {
+                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: outhouse full — RemoveItem({count}) returned false; nothing changed.");
+                return;
+            }
+
+            int added = 0;
+            try { added = container.AddItems(_compostInfo, produce); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[OuthouseComposter] DoConvertFullContainer AddItems(compost) error: {ex}"); }
+
+            if (added < produce)
+                Plugin.Logger.LogWarning($"[OuthouseComposter][convert] {kind}: outhouse full — emptied a slot of {count} but AddItems(Compost, {produce}) returned {added}.");
+            if (added > 0) NoteProbeConversion(posKey);
+
+            if (Plugin.EnableDiagnostics.Value)
+            {
+                int capacityNow = -1;
+                try { capacityNow = container.capacity; } catch { }
+                int emptySlots = -1;
+                try { emptySlots = container.GetEmptySlots(); } catch { }
+                int used = (capacityNow >= 0 && emptySlots >= 0) ? capacityNow - emptySlots : -1;
+                string lossNote = lossy ? $" — {lost} unit(s) lost (AllowFoodLossWhenFull=true)" : "";
+                Plugin.Logger.LogInfo($"[OuthouseComposter][convert] {kind}: outhouse full — converted whole slot of {count} → +{added} Compost{lossNote} (container now {used}/{capacityNow} slots).");
+            }
+        }
+        finally { Patches.QueryHideBypass.Active = prevBypass; }
     }
 
     // ── Conversion (v0.2.0 DoConvert = "sequential" mode; v0.4.0 DoConvertSimultaneous = "true"

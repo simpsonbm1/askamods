@@ -142,6 +142,8 @@ internal static class HasSpacePatch
 [HarmonyPatch(typeof(ItemContainer), nameof(ItemContainer.GetStackSize))]
 internal static class GetStackSizePatch
 {
+    internal const int MaxStackSize = 200;
+
     private static bool _aliveLogged;
     private static readonly HashSet<string> _loggedItems = new();
 
@@ -155,11 +157,29 @@ internal static class GetStackSizePatch
                 Plugin.Logger.LogInfo("[OuthouseComposter][accept] GetStackSize patch alive.");
             }
 
-            if (__result != 0) return;
             if (!OuthouseGate.IsOuthouseContainer(__instance)) return;
+
+            // v1.6.0: Compost's own stack size inside the outhouse is configurable (native 10),
+            // same 200 byte-cap as the inputs. Checked before IsAcceptedInput because that helper
+            // deliberately excludes the compost item.
+            if (OuthouseGate.ItemIsNamed(itemInfo, Plugin.CompostItemName.Value))
+            {
+                __result = Math.Clamp(Plugin.CompostStackSize.Value, 1, MaxStackSize);
+                if (Plugin.EnableDiagnostics.Value && _loggedItems.Add("<compost>"))
+                    Plugin.Logger.LogInfo($"[OuthouseComposter][accept] GetStackSize fired for compost: {OuthouseGate.DescribeItem(itemInfo)} → forced={__result}");
+                return;
+            }
+
             if (!OuthouseGate.IsAcceptedInput(itemInfo)) return;
 
-            __result = OuthouseGate.IsSeed(itemInfo) ? Plugin.SeedStackSize.Value : Plugin.FoodStackSize.Value;
+            // v1.5.0: unconditional for accepted inputs in the outhouse. The native answer is 0 for
+            // seeds but already 10 for raw food (confirmed in-game 2026-09-14), so a "native 0 only"
+            // guard left FoodStackSize dead for food. Clamped to MaxStackSize: the Fusion sync RPC
+            // NetworkItemStorage.Rpc_ChangeNetworkItemCount(Byte itemPosition, Byte newCount) carries
+            // the count as a byte (Cecil-confirmed 2026-09-14), so anything above 255 wraps on the
+            // network; 200 is the margin WAREHOUSE_CAPACITY_HANDOFF.md chose below that.
+            int wanted = OuthouseGate.IsSeed(itemInfo) ? Plugin.SeedStackSize.Value : Plugin.FoodStackSize.Value;
+            __result = Math.Clamp(wanted, 1, MaxStackSize);
 
             if (Plugin.EnableDiagnostics.Value)
             {

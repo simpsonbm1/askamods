@@ -1,4 +1,4 @@
-# Mod 25: OuthouseComposterMod — COMPLETE (v1.4.0, on Nexus as "Outhouse Composter")
+# Mod 25: OuthouseComposterMod — COMPLETE (v1.6.0, on Nexus as "Outhouse Composter")
 
 **Goal:** food and seeds thrown into the Outhouse structure's storage convert into Compost over
 in-game time, protected from villager raiding through three gates: warehouse haul (prevents haul
@@ -53,8 +53,16 @@ collecting Compost.
 - **Workaround:** override acceptance for the outhouse container only via four independent Harmony
   postfixes on `SandSailorStudio.Inventory.ItemContainer` — `CanStoreItemType`, `Check`,
   `HasSpace`, `GetStackSize` — each scoped strictly to the outhouse container by the pointer-keyed
-  cache. `GetStackSize` returns 0 natively for forced inputs → overridden per kind
-  (FoodStackSize/SeedStackSize).
+  cache. `GetStackSize` is overridden per kind (FoodStackSize/SeedStackSize) for every accepted
+  input, clamped to 1..200 (v1.5.0, confirmed in-game 2026-09-14: 50 cabbage stacked 30 + 20 with
+  `FoodStackSize=30`). The native answer is 0 for seeds (Reed
+  Seeds logged `GetStackSize fired ... forced=200`) but already 10 for raw food: with v1.4.0's
+  "native 0 only" guard, Cabbage, Garlic, Onion and Fish Blubber logged `CanStoreItemType fired
+  ... forced=True` with no `GetStackSize fired` line and stacked at 10 with `FoodStackSize=30`
+  (confirmed in-game 2026-09-14, solo). The 200 cap exists because
+  `NetworkItemStorage.Rpc_ChangeNetworkItemCount(Byte itemPosition, Byte newCount)` carries stack
+  counts as a byte (Cecil-confirmed 2026-09-14); 200 is the margin under 255 that
+  `WAREHOUSE_CAPACITY_HANDOFF.md` chose.
 
 ## Working mechanism
 
@@ -64,7 +72,8 @@ Four independent Harmony postfixes on `SandSailorStudio.Inventory.ItemContainer`
 - `Check(ItemInfo)` — force true for food/seeds in the outhouse
 - `HasSpace(ItemInfo, int)` — force true only when the container still has an empty slot (does not
   count partial stacks — a documented simplification)
-- `GetStackSize(ItemInfo)` — return the FoodStackSize/SeedStackSize override instead of native 0
+- `GetStackSize(ItemInfo)` — return the FoodStackSize/SeedStackSize override for every accepted
+  input, clamped to 1..200 (v1.5.0); Compost itself gets `CompostStackSize`, same clamp (v1.6.0)
 
 Scoped via pointer-keyed identity cache (`Storage_SmallItems_Outhouse` unique asset name → native
 pointer → per-world cache in OuthouseGate). Each patch logs a once-ever "patch alive"
@@ -109,6 +118,20 @@ on world load).
    — two stacks of 10 seeds at ratio 20 never combine.
 
 Both modes confirmed in-game 2026-07-12.
+
+3. **Full outhouse (v1.6.0, confirmed in-game 2026-09-14, solo):** both modes need
+   `container.HasSpace(compost, 1)`
+   to be true before they touch anything, and sequential mode removes one unit per fire, so an
+   outhouse with all 20 slots holding food and no Compost stack yet never converts (confirmed
+   in-game 2026-09-14 with 20 single cabbages: no Compost until one was removed by hand, then
+   Compost "instantly"). When the timer fires and there is no room for Compost, the converter
+   instead empties ONE whole slot and puts its Compost there. Pass 1 takes the first matching slot
+   in container order whose count divides exactly by the ratio and whose output fits one Compost
+   stack at `CompostStackSize`; nothing is wasted. Pass 2 runs only when `AllowFoodLossWhenFull`
+   is true: the first matching slot holding at least one ratio's worth is emptied and the
+   remainder is lost. With neither, the outhouse stays as it is until a slot is freed by hand.
+   Every later conversion lands on the existing Compost stack, so at `CompostStackSize=200` the
+   outhouse keeps converting until that stack is full.
 
 ### Compost output resolution
 Compost ItemInfo resolved by invariant asset name `Item_Junk_Compost` (id 16801794) — lookup by
@@ -197,8 +220,15 @@ fired eight times. Player's outhouse storage panel displayed correctly with hidi
 - `FoodCategoryMatch="Food"` (CSV substrings vs ItemInfo.category.Name; default matches items with
   "Food" in their category)
 - `SimultaneousConversion=false` (description carries the **no-pooling WARNING** when true)
-- `FoodStackSize=10` (override for GetStackSize; seeds stack to 200 in other storage)
-- `SeedStackSize=200` (override for GetStackSize)
+- `FoodStackSize=10` (override for GetStackSize, replacing the game's own 10; capped at 200 for
+  the network byte reason above — v1.5.0, confirmed in-game 2026-09-14)
+- `SeedStackSize=200` (override for GetStackSize; same 200 cap)
+- `CompostStackSize=200` (v1.6.0, confirmed in-game 2026-09-14: Compost stacked past 70 in one
+  slot) — Compost's stack size inside the outhouse (game value 10); same 200 cap; the
+  GetStackSize postfix applies it before the input check
+- `AllowFoodLossWhenFull=false` (v1.6.0, confirmed in-game 2026-09-14: stacks of 5 at ratio 3,
+  toggle on, one stack became 1 Compost with 2 lost) — see "Full outhouse" above; true lets the
+  full-outhouse path empty a non-divisible slot and lose the remainder
 - `ProtectOuthouseContents=true` (v1.1.0+) — master switch for BOTH raid gates (warehouse haul
   gate + villager eat gate); compost item exempt from the haul gate; farmers unaffected
 
@@ -218,7 +248,9 @@ existing cfg files; customized values must be re-set under the new keys.
 
 ## Open/unverified
 
-(none currently)
+- Co-op replication of outhouse stacks above the game's own 10 (the 200 cap rests on the Cecil
+  reading of `Rpc_ChangeNetworkItemCount(Byte, Byte)`, never on a two-player run).
+- The full-outhouse path with seeds (only cabbage was run; the code path is shared).
 
 ## Dead-ends
 
@@ -291,3 +323,12 @@ by in-game-clock timers. Do not resurrect.
   in four separate events; conversions continued to fire eight times. Also in this version: the
   probe scaffolding's crashing patch groups removed, dead native-gather-lock code removed,
   diagnostics returned to shipped defaults.
+- **v1.5.0 (2026-09-14, not uploaded):** the GetStackSize override applies to every accepted input
+  instead of only when the game answers 0 (raw food already answers 10, so `FoodStackSize` had no
+  effect), clamped to 200 because the network stack-count RPC carries a byte. Confirmed in-game
+  2026-09-14.
+- **v1.6.0 (2026-09-14):** the full-outhouse fix from jimb66's Nexus report (a fully stocked
+  outhouse never composted): whole-slot conversion when there is no room for Compost, plus
+  `CompostStackSize` (default 200) and `AllowFoodLossWhenFull` (default false). Confirmed in-game
+  2026-09-14 in sequential and simultaneous mode, exact-division and lossy passes. Uploaded to
+  Nexus 2026-09-14.

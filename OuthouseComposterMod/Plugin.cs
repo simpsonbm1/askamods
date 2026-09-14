@@ -79,6 +79,8 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<string> FoodCategoryMatch = null!;
     internal static ConfigEntry<int> FoodStackSize = null!;
     internal static ConfigEntry<int> SeedStackSize = null!;
+    internal static ConfigEntry<int> CompostStackSize = null!;
+    internal static ConfigEntry<bool> AllowFoodLossWhenFull = null!;
     internal static ConfigEntry<bool> SimultaneousConversion = null!;
     internal static ConfigEntry<bool> ProtectOuthouseContents = null!;
     internal static ConfigEntry<bool> HideNonCompostFromQueries = null!;
@@ -178,13 +180,25 @@ public class Plugin : BasePlugin
             section: "Composter",
             key: "FoodStackSize",
             defaultValue: 10,
-            description: "Forced stack size for accepted FOOD inputs in the outhouse container (ItemContainer.GetStackSize returns 0 for them natively — this is the override).");
+            description: "Stack size for accepted FOOD inputs in the outhouse container, replacing the game's own answer (10 for most raw food). Capped at 200: the game syncs stack counts over the network as a single byte, so larger stacks would desync in co-op.");
 
         SeedStackSize = Config.Bind(
             section: "Composter",
             key: "SeedStackSize",
             defaultValue: 200,
-            description: "Forced stack size for accepted SEED inputs in the outhouse container. Seeds stack to 200 in other storage containers; match that here.");
+            description: "Stack size for accepted SEED inputs in the outhouse container. Seeds stack to 200 in other storage containers; match that here. Capped at 200 for the same network reason as FoodStackSize.");
+
+        CompostStackSize = Config.Bind(
+            section: "Composter",
+            key: "CompostStackSize",
+            defaultValue: 200,
+            description: "Stack size for Compost inside the outhouse container (the game's own value is 10). Capped at 200: the game syncs stack counts over the network as a single byte, so larger stacks would desync in co-op. A bigger Compost stack also keeps a full outhouse converting, because every conversion after the first lands on the existing Compost stack.");
+
+        AllowFoodLossWhenFull = Config.Bind(
+            section: "Composter",
+            key: "AllowFoodLossWhenFull",
+            defaultValue: false,
+            description: "Only matters when the outhouse is completely full with no Compost stack yet. The mod then empties one whole slot and puts its Compost there, choosing a slot whose count divides exactly by the ratio so nothing is wasted. If no slot divides exactly: true = empty a non-divisible slot anyway and lose the remainder (e.g. 30 seeds at ratio 20 gives 1 Compost and loses 10 seeds); false = leave the outhouse as it is until a slot is freed by hand.");
 
         SimultaneousConversion = Config.Bind(
             section: "Composter",
@@ -257,6 +271,6 @@ public class Plugin : BasePlugin
         try { Patches.ProbePatches.Apply(harmony); }
         catch (Exception ex) { Logger.LogError($"[OuthouseComposter][probe] ProbePatches.Apply error: {ex}"); }
 
-        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} HideNonCompostFromQueries={HideNonCompostFromQueries.Value} (GetItemCount={HideQueryGetItemCount.Value} HasItem={HideQueryHasItem.Value}) DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value} ProtectOuthouseContents={ProtectOuthouseContents.Value} LogHaulGate={LogHaulGate.Value} LogEatGate={LogEatGate.Value} ProbeDiagnostics={ProbeDiagnostics.Value} ProbeGroups='{ProbeGroups.Value}'.");
+        Logger.LogInfo($"[OuthouseComposter] OuthouseComposterMod v{MyPluginInfo.PLUGIN_VERSION} loaded — Phase 1 composter ACTIVE (host/solo authority gated). AcceptFood={AcceptFood.Value} ({FoodToCompostRatio.Value}:1 / {FoodGameHours.Value}h game-time) AcceptSeeds={AcceptSeeds.Value} ({SeedsToCompostRatio.Value}:1 / {SeedGameHours.Value}h game-time) CompostItemName='{CompostItemName.Value}' SimultaneousConversion={SimultaneousConversion.Value} FoodStack={FoodStackSize.Value} SeedStack={SeedStackSize.Value} CompostStack={CompostStackSize.Value} AllowFoodLossWhenFull={AllowFoodLossWhenFull.Value} HideNonCompostFromQueries={HideNonCompostFromQueries.Value} (GetItemCount={HideQueryGetItemCount.Value} HasItem={HideQueryHasItem.Value}) DumpKey='{DumpKey.Value}' StructureNameMatch='{StructureNameMatch.Value}' EnableDiagnostics={EnableDiagnostics.Value} ProtectOuthouseContents={ProtectOuthouseContents.Value} LogHaulGate={LogHaulGate.Value} LogEatGate={LogEatGate.Value} ProbeDiagnostics={ProbeDiagnostics.Value} ProbeGroups='{ProbeGroups.Value}'.");
     }
 }

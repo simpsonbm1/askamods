@@ -108,6 +108,14 @@ Templates & Localization"; design/evidence chain: `TerrainLevelerMod/BULLDOZER_U
 - **Save-format exposure:** a *placed, unfinished* bulldozer field serializes `templateID=919191001`;
   loading without the mod likely silently drops that one structure. Completed/flattened plots use the
   vanilla result template — zero exposure.
+- **Save/reload of the granted square, confirmed in-game (2026-09-10, game build 25186770, v1.5.1):**
+  new world → bulldoze → save → quit to desktop → load, twice over. The square was present on both
+  loads, and the log showed the bulldozer blueprint item already in the saved collection at the first
+  menu open (`grant gate ... vanilla=True clone=True -> already granted`, no re-grant needed). A Nexus
+  report the same day (WhyIsThisWet89: square present on a new world, gone after quitting and
+  reloading the next morning, Vortex install, reinstall did not help) did NOT reproduce here; the
+  reporter's log was requested. v1.5.1 adds diagnostic lines to the grant gate (under
+  `PlacementDiagnostics`) so a refused grant is visible in the log.
 
 ## Config (current, `Plugin.cs`)
 `General`: `MaxDragRange` (20, soft UX cap on marker follow distance — bulldozer drags only, NOT the

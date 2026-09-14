@@ -304,7 +304,7 @@ askamods/
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh [COMPLETE v1.3.5 — docs/mods/mine-refresh.md]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — docs/archive/SEED_HARVESTER_HANDOFF.md]
-  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.0 — docs/mods/terrain-leveler.md]
+  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.5.1 — docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.2 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
@@ -327,7 +327,7 @@ askamods/
                                 [COMPLETE v1.3.0; storage-restock, building-filtered search,
                                 and locale-safe ammo identity all confirmed in-game
                                 2026-08-13 — docs/mods/villager-ammo.md]
-  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage, raid-proofed [COMPLETE v1.4.0 — docs/mods/outhouse-composter.md]
+  OuthouseComposterMod/      ← Mod 25: food/seeds convert to Compost inside the Outhouse storage, raid-proofed [COMPLETE v1.6.0 — docs/mods/outhouse-composter.md]
   SupplyChainMod/            ← Mod 26: idea-12 supply-chain autopilot [WIP v0.17.3 — TIER lever
                                 armed, run 1 in-game-verified 2026-07-16; streaming/demand
                                 diagnostics ⚠️ pending in-game; next: v0.18 complaint-demand plane
@@ -354,6 +354,11 @@ askamods/
   GroundItemAuditMod/        ← Mod 31: throwaway probe — how many loose-item DATA records exist
                                 versus how many are spawned; F8 in-world [DEV TOOL v0.2.0, NOT for
                                 Nexus — docs/mods/ground-item-audit.md]
+  ItemCountAuditMod/         ← Mod 32: probe for the "negative quantities to item manifest" log
+                                flood (mugsy33's DynamicVillagerNeeds report, 2026-09-09): F3 scans
+                                every container for an Item whose count is <= 0, Ctrl+F3 evicts
+                                such stacks through the game's own RemoveItem [DEV TOOL v0.4.0,
+                                NOT for Nexus, handed one-off to a reporter; untracked, no doc yet]
 ```
 
 > **SeedHarvesterMod (Mod 14)** is a parked spike (patch commented out, installed DLL renamed

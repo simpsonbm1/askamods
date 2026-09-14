@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.5.0";
+        public const string PLUGIN_VERSION = "1.5.1";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -597,13 +597,18 @@ namespace TerrainLevelerMod
                 // 1) Item possession in the page's own collection.
                 var pi = __instance._pi;
                 var col = pi != null ? pi.GetItemCollection() : null;
-                if (col != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null
-                    && col.GetFirstItem(_vanillaFieldTemplate) != null
-                    && col.GetFirstItem(_bulldozerTemplate) == null)
+                if (diag) ModLogger.LogInfo($"[Bulldozer] Show: pi={(pi != null)} col={(col != null)} clone={(_bulldozerTemplate != null)} vanilla={(_vanillaFieldTemplate != null)}");
+                if (col != null && _bulldozerTemplate != null && _vanillaFieldTemplate != null)
                 {
-                    int added = col.AddItems(_bulldozerTemplate, 1);
-                    ModLogger.LogInfo($"[Bulldozer] granted blueprint item via Show (page._pi) (added={added}).");
-                    changedSomething = true;
+                    bool hasVanilla = col.GetFirstItem(_vanillaFieldTemplate) != null;
+                    bool hasClone = col.GetFirstItem(_bulldozerTemplate) != null;
+                    if (diag) ModLogger.LogInfo($"[Bulldozer] Show grant gate (page._pi): vanilla={hasVanilla} clone={hasClone}");
+                    if (hasVanilla && !hasClone)
+                    {
+                        int added = col.AddItems(_bulldozerTemplate, 1);
+                        ModLogger.LogInfo($"[Bulldozer] granted blueprint item via Show (page._pi) (added={added}).");
+                        changedSomething = true;
+                    }
                 }
 
                 // 2) Database-side audit + self-repair (once per database build). The menu's
@@ -692,8 +697,16 @@ namespace TerrainLevelerMod
         private static void TryGrantBulldozer(SandSailorStudio.Inventory.ItemCollection col, string source)
         {
             if (col == null || _bulldozerTemplate == null || _vanillaFieldTemplate == null) return;
-            if (col.GetFirstItem(_vanillaFieldTemplate) == null) return;
-            if (col.GetFirstItem(_bulldozerTemplate) != null) return;
+            bool hasVanilla = col.GetFirstItem(_vanillaFieldTemplate) != null;
+            bool hasClone = col.GetFirstItem(_bulldozerTemplate) != null;
+            if (!hasVanilla || hasClone)
+            {
+                // Diagnostic for the "square missing after reload" Nexus report (2026-09-10): this
+                // gate used to refuse silently, so a reloaded save whose collection lacks the vanilla
+                // field item left no trace in the log.
+                if (PlacementDiagnostics.Value) ModLogger.LogInfo($"[Bulldozer] grant gate ({source}): vanilla={hasVanilla} clone={hasClone} -> {(hasClone ? "already granted" : "vanilla item absent, no grant")}");
+                return;
+            }
             int added = col.AddItems(_bulldozerTemplate, 1);
             ModLogger.LogInfo($"[Bulldozer] granted blueprint item via {source} (added={added}).");
         }
