@@ -339,6 +339,12 @@ reloads/auto-timers untouched). Confirmed: rename field registers as the EventSy
 object; hovering other UI controls moves selection off it and re-enables hotkeys; keyboard mashing
 in a rename window triggers nothing; hotkeys work again after the window closes.
 
+**Vanilla key collisions (confirmed in-game 2026-09-05):** the typing guard does not cover
+ordinary UI keys. `T` is a default interact key in some building submenus, so a mod hotkey bound
+to a bare `t` fires while the player works a building (TreeRespawnMod's manual-respawn default;
+a Nexus user read the resulting stump regrowth as a broken timer). Before choosing a default
+mod hotkey, check the game's controls menu for the bare letter.
+
 ---
 
 ## Damage Pipeline (Projectiles / Bow)
