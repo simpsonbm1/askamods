@@ -117,6 +117,7 @@ jobs:
           description: ${{ inputs.description }}
           category: ${{ inputs.category }}
           archive_existing_version: ${{ inputs.archive_existing }}
+          primary_mod_manager_download: ${{ inputs.category == 'main' }}
 
       - name: Result + description reminder
         run: |

@@ -50,6 +50,11 @@ add a line to the workflow's `case` block and an option to the `mod` input.
   once on the website first). A successful run publishes a **live, public** version; there's no
   dry-run/sandbox in the beta.
 - `archive_existing=true` archives the prior version instead of leaving a duplicate main file.
+- **The upload sets the new version as the primary mod-manager download** when `category=main`
+  (the workflow passes `primary_mod_manager_download`). Unless that flag is sent, Nexus leaves the
+  primary on the older file and the page's download buttons keep pointing at it. The API cannot move
+  the flag later: `PUT /mod-files/{id}` accepts only `name`, so a file group whose primary is wrong
+  is fixed by hand on the website. An `optional`/`update` upload deliberately does not claim it.
 - Action is still open beta — if a run fails on an input, bumping the pinned tag is the first thing to check.
 
 **Per-version changelog (Files tab) — automated:** always pass the `description` input (the `-f
