@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.5.1";
+        public const string PLUGIN_VERSION = "1.6.1";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -30,6 +30,7 @@ namespace TerrainLevelerMod
 
         public static ConfigEntry<float> MaxDragRange;
         public static ConfigEntry<bool> OneHitClear;
+        public static ConfigEntry<bool> LevelTerrain;
         public static ConfigEntry<bool> ClearObstructions;
         public static ConfigEntry<int> BombShots;
         public static ConfigEntry<float> ClearVerticalRange;
@@ -53,6 +54,9 @@ namespace TerrainLevelerMod
             MaxDragRange = Config.Bind("General", "MaxDragRange", 20f, "Maximum drag distance for the terraforming tool (vanilla is 10)");
             OneHitClear = Config.Bind("General", "OneHitClear", true, "If true, a single hit fully flattens every tile in the grid (loops each tile to completion instead of one increment per hit)");
 
+            LevelTerrain = Config.Bind("General", "LevelTerrain", true,
+                "If true, a Bulldozer Field flattens the ground inside it. Set false to make the field a pure clearing tool: trees and rocks are still destroyed, but the terrain underneath is left exactly as it was. Requires OneHitClear = true.");
+
             ClearObstructions = Config.Bind("Obstructions", "ClearObstructions", true, "If true, the first hit on a grid detonates a bomb-style area blast over it to destroy trees/rocks/props before flattening.");
             BombShots = Config.Bind("Obstructions", "BombShots", 2, "How many blasts to detonate over the grid. 2 mirrors 'two bombs': the first knocks trees to stumps, the second clears the stumps and rocks.");
             ClearVerticalRange = Config.Bind("Obstructions", "ClearVerticalRange", 30f, "Half-height (m) of the box searched for obstructions above/below the grid. Raise if tall trees/rocks near the grid aren't detected.");
@@ -62,7 +66,7 @@ namespace TerrainLevelerMod
             PlacementDiagnostics = Config.Bind("General", "PlacementDiagnostics", false, "Log placement guards (Begin/ChangeGridSize/snap/dynamic), template identities at Use, and bulldozer menu-entry injection/grant steps. Enable to debug placement or the bulldozer menu entry.");
 
             HostSideClear = Config.Bind("Coop", "HostSideClear", true, "In co-op, the HOST machine performs the bulldozer flatten+clear for fields hit by ANY player. Only the authority's (host's) destruction replicates to everyone — a client's E-press otherwise flattens locally but can't break trees/rocks. Both players need the mod. No effect in solo.");
-            CoopDiagnostics = Config.Bind("Coop", "CoopDiagnostics", true, "Log the host-side co-op clear path ([Coop] lines: grid-state spawns, which trigger fired, authority/template decisions). Defaults ON while the v1.5.0 co-op path is being verified in-game.");
+            CoopDiagnostics = Config.Bind("Coop", "CoopDiagnostics", false, "Log the host-side co-op clear path ([Coop] lines: grid-state spawns, which trigger fired, authority/template decisions). Off by default; enable to debug co-op clearing.");
 
             Harmony.CreateAndPatchAll(typeof(Plugin));
             Log.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
@@ -727,6 +731,43 @@ namespace TerrainLevelerMod
         // native Use may re-fire while we work. We only want to run the full sweep+flatten once per hit.
         private static bool _handlingUse = false;
 
+        // Clear-only mode (LevelTerrain = false): the vanilla Use body levels the struck cell a step
+        // towards the reference height, which is exactly the terrain change the player turned off.
+        // Skip the vanilla body for bulldozer grids and report success; the postfix below still runs
+        // the obstruction blast and finalises the field.
+        [HarmonyPatch(typeof(TerraformingFieldInteraction), nameof(TerraformingFieldInteraction.Use))]
+        [HarmonyPrefix]
+        public static bool TerraformingFieldInteraction_Use_Prefix(TerraformingFieldInteraction __instance, ref bool __result)
+        {
+            try
+            {
+                if (LevelTerrain == null || LevelTerrain.Value) return true;   // leveling on: vanilla runs
+                if (!OneHitClear.Value) return true;                            // mod's one-hit path off
+                if (_handlingUse) return true;
+
+                TerraformingGrid grid = null;
+                try { grid = __instance.terraformingGrid; } catch { }
+                if (grid == null) return true;
+                // Strict identity: the placed Structure must resolve AND carry our template id.
+                // IsBulldozerGrid's _bulldozerDrag fallback is deliberately not used here - a stale
+                // drag flag must never suppress leveling on a VANILLA terraforming field.
+                int templateId = -1;
+                try { var st = __instance.GetComponentInParent<Structure>(); if (st != null) templateId = st.TemplateID; } catch { }
+                if (templateId != BulldozerTemplateId) return true;
+
+                if (PlacementDiagnostics.Value)
+                    ModLogger.LogInfo("[Diag:Use] clear-only mode: skipping the vanilla leveling body for this bulldozer grid.");
+
+                __result = true;
+                return false;
+            }
+            catch (System.Exception e)
+            {
+                ModLogger.LogError($"[Diag:Use] clear-only prefix failed: {e}");
+                return true;
+            }
+        }
+
         // A leveling hit routes through TerraformingFieldInteraction.Use (the TryLevelTile /
         // MarkCellInteracted methods are inlined by the IL2CPP AOT compiler, so Harmony patches on
         // them never fire — confirmed in-game 2026-07-01 via call-path probes). We hook Use's postfix,
@@ -779,7 +820,7 @@ namespace TerrainLevelerMod
 
                 if (OneHitClear.Value)
                 {
-                    FlattenViaHeightmapTool(__instance, grid);
+                    if (LevelTerrain.Value) FlattenViaHeightmapTool(__instance, grid);
 
                     // We deform the terrain directly via HeightmapTool and bypass the field's own
                     // gradual completion, so the grid marker/UI would otherwise linger. The game's
@@ -908,7 +949,11 @@ namespace TerrainLevelerMod
 
                 if (OneHitClear.Value)
                 {
-                    if (interaction != null)
+                    if (!LevelTerrain.Value)
+                    {
+                        if (CoopDiagnostics.Value) ModLogger.LogInfo($"[Coop] clear-only mode: grid {gid} cleared, terrain left untouched.");
+                    }
+                    else if (interaction != null)
                     {
                         try { FlattenViaHeightmapTool(interaction, grid); }
                         catch (System.Exception e) { ModLogger.LogError($"[Coop] flatten failed: {e}"); }

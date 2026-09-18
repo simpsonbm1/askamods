@@ -8,6 +8,8 @@ dead-diag cleanup). The flatten/clear core was confirmed at v1.3.21/1.3.22; v1.4
 menu entry + per-template gating + localized text. Un-parked after being PARKED/ABANDONED through
 v1.1.21 — see [History](#history). **v1.5.0 co-op fix confirmed in-game (2026-07-03)** — see
 [Co-op: host-side destruction](#co-op-host-side-destruction-v150-confirmed-in-game-2026-07-03) below.
+**v1.6.0 clear-only mode confirmed in-game (2026-09-18)** — see
+[Clear-only mode](#clear-only-mode-levelterrain--false-v160-confirmed-in-game-2026-09-18) below.
 
 ## The working recipe
 
@@ -119,11 +121,28 @@ Templates & Localization"; design/evidence chain: `TerrainLevelerMod/BULLDOZER_U
 
 ## Config (current, `Plugin.cs`)
 `General`: `MaxDragRange` (20, soft UX cap on marker follow distance — bulldozer drags only, NOT the
-crash fix), `OneHitClear` (true), `MaxHeightDifference` (15, vertical stretch clamp before native
-mesh-NaN crash), `PlacementDiagnostics` (false by default — flip true to log placement guards, template
-identities at Use, and the bulldozer menu-entry injection/grant steps).
+crash fix), `OneHitClear` (true), `LevelTerrain` (true), `MaxHeightDifference` (15, vertical stretch
+clamp before native mesh-NaN crash), `PlacementDiagnostics` (false by default — flip true to log
+placement guards, template identities at Use, and the bulldozer menu-entry injection/grant steps).
 `Obstructions`: `ClearObstructions` (true), `BombShots` (2), `ClearVerticalRange` (30),
 `ClearDiagnostics` (false — flip true for `[Bomb]`/`[Flatten]` logs).
+
+### Clear-only mode: `LevelTerrain = false` (v1.6.0, confirmed in-game 2026-09-18)
+Requested on Nexus 2026-09-17 (cvisscher): a way to blow up trees and rocks over a large area without
+flattening the ground. With `LevelTerrain = false` a bulldozer field runs the obstruction blast, leaves
+the heightmap untouched, and finalizes the field so the marker still disappears on one press.
+Two code paths carry it, both gated on the bulldozer template id so vanilla terraforming fields are
+never affected:
+- `TerraformingFieldInteraction.Use` **prefix** — skips the vanilla body and returns `__result = true`.
+  Vanilla's body steps the struck cell towards the reference height, which is terrain change the
+  setting is meant to suppress. The prefix resolves the owning `Structure` itself and requires
+  `TemplateID == 919191001`; it deliberately does not use `IsBulldozerGrid`'s `_bulldozerDrag`
+  fallback, so a stale drag flag can never suppress leveling on a vanilla field.
+- The `Use` postfix and the co-op `HandleHostSideBulldozer` both skip `FlattenViaHeightmapTool` and
+  still call `Rpc_DebugCompleteField` (a completion signal that does not itself deform terrain).
+
+`OneHitClear = false` is NOT this setting: it disables the mod's one-pass flatten but leaves vanilla's
+incremental per-hit leveling running and never dismisses the field.
 
 ## Co-op: host-side destruction (v1.5.0, confirmed in-game 2026-07-03)
 
@@ -166,8 +185,8 @@ All three funnel into one idempotent handler (`HandleHostSideBulldozer`), gated 
   resolve).
 
 **Config:** `[Coop] HostSideClear` (default `true` — disable to fall back to pre-v1.5.0 host-only-clears
-behavior), `[Coop] CoopDiagnostics` (default `true` — logs grid-state spawns, which trigger fired, and
-authority/template decisions as `[Coop]` lines).
+behavior), `[Coop] CoopDiagnostics` (default `false` since v1.6.1 — enable to log grid-state spawns,
+which trigger fired, and authority/template decisions as `[Coop]` lines).
 
 **Confirmed in-game (2026-07-03, two-machine co-op):** client presses at both close range (~35m from the
 host) and long range (~155m from the host) each fully cleared trees/rocks on the host and replicated to
