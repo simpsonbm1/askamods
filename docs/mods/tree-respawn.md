@@ -86,8 +86,13 @@ Wells: architecture.md → "Constructed water structures" under the Gather secti
   any node found already-depleted-but-untracked when the host streams it in, self-healing losses
   from historical bugs (125 catch-up registrations healed a backlog, zero orphaned stumps left).
 - **Manual respawn hotkey:** `t` by default replenishes any stump or exhausted gather node within
-  `ManualRespawnRadius` (10 m), bypassing the pending list — for fixing manually deforested areas.
+  `ManualRespawnRadius` (12 m), bypassing the pending list — for fixing manually deforested areas.
   Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host-gated.
+  ⚠️ **The default `t` collides with a vanilla key**: T is a default interact key in some building
+  submenus (confirmed in-game 2026-09-05), so a player working a building near stumps regrows
+  them without knowing. Nexus user Ravannac reported exactly this as "RespawnDays=28 but trees
+  respawn almost instantly" (2026-09-04); the timer itself was verified at 28 days the same day
+  via TimeWarpMod skip-days.
 
 ## Co-op host validation
 
