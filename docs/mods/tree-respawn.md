@@ -86,14 +86,26 @@ Wells: architecture.md → "Constructed water structures" under the Gather secti
   any node found already-depleted-but-untracked when the host streams it in, self-healing losses
   from historical bugs (125 catch-up registrations healed a backlog, zero orphaned stumps left).
 - **Manual respawn hotkey:** `t` by default replenishes any stump or exhausted gather node within
-  `ManualRespawnRadius` (10 m), bypassing the pending list — for fixing manually deforested areas.
+  `ManualRespawnRadius` (12 m), bypassing the pending list — for fixing manually deforested areas.
   Configs: `ManualRespawnHotkey`, `ManualRespawnRadius`, `ManualRespawnIncludeGather`. Host-gated.
+  ⚠️ **The default `t` collides with a vanilla key**: T is a default interact key in some building
+  submenus (confirmed in-game 2026-09-05), so a player working a building near stumps regrows
+  them without knowing. Nexus user Ravannac reported exactly this as "RespawnDays=28 but trees
+  respawn almost instantly" (2026-09-04); the timer itself was verified at 28 days the same day
+  via TimeWarpMod skip-days.
 
 ## Co-op host validation
 
 Host authority is validated via `Plugin.LocalPlayer` (tracked by a `PlayerCharacter.Spawned`
 postfix) → `LocalPlayer.NetworkObject.Runner.IsServer`. Confirmed in a live co-op session
 2026-07-03. (`WeatherSystem.Instance.Runner.IsServer` reads `false` in co-op — dead-end below.)
+
+Respawns replicate to co-op clients with no mod-side networking. `Replenish()` is called host-side
+on the authoritative `BiomeItemInstance`, and the game's own state replication puts the restored
+tree or gather node in front of every client. Confirmed in co-op by the user in a mid-July 2026
+session, exact date not recorded: clients see trees and gatherables pop back in. There
+is no "spawn a natural object" network message and the mod needs none — nothing is ever spawned,
+an existing world-data record is flipped back out of its exhausted state.
 
 ## Well water refill (`[WellRefill]` — confirmed in-game 2026-07-04, locale-safe 2026-07-21)
 

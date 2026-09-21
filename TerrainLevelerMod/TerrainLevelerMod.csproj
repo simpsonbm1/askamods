@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TerrainLevelerMod</AssemblyName>
     <RootNamespace>TerrainLevelerMod</RootNamespace>
-    <Version>1.6.1</Version>
+    <Version>1.8.1</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -60,6 +60,18 @@
     </Reference>
     <Reference Include="Fusion.Runtime">
       <HintPath>$(BepInExPath)\interop\Fusion.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AwesomeTechnologies.VegetationStudioPro.Runtime">
+      <HintPath>$(BepInExPath)\interop\AwesomeTechnologies.VegetationStudioPro.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Collections">
+      <HintPath>$(BepInExPath)\interop\Unity.Collections.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>$(BepInExPath)\interop\Unity.Mathematics.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

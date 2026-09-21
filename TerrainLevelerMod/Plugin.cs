@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.6.1";
+        public const string PLUGIN_VERSION = "1.8.1";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -32,6 +32,7 @@ namespace TerrainLevelerMod
         public static ConfigEntry<bool> OneHitClear;
         public static ConfigEntry<bool> LevelTerrain;
         public static ConfigEntry<bool> ClearObstructions;
+        public static ConfigEntry<bool> ProtectWaterSources;
         public static ConfigEntry<int> BombShots;
         public static ConfigEntry<float> ClearVerticalRange;
         public static ConfigEntry<bool> ClearDiagnostics;
@@ -48,6 +49,26 @@ namespace TerrainLevelerMod
         // (keyed by Unity instance id). Cleared-per-grid; the flatten loop still runs every hit.
         private static readonly System.Collections.Generic.HashSet<int> _clearedGrids = new System.Collections.Generic.HashSet<int>();
 
+        // ---- Natural water-source protection (v1.7.0) ----------------------------------------
+        // The blast's instance sweep runs inside AOESpell.CollisionCheck, which may detonate a frame
+        // or more after CastSpellOnPos returns, so the prune is armed for a time window rather than
+        // for the duration of the cast call. 8s comfortably covers a zero-delay detonation without
+        // leaving the prune armed long enough to matter to anything else.
+        private const float WaterProtectWindowSeconds = 8f;
+        private static float _waterProtectUntil = -1f;
+        private static UnityEngine.Vector3 _waterProtectCenter;
+        private static UnityEngine.Vector3 _waterProtectHalfExtents;
+        private static float _waterProtectRefLevel;
+        // Distinct instance identities seen inside the last blast box, so the diagnostic dump prints
+        // each kind once instead of once per tree.
+        private static readonly System.Collections.Generic.HashSet<string> _waterSeenIdentities = new System.Collections.Generic.HashSet<string>();
+        private static int _waterProtectedCount;
+        // Instances kept out of the blast, so they can be snapped to the flattened ground afterwards.
+        private static readonly System.Collections.Generic.List<SSSGame.WorldItemInstance> _waterProtectedInstances = new System.Collections.Generic.List<SSSGame.WorldItemInstance>();
+        // Armed once the flatten for this field has run, carrying the height the ground was set to.
+        private static bool _waterSnapArmed;
+        private static float _waterSnapTargetY;
+
         public override void Load()
         {
             ModLogger = Log;
@@ -58,6 +79,8 @@ namespace TerrainLevelerMod
                 "If true, a Bulldozer Field flattens the ground inside it. Set false to make the field a pure clearing tool: trees and rocks are still destroyed, but the terrain underneath is left exactly as it was. Requires OneHitClear = true.");
 
             ClearObstructions = Config.Bind("Obstructions", "ClearObstructions", true, "If true, the first hit on a grid detonates a bomb-style area blast over it to destroy trees/rocks/props before flattening.");
+            ProtectWaterSources = Config.Bind("Obstructions", "ProtectWaterSources", true,
+                "If true, natural water sources found in the world are never destroyed by a Bulldozer Field. Everything else in the field is still cleared as normal. Wells can only be built on top of a natural water source, so clearing a base site would otherwise force every well outside it.");
             BombShots = Config.Bind("Obstructions", "BombShots", 2, "How many blasts to detonate over the grid. 2 mirrors 'two bombs': the first knocks trees to stumps, the second clears the stumps and rocks.");
             ClearVerticalRange = Config.Bind("Obstructions", "ClearVerticalRange", 30f, "Half-height (m) of the box searched for obstructions above/below the grid. Raise if tall trees/rocks near the grid aren't detected.");
             ClearDiagnostics = Config.Bind("Obstructions", "ClearDiagnostics", false, "Log details of the flatten + obstacle-clearing blast ([Flatten]/[Bomb] lines). Off by default; enable to debug.");
@@ -820,7 +843,11 @@ namespace TerrainLevelerMod
 
                 if (OneHitClear.Value)
                 {
-                    if (LevelTerrain.Value) FlattenViaHeightmapTool(__instance, grid);
+                    if (LevelTerrain.Value)
+                    {
+                        FlattenViaHeightmapTool(__instance, grid);
+                        ArmWaterSourceSnap(grid);
+                    }
 
                     // We deform the terrain directly via HeightmapTool and bypass the field's own
                     // gradual completion, so the grid marker/UI would otherwise linger. The game's
@@ -957,6 +984,7 @@ namespace TerrainLevelerMod
                     {
                         try { FlattenViaHeightmapTool(interaction, grid); }
                         catch (System.Exception e) { ModLogger.LogError($"[Coop] flatten failed: {e}"); }
+                        ArmWaterSourceSnap(grid);
                     }
                     else ModLogger.LogWarning($"[Coop] no TerraformingFieldInteraction for grid {gid}; skipped flatten.");
 
@@ -1164,6 +1192,18 @@ namespace TerrainLevelerMod
                     ModLogger.LogInfo($"[Bomb] configured: clearItems={clr} dmgHarvest={dmgH} baseDmg={bd} mask={mask} skipChecks={skip}");
                 }
 
+                if (ProtectWaterSources.Value)
+                {
+                    _waterProtectCenter = center;
+                    _waterProtectHalfExtents = boxSize * 0.5f;
+                    _waterProtectRefLevel = yCenter;
+                    _waterSeenIdentities.Clear();
+                    _waterProtectedCount = 0;
+                    _waterProtectUntil = UnityEngine.Time.realtimeSinceStartup + WaterProtectWindowSeconds;
+                    _waterProtectedInstances.Clear();
+                    _waterSnapArmed = false;
+                }
+
                 for (int shot = 0; shot < shots; shot++)
                 {
                     try
@@ -1188,6 +1228,258 @@ namespace TerrainLevelerMod
                 // grace period so we don't kill an in-flight spell.
                 if (go != null) { try { UnityEngine.Object.Destroy(go, 10f); } catch { } }
             }
+        }
+
+        // ---- Natural water-source protection --------------------------------------------------
+        // The obstacle blast destroys world resource instances it collects through
+        // ResourceManager.GetAllInstancesList (confirmed by mapping the native call targets inside
+        // AOESpell.CollisionCheck). The spell picks its own IWorldItemInstanceFilter internally, so
+        // the only mod-side lever is the result list: remove the water sources from it after the
+        // game fills it and the blast never sees them. Armed only for a short window after our own
+        // cast, and only for instances inside our blast box, so ordinary resource queries elsewhere
+        // in the world are untouched.
+        [HarmonyPatch(typeof(SSSGame.ResourceManager), nameof(SSSGame.ResourceManager.GetAllInstancesList))]
+        [HarmonyPostfix]
+        private static void ResourceManager_GetAllInstancesList_Postfix(
+            Il2CppSystem.Collections.Generic.List<SSSGame.WorldItemInstance> __0)
+        {
+            try
+            {
+                if (__0 == null) return;
+                if (UnityEngine.Time.realtimeSinceStartup > _waterProtectUntil) return;
+
+                bool diag = ClearDiagnostics.Value;
+                for (int i = __0.Count - 1; i >= 0; i--)
+                {
+                    SSSGame.WorldItemInstance inst = null;
+                    try { inst = __0[i]; } catch { continue; }
+                    if (inst == null) continue;
+
+                    UnityEngine.Vector3 pos;
+                    try { pos = inst.GetPosition(); } catch { continue; }
+                    if (!IsInsideProtectBox(pos)) continue;
+
+                    string identity = DescribeWorldInstance(inst);
+                    if (diag && _waterSeenIdentities.Add(identity))
+                        ModLogger.LogInfo($"[Water] in-box instance kind: {identity}");
+
+                    if (!LooksLikeWaterSource(identity)) continue;
+
+                    try { __0.RemoveAt(i); } catch { continue; }
+                    _waterProtectedCount++;
+                    if (!_waterProtectedInstances.Contains(inst)) _waterProtectedInstances.Add(inst);
+                    // deltaY is the number the follow-up height-snap work needs: how far the kept
+                    // node sits above (+) or below (-) the level the ground is flattened to.
+                    ModLogger.LogInfo($"[Water] protected {identity} at {pos.ToString()} deltaY={(pos.y - _waterProtectRefLevel):F2} (total {_waterProtectedCount})");
+                }
+
+                // The blast's instance sweeps can run after the flatten has already happened, so any
+                // node first seen at that point still needs snapping. SnapProtectedWaterSources is
+                // idempotent, so calling it again for already-aligned nodes costs nothing.
+                if (_waterSnapArmed) SnapProtectedWaterSources();
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Water] prune failed: {e}"); }
+        }
+
+        private static bool IsInsideProtectBox(UnityEngine.Vector3 p)
+        {
+            return System.Math.Abs(p.x - _waterProtectCenter.x) <= _waterProtectHalfExtents.x
+                && System.Math.Abs(p.y - _waterProtectCenter.y) <= _waterProtectHalfExtents.y
+                && System.Math.Abs(p.z - _waterProtectCenter.z) <= _waterProtectHalfExtents.z;
+        }
+
+        // Locale-invariant identity for a world resource instance: asset-level names only, never a
+        // translated display string. Shaped as a single string so the diagnostic dump and the match
+        // test read the same data.
+        private static string DescribeWorldInstance(SSSGame.WorldItemInstance inst)
+        {
+            string formal = "?", item = "?", veg = "?", vegId = "?";
+            try
+            {
+                var d = inst.Descriptor;
+                if (d != null)
+                {
+                    try { formal = d.GetFormalName() ?? "?"; } catch { }
+                    try { var ii = d.itemInfo; if (ii != null) item = ii.Name ?? "?"; } catch { }
+                    try
+                    {
+                        var bd = d.TryCast<SSSGame.BiomeItemDescriptor>();
+                        if (bd != null)
+                        {
+                            var bi = bd.GetBiomeInfo();
+                            if (bi != null)
+                            {
+                                try { veg = bi.Name ?? "?"; } catch { }
+                                try { vegId = bi.VegetationItemID ?? "?"; } catch { }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return $"formal='{formal}' item='{item}' veg='{veg}' vegId='{vegId}'";
+        }
+
+        private static bool LooksLikeWaterSource(string identity)
+        {
+            if (string.IsNullOrEmpty(identity)) return false;
+            return identity.IndexOf("water", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // Record the level the ground was just flattened to, then snap every water source we kept out
+        // of the blast down (or up) onto it. A kept node otherwise keeps its original height while the
+        // ground under it moves, leaving it floating or sunk.
+        private static void ArmWaterSourceSnap(TerraformingGrid grid)
+        {
+            try
+            {
+                if (!ProtectWaterSources.Value) return;
+                float target;
+                try { target = grid.ReferenceLevel; } catch { return; }
+                _waterSnapTargetY = target;
+                _waterSnapArmed = true;
+                SnapProtectedWaterSources();
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Water] ArmWaterSourceSnap failed: {e}"); }
+        }
+
+        private static void SnapProtectedWaterSources()
+        {
+            bool diag = ClearDiagnostics.Value;
+            for (int i = 0; i < _waterProtectedInstances.Count; i++)
+            {
+                var inst = _waterProtectedInstances[i];
+                if (inst == null) continue;
+                try { SnapOneWaterSource(inst, diag); }
+                catch (System.Exception e) { ModLogger.LogError($"[Water] snap failed: {e}"); }
+            }
+        }
+
+        // Moves one kept node onto the flattened ground by editing the vegetation instance buffer that
+        // backs it. The stored element may be in world space or in a cell-local space, so a DELTA taken
+        // from the instance's world position is applied rather than an absolute height.
+        private static void SnapOneWaterSource(SSSGame.WorldItemInstance inst, bool diag)
+        {
+            var biome = inst.TryCast<SSSGame.BiomeItemInstance>();
+            if (biome == null)
+            {
+                if (diag) ModLogger.LogInfo("[Water] snap skipped: instance is not a BiomeItemInstance");
+                return;
+            }
+
+            UnityEngine.Vector3 world;
+            try { world = inst.GetPosition(); } catch { return; }
+            float delta = _waterSnapTargetY - world.y;
+            if (System.Math.Abs(delta) < 0.02f) return;
+
+            var buffer = biome.GetBuffer();
+            if (buffer == null) { if (diag) ModLogger.LogInfo("[Water] snap skipped: no instance buffer"); return; }
+            var arrays = buffer.instances;
+            if (arrays == null) { if (diag) ModLogger.LogInfo("[Water] snap skipped: no instance arrays"); return; }
+
+            int idx = inst.Index;
+            try
+            {
+                if (arrays.UsesUniqueIds())
+                {
+                    int byId = arrays.FindIndexOfUniqueId(inst.UniqueId);
+                    if (byId >= 0) idx = byId;
+                }
+            }
+            catch { }
+            if (idx < 0 || idx >= arrays.Length)
+            {
+                ModLogger.LogWarning($"[Water] snap skipped: index {idx} outside buffer length {arrays.Length}");
+                return;
+            }
+
+            var stored = arrays.positions[idx];
+            var moved = new Unity.Mathematics.float3(stored.x, stored.y + delta, stored.z);
+            arrays.positions[idx] = moved;
+
+            // Read back, so a write that silently did not land is visible in the log rather than being
+            // mistaken for a refresh problem.
+            var readBack = arrays.positions[idx];
+            try { biome._SetDirtyContainer(); } catch (System.Exception e) { ModLogger.LogWarning($"[Water] _SetDirtyContainer failed: {e.Message}"); }
+            NotifyWaterSourceMoved(inst);
+            MoveWaterSourceObjects(inst, delta, diag);
+
+            UnityEngine.Vector3 after = world;
+            try { after = inst.GetPosition(); } catch { }
+            ModLogger.LogInfo($"[Water] snap delta={delta:F2} target={_waterSnapTargetY:F2} stored.y {stored.y:F2}->{readBack.y:F2} worldY {world.y:F2}->{after.y:F2}");
+        }
+
+        // Best-effort: tell the biome data handler the instance changed so anything cached refreshes.
+        // Failure here is logged, not fatal — the buffer write is the part that matters.
+        private static void NotifyWaterSourceMoved(SSSGame.WorldItemInstance inst)
+        {
+            try
+            {
+                var wdm = UnityEngine.Object.FindAnyObjectByType<SSSGame.WorldDataManager>();
+                if (wdm == null) return;
+                var handler = wdm.GetDataHandler<SSSGame.BiomeProceduralDataHandler>(SSSGame.WorldDataSlot.BIOME);
+                if (handler == null) return;
+                handler.OnInstanceDataChanged(inst);
+            }
+            catch (System.Exception e) { ModLogger.LogWarning($"[Water] OnInstanceDataChanged failed: {e.Message}"); }
+        }
+
+        // The vegetation buffer write moves what is DRAWN, but the instance's spawned GameObject keeps
+        // its old transform, so the interaction prompt and hover outline stay at the node's old height.
+        // Move that object by the same delta. The interaction area is usually a component on the same
+        // object; when it is a separate one, both are moved, and a child is left alone so its parent's
+        // move is not applied twice.
+        private static void MoveWaterSourceObjects(SSSGame.WorldItemInstance inst, float delta, bool diag)
+        {
+            try
+            {
+                UnityEngine.Transform main = null, area = null;
+                try { var go = inst.gameObject; if (go != null) main = go.transform; } catch { }
+                try
+                {
+                    var ia = inst.InteractionArea;
+                    if (ia != null) { var ago = ia.GetGameObject(); if (ago != null) area = ago.transform; }
+                }
+                catch { }
+
+                if (main == null && area == null)
+                {
+                    if (diag) ModLogger.LogInfo("[Water] no spawned object for this node; nothing to move");
+                    return;
+                }
+
+                // Drop the second transform when it is the same object, or a descendant of the first.
+                if (main != null && area != null)
+                {
+                    bool same = false;
+                    try { same = main.GetInstanceID() == area.GetInstanceID(); } catch { }
+                    if (!same) { try { if (area.IsChildOf(main)) same = true; } catch { } }
+                    if (!same) { try { if (main.IsChildOf(area)) { main = area; same = true; } } catch { } }
+                    if (same) area = null;
+                }
+
+                MoveOneTransformY(main, delta, diag);
+                MoveOneTransformY(area, delta, diag);
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Water] MoveWaterSourceObjects failed: {e}"); }
+        }
+
+        private static void MoveOneTransformY(UnityEngine.Transform t, float delta, bool diag)
+        {
+            if (t == null) return;
+            try
+            {
+                var p = t.position;
+                float before = p.y;
+                t.position = new UnityEngine.Vector3(p.x, p.y + delta, p.z);
+                if (diag)
+                {
+                    float after = t.position.y;
+                    ModLogger.LogInfo($"[Water] moved object '{t.gameObject.name}' y {before.ToString("F2")} -> {after.ToString("F2")} (delta {delta.ToString("F2")})");
+                }
+            }
+            catch (System.Exception e) { ModLogger.LogError($"[Water] MoveOneTransformY failed: {e}"); }
         }
 
         // Resolve the local player's SpellsManager. Primary route is the interacting agent (the player

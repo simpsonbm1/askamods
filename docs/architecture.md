@@ -339,6 +339,12 @@ reloads/auto-timers untouched). Confirmed: rename field registers as the EventSy
 object; hovering other UI controls moves selection off it and re-enables hotkeys; keyboard mashing
 in a rename window triggers nothing; hotkeys work again after the window closes.
 
+**Vanilla key collisions (confirmed in-game 2026-09-05):** the typing guard does not cover
+ordinary UI keys. `T` is a default interact key in some building submenus, so a mod hotkey bound
+to a bare `t` fires while the player works a building (TreeRespawnMod's manual-respawn default;
+a Nexus user read the resulting stump regrowth as a broken timer). Before choosing a default
+mod hotkey, check the game's controls menu for the bare letter.
+
 ---
 
 ## Damage Pipeline (Projectiles / Bow)
@@ -3090,6 +3096,32 @@ state for the drag preview).
     rocks. **`skipAllCollisionChecks` must be `false`** — `true` skips `CollisionCheck()`, which is the
     overlap that gathers harvestable targets, so trees survive while only data-layer rocks clear.
     (confirmed in-game 2026-07-01)
+*   **The obstacle-clearing AOE blast path has no name or descriptor filter available to a mod.**
+    Mapping the native call targets inside `AOESpell.CollisionCheck` against a Cpp2IL dump shows it
+    gathering instances with `ResourceManager.GetAllInstancesList`, calling
+    `TimeBombProcess.ForceExplode`, and finally calling `WorldItemInstance.DeactivateContext` on
+    everything it gathered. The gather call does take an `IWorldItemInstanceFilter`, but the spell
+    chooses that filter internally and supplying one from mod code would require injecting an il2cpp
+    interface, which this project has never got working. The practical lever is a Harmony postfix on
+    `GetAllInstancesList` that prunes the result list. That method's parameters are all geometry and
+    filter types and its declaring type derives from `MonoBehaviour`, so it is safe to patch under
+    the project's inventory-parameter crash rule. (confirmed in-game 2026-09-21)
+*   **World resource nodes exist in two layers, and moving one does not move the other.** The stored
+    record lives in a vegetation instance buffer reached by `BiomeItemInstance.GetBuffer()`, then
+    `BiomeItemInstancesBuffer.instances`, then `InstancesDataArrays.positions`, which is a
+    `NativeList<Unity.Mathematics.float3>` with a writable indexer. The element index is
+    `WorldItemInstance.Index`, cross-checkable with
+    `InstancesDataArrays.FindIndexOfUniqueId(WorldItemInstance.UniqueId)` when `UsesUniqueIds()` is
+    true. Writing that element moves what the game draws. The spawned object is reached by
+    `WorldItemInstance.gameObject` and by `WorldItemInstance.InteractionArea.GetGameObject()`, and it
+    keeps its own transform: it carries the collider, hover outline and interaction prompt, and must
+    be moved separately. Calling `BiomeItemInstance._SetDirtyContainer()` and
+    `BiomeProceduralDataHandler.OnInstanceDataChanged(instance)` does not move it. The biome handler
+    is fetched with `WorldDataManager.GetDataHandler<BiomeProceduralDataHandler>(WorldDataSlot.BIOME)`.
+    Prefer applying a signed delta over writing an absolute height, because whether the stored value is
+    world space or cell-local space is established by only one measurement, in which it read as world
+    space. All of this is confirmed in-game 2026-09-21, and a moved node's new position survives both a
+    save and reload and an area streaming cycle.
 *   **`SpellsManager` is a standalone Fusion network object**, not under the player hierarchy —
     `GetComponent` searches from the player fail. Register every instance from a Harmony **postfix on
     `SpellsManager.Awake`** (a plain Unity lifecycle method, safe to patch), then at cast time pick
@@ -3315,4 +3347,17 @@ Historical note: the same coreclr+0x1d1fdd signature appears in Application-Erro
 6/23, 6/27, 6/29 (2026) — the TreeRespawn reload bug existed for weeks before it was reproduced;
 recurring WER offsets in coreclr.dll therefore mean "same crash CLASS (native AV under managed
 frames)", not necessarily same root cause.
+
+#### Using Cpp2IL to read what a native method calls
+Separate from crash diagnosis, Cpp2IL can disassemble native methods to trace their call chains —
+useful when Cecil exposes only the surface of an API and you need to know what a method actually
+calls beneath it. Run `cpp2il.exe --game-path <ASKA install dir> --use-processor attributeinjector
+--output-as isil --output-to <dir>` to get per-type x86 disassembly, and separately the same
+command with `--output-as dummydll` to get an RVA index from each method's `AddressAttribute`.
+Subtract the image base of `0x180000000` from each `call <address>` in the disassembly and
+binary-search it against the sorted RVA index to recover the called method's name. Direct calls
+resolve; virtual and interface calls appear as `call qword ptr [rax]` and do not. The whole ISIL
+dump of this game is about 540 MB and takes roughly 17 seconds. Note that `--output-as
+dll_il_recovery` is not a substitute: for `AOESpell.OnDetonated` it produced a body of `ldnull;
+throw` rather than recovered IL. (confirmed 2026-09-21)
 

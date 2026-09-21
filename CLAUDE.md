@@ -304,7 +304,10 @@ askamods/
   MineRefreshMod/            ← Mod 11: safe, on-demand mine/cave refresh [COMPLETE v1.3.5 — docs/mods/mine-refresh.md]
   JotunBloodYieldMod/        ← Mod 13: increases jotun blood yields [COMPLETE v1.1.0 — docs/mods/jotun-blood-yield.md]
   SeedHarvesterMod/          ← Mod 14: fast in-memory seed-scan experiment [PARKED v0.16.0, .dll.off, blocked — docs/archive/SEED_HARVESTER_HANDOFF.md]
-  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square [COMPLETE v1.6.1 — docs/mods/terrain-leveler.md]
+  TerrainLevelerMod/         ← Mod 15: "Bulldozer Field" instant-flatten build-menu square
+                                [COMPLETE v1.8.1 — natural water collectors protected + snapped to
+                                flattened ground, confirmed in-game 2026-09-21 —
+                                docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
   TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.2 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]

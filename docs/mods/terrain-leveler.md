@@ -10,6 +10,8 @@ v1.1.21 — see [History](#history). **v1.5.0 co-op fix confirmed in-game (2026-
 [Co-op: host-side destruction](#co-op-host-side-destruction-v150-confirmed-in-game-2026-07-03) below.
 **v1.6.0 clear-only mode confirmed in-game (2026-09-18)** — see
 [Clear-only mode](#clear-only-mode-levelterrain--false-v160-confirmed-in-game-2026-09-18) below.
+**v1.8.1 natural water collector protection + snapping confirmed in-game (2026-09-21)** — see
+[Water source protection](#water-source-protection-v181-confirmed-in-game-2026-09-21) below.
 
 ## The working recipe
 
@@ -125,6 +127,7 @@ crash fix), `OneHitClear` (true), `LevelTerrain` (true), `MaxHeightDifference` (
 clamp before native mesh-NaN crash), `PlacementDiagnostics` (false by default — flip true to log
 placement guards, template identities at Use, and the bulldozer menu-entry injection/grant steps).
 `Obstructions`: `ClearObstructions` (true), `BombShots` (2), `ClearVerticalRange` (30),
+`ProtectWaterSources` (true — keeps natural water collectors from being destroyed when the blast runs),
 `ClearDiagnostics` (false — flip true for `[Bomb]`/`[Flatten]` logs).
 
 ### Clear-only mode: `LevelTerrain = false` (v1.6.0, confirmed in-game 2026-09-18)
@@ -143,6 +146,52 @@ never affected:
 
 `OneHitClear = false` is NOT this setting: it disables the mod's one-pass flatten but leaves vanilla's
 incremental per-hit leveling running and never dismisses the field.
+
+## Water source protection (v1.8.1, confirmed in-game 2026-09-21)
+
+A Bulldozer Field never destroys natural water collectors when the `ProtectWaterSources`
+setting under `[Obstructions]` is true, which is its default. Everything else inside the
+field still clears normally. The setting exists because a player-built well can only be
+placed on top of a natural water collector, so a bulldozed base site would otherwise force
+every well outside the base.
+
+The mod keeps them by pruning the game's own result list. The obstacle blast gathers world
+resource instances by calling `ResourceManager.GetAllInstancesList`, and a Harmony postfix
+on that method removes water sources from the list before the blast reads it. The prune is
+armed for an 8 second window after the mod's own cast and only acts on instances inside
+that field's blast box, so resource queries elsewhere in the world are untouched. A node is
+recognized from its descriptor: the mod builds an identity string from `GetFormalName()`,
+`itemInfo.Name`, and the biome info's `Name` and `VegetationItemID`, then matches "water"
+case-insensitively anywhere in it. The natural water collector reads `veg='resource_natural_water_collector1'`
+and `vegId='b6606cb7-eef2-47c3-ab7f-d213b32a3e84'`, which are asset-level values, so the
+match is locale-safe and does not depend on the English display name.
+
+A kept node is then snapped onto the flattened ground, because it would otherwise keep its
+original height while the ground moved and end up floating or buried. The snap runs after
+each flatten and again at the end of each later prune pass, since the blast's instance
+sweeps can run after the flatten has already happened. It is idempotent: a node already
+within 0.02 of the target height is left alone.
+
+The snap has to touch two layers. Writing the stored position in the vegetation instance
+buffer moves what is drawn. The instance's spawned GameObject keeps its own transform, and
+that object carries the collider, the hover outline and the interaction prompt, so it is
+moved by the same amount separately. Version 1.8.0 wrote only the buffer, and the result
+in-game was a node that visually dropped to the new ground while its interaction prompt
+stayed at the old height. Version 1.8.1 moves the spawned object too.
+
+One measured snap, in-game 2026-09-21: a collector at world y 44.05 with the flatten target
+at 43.00 logged `[Water] snap delta=-1.05 target=43.00 stored.y 44.05->43.00 worldY
+44.05->43.00`. The stored buffer value and the instance's world position moved together and
+read the same number, so in that measurement the buffer holds a world-space height. Every
+later sweep of the same node reported `deltaY=0.00`. Confirmed in the same session: the
+interaction prompt appears at the node's new position, the new position survives a save and
+reload, and it survives the area streaming out and back in as the player walks away and
+returns.
+
+Both directions are confirmed in-game (2026-09-21): a collector drops onto the new level when
+the ground is lowered under it, and lifts back out when the ground is raised, staying
+interactable either way. ⚠️ Co-op is unverified — the host-side clear path runs this same
+code, but no co-op session has exercised it.
 
 ## Co-op: host-side destruction (v1.5.0, confirmed in-game 2026-07-03)
 
