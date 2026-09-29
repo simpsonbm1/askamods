@@ -188,6 +188,13 @@ patch on `WorldStreamingManager.Awake`.
 position which can end up duplicating the real den's record (den-actual-position) — inert
 (provisional stays non-defeated), FindNearest tolerance covers it; clean up in a later version.
 
+**Map pins appear normally with this mod installed (confirmed in-game 2026-09-29).** A Nexus
+report (tomkat2351, 2026-09-26, fresh r2modman profile with ASKA Mod Core + DenRespawn 1.4.7)
+said discovered places got no map pins. It did not reproduce here on 1.4.7 alone (wolf den,
+lake) or with DED2GAME's ASKA Mod Core 1.4.1 added (large spire, stone jotun arena, old
+ruins). The mod never creates or hides pins; its only map write recolours a revived den's own
+pin. Untested: r2modman's install layout, Core 1.4.0 or older, and the reporter's game build.
+
 **Version history:**
 - v1.0.0: Initial — selection keyed on `den.isActive`, action was `Revive()` alone; falsified
   in-game (6 dens "revived" twice, `isActive` never flipped, nothing spawned).
