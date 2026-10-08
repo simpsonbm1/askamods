@@ -309,7 +309,7 @@ askamods/
                                 flattened ground, confirmed in-game 2026-09-21 —
                                 docs/mods/terrain-leveler.md]
   ResourceMarkerRadiusMod/   ← Mod 16: configurable radii for markers [WIP v1.1.2 — some markers fall back when resolve fails — MAP_RADIUS_HANDOFF.md]
-  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.2 — docs/mods/task-unlocker.md]
+  TaskUnlockerMod/           ← Mod 17: unlock cooking recipes, fishing grounds + item-journal task discovery [COMPLETE v1.4.7 — docs/mods/task-unlocker.md]
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [radius sweep

@@ -58,6 +58,7 @@ namespace TaskUnlockerMod
         private int _zeroSendPasses;
 
         private float _nextFishingPass;
+        private bool _saveLoaded;
         private bool _loggedGroundTotal;
         private int _idleGroundCount = -1;   // grounds.Count when the pass last confirmed nothing left to do
         private readonly Dictionary<int, int> _markAttempts = new();
@@ -105,6 +106,15 @@ namespace TaskUnlockerMod
                 _nextFishingPass = Time.unscaledTime + FishingPassInterval;
                 MarkFishingGrounds();
             }
+
+            if (FishingDiag.Enabled)
+            {
+                FishingDiag.EnsurePatched();
+                Il2CppSystem.Collections.Generic.List<FishingGround>? grounds = null;
+                try { grounds = _popMgr?._fishingGrounds; } catch { _popMgr = null; }
+                FishingDiag.PollBoats(grounds);
+                FishingDiag.WatchMarks(grounds);
+            }
         }
 
         private string ReadSessionId()
@@ -133,11 +143,13 @@ namespace TaskUnlockerMod
             _capacityWarned = false;
             _zeroSendPasses = 0;
             _nextFishingPass = 0f;
+            _saveLoaded = false;
             _loggedGroundTotal = false;
             _idleGroundCount = -1;
             _markAttempts.Clear();
             _handledGrounds.Clear();
             _groundIndexCache.Clear();
+            FishingDiag.ResetWorld();
         }
 
         // ── Discoverables (cooking recipes + item journal entries) ──────────────────────────
@@ -224,6 +236,8 @@ namespace TaskUnlockerMod
                 $"{alreadyKnown} already discovered " +
                 $"(registered discoverables: {SafeDiscoverableCount(netDb)}/{DiscoverablesNetworkMax}).");
             _scanDone = true;
+            if (FishingDiag.Enabled)
+                Plugin.Log.LogInfo($"FishDiag: t={Time.unscaledTime:F1} save-load gate passed (characters registered).");
         }
 
         // requiresDiscovery / IsDiscovered live on the family base classes, so rewrapping as the
@@ -337,6 +351,13 @@ namespace TaskUnlockerMod
 
         private void MarkFishingGrounds()
         {
+            // Wait for the save to load. Before it deserializes, every ground reads unmarked, and a
+            // mark sent then is overwritten by the save's own state moments later (measured
+            // in-game 2026-10-08: marked at t=27.3 s, save loaded at 31.8 s, unmarked again at
+            // 32.8 s). If the load finished after the next pass, every ground was already recorded
+            // as handled and the save's unmarked state stuck for the session.
+            if (!SaveLoaded()) return;
+
             if (_popMgr == null)
             {
                 _popMgr = UnityEngine.Object.FindAnyObjectByType<PopulationManager>();
@@ -411,10 +432,13 @@ namespace TaskUnlockerMod
                     continue;
                 }
 
+                if (FishingDiag.Enabled) FishingDiag.BeforeRequest(net, fg, _scanDone);
                 if (!fg.Discovered)
                     net.RequestDiscoverFishingGround(id, index);
                 net.RequestMarkFishinGround(id, index, true);   // game's own typo; (id, index, marked) since 2026-08-31
                 _markAttempts[key] = attempts + 1;
+                FishingDiag.ModMarked.Add(key);
+                if (FishingDiag.Enabled) FishingDiag.AfterRequest(fg);
                 requested++;
 
                 if (Plugin.DiagnosticsLogItemUnlocks.Value)
@@ -436,10 +460,31 @@ namespace TaskUnlockerMod
                 // Latch silently at count 0 (registry not populated yet — the world-load window);
                 // log the marker on each transition into idle at a real ground count.
                 if (count > 0 && _idleGroundCount != count)
+                {
                     Plugin.Log.LogInfo($"TaskUnlocker: all {count} fishing grounds handled — fishing pass idle " +
                         "(rescans only if the ground registry grows).");
+                    FishingDiag.DumpTable("marking pass idle", grounds);
+                }
                 _idleGroundCount = count;
             }
+        }
+
+        // Same signal as the discoverables gate (characters register on the blueprint database
+        // only once the world runs), but without its host-only requirement, so a co-op client's
+        // fishing pass waits for its own load too.
+        private bool SaveLoaded()
+        {
+            if (_saveLoaded) return true;
+            try
+            {
+                var chars = _blueprintDb?.GetRegisteredCharacters();
+                if (chars == null || chars.Count == 0) return false;
+            }
+            catch { return false; }
+            _saveLoaded = true;
+            if (FishingDiag.Enabled)
+                Plugin.Log.LogInfo($"FishDiag: t={Time.unscaledTime:F1} fishing pass: save loaded, marking may start.");
+            return true;
         }
 
         private int ResolveGroundIndex(SSSGame.Network.NetworkWorldDataManager net, FishingGround fg, int id, int probeCap)

@@ -1,8 +1,10 @@
 # TaskUnlockerMod (Mod 17) — unlock cooking recipes, fishing grounds + item-journal tasks
 
-**Status: COMPLETE v1.4.2, on Nexus ("Task and Journal Unlocker", renamed 2026-07-14, group ID 7623785).**
+**Status: COMPLETE v1.4.7, on Nexus ("Task and Journal Unlocker", renamed 2026-07-14, group ID 7623785).**
 Core journal unlock + perf rework confirmed in-game 2026-07-14 (as v1.3.0/v1.4.0); v1.4.1 =
-ship defaults only; v1.4.2 = fishing-ground re-keying for 2026-08-31 game update.
+ship defaults only; v1.4.2 = fishing-ground re-keying for 2026-08-31 game update; v1.4.7 =
+fishing pass waits for the save to load (verified here 2026-10-08, ⚠️ reporter confirmation
+pending).
 
 Unlocks all crockpot recipes, marks all fishing grounds, and discovers all item-gated building
 tasks (tavern, harbor, storage, workshops) at world load.
@@ -46,6 +48,15 @@ PopulationInfo, VegetationResourceInfo); WearableItemInfo; PlantableItemInfo; We
   _discoverableIDs.Count; in practice registration is init-time (519 on the test save) and adds
   are status-bit writes that do NOT append (confirmed in-game 2026-07-14 — count stable across
   7×64 adds), so the guard is insurance only.
+- **Fishing pass waits for the save to load** (v1.4.6; on a save holding never-marked grounds it
+  marked all 107 sea grounds in one round, every request after the load, none lost, measured
+  in-game 2026-10-08; ⚠️ reporter confirmation pending): it starts only once
+  characters have registered on the blueprint database, the same signal as the discoverables
+  gate but without the host-only check. Before that, every ground reads unmarked, and a mark
+  sent then is overwritten by the save moments later (measured in-game 2026-10-08). Up to
+  v1.4.5 the pass ran pre-load; when the load took longer than one 5 s pass, every ground was
+  recorded as handled with its pre-load mark and the save's unmarked state then stuck: no
+  ring, fisherman ignores the ground (iMasonite / shadowstart220 Nexus reports).
 - **Fishing pass** (5 s): per-world handled-HashSet (marked once, or 3 failed attempts + warn-once)
   + idle gate — once every known ground is handled, the pass is a single grounds.Count read until
   the registry grows (streaming registers grounds late: 0→101 observed). Confirmed in-game
@@ -74,6 +85,7 @@ PopulationInfo, VegetationResourceInfo); WearableItemInfo; PlantableItemInfo; We
 | ResetJournalForDisabledCategories | false | ⚠️ UNTESTED repair switch: every load while true, re-hides journal entries of ALL items in disabled categories (incl. legitimately discovered ones; they return on next pickup); big warning in its description; use once then turn off |
 | DiagnosticsLogItemUnlocks | false | per-item queue/mark log lines |
 | DiagnosticsLogPassTimings | false (since v1.4.1) | per-pass duration + work-count lines |
+| DiagnosticsFishing | false (v1.4.7) | read-only fishing troubleshooting log (`FishDiag:` lines): each mark request with `canSendToAnyone` / `isMaster` / `saveLoaded` and the before/after flags, `MARK LOST` / `MARK SET` on mod-marked grounds, a ground table around the fisherman's own hut, the AI's offered grounds, boat mount/fishing events, boat positions. Its four `FSM_Fishing` postfixes are applied lazily only while it is on |
 
 ## Gotchas / dead-ends
 
@@ -112,3 +124,7 @@ PopulationInfo, VegetationResourceInfo); WearableItemInfo; PlantableItemInfo; We
   for pointer equality with the held ground and cached; per-ground tracking re-keyed from `_id` to
   Unity `GetInstanceID()` because `_id` may no longer be unique; confirmed in-game 2026-08-31
   (fishing markers appeared on a brand-new world, 212 discover+mark requests, zero probe failures).
+- v1.4.3–v1.4.6 (2026-10-08): local diagnostic builds for the Nexus report that fishermen ignore
+  mod-marked grounds (iMasonite, shadowstart220); found the pre-load marking overwrite.
+- v1.4.7 (2026-10-08): fishing pass waits for the save to load; `DiagnosticsFishing` troubleshooting
+  log added, default off. Loaded clean and verified on a save holding never-marked grounds.

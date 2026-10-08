@@ -22,8 +22,10 @@ namespace TaskUnlockerMod
         public static ConfigEntry<bool> ResetJournalForDisabledCategories = null!;
         public static ConfigEntry<bool> DiagnosticsLogItemUnlocks = null!;
         public static ConfigEntry<bool> DiagnosticsLogPassTimings = null!;
+        public static ConfigEntry<bool> DiagnosticsFishing = null!;
 
         public static SandSailorStudio.Inventory.ItemInfoDatabase ItemDb;
+        internal static Harmony? HarmonyInstance;
 
         public override void Load()
         {
@@ -52,12 +54,16 @@ namespace TaskUnlockerMod
             DiagnosticsLogItemUnlocks = Config.Bind("Diagnostics", "DiagnosticsLogItemUnlocks", false, "Log every item that gets unlocked. Disable to reduce log spam.");
             DiagnosticsLogPassTimings = Config.Bind("Diagnostics", "DiagnosticsLogPassTimings", false,
                 "Log the duration and work counts of each unlock/marking pass, to verify the mod goes idle after the initial unlock.");
+            DiagnosticsFishing = Config.Bind("Diagnostics", "DiagnosticsFishing", false,
+                "Troubleshooting log for fishing: every fishing-ground mark the mod requests and whether it stuck, the state of " +
+                "each ground near the fishing hut, which grounds the fisherman considers, and where the boats go. Read-only. " +
+                "Turn on only when reporting a fishing problem.");
 
             // Register our custom MonoBehaviour
             ClassInjector.RegisterTypeInIl2Cpp<TaskUnlockTracker>();
 
             // Apply Harmony patches
-            Harmony.CreateAndPatchAll(typeof(Plugin).Assembly);
+            HarmonyInstance = Harmony.CreateAndPatchAll(typeof(Plugin).Assembly);
 
             // Create invisible GameObject to hold the tracker
             var go = new GameObject("TaskUnlockTracker");

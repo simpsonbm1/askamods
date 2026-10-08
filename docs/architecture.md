@@ -3038,6 +3038,48 @@ Bypassing discovery to show tasks in workstations requires different strategies 
   villager dispatch (`FSM_Fishing`, `PopulationManager.TryGetFishingGroundsForItem`) needs a real marked
   ground to row to, and count-driven `_UpdateFishStatus` would remove tasks whose marked-count is 0.
   **FishingGround marks persist in the save (confirmed in-game 2026-07-14).**
+  - **Native mark/discovery/AI model (Ghidra decompile of the 2026-09-30 build, 2026-10-08;
+    script `D:\Tools\ghidra-scripts\DecompByRva.java`, addresses from `_explore/cpp2il_index.ps1`).**
+    Field offsets: `_marked` 0xE8, `_disabled` 0xE9, `_discovered` 0xEA, `uid` 0xD0, `_id` 0x110.
+    The game addresses a ground as `(_id, uid)`: every network call passes `uid` as the "index",
+    and `_TryGetFishingGround` resolves `_id` to a biome area, then indexes
+    `FishingBiome.GetFishingGround(index)` or falls back to the area's `FishingGround` component.
+    - `set_IsMarked(v)` forces `v = true` when `IsOnLake`, so lake grounds can never be unmarked
+      (measured too: 6 lake grounds stayed marked after an unmark request, 2026-10-08). On a change
+      it calls `NetworkWorldDataManager.MarkFishingGround(_id, uid)` and fires `onMarkChanged`,
+      then sets the `mark` GameObject active = `_marked` and toggles `markInteraction` /
+      `unmarkInteraction` by marked + discovered. The in-world mark visual IS the `_marked` flag.
+    - `MarkFishingGround` writes the mark into world tile data (`WorldDataManager.OpenData` at the
+      ground's position, then `Rpc_MarkFishingGround`) only when `get_CanSendToAnyone` is true and
+      `NetworkSession.isMaster` (offset 0x140) is true; otherwise only the live flag changes.
+      `_ReceiveMarkedFishingGround` replays tile records through `set_IsMarked`.
+    - `Rpc_RequestMarkFishinGround` on the host resolves the ground and calls `set_IsMarked`.
+      `FishingGround.Mark(bool)` is just `RequestMarkFishinGround(_id, uid, v)`.
+    - `Deserialize` applies the saved discovered flag (re-sending `DiscoverFishingGround` when it
+      changes) and the saved marked flag through `set_IsMarked`; `Serialize` writes `_marked` and
+      `_discovered`.
+    - Vanilla discovery: `BiomeExplorationPredicate` is true only when the ground is neither
+      disabled nor discovered; `_OnBiomeDiscovered` then runs the `UnlockMarking` body (discovered =
+      true, `DiscoverFishingGround`, show `markInteraction`) AND `set_IsMarked(true)`. So vanilla
+      discovery also marks. A ground pre-discovered by a mod never takes this path.
+    - **A mark set before the save finishes loading is overwritten by the save** (confirmed
+      in-game 2026-10-08, TaskUnlockerMod 1.4.5, solo, on a save holding unmarked grounds). The
+      mod's first fishing pass ran at t=27.3 s, before the save-load gate passed at t=31.8 s:
+      `before: marked=False` then `after request: marked=True discovered=False` (the discover
+      request did not apply pre-load). At the next pass, t=32.8 s, the same ground read
+      `before: marked=False` again. In solo, `canSendToAnyone=False` at every request, before and
+      after load, so the world-tile mark record is never written in single player, for vanilla
+      marks too; persistence there rests on `FishingGround.Serialize`.
+    - `PopulationManager.Register(FishingGround)` subscribes `onMarkChanged` / `onDisabledChanged`;
+      `_OnFishingGroundStateChanged` queues the ground in `_dirtyFishes`, and the per-fish marked
+      count is recomputed from the flags.
+    - `FSM_Fishing.GetAvailableFishingSpots`, per fish task whose priority is not 3: requires
+      `GetMarkedFishingGroundsCountForItem > 0`, then for each ground from
+      `TryGetFishingGroundsForItem` requires `_marked`, `!IsDepleted`, `CheckBaitForFishingOutlet`,
+      and squared distance to the hut <= `maxFishingGroundRange`^2 (500 measured). It does NOT
+      check `_discovered`. Outlet priority derives only from the task priority, never distance,
+      so equal-priority grounds are taken in list order (measured: 13 sea grounds all
+      `priority=0.10`, entry [0] chosen, 2026-10-08).
   - **Depletion and replenish are BOTH vanilla mechanisms** (Cecil 2026-07-25, for the fishing-ground
     respawn idea — script `_explore/cecil_fishing_ground_state.ps1`). `SSSGame.FishingGround`
     (base `SSSGame.AI.FishingOutlet`) exposes a read-only **`IsDepleted`** property, so exhaustion is
