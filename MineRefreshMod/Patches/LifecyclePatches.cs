@@ -32,7 +32,11 @@ internal static class CavesManagerStartPatch
     }
 }
 
-internal static class CharacterSpawnedPatch
+// Characters are tracked from Character.Start, never Character.Spawned. Aska Plus patches
+// Character.Spawned, and a second Harmony patch on that method makes the next load of
+// PlayerCharacter kill the process with "Internal CLR error (0x80131506)" (reproduced
+// 2026-10-17 with Aska Plus 0.5.2 + OuthouseComposterMod).
+internal static class CharacterStartPatch
 {
     static void Postfix(Character __instance)
     {
@@ -48,13 +52,13 @@ internal static class CharacterSpawnedPatch
                     // Diagnostics in logs only
                     string charName = "Unknown";
                     try { charName = __instance.GetName(); } catch { }
-                    Plugin.Logger.LogInfo($"[MineRefreshMod] Character spawned and tracked: '{charName}' (Total={Plugin.ActiveCharacters.Count})");
+                    Plugin.Logger.LogInfo($"[MineRefreshMod] Character started and tracked: '{charName}' (Total={Plugin.ActiveCharacters.Count})");
                 }
             }
         }
         catch (Exception ex)
         {
-            Plugin.Logger.LogError($"[MineRefreshMod] CharacterSpawnedPatch: {ex}");
+            Plugin.Logger.LogError($"[MineRefreshMod] CharacterStartPatch: {ex}");
         }
     }
 }
@@ -74,6 +78,12 @@ internal static class CharacterDespawnedPatch
                     try { charName = __instance.GetName(); } catch { }
                     Plugin.Logger.LogInfo($"[MineRefreshMod] Character despawned and removed: '{charName}' (Total={Plugin.ActiveCharacters.Count})");
                 }
+            }
+
+            if (Plugin.IsLocalPlayer(__instance))
+            {
+                Plugin.LocalPlayer = null;
+                Plugin.Logger.LogInfo("[MineRefreshMod] Local player character cleared.");
             }
         }
         catch (Exception ex)

@@ -166,6 +166,17 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   `CraftInteraction.CheckOwnedRequirements(Blueprint, IInteractionAgent)` has been patched since
   CraftFromStorageMod v0.1.0 without incident. Why the trampoline throws here is NOT established;
   only the reproduction and its log signature are.
+- **Never patch `SSSGame.Character.Spawned` — Aska Plus already does** (reproduced 2026-10-17 by
+  launch bisection, MineRefreshMod v1.3.6). Aska Plus 0.5.2 postfixes `Character.Spawned`. A second
+  Harmony patch on that method makes the next load of `PlayerCharacter` kill the process during
+  plugin load. `ErrorLog.log` shows `Fatal error. Internal CLR error. (0x80131506)` at
+  `CustomAttribute._CreateCaObject`, under whichever plugin touches `PlayerCharacter` next. On
+  2026-10-17 that was OuthouseComposterMod's `PatchAll()`. Either patch alone loads fine.
+  `PlayerCharacter` overrides `Spawned`, `Start` and `Awake`. The CLR-internal mechanism is not
+  named. On 2026-07-30 the same pairing loaded cleanly on the dev desktop, so machine state matters
+  too. **Workaround:** track characters from `Character.Start` and `Character.Despawned`. Find the
+  local player on demand: native class name `PlayerCharacter` plus `HasAuthority`, since authority
+  is not valid in `Start`. Recipe: [`docs/mods/mine-refresh.md`](mods/mine-refresh.md).
 - **Interface implementation is NOT statically decidable from the interop assemblies** (confirmed
   2026-07-26, controlled sweep of 37,037 types). Only 6 types declare any interface at all in the
   interop metadata, and the only recurring one is the compiler-generated `INotifyCompletion`. Cecil

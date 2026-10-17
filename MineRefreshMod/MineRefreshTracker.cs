@@ -47,6 +47,7 @@ public class MineRefreshTracker : MonoBehaviour
     {
         Plugin.Logger.LogInfo("[MineRefreshMod] [DEBUG] TriggerRefresh started.");
 
+        Plugin.LocalPlayer = Plugin.ResolveLocalPlayer();
         if (Plugin.LocalPlayer == null)
         {
             Plugin.Logger.LogWarning("[MineRefreshMod] Cannot trigger refresh: Local player is not spawned.");
@@ -184,7 +185,7 @@ public class MineRefreshTracker : MonoBehaviour
             for (int i = 0; i < Plugin.ActiveCharacters.Count; i++)
             {
                 var c = Plugin.ActiveCharacters[i];
-                if (c == null || c == Plugin.LocalPlayer || c.gameObject == null) continue;
+                if (c == null || Plugin.IsLocalPlayer(c) || c.gameObject == null) continue;
 
                 bool isAlive = false;
                 try { isAlive = c.IsAlive(); } catch { }

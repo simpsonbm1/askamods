@@ -25,6 +25,42 @@ public class Plugin : BasePlugin
     internal static CavesManager? GameCavesManager;
     internal static PlayerCharacter? LocalPlayer;
 
+    // Finds the local player among the tracked characters: native class PlayerCharacter with
+    // authority. Called when the hotkey is pressed, because authority is not yet valid in Start.
+    // Managed `is PlayerCharacter` lies for wrappers materialized as Character, hence the
+    // native class name.
+    internal static PlayerCharacter? ResolveLocalPlayer()
+    {
+        lock (ActiveCharacters)
+        {
+            for (int i = 0; i < ActiveCharacters.Count; i++)
+            {
+                var c = ActiveCharacters[i];
+                try
+                {
+                    if (c == null || (object)c is not Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase b) continue;
+                    var cls = Il2CppInterop.Runtime.IL2CPP.il2cpp_object_get_class(b.Pointer);
+                    var name = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(
+                        Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_name(cls));
+                    if (name == "PlayerCharacter" && c.HasAuthority)
+                        return new PlayerCharacter(b.Pointer);
+                }
+                catch { }
+            }
+        }
+        return null;
+    }
+
+    // The same native player is held by two wrappers (Character in ActiveCharacters,
+    // PlayerCharacter in LocalPlayer), so identity is compared by native pointer.
+    internal static bool IsLocalPlayer(Character? c)
+    {
+        if (c == null || LocalPlayer == null) return false;
+        return (object)c is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase a
+            && (object)LocalPlayer is Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase b
+            && a.Pointer == b.Pointer;
+    }
+
     public override void Load()
     {
         Logger = base.Log;
@@ -81,10 +117,10 @@ public class Plugin : BasePlugin
         // through a lambda keeps the typeof inside this try/catch instead.
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         ApplyPatch(harmony, "CavesManager.Start", () => typeof(CavesManager), "Start", typeof(Patches.CavesManagerStartPatch));
-        ApplyPatch(harmony, "Character.Spawned", () => typeof(Character), "Spawned", typeof(Patches.CharacterSpawnedPatch));
+        // Character.Start, not Character.Spawned: see CharacterStartPatch for the Aska Plus crash.
+        ApplyPatch(harmony, "Character.Start", () => typeof(Character), "Start", typeof(Patches.CharacterStartPatch));
         ApplyPatch(harmony, "Character.Despawned", () => typeof(Character), "Despawned", typeof(Patches.CharacterDespawnedPatch));
-        ApplyPatch(harmony, "PlayerCharacter.Spawned", () => typeof(PlayerCharacter), "Spawned", typeof(Patches.PlayerSpawnedPatch));
-        ApplyPatch(harmony, "PlayerCharacter.Despawned", () => typeof(PlayerCharacter), "Despawned", typeof(Patches.PlayerDespawnedPatch));
+        // No PlayerCharacter hooks: the Character hooks above also identify the local player.
 
         Logger.LogInfo($"MineRefreshMod v{MyPluginInfo.PLUGIN_VERSION} loaded successfully. Hotkey='{TriggerHotkey.Value}', SafetyRadius={SafetyRadius.Value}m, TriggerOnlyNearEntrance={TriggerOnlyNearEntrance.Value}");
     }

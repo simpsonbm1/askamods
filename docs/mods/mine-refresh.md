@@ -1,6 +1,61 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.5)
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.5 published); v1.3.6 confirmed in-game 2026-10-17
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
+
+**v1.3.6 — Aska Plus load crash fixed (confirmed in-game 2026-10-17, solo, beside Aska Plus
+0.5.3.1 and eight other plugins)**
+In-game result: two refreshes succeeded (`Hallways=13, HallwaySegmentsRestored=9,
+ClearedCollapses=8`) with the triggering player at the entrance. Seven attempts were refused with
+`Worker/Player 'Nanna' is inside the mine`; Nanna is a villager (user, 2026-10-17). So the
+local-player resolve and the self-exclusion both work. ⚠️ Co-op is untested.
+The mod attaches three hooks: `CavesManager.Start`, `Character.Start` and `Character.Despawned`.
+It never patches `Character.Spawned` and has no `PlayerCharacter` hooks at all.
+- `Character.Start` postfix adds the character to `Plugin.ActiveCharacters`, logging
+  `Character started and tracked`. `Character.Despawned` removes it.
+- The local player is resolved when the hotkey is pressed, by `Plugin.ResolveLocalPlayer`. It
+  picks the tracked character whose native class name is `PlayerCharacter` and that has
+  `HasAuthority`, then rewraps it with `new PlayerCharacter(ptr)`. Authority is not valid yet in
+  `Start`, so it is not read there.
+- The player is held by two wrappers, so `Plugin.IsLocalPlayer` compares native pointers. The
+  safety scan uses it to skip the triggering player.
+- ⚠️ Unverified: whether ASKA pools characters, which would re-spawn one without re-running
+  `Start`. Such a character would be missing from the safety scan.
+
+**The Aska Plus crash — trigger isolated 2026-10-17 by launch bisection on the dev desktop.**
+A second Harmony patch on `Character.Spawned`, after the one Aska Plus 0.5.2 applies, makes the next
+load of `PlayerCharacter` kill the process. The error log shows `Fatal error. Internal CLR error.
+(0x80131506)` in `CustomAttribute._CreateCaObject`. The victim is whichever mod touches
+`PlayerCharacter` next. On 2026-10-17 that was `OuthouseComposterMod.Plugin.Load` → `PatchAll()`,
+whose attributes name `typeof(PlayerCharacter)`. The launches, all MEASURED:
+- Aska Plus + OuthouseComposter: loads.
+- Aska Plus + MineRefresh 1.3.6 with its `Character.Spawned` hook + OuthouseComposter: crashes,
+  twice in two launches, in the 5-plugin and 3-plugin sets.
+- The same set without Aska Plus: loads.
+- The same set with only MineRefresh's `Character.Spawned` hook removed: loads.
+- The full 9-plugin layout with the `Character.Start` build: loads, with Aska Plus 0.5.2 and
+  with 0.5.3.1.
+- Aska Plus 0.5.3.1 + published v1.3.5: crashes after `Patched Character.Despawned`, inside the
+  `PlayerCharacter` resolve lambda, the stopping point in Makeway's log. Here the `ErrorLog.log`
+  stack names `MonoMod.RuntimeDetour.Platforms.DetourRuntimeNETCore30Platform.CompileMethodHook`,
+  MonoMod's JIT hook, as the crashing frame.
+- The 0x80131506 bisection crash left a WER dump at `coreclr.dll+0xBB4BA`, access violation. That
+  is the same module and offset as Makeway's 2026-07-30 dump.
+Aska Plus 0.5.3.1 (Nexus 2026-09-05) patches the same targets as 0.5.2, `Character.Spawned`
+included. Aska Plus 0.5.2 is broken on the 2026-10-09 game build: its `ItemInfo.Configure` prefix
+calls `AttributeData.set_value(Single)`, and `AttributeData.value` is now getter-only. In-world
+that logs `MissingMethodException` thousands of times, shows all equipment broken, and ended in a
+`GameAssembly.dll` stack overflow (`0xc00000fd`). 0.5.3.1 no longer calls that setter. Test with
+the current Aska Plus only.
+This also fits Makeway's 1.3.5 log. That build patched `Character.Spawned` beside Aska Plus, then
+died on its own `PlayerCharacter.Spawned` attach. The CLR-internal mechanism is not named. One fact
+is still unexplained: on 2026-07-30 this desktop loaded Aska Plus + 1.3.4 cleanly, and a reboot
+cleared Makeway's crash. So on some machine state, the double patch survives.
+
+Aska Plus 0.5.2 patch targets, read with Cecil 2026-10-17: `Character.Spawned`,
+`Structure.Spawned`, `VillagerSurvival.Spawned`, `Villager.Awake`, `ItemInfo.Configure`,
+`SettingsMenu.Start`, `MainMenu.OnActivate`, and the add/remove accessors of
+`HarvestInteraction.OnHarvestDamageTaken` and `OnFullyHarvested`. It never patches
+`PlayerCharacter`. It applies these through nine `Harmony.CreateAndPatchAll` calls.
 
 **v1.3.5 — patches applied individually instead of through `PatchAll()` (confirmed working
 in-game 2026-07-30, shipped to Nexus as the main download 2026-07-30)**
@@ -94,7 +149,7 @@ and solved.
     binary.
   - **Fix**: Implement a 100% passive, zero-search architecture. Write Harmony patches on
     `CavesManager.Start()` (with scene-validity checks to ignore prefab assets) to cache the manager
-    instance, and on `Character.Spawned()` / `Character.Despawned()` to maintain a local,
+    instance, and on `Character.Start()` / `Character.Despawned()` to maintain a local,
     thread-safe C# list of all active characters in the world. Read directly from these cached
     references to bypass all Unity scene-scanning APIs entirely.
 - **Custom MonoBehaviour Constructor**: Custom `MonoBehaviour` classes registered via
@@ -185,13 +240,13 @@ regions while the file is 18,610,902 bytes, and the faulting thread's stack sits
 `UnityPlayer.dll` built `2026-03-18 08:15:51`, all matching the dev desktop exactly, on the same
 Windows build `10.0.26200`. Game code, engine, launcher and OS are the same on both machines.
 
-**Standing verdict: not root-caused, and not a mod defect on the evidence available.** A null
-dereference inside the .NET runtime, on a machine identical to the dev desktop, cleared
-permanently by a reboot, points at transient machine state. Reopen only if a second reporter
-produces the same `coreclr.dll` access violation, in which case an untruncated dump with a stack
-is the thing to ask for.
+**Standing verdict: the trigger is this mod's second patch on `Character.Spawned` beside Aska
+Plus.** See the v1.3.6 section at the top for the bisection. A reboot clearing it on Makeway's
+machine shows that machine state also matters. The CLR-internal mechanism behind the
+`coreclr.dll` access violation is not named.
 
-**The Aska Plus pairing does not reproduce (2026-07-30).** Aska Plus 0.5.2 was installed beside
+**The Aska Plus pairing did not reproduce on 2026-07-30, and reproduces every time on
+2026-10-17.** On 2026-07-30, Aska Plus 0.5.2 was installed beside
 MineRefreshMod 1.3.4 on the dev desktop and the game started normally, logging
 `MineRefreshMod v1.3.4 loaded successfully`. Three candidate differences are ruled out by that
 run. Both runs load Aska Plus first and inject its four mono types (`GrassTool`,
@@ -216,11 +271,12 @@ machines therefore run the April 23 build, their interop assemblies are generate
 type that moved between game builds is dead.
 
 **Exposure beyond this mod.** Nine other mods in this repo hook `PlayerCharacter.Spawned` and
-`PlayerCharacter.Despawned` exactly the same way: CraftFromStorageMod, DenRespawnMod,
-GroundItemVacuumMod, HealthRegenMod, NoNeedsMod, OuthouseComposterMod, TreeRespawnMod,
-VillagerAmmoMod and WarpTourMod. Makeway has none of them installed, so his logs say nothing about
-whether they crash on his build. ⚠️ UNTESTED — do not change any of them until his v1.3.5
-`ErrorLog.log` names the actual failure.
+`PlayerCharacter.Despawned`: CraftFromStorageMod, DenRespawnMod, GroundItemVacuumMod,
+HealthRegenMod, NoNeedsMod, OuthouseComposterMod, TreeRespawnMod, VillagerAmmoMod and WarpTourMod.
+They are victims, not triggers. They crash only when something has already patched
+`Character.Spawned` twice. After v1.3.6 no mod in this repo patches `Character.Spawned`, so with
+Aska Plus present there is a single patch. A third-party mod that also patches it would bring the
+crash back.
 
 **Load-failure reports — what the version range can rule out.** Both load-failure reports name
 this mod (not a different one), three weeks apart, with different reporters. Between v1.3.1 and
