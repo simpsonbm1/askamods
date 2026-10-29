@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.8.1";
+        public const string PLUGIN_VERSION = "1.8.2";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -1076,8 +1076,12 @@ namespace TerrainLevelerMod
             try
             {
                 // Force the tool into a permissive, networked configuration and set the flat target.
-                TrySet(() => tool.clearVegetation = ClearObstructions.Value);
-                TrySet(() => tool.setVegetationMask = ClearObstructions.Value);
+                // Grass clearing is independent of ClearObstructions: the bomb removes trees/rocks,
+                // while these flags mark the flattened cells as vegetation-free (the vanilla hoe sets
+                // the same per-cell flag). Tying them to ClearObstructions left grass floating above
+                // lowered ground whenever the blast was turned off.
+                TrySet(() => tool.clearVegetation = true);
+                TrySet(() => tool.setVegetationMask = true);
                 TrySet(() => tool.propagateOnNetwork = true);
                 TrySet(() => tool.updateNavigation = true);
                 TrySet(() => tool.onlyValidate = false);

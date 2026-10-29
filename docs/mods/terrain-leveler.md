@@ -12,6 +12,8 @@ v1.1.21 — see [History](#history). **v1.5.0 co-op fix confirmed in-game (2026-
 [Clear-only mode](#clear-only-mode-levelterrain--false-v160-confirmed-in-game-2026-09-18) below.
 **v1.8.1 natural water collector protection + snapping confirmed in-game (2026-09-21)** — see
 [Water source protection](#water-source-protection-v181-confirmed-in-game-2026-09-21) below.
+**v1.8.2 grass clearing independent of `ClearObstructions` confirmed in-game (2026-10-29)** — see
+[Grass clearing](#grass-clearing-v182-confirmed-in-game-2026-10-29) below.
 
 ## The working recipe
 
@@ -144,6 +146,16 @@ never affected:
 - The `Use` postfix and the co-op `HandleHostSideBulldozer` both skip `FlattenViaHeightmapTool` and
   still call `Rpc_DebugCompleteField` (a completion signal that does not itself deform terrain).
 
+### Grass clearing (v1.8.2, confirmed in-game 2026-10-29)
+The flatten always sets `HeightmapTool.clearVegetation` and `setVegetationMask` to true, whatever
+`ClearObstructions` says. Those flags mark each flattened cell as vegetation-free, which is the same
+per-cell flag the vanilla hoe sets (see `docs/architecture.md`, terraforming section), and they are
+what removes the grass. They never touch trees or rocks: those need the obstruction blast. With the
+flags tied to `ClearObstructions` (v1.8.1 and earlier), turning the blast off left grass floating
+above lowered ground (Nexus report, Hazelberry, 2026-10-28). Confirmed in-game at v1.8.2 with
+`ClearObstructions = false`: flattened ground had no floating grass, and the trees inside the field
+were left standing.
+
 `OneHitClear = false` is NOT this setting: it disables the mod's one-pass flatten but leaves vanilla's
 incremental per-hit leveling running and never dismisses the field.
 
@@ -192,6 +204,17 @@ Both directions are confirmed in-game (2026-09-21): a collector drops onto the n
 the ground is lowered under it, and lifts back out when the ground is raised, staying
 interactable either way. ⚠️ Co-op is unverified — the host-side clear path runs this same
 code, but no co-op session has exercised it.
+
+## Compatibility with Grid Lock (mugsy33.gridlock)
+
+Grid Lock 1.2.0 snaps build ghosts to a grid. With its default `SnapTerrain = true` it also snaps
+the start point of any terraforming field, Bulldozer Field included, by postfixing
+`DynamicDimensionsPlacementTool._OnBuildRayChanged` and `_ValidatePlacement(bool)`. That is its
+only overlap with this mod's patches; none of its code runs during the obstruction blast.
+Confirmed in-game (2026-10-29, solo, v1.8.1, Grid Lock defaults): four Bulldozer Fields of
+different sizes over trees and rocks all cleared and flattened with no crash and no errors. A
+Nexus report (Hazelberry, 2026-10-28) of a crash with both mods and `ClearObstructions = true`
+did not reproduce; the reporter's log was requested. ⚠️ Co-op with Grid Lock is untested.
 
 ## Co-op: host-side destruction (v1.5.0, confirmed in-game 2026-07-03)
 
