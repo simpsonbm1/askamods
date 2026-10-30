@@ -1,6 +1,9 @@
-# Mod 11: MineRefreshMod — COMPLETE (v1.3.5 published); v1.3.6 confirmed in-game 2026-10-17
+# Mod 11: MineRefreshMod — COMPLETE (v1.3.7 published 2026-10-30)
 
 **Goal:** Safely and fully refresh/regenerate a mine, its sub-hallways, resource nodes, and item/chest spawners on-demand via a configurable hotkey.
+
+**v1.3.7 — no crash on U beside Aska Plus + Grid Lock (confirmed in-game 2026-10-30, solo)**; see
+"Grid Lock 1.2.0 is such a mod" below. ⚠️ Co-op untested.
 
 **v1.3.6 — Aska Plus load crash fixed (confirmed in-game 2026-10-17, solo, beside Aska Plus
 0.5.3.1 and eight other plugins)**
@@ -277,6 +280,18 @@ They are victims, not triggers. They crash only when something has already patch
 `Character.Spawned` twice. After v1.3.6 no mod in this repo patches `Character.Spawned`, so with
 Aska Plus present there is a single patch. A third-party mod that also patches it would bring the
 crash back.
+
+**Grid Lock 1.2.0 is such a mod.** Reproduced in-game 2026-10-30 with only Aska Plus 0.5.3, Grid
+Lock 1.2.0 and MineRefreshMod v1.3.6 loaded: pressing U closed the game. `ErrorLog.log` read
+`Fatal error. Internal CLR error. (0x80131506)` with `CompileMethodHook` above
+`MineRefreshTracker.TriggerRefresh()`. Nothing in v1.3.6 resolves `PlayerCharacter` at load, and
+`TriggerRefresh` used the `PlayerCharacter`-typed `LocalPlayer` field, so its first compile was
+the first load of the type. **Fix (v1.3.7), confirmed in-game (2026-10-30, solo, same three
+plugins):** `LocalPlayer` and `ResolveLocalPlayer` are typed `Character`; the mod names
+`PlayerCharacter` only as a native class name string. U logged `Mine successfully refreshed!
+Hallways=13, HallwaySegmentsRestored=9, ClearedCollapses=8, SpawnersRun=13` and no fatal error.
+⚠️ Co-op untested. Same mechanism as TerrainLevelerMod 1.8.2: see
+[`terrain-leveler.md`](terrain-leveler.md) → Compatibility with Grid Lock.
 
 **Load-failure reports — what the version range can rule out.** Both load-failure reports name
 this mod (not a different one), three weeks apart, with different reporters. Between v1.3.1 and

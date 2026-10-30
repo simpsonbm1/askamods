@@ -23,13 +23,16 @@ public class Plugin : BasePlugin
 
     internal static readonly System.Collections.Generic.List<Character> ActiveCharacters = new();
     internal static CavesManager? GameCavesManager;
-    internal static PlayerCharacter? LocalPlayer;
+    // Typed Character, never PlayerCharacter: with Aska Plus + Grid Lock installed (both patch
+    // Character.Spawned), compiling any method that names PlayerCharacter kills the process with
+    // an Internal CLR error. Every member used here is declared on Character.
+    internal static Character? LocalPlayer;
 
     // Finds the local player among the tracked characters: native class PlayerCharacter with
     // authority. Called when the hotkey is pressed, because authority is not yet valid in Start.
     // Managed `is PlayerCharacter` lies for wrappers materialized as Character, hence the
     // native class name.
-    internal static PlayerCharacter? ResolveLocalPlayer()
+    internal static Character? ResolveLocalPlayer()
     {
         lock (ActiveCharacters)
         {
@@ -43,7 +46,7 @@ public class Plugin : BasePlugin
                     var name = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(
                         Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_name(cls));
                     if (name == "PlayerCharacter" && c.HasAuthority)
-                        return new PlayerCharacter(b.Pointer);
+                        return c;
                 }
                 catch { }
             }
@@ -51,8 +54,8 @@ public class Plugin : BasePlugin
         return null;
     }
 
-    // The same native player is held by two wrappers (Character in ActiveCharacters,
-    // PlayerCharacter in LocalPlayer), so identity is compared by native pointer.
+    // The same native player can be held by two different wrapper objects, so identity is
+    // compared by native pointer.
     internal static bool IsLocalPlayer(Character? c)
     {
         if (c == null || LocalPlayer == null) return false;
