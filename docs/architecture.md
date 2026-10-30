@@ -177,6 +177,13 @@ of any one mod. Condensed copy lives in `CLAUDE.md`.
   too. **Workaround:** track characters from `Character.Start` and `Character.Despawned`. Find the
   local player on demand: native class name `PlayerCharacter` plus `HasAuthority`, since authority
   is not valid in `Start`. Recipe: [`docs/mods/mine-refresh.md`](mods/mine-refresh.md).
+  **Third-party mods can make the double patch with no mod of ours involved.** Grid Lock 1.2.0
+  (mugsy33.gridlock) also postfixes `Character.Spawned`. With Aska Plus + Grid Lock installed, a
+  Nexus user's game died in-world on a Bulldozer Field (TerrainLevelerMod 1.8.1, `ErrorLog.log`
+  received 2026-10-30). The crashing frame was MonoMod's JIT hook `CompileMethodHook`, compiling a
+  method that declares a `PlayerCharacter` local. So the victim need not be a plugin load: any
+  method compiled late that names `PlayerCharacter` can be it. Details:
+  [`docs/mods/terrain-leveler.md`](mods/terrain-leveler.md) → Compatibility with Grid Lock.
 - **Interface implementation is NOT statically decidable from the interop assemblies** (confirmed
   2026-07-26, controlled sweep of 37,037 types). Only 6 types declare any interface at all in the
   interop metadata, and the only recurring one is the compiler-generated `INotifyCompletion`. Cecil

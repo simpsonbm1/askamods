@@ -13,7 +13,7 @@ namespace TerrainLevelerMod
     {
         public const string PLUGIN_GUID = "com.askamods.terrainleveler";
         public const string PLUGIN_NAME = "TerrainLevelerMod";
-        public const string PLUGIN_VERSION = "1.8.2";
+        public const string PLUGIN_VERSION = "1.8.3";
 
         // Stable identity of the injected "Bulldozer Field" template. Saves reference placed
         // structures by this id, so it must NEVER change once shipped.
@@ -1580,49 +1580,50 @@ namespace TerrainLevelerMod
                 return fromRegistry;
             }
 
-            PlayerCharacter pc = null;
+            // The fallback routes reach the player through the PlayerInteractionAgent's own transform and
+            // never name PlayerCharacter. With Aska Plus + Grid Lock installed (both patch
+            // Character.Spawned), compiling any method that names PlayerCharacter kills the process
+            // with an Internal CLR error, and this method compiles on the first bulldozer blast.
+            PlayerInteractionAgent pia = null;
 
             // Route 1: the interacting agent.
             try
             {
-                var pia = agent != null ? agent.TryCast<PlayerInteractionAgent>() : null;
-                if (pia != null) pc = pia.GetCharacter();
-                else if (diag) ModLogger.LogInfo($"[Bomb] agent is not a PlayerInteractionAgent (agent null? {agent == null})");
+                pia = agent != null ? agent.TryCast<PlayerInteractionAgent>() : null;
+                if (pia == null && diag) ModLogger.LogInfo($"[Bomb] agent is not a PlayerInteractionAgent (agent null? {agent == null})");
             }
             catch (System.Exception e) { ModLogger.LogError($"[Bomb] agent route failed: {e}"); }
 
             // Route 2: the tool's player agent.
-            if (pc == null)
+            if (pia == null)
             {
                 try
                 {
                     HeightmapTool tool = interaction.heightmapTool;
-                    PlayerInteractionAgent pia2 = tool != null ? tool._playerAgent : null;
-                    if (pia2 != null) pc = pia2.GetCharacter();
-                    else if (diag) ModLogger.LogInfo($"[Bomb] tool._playerAgent null (tool null? {tool == null})");
+                    pia = tool != null ? tool._playerAgent : null;
+                    if (pia == null && diag) ModLogger.LogInfo($"[Bomb] tool._playerAgent null (tool null? {tool == null})");
                 }
                 catch (System.Exception e) { ModLogger.LogError($"[Bomb] tool route failed: {e}"); }
             }
 
-            if (pc == null) { if (diag) ModLogger.LogInfo("[Bomb] could not resolve PlayerCharacter"); return null; }
+            if (pia == null) { if (diag) ModLogger.LogInfo("[Bomb] could not resolve the player's interaction agent"); return null; }
 
             // SpellsManager lives somewhere under the player's root and its GameObject may be inactive,
             // so search WITH includeInactive. Cache the result — it persists for the session, so once
             // found we never have to search (and can't flake) again.
             SSSGame.Combat.SpellsManager sm = null;
-            try { sm = pc.GetComponentInChildren<SSSGame.Combat.SpellsManager>(true); } catch { }
-            if (sm == null) { try { sm = pc.GetComponentInParent<SSSGame.Combat.SpellsManager>(); } catch { } }
+            try { sm = pia.GetComponentInParent<SSSGame.Combat.SpellsManager>(); } catch { }
             if (sm == null)
             {
                 try
                 {
-                    var root = pc.transform != null ? pc.transform.root : null;
+                    var root = pia.transform != null ? pia.transform.root : null;
                     if (root != null) sm = root.GetComponentInChildren<SSSGame.Combat.SpellsManager>(true);
                 }
                 catch { }
             }
             if (sm != null) { _cachedSpellsManager = sm; if (diag) ModLogger.LogInfo($"[Bomb] resolved & cached SpellsManager '{sm.name}'"); }
-            else if (diag) ModLogger.LogInfo("[Bomb] PlayerCharacter found but no SpellsManager under it");
+            else if (diag) ModLogger.LogInfo("[Bomb] interaction agent found but no SpellsManager under its root");
             return sm;
         }
     }

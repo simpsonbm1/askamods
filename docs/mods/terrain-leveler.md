@@ -14,6 +14,8 @@ v1.1.21 — see [History](#history). **v1.5.0 co-op fix confirmed in-game (2026-
 [Water source protection](#water-source-protection-v181-confirmed-in-game-2026-09-21) below.
 **v1.8.2 grass clearing independent of `ClearObstructions` confirmed in-game (2026-10-29)** — see
 [Grass clearing](#grass-clearing-v182-confirmed-in-game-2026-10-29) below.
+**v1.8.3 no crash beside Aska Plus + Grid Lock, confirmed in-game (2026-10-30, solo)** — see
+[Compatibility with Grid Lock](#compatibility-with-grid-lock-mugsy33gridlock) below.
 
 ## The working recipe
 
@@ -212,9 +214,33 @@ the start point of any terraforming field, Bulldozer Field included, by postfixi
 `DynamicDimensionsPlacementTool._OnBuildRayChanged` and `_ValidatePlacement(bool)`. That is its
 only overlap with this mod's patches; none of its code runs during the obstruction blast.
 Confirmed in-game (2026-10-29, solo, v1.8.1, Grid Lock defaults): four Bulldozer Fields of
-different sizes over trees and rocks all cleared and flattened with no crash and no errors. A
-Nexus report (Hazelberry, 2026-10-28) of a crash with both mods and `ClearObstructions = true`
-did not reproduce; the reporter's log was requested. ⚠️ Co-op with Grid Lock is untested.
+different sizes over trees and rocks all cleared and flattened with no crash and no errors.
+⚠️ Co-op with Grid Lock is untested.
+
+**The Hazelberry crash (Nexus 2026-10-28) is the `Character.Spawned` double patch.** Grid Lock
+1.2.0 also postfixes `SSSGame.Character.Spawned` (its `CharacterSpawnPatch`, which attaches its
+tools to the local player). Aska Plus patches the same method, which makes the double patch
+recorded in architecture.md's interop gotchas. No patch of this mod is involved. The reporter's
+`ErrorLog.log` (received 2026-10-30) opens `Fatal error. Internal CLR error. (0x80131506)`. Its
+crashing frame is `DetourRuntimeNETCore30Platform.CompileMethodHook`, MonoMod's JIT hook, while
+compiling `Plugin.ResolveSpellsManager`, called from `DetonateAoEOverGrid` in the
+`TerraformingFieldInteraction.Use` postfix. `ResolveSpellsManager` declares a `PlayerCharacter`
+local, so its first compile is a first load of `PlayerCharacter`. That is why the crash needs
+`ClearObstructions = true`: only the blast calls that method. The reporter's plugins were Aska
+Plus 0.5.3, ASKA Mod Framework 0.1.8, ExtendedRoadPlan 2.0.1, TerrainLevelerMod 1.8.1, Flights of
+Fancy 1.4.0 and Grid Lock 1.2.0, in that load order.
+Reproduced on the dev desktop (2026-10-30, v1.8.2) with only Aska Plus 0.5.3, Grid Lock 1.2.0 and
+TerrainLevelerMod loaded: the first E on a Bulldozer Field closed the game, and `ErrorLog.log`
+carried the reporter's stack frame for frame. The 2026-10-29 run with the full dev plugin set did
+not crash. ⚠️ pending, INFERRED: OuthouseComposterMod, whose `PatchAll()` names
+`typeof(PlayerCharacter)`, loads before Grid Lock in that set, so `PlayerCharacter` is resolved
+while only Aska Plus has patched `Character.Spawned`.
+**Fix (v1.8.3), confirmed in-game (2026-10-30, solo):** `ResolveSpellsManager` no longer names
+`PlayerCharacter`. Its fallback reaches the `SpellsManager` from the `PlayerInteractionAgent`'s
+own transform root. Same three-plugin set: two fields bombed and flattened (`RunOnArea
+result=SUCCESS` twice), no fatal error in `ErrorLog.log`. The manager came from the `Awake`
+registry, so the rewritten fallback route did not run. ⚠️ Co-op untested. Any other mod's method
+that names `PlayerCharacter` and compiles after Grid Lock loads can still be the victim.
 
 ## Co-op: host-side destruction (v1.5.0, confirmed in-game 2026-07-03)
 
