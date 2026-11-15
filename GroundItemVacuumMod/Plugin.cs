@@ -20,6 +20,7 @@ public class Plugin : BasePlugin
     internal static ConfigFile? Cfg;
     internal static ConfigEntry<string> VacuumHotkey = null!;
     internal static ConfigEntry<bool> DryRun = null!;
+    internal static ConfigEntry<string> DryRunToggleHotkey = null!;
     internal static ConfigEntry<float> Radius = null!;
     internal static ConfigEntry<bool> VacuumEntireWorld = null!;
     internal static ConfigEntry<string> ExcludeCategories = null!;
@@ -54,6 +55,10 @@ public class Plugin : BasePlugin
         DryRun = Config.Bind(
             "General", "DryRun", true,
             "SAFE MODE. When true the hotkey only SCANS: it logs and on-screen-reports what WOULD be removed (counts by item name) and removes NOTHING. Set to false to actually delete the ground items. Leave this true until you've reviewed a scan and set your exclusions.");
+
+        DryRunToggleHotkey = Config.Bind(
+            "General", "DryRunToggleHotkey", "Shift+N",
+            "Key combination that flips DryRun on or off in-game and saves the new value to this file. Optional modifiers (Shift, Ctrl, Alt) joined to a key with '+', e.g. 'Shift+N' or 'F7'. Leave empty to disable the toggle.");
 
         Radius = Config.Bind(
             "General", "Radius", 60.0f,
@@ -105,6 +110,6 @@ public class Plugin : BasePlugin
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();
 
-        Logger.LogInfo($"GroundItemVacuumMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Hotkey='{VacuumHotkey.Value}', DryRun={DryRun.Value}, Radius={Radius.Value}m, EntireWorld={VacuumEntireWorld.Value}, AutoMinutes={AutoVacuumMinutes.Value}");
+        Logger.LogInfo($"GroundItemVacuumMod v{MyPluginInfo.PLUGIN_VERSION} loaded. Hotkey='{VacuumHotkey.Value}', DryRunToggle='{DryRunToggleHotkey.Value}', DryRun={DryRun.Value}, Radius={Radius.Value}m, EntireWorld={VacuumEntireWorld.Value}, AutoMinutes={AutoVacuumMinutes.Value}");
     }
 }

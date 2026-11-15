@@ -13,6 +13,12 @@ public class VacuumTracker : MonoBehaviour
 {
     private KeyCode _key = KeyCode.N;
     private string _keyRaw = "";
+    // v1.13.0: DryRun toggle combo (DryRunToggleHotkey). Modifiers must match EXACTLY, so the
+    // default Shift+N never fires on plain N and plain N's sweep is suppressed on the toggle frame.
+    private KeyCode _toggleKey = KeyCode.N;
+    private bool _toggleShift = true, _toggleCtrl, _toggleAlt;
+    private bool _toggleEnabled = true;
+    private string? _toggleRaw;
     private string _guiMessage = "";
     private float _guiExpiry = 0f;
     private float _autoTimer = 0f;
@@ -73,6 +79,77 @@ public class VacuumTracker : MonoBehaviour
     private void Start()
     {
         ApplyHotkey();
+        ApplyToggleHotkey();
+    }
+
+    // Parses DryRunToggleHotkey ("Shift+N", "Ctrl+Alt+F7", "F7"; empty = disabled). No-op unless
+    // the raw string changed. An unparseable value keeps the previous binding.
+    private void ApplyToggleHotkey()
+    {
+        string raw = Plugin.DryRunToggleHotkey.Value ?? "";
+        if (raw == _toggleRaw) return;
+        _toggleRaw = raw;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            _toggleEnabled = false;
+            Plugin.Logger.LogInfo("[Vacuum] DryRun toggle hotkey disabled (empty).");
+            return;
+        }
+
+        bool shift = false, ctrl = false, alt = false;
+        KeyCode? key = null;
+        bool ok = true;
+        foreach (var partRaw in raw.Split('+'))
+        {
+            string part = partRaw.Trim();
+            switch (part.ToLowerInvariant())
+            {
+                case "shift": shift = true; continue;
+                case "ctrl": case "control": ctrl = true; continue;
+                case "alt": alt = true; continue;
+            }
+            if (key == null && Enum.TryParse<KeyCode>(part, true, out var parsed)
+                && Enum.IsDefined(typeof(KeyCode), parsed))
+                key = parsed;
+            else
+                ok = false;
+        }
+
+        if (!ok || key == null)
+        {
+            Plugin.Logger.LogWarning($"[Vacuum] Could not parse DryRun toggle hotkey '{raw}'. Keeping the previous binding.");
+            return;
+        }
+
+        _toggleKey = key.Value;
+        _toggleShift = shift; _toggleCtrl = ctrl; _toggleAlt = alt;
+        _toggleEnabled = true;
+        Plugin.Logger.LogInfo($"[Vacuum] DryRun toggle bound to {(shift ? "Shift+" : "")}{(ctrl ? "Ctrl+" : "")}{(alt ? "Alt+" : "")}{_toggleKey}.");
+    }
+
+    private bool TogglePressedThisFrame()
+    {
+        if (!_toggleEnabled || !Input.GetKeyDown(_toggleKey)) return false;
+        bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+        return shift == _toggleShift && ctrl == _toggleCtrl && alt == _toggleAlt;
+    }
+
+    // Flips DryRun and writes it to the .cfg, so the 30 s config reload reads back the same value.
+    private void ToggleDryRun()
+    {
+        bool newVal = !Plugin.DryRun.Value;
+        Plugin.DryRun.Value = newVal;
+        try { Plugin.Cfg?.Save(); } catch (Exception ex) { Plugin.Logger.LogWarning($"[Vacuum] Config save failed: {ex.Message}"); }
+        Plugin.Logger.LogInfo($"[Vacuum] DryRun toggled to {newVal} by hotkey.");
+        if (newVal)
+            ShowMessage("Vacuum DryRun ON: sweeps only scan, nothing is removed.");
+        else if (Plugin.VacuumEntireWorld.Value)
+            ShowMessage("Vacuum DryRun OFF: sweeps now REMOVE items across the WHOLE MAP.");
+        else
+            ShowMessage("Vacuum DryRun OFF: sweeps now REMOVE items.");
     }
 
     // Re-binds _key from config. No-op unless the raw config string changed, so it's safe to
@@ -102,9 +179,19 @@ public class VacuumTracker : MonoBehaviour
             _cfgReloadTimer = 0f;
             try { Plugin.Cfg?.Reload(); } catch { }
             ApplyHotkey();
+            ApplyToggleHotkey();
         }
 
-        if (!IsTextInputFocused() && Input.GetKeyDown(_key))
+        bool textFocused = IsTextInputFocused();
+        bool toggled = false;
+        if (!textFocused && TogglePressedThisFrame())
+        {
+            toggled = true;
+            try { ToggleDryRun(); }
+            catch (Exception ex) { Plugin.Logger.LogError($"[Vacuum] DryRun toggle error: {ex}"); }
+        }
+
+        if (!toggled && !textFocused && Input.GetKeyDown(_key))
         {
             try { Sweep(auto: false); }
             catch (Exception ex)

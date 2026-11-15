@@ -340,6 +340,13 @@ touching the game's list pointers.
   (default true), `AutoVacuumMinutes` (default `0` = off), `Diagnostics` (default **false** since
   v1.1.3 — shipped), `TraceEachItem` (default **false** since v1.1.3 — only enable when
   investigating a crash; the last logged line pinpoints the failing item/step).
+- `General/DryRunToggleHotkey` (v1.13.0, default `Shift+N`, idea from a Nexus commenter
+  2026-11-15): flips `DryRun` in-game, writes the new value to the cfg (so it survives restarts
+  and the 30 s reload agrees with it), and shows an on-screen message naming the new state.
+  Format is optional `Shift`/`Ctrl`/`Alt` modifiers joined to a KeyCode with `+`; empty disables
+  it. Modifiers must match exactly, so plain `N` still sweeps and `Shift+N` only toggles.
+  Confirmed in-game 2026-11-15 (solo, whole-map mode): toggled both ways, scanned when on,
+  removed when off, and the new value was written to the cfg.
 - `General/VacuumEntireWorld` (v1.3.0 scan, v1.4.0 removal, v1.6.0 filter logic, v1.7.0
   dropped-item filter): when true, a sweep walks the whole map's item DATA layer instead of only
   items spawned near the player. Filters records with the same
@@ -439,3 +446,5 @@ touching the game's list pointers.
 - **v1.12.1** (build-verified, ⚠️ the branch it fixes has never been exercised): the data-layer
   creature probes swallowed their exceptions, so an unresolvable record was classified as
   deletable clutter. They now mark the answer undetermined, which spares it.
+- **v1.13.0** (confirmed in-game 2026-11-15, solo): `DryRunToggleHotkey` (default `Shift+N`)
+  flips `DryRun` in-game and saves it to the cfg. Suggested by a Nexus commenter.
