@@ -22,7 +22,10 @@ public class VacuumTracker : MonoBehaviour
     private string _guiMessage = "";
     private float _guiExpiry = 0f;
     private float _autoTimer = 0f;
-    private float _cfgReloadTimer = 0f;
+    // v1.13.1: the cfg is re-read when its last-write time changes, checked once a second
+    // (was a blind Reload every 30 s, which players read as "live reload doesn't work").
+    private float _cfgCheckTimer = 0f;
+    private DateTime _cfgStamp = DateTime.MinValue;
 
     private sealed class Candidate
     {
@@ -78,6 +81,29 @@ public class VacuumTracker : MonoBehaviour
 
     private void Start()
     {
+        _cfgStamp = ReadCfgStamp();
+        ApplyHotkey();
+        ApplyToggleHotkey();
+    }
+
+    private static DateTime ReadCfgStamp()
+    {
+        try
+        {
+            string? path = Plugin.Cfg?.ConfigFilePath;
+            return path != null && System.IO.File.Exists(path)
+                ? System.IO.File.GetLastWriteTimeUtc(path)
+                : DateTime.MinValue;
+        }
+        catch { return DateTime.MinValue; }
+    }
+
+    // Re-reads the cfg and re-applies the two cached key bindings. The stamp is taken AFTER the
+    // reload, because Reload can itself save the file when a value changes.
+    private void ReloadConfig()
+    {
+        try { Plugin.Cfg?.Reload(); } catch { }
+        _cfgStamp = ReadCfgStamp();
         ApplyHotkey();
         ApplyToggleHotkey();
     }
@@ -137,12 +163,24 @@ public class VacuumTracker : MonoBehaviour
         return shift == _toggleShift && ctrl == _toggleCtrl && alt == _toggleAlt;
     }
 
-    // Flips DryRun and writes it to the .cfg, so the 30 s config reload reads back the same value.
+    // Flips DryRun and writes it to the .cfg. v1.13.1: re-reads the file FIRST. Save() writes
+    // every in-memory value, so without the reload an edit not yet picked up (a new key binding,
+    // say) was overwritten with the old value and lost until a restart.
     private void ToggleDryRun()
     {
+        string? bindingBefore = _toggleRaw;
+        ReloadConfig();
+        if (_toggleRaw != bindingBefore)
+        {
+            // The edit just read rebound the toggle, so the key pressed is no longer the toggle.
+            Plugin.Logger.LogInfo("[Vacuum] DryRun toggle rebound by a config edit; this press ignored.");
+            return;
+        }
+
         bool newVal = !Plugin.DryRun.Value;
         Plugin.DryRun.Value = newVal;
         try { Plugin.Cfg?.Save(); } catch (Exception ex) { Plugin.Logger.LogWarning($"[Vacuum] Config save failed: {ex.Message}"); }
+        _cfgStamp = ReadCfgStamp();
         Plugin.Logger.LogInfo($"[Vacuum] DryRun toggled to {newVal} by hotkey.");
         if (newVal)
             ShowMessage("Vacuum DryRun ON: sweeps only scan, nothing is removed.");
@@ -168,18 +206,17 @@ public class VacuumTracker : MonoBehaviour
 
     private void Update()
     {
-        // Live config pickup: BepInEx does NOT re-read an edited cfg on its own — reload it
-        // periodically so DryRun/filters/radius/hotkey can be changed mid-session without a
-        // relaunch (SeedScout pattern). Every other setting is already read fresh at sweep time,
-        // so the hotkey is the only value that needs explicit re-application. Slowed to 30s (perf-
-        // diagnostic round) — hotkey rebinding now picks up within 30s instead of 5s.
-        _cfgReloadTimer += Time.deltaTime;
-        if (_cfgReloadTimer >= 30f)
+        // Live config pickup: BepInEx does NOT re-read an edited cfg on its own. Once a second,
+        // compare the file's last-write time and reload only when it changed, so an edit applies
+        // within about a second while an untouched file costs one timestamp read. Every other
+        // setting is read fresh at sweep time, so the two key bindings are the only values that
+        // need explicit re-application (done inside ReloadConfig).
+        _cfgCheckTimer += Time.deltaTime;
+        if (_cfgCheckTimer >= 1f)
         {
-            _cfgReloadTimer = 0f;
-            try { Plugin.Cfg?.Reload(); } catch { }
-            ApplyHotkey();
-            ApplyToggleHotkey();
+            _cfgCheckTimer = 0f;
+            if (ReadCfgStamp() != _cfgStamp)
+                ReloadConfig();
         }
 
         bool textFocused = IsTextInputFocused();

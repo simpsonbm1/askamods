@@ -46,11 +46,17 @@ minor ~2-frame hitch on ~1165 removals, no crash.
   call `RemoveObjectFromWorld()` on each.
 - **Host-gated** real removal (`NetworkObject.Runner.IsServer/IsSharedModeMasterClient`); DryRun
   scan allowed for anyone (read-only). Cyan OnGUI HUD summary. Optional `AutoVacuumMinutes` timer.
-- **Live config hot-reload** (every 30 s): `VacuumTracker.Update()` calls `Plugin.Cfg?.Reload()` —
-  BepInEx does NOT re-read an edited config on its own. All sweep settings are read fresh from
-  `.Value` at sweep time; the hotkey (the only once-cached value) re-binds via `ApplyHotkey()`
-  after each reload, logging `[Vacuum] Hotkey bound to <key>` when it changes. Confirmed in-game
-  2026-07-08 (hotkey + DryRun flipped live without a relaunch).
+- **Live config hot-reload** (v1.13.1): once a second `VacuumTracker.Update()` compares the cfg's
+  last-write time and calls `Plugin.Cfg?.Reload()` only when it changed, so an edit applies
+  within about a second. BepInEx does NOT re-read an edited config on its own. All sweep settings
+  are read fresh from `.Value` at sweep time; the two key bindings (the only cached values)
+  re-bind after each reload, logging `[Vacuum] Hotkey bound to <key>` / `DryRun toggle bound to
+  <combo>` when they change. Live rebinding confirmed in-game 2026-07-08 on the older blind-reload
+  timer. ⚠️ The timestamp trigger is pending in-game.
+- **The DryRun toggle reloads before it saves.** `Save()` writes every in-memory value, so saving
+  without a reload overwrote any edit not yet picked up (a new key binding, for one) and lost it
+  until a restart. 1.13.0 had this defect; Hazelberry reported a rebind needing a restart on
+  Nexus 2026-11-15. If the reload rebinds the toggle itself, that press is ignored.
 - **Typing guard** (confirmed in-game 2026-07-10): the hotkey is ignored while a game text field
   (structure rename, etc.) is focused.
 
@@ -332,7 +338,7 @@ cache/read per-world native wrappers that may be gone"* and *"maintain your own 
 patches over ephemeral components."* The OnEnable/OnDisable own-set approach fixes it by never
 touching the game's list pointers.
 
-## Config (`com.askamods.grounditemvacuum.cfg`, hot-reloaded every 30 s)
+## Config (`com.askamods.grounditemvacuum.cfg`, hot-reloaded within about 1 s of an edit)
 
 - `General/VacuumHotkey` (default `n` — `v` conflicted with the emote wheel), `DryRun` (default
   **true** — scan-only until configured; deliberate safety default, leave until exclusions are
@@ -341,8 +347,8 @@ touching the game's list pointers.
   v1.1.3 — shipped), `TraceEachItem` (default **false** since v1.1.3 — only enable when
   investigating a crash; the last logged line pinpoints the failing item/step).
 - `General/DryRunToggleHotkey` (v1.13.0, default `Shift+N`, idea from a Nexus commenter
-  2026-11-15): flips `DryRun` in-game, writes the new value to the cfg (so it survives restarts
-  and the 30 s reload agrees with it), and shows an on-screen message naming the new state.
+  2026-11-15): flips `DryRun` in-game, writes the new value to the cfg (so it survives restarts),
+  and shows an on-screen message naming the new state.
   Format is optional `Shift`/`Ctrl`/`Alt` modifiers joined to a KeyCode with `+`; empty disables
   it. Modifiers must match exactly, so plain `N` still sweeps and `Shift+N` only toggles.
   Confirmed in-game 2026-11-15 (solo, whole-map mode): toggled both ways, scanned when on,
@@ -448,3 +454,7 @@ touching the game's list pointers.
   deletable clutter. They now mark the answer undetermined, which spares it.
 - **v1.13.0** (confirmed in-game 2026-11-15, solo): `DryRunToggleHotkey` (default `Shift+N`)
   flips `DryRun` in-game and saves it to the cfg. Suggested by a Nexus commenter.
+- **v1.13.1** (build-verified, ⚠️ pending in-game; the user chose to ship it untested
+  2026-11-16): config edits apply within about a second
+  (last-write-time check) instead of on a 30 s timer, and the DryRun toggle re-reads the cfg
+  before saving so it can no longer overwrite an unread edit.

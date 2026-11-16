@@ -313,7 +313,7 @@ askamods/
   ZeroTaskWorkersMod/        ← Mod 18: newly assigned workers inherit zero tasks [COMPLETE v1.1.0 — docs/mods/zero-task-workers.md]
   GroundItemVacuumMod/       ← Mod 19: hotkey/auto vacuum for loose ground items, plus a
                                 whole-map item-DATA-layer sweep (VacuumEntireWorld) [COMPLETE
-                                v1.13.0; whole-map mode published on Nexus 2026-08-10 at 1.12.1,
+                                v1.13.1; whole-map mode published on Nexus 2026-08-10 at 1.12.1,
                                 replacing 1.9.2 which deleted draugar alive and
                                 dead. Fixed by the v1.11.0/v1.12.0 creature guard, confirmed
                                 in-game 2026-08-10: creatures can carry DynamicItemObject, so
